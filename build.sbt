@@ -1,7 +1,7 @@
 lazy val baseName  = "SoundProcesses"
 lazy val baseNameL = baseName.toLowerCase
 
-lazy val projectVersion = "3.5.2-SNAPSHOT"
+lazy val projectVersion = "3.5.2"
 
 lazy val commonSettings = Seq(
   version            := projectVersion,
@@ -29,7 +29,7 @@ lazy val scalaColliderSwingVersion = "1.29.0"
 lazy val scalaTestVersion          = "2.2.6"
 lazy val loggingEnabled            = true
 lazy val bdb                       = "bdb"  // either "bdb" or "bdb6"
-lazy val scoptVersion              = "3.4.0"
+lazy val scoptVersion              = "3.5.0"
 
 scalacOptions in ThisBuild ++= {
   // "-Xlint" -- produces problems with implicit objects and traits in package object

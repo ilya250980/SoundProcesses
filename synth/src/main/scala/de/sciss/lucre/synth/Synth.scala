@@ -72,7 +72,7 @@ object Synth {
   private def create(df: SynthDef)(implicit tx: Txn): Synth = {
     val server  = df.server
     val nodeID  = server.nextNodeID()
-    new Impl(SSynth(server.peer, nodeID), df)
+    Impl(SSynth(server.peer, nodeID), df)
   }
 }
 

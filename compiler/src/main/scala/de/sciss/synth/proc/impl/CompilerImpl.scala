@@ -54,7 +54,7 @@ object CompilerImpl {
       run.compile(List(f.getPath))
       f.delete()
 
-      if (compiler.reporter.hasErrors) throw new Code.CompilationFailed()
+      if (compiler.reporter.hasErrors) throw Code.CompilationFailed()
 
       // NB -- we could eventually use Scala-version specific sources in sbt
       val d0    = intp.virtualDirectory // method deprecated in Scala 2.11, but necessary for Scala 2.10

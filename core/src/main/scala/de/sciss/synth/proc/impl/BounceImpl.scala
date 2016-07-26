@@ -59,9 +59,9 @@ final class BounceImpl[S <: Sys[S], I <: stm.Sys[I]](implicit cursor: stm.Cursor
     private val needsDummyOut = !realtime && !hasOutputs  // scsynth doesn't allow this. must have 1 dummy channel
     private val needsOutFile  = config.server.nrtOutputPath.isEmpty && hasOutputs // we need to generate
 
-    private var oscFile     : File = null
-    private var outFile     : File = null
-    private var aural: AuralSystem = null
+    private var oscFile     : File = _
+    private var outFile     : File = _
+    private var aural: AuralSystem = _
 
     private def resultFile = if (needsOutFile) outFile else new File(config.server.nrtOutputPath)
 

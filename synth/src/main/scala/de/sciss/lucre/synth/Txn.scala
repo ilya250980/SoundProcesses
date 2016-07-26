@@ -11,15 +11,15 @@
  *  contact@sciss.de
  */
 
-package de.sciss.lucre
-package synth
+package de.sciss.lucre.synth
 
-import collection.immutable.{IndexedSeq => Vec}
-import scala.concurrent.stm.InTxn
-import de.sciss.osc
-import de.sciss.lucre.synth.impl.TxnPlainImpl
-import de.sciss.synth.message
 import de.sciss.lucre.stm.TxnLike
+import de.sciss.lucre.synth.impl.TxnPlainImpl
+import de.sciss.osc
+import de.sciss.synth.message
+
+import scala.collection.immutable.{IndexedSeq => Vec}
+import scala.concurrent.stm.InTxn
 
 object Txn {
   def wrap(itx: InTxn): Txn = new TxnPlainImpl(itx)

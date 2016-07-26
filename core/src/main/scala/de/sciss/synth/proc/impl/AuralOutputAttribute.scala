@@ -11,15 +11,14 @@
  *  contact@sciss.de
  */
 
-package de.sciss.synth.proc.impl
+package de.sciss.synth.proc
+package impl
 
 import de.sciss.lucre.stm
 import de.sciss.lucre.stm.{Disposable, TxnLike}
 import de.sciss.lucre.synth.Sys
 import de.sciss.synth.proc.AuralAttribute.{Factory, Observer, Target}
-import de.sciss.synth.proc.AuxContext
 import de.sciss.synth.proc.AuralView.{Playing, Prepared, Stopped}
-import de.sciss.synth.proc.{AuralAttribute, AuralContext, AuralOutput, Output, TimeRef}
 
 import scala.concurrent.stm.Ref
 

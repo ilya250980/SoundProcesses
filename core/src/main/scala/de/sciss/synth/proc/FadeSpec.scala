@@ -11,17 +11,16 @@
  *  contact@sciss.de
  */
 
-package de.sciss
-package synth
-package proc
+package de.sciss.synth.proc
 
 import de.sciss.lucre.event.{Pull, Targets}
-import de.sciss.lucre.expr.{DoubleObj, Expr => _Expr, LongObj, Type}
-import de.sciss.lucre.stm.{Elem, Sys, Copy}
+import de.sciss.lucre.expr.{DoubleObj, LongObj, Type, Expr => _Expr}
+import de.sciss.lucre.stm.{Copy, Elem, Sys}
 import de.sciss.lucre.{expr, stm}
 import de.sciss.serial.{DataInput, DataOutput, ImmutableSerializer}
+import de.sciss.synth.Curve
 import de.sciss.synth.Curve.linear
-import de.sciss.{model => m}
+import de.sciss.{lucre, model => m}
 
 object FadeSpec {
   final val typeID = 14

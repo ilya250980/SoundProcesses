@@ -82,8 +82,8 @@ object AuralAttribute {
   // ---- Value ----
 
   object Value {
-    implicit def fromFloat (value : Float     ): ScalarValue  = new ScalarValue (value )
-    implicit def fromFloats(values: Vec[Float]): ScalarVector = new ScalarVector(values)
+    implicit def fromFloat (value : Float     ): ScalarValue  = ScalarValue (value )
+    implicit def fromFloats(values: Vec[Float]): ScalarVector = ScalarVector(values)
   }
   sealed trait Value { def isScalar: Boolean }
   /** Value for which a no synth is needed, but only a scalar value

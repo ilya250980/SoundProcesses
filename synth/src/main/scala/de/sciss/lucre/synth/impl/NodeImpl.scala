@@ -22,7 +22,7 @@ import scala.collection.immutable.{IndexedSeq => Vec}
 import scala.concurrent.stm.{InTxn, Ref, TxnExecutor}
 
 object NodeImpl {
-  private val EmptyOnEnd = new OnEnd(Vector.empty, Vector.empty)
+  private val EmptyOnEnd: OnEnd = OnEnd(Vector.empty, Vector.empty)
 
   private final case class OnEnd(direct: Vec[() => Unit], inTxn: Vec[Txn => Unit]) {
     def nonEmpty = direct.nonEmpty || inTxn.nonEmpty

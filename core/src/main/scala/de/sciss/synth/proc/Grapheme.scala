@@ -11,9 +11,7 @@
  *  contact@sciss.de
  */
 
-package de.sciss
-package synth
-package proc
+package de.sciss.synth.proc
 
 import de.sciss.lucre.bitemp.BiPin
 import de.sciss.lucre.stm.{Obj, Sys}

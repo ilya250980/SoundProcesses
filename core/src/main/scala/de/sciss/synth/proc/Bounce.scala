@@ -75,7 +75,7 @@ object Bounce {
     def server: Server.Config
   }
   final class ConfigBuilder[S <: Sys[S]] private[Bounce] () extends ConfigLike[S] {
-    private var _group: GroupH[S] = null
+    private var _group: GroupH[S] = _
     def group: GroupH[S] = {
       if (_group == null) throw new IllegalStateException("A group has not yet been assigned")
       _group

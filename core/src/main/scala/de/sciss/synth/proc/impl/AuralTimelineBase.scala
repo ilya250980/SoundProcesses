@@ -73,7 +73,7 @@ trait AuralTimelineBase[S <: Sys[S], I <: stm.Sys[I], Target, Elem <: AuralView[
   protected type ElemHandle = AuralTimelineBase.ElemHandle[S, Elem]
 
   private def ElemHandle(idH: stm.Source[S#Tx, S#ID], span: SpanLike, view: Elem): ElemHandle =
-    new AuralTimelineBase.ElemHandle(idH, span, view)
+    AuralTimelineBase.ElemHandle(idH, span, view)
 
   protected def elemFromHandle(h: ElemHandle): Elem = h.view
 

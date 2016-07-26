@@ -11,13 +11,13 @@
  *  contact@sciss.de
  */
 
-package de.sciss.synth
-package proc
+package de.sciss.synth.proc
 
 import de.sciss.lucre.event.Publisher
 import de.sciss.lucre.stm.{Obj, Sys}
 import de.sciss.model
 import de.sciss.serial.{DataInput, Serializer}
+import de.sciss.synth.SynthGraph
 import de.sciss.synth.proc.impl.{ProcImpl => Impl}
 
 import scala.collection.immutable.{IndexedSeq => Vec}

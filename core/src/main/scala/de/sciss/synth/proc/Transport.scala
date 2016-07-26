@@ -11,8 +11,7 @@
  *  contact@sciss.de
  */
 
-package de.sciss.synth
-package proc
+package de.sciss.synth.proc
 
 import de.sciss.lucre.event.Observable
 import de.sciss.lucre.stm.{Cursor, Disposable, Obj, Sys}

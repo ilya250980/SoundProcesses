@@ -98,7 +98,7 @@ object Buffer {
                     (implicit tx: Txn): BufferImpl = {
     val id    = server.allocBuffer()
     val peer  = SBuffer(server.peer, id)
-    new BufferImpl(server, peer)(numFrames = numFrames, numChannels = numChannels, closeOnDisposal = closeOnDisposal)
+    BufferImpl(server, peer)(numFrames = numFrames, numChannels = numChannels, closeOnDisposal = closeOnDisposal)
   }
 
   trait Modifiable extends Buffer {

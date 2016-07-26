@@ -28,8 +28,8 @@ import scala.concurrent.stm.{Ref, TMap}
 import scala.concurrent.{ExecutionContext, Future, Promise}
 
 object ServerImpl {
-  def apply  (peer: SServer): Server          = new OnlineImpl (peer)
-  def offline(peer: SServer): Server.Offline  = new OfflineImpl(peer)
+  def apply  (peer: SServer): Server          = OnlineImpl (peer)
+  def offline(peer: SServer): Server.Offline  = OfflineImpl(peer)
 
   /** If `true`, checks against bundle size overflow (64K) and prints the bundle before crashing. */
   var VERIFY_BUNDLE_SIZE  = true

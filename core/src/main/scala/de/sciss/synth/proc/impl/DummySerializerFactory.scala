@@ -11,7 +11,8 @@
  *  contact@sciss.de
  */
 
-package de.sciss.synth.proc.impl
+package de.sciss.synth.proc
+package impl
 
 import de.sciss.lucre.stm
 import de.sciss.serial.{DataOutput, DataInput, Serializer}

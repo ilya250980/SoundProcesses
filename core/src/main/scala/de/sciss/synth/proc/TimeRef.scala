@@ -98,7 +98,7 @@ object TimeRef {
   }
 }
 
-final case class TimeRef(span: Span.HasStart, val offset: Long) extends TimeRef.Option {
+final case class TimeRef(span: Span.HasStart, offset: Long) extends TimeRef.Option {
 
   def frame : Long = offset + span.start
 

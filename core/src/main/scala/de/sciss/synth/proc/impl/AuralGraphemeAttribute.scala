@@ -16,9 +16,8 @@ package impl
 
 import de.sciss.lucre.data.SkipList
 import de.sciss.lucre.stm
-import de.sciss.lucre.stm.{IdentifierMap, Obj, TxnLike}
+import de.sciss.lucre.stm.{Obj, TxnLike}
 import de.sciss.lucre.synth.Sys
-import de.sciss.span.SpanLike
 import de.sciss.synth.proc.AuralAttribute.{Factory, Observer}
 
 import scala.annotation.tailrec

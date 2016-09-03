@@ -389,7 +389,7 @@ object AudioCue {
       final def read[S <: Sys[S]](in: DataInput, access: S#Acc, targets: Targets[S])
                                  (implicit tx: S#Tx): LongObj[S] = {
         val _1 = Obj.read(in, access)
-        new LongExtensions.Tuple1(targets, this, _1)
+        new LongExtensions.Tuple1[S, AudioCue, Obj](targets, this, _1)
       }
     }
 
@@ -416,7 +416,7 @@ object AudioCue {
   *
   * @param artifact   the audio file
   * @param spec       the audio file spec, carrying information about duration, sample rate, number of channels
-  * @param offset     an offset into the file, ''using `TimeRef.SampleRate` as its base`''
+  * @param offset     an offset into the file, ''using `TimeRef.SampleRate` as its base''
   * @param gain       a linear gain factor
   */
 final case class AudioCue(artifact: Artifact.Value, spec: AudioFileSpec, offset: Long, gain: Double) {

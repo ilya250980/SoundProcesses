@@ -30,7 +30,7 @@ import de.sciss.synth.proc.AuralView.{Playing, Prepared, Preparing, Stopped}
 import de.sciss.synth.proc.Implicits._
 import de.sciss.synth.proc.TimeRef.SampleRate
 import de.sciss.synth.proc.UGenGraphBuilder.{Complete, Incomplete, MissingIn}
-import de.sciss.synth.proc.graph.impl.ActionResponder
+import de.sciss.synth.proc.graph.impl.{ActionResponder, StopSelfResponder}
 import de.sciss.synth.proc.{UGenGraphBuilder => UGB, logAural => logA}
 
 import scala.concurrent.Future
@@ -46,7 +46,7 @@ object AuralProcImpl {
     extends AuralObj.Proc[S]
     with UGB.Context[S]
     with AuralAttribute.Observer[S]
-    with ObservableImpl[S, AuralView.State] {
+    with ObservableImpl[S, AuralView.State] { impl =>
 
     import TxnLike.peer
     import context.{scheduler => sched}
@@ -418,8 +418,10 @@ object AuralProcImpl {
         val async = (numCh * numFr) > UGB.Input.Buffer.AsyncThreshold   // XXX TODO - that threshold should be configurable
         UGB.Input.Buffer.Value(numFrames = numFr, numChannels = numCh, async = async)
 
-      case i: UGB.Input.Action  => UGB.Input.Action .Value
-      case i: UGB.Input.DiskOut => UGB.Input.DiskOut.Value(i.numChannels)
+      case i: UGB.Input.BufferOut => UGB.Unit
+      case    UGB.Input.StopSelf  => UGB.Unit
+      case i: UGB.Input.Action    => UGB.Input.Action .Value
+      case i: UGB.Input.DiskOut   => UGB.Input.DiskOut.Value(i.numChannels)
 
       case _ => throw new IllegalStateException(s"Unsupported input request $in")
     }
@@ -645,6 +647,35 @@ object AuralProcImpl {
                                 (implicit tx: S#Tx): Unit = keyW match {
       case UGB.AttributeKey(key) =>
         buildAttrInput(nr, timeRef, key, value)
+
+      case UGB.Input.BufferOut(artifactKey, actionKey, numFrames, numChannels) =>
+        val attr    = procCached().attr
+        val art     = attr.$[Artifact](artifactKey).getOrElse {
+          sys.error(s"Missing attribute $artifactKey for buffer-out artifact")
+        }
+        val artV    = art.value
+//        val act     = attr.$[Action](actionKey).getOrElse {
+//          sys.error(s"Missing attribute $actionKey for buffer-out action")
+//        }
+        val rb      = Buffer(server)(numFrames = numFrames, numChannels = numChannels)
+        val ctlName = graph.BufferOut.controlName(artifact = artifactKey, action = actionKey)
+        nr.addControl(ctlName -> rb.id)
+        val late = Buffer.writeWithNode(rb, nr, artV) {
+          cursor.step { implicit tx =>
+            rb.dispose()
+            val invoker = procCached()
+            invoker.attr.$[Action](actionKey).foreach { action =>
+              val universe = Action.Universe(action, context.workspaceHandle,
+                invoker = Some(invoker) /* , values = values */)
+              action.execute(universe)
+            }
+          }
+        } (SoundProcesses.executionContext)
+        nr.addResource(late)
+
+      case UGB.Input.StopSelf =>
+        val resp = new StopSelfResponder[S](view = impl, synth = nr.node)
+        nr.addUser(resp)
 
       case _ =>
         throw new IllegalStateException(s"Unsupported input request $keyW")

@@ -28,7 +28,7 @@ object AuralView {
 /** A trait that provides a shared structure for `AuralObj` and `AuralAttribute`,
   * the only difference being the `Target` context type needed for issuing a play.
   */
-trait AuralView[S <: Sys[S], Target] extends Observable[S#Tx, AuralView.State] with Disposable[S#Tx] {
+trait AuralView[S <: Sys[S], -Target] extends Observable[S#Tx, AuralView.State] with Disposable[S#Tx] {
   def typeID: Int
 
   /** The view must store a handle to its underlying model. */

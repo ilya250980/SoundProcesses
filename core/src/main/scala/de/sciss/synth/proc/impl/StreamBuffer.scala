@@ -14,12 +14,12 @@
 package de.sciss.synth.proc
 package impl
 
-import de.sciss.{synth, osc}
-import scala.annotation.{tailrec, switch}
-import de.sciss.lucre.synth.{DynamicUser, Node, Synth, Txn, Buffer}
+import de.sciss.lucre.synth.{Buffer, Node, Txn}
 import de.sciss.synth.GE
+import de.sciss.synth.proc.graph.impl.SendReplyResponder
+import de.sciss.{osc, synth}
 
-import scala.concurrent.stm.Ref
+import scala.annotation.{switch, tailrec}
 
 object StreamBuffer {
   def padSize(interp: Int): Int = (interp: @switch) match {
@@ -78,23 +78,24 @@ object StreamBuffer {
  * @param resetFrame  when looping, the reset frame position into the file after each loop begins.
   *                   this should be less than or equal to `startFrame`
  */
-final class StreamBuffer(key: String, idx: Int, synth: Node, buf: Buffer.Modifiable, path: String, fileFrames: Long,
+final class StreamBuffer(key: String, idx: Int, protected val synth: Node,
+                         buf: Buffer.Modifiable, path: String, fileFrames: Long,
                          interp: Int, startFrame: Long, loop: Boolean, resetFrame: Long)
-  extends DynamicUser {
+  extends SendReplyResponder {
 
-  // for binary compatibility
-  def this(key: String, idx: Int, synth: Synth, buf: Buffer.Modifiable, path: String, fileFrames: Long,
-           interp: Int) =
-    this(key = key, idx = idx, synth = synth, buf = buf, path = path, fileFrames = fileFrames, interp = interp,
-         startFrame = 0L, loop = false, resetFrame = 0L)
+  private[this] val bufSizeH  = buf.numFrames/2
+  private[this] val diskPad   = StreamBuffer.padSize(interp)
+  private[this] val bufSizeHM = bufSizeH - diskPad
+  private[this] val replyName = StreamBuffer.replyName(key)
+  private[this] val nodeID    = synth.peer.id
 
-  private val bufSizeH  = buf.numFrames/2
-  private val diskPad   = StreamBuffer.padSize(interp)
-  private val bufSizeHM = bufSizeH - diskPad
-  private val replyName = StreamBuffer.replyName(key)
-  private val nodeID    = synth.peer.id
+  protected def added()(implicit tx: Txn): Unit = {
+    // initial buffer fills. XXX TODO: fuse both reads into one
+    updateBuffer(0)
+    updateBuffer(1)
+  }
 
-  private val trigResp = de.sciss.synth.message.Responder(synth.server.peer) {
+  protected val body: Body = {
     case m @ osc.Message(`replyName`, `nodeID`, `idx`, trigValF: Float) =>
       // println(s"RECEIVED TR $trigValF...")
       // logAural(m.toString)
@@ -155,28 +156,5 @@ final class StreamBuffer(key: String, idx: Int, synth: Node, buf: Buffer.Modifia
     }
 
     loop(0)
-  }
-
-  private val added = Ref(initialValue = false)
-
-  def add()(implicit tx: Txn): Unit = if (!added.swap(true)(tx.peer)) {
-    trigResp.add()
-    // Responder.add is non-transactional. Thus, if the transaction fails, we need to remove it.
-    scala.concurrent.stm.Txn.afterRollback { _ =>
-      trigResp.remove()
-    } (tx.peer)
-
-    // synth.onEnd(trigResp.remove())
-
-    // initial buffer fills. XXX TODO: fuse both reads into one
-    updateBuffer(0)
-    updateBuffer(1)
-  }
-
-  def remove()(implicit tx: Txn): Unit = if (added.swap(false)(tx.peer)) {
-    trigResp.remove()
-    scala.concurrent.stm.Txn.afterRollback { _ =>
-      trigResp.add()
-    } (tx.peer)
   }
 }

@@ -17,13 +17,12 @@ package impl
 
 import de.sciss.lucre.stm
 import de.sciss.lucre.stm.Obj
-import de.sciss.lucre.synth.{Txn, DynamicUser, Node, Sys}
+import de.sciss.lucre.synth.{Node, Sys, Txn}
+import de.sciss.synth.{GE, proc}
 import de.sciss.{osc, synth}
-import de.sciss.synth.{proc, GE, message}
 
 import scala.collection.breakOut
 import scala.collection.immutable.{IndexedSeq => Vec}
-import scala.concurrent.stm.Ref
 
 object ActionResponder {
   // via SendReply
@@ -39,15 +38,16 @@ object ActionResponder {
 
   var DEBUG = false
 }
-class ActionResponder[S <: Sys[S]](objH: stm.Source[S#Tx, Obj[S]], key: String, synth: Node)
-                                  (implicit context: AuralContext[S])
-  extends DynamicUser {
+final class ActionResponder[S <: Sys[S]](objH: stm.Source[S#Tx, Obj[S]], key: String, protected val synth: Node)
+                                        (implicit context: AuralContext[S])
+  extends SendReplyResponder {
 
   import ActionResponder._
 
-  private val Name    = replyName(key)
-  private val NodeID  = synth.peer.id
-  private val trigResp = message.Responder(synth.server.peer) {
+  private[this] val Name    = replyName(key)
+  private[this] val NodeID  = synth.peer.id
+
+  protected val body: Body = {
     case osc.Message(Name, NodeID, 0, raw @ _*) =>
       if (DEBUG) println(s"ActionResponder($key, $NodeID) - received trigger")
       // logAural(m.toString)
@@ -59,11 +59,6 @@ class ActionResponder[S <: Sys[S]](objH: stm.Source[S#Tx, Obj[S]], key: String, 
       SoundProcesses.atomic { implicit tx: S#Tx =>
         val invoker = objH()
         invoker.attr.$[proc.Action](key).foreach { action =>
-          // for some reason we cannot pattern match for Action.Obj(action);
-          // scalac gives us
-          // "inferred type arguments [S] do not conform to method unapply type
-          // parameter bounds [S <: de.sciss.lucre.event.Sys[S]]"
-          // - WHY??
           if (DEBUG) println("...and found action")
           val universe = proc.Action.Universe(action, context.workspaceHandle,
             invoker = Some(invoker), values = values)
@@ -72,22 +67,5 @@ class ActionResponder[S <: Sys[S]](objH: stm.Source[S#Tx, Obj[S]], key: String, 
       }
   }
 
-  private val added = Ref(initialValue = false)
-
-  def add()(implicit tx: Txn): Unit = if (!added.swap(true)(tx.peer)) {
-    trigResp.add()
-    // Responder.add is non-transactional. Thus, if the transaction fails, we need to remove it.
-    scala.concurrent.stm.Txn.afterRollback { _ =>
-      trigResp.remove()
-    } (tx.peer)
-
-    // synth.onEnd(trigResp.remove())
-  }
-
-  def remove()(implicit tx: Txn): Unit = if (added.swap(false)(tx.peer)) {
-    trigResp.remove()
-    scala.concurrent.stm.Txn.afterRollback { _ =>
-      trigResp.add()
-    } (tx.peer)
-  }
+  protected def added()(implicit tx: Txn): Unit = ()
 }

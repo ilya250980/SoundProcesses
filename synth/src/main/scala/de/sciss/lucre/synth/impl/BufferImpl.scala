@@ -48,8 +48,8 @@ final case class BufferImpl(server: Server, peer: SBuffer)
   }
 
   /** Writes the buffer contents once (closes the target file). */
-  def write(path: String, fileType: AudioFileType, sampleFormat: SampleFormat, numFrames: Int = -1,
-            startFrame: Int = 0, leaveOpen: Boolean = false)(implicit tx: Txn): Unit = {
+  def write(path: String, fileType: AudioFileType, sampleFormat: SampleFormat, numFrames: Int,
+            startFrame: Int, leaveOpen: Boolean)(implicit tx: Txn): Unit = {
     requireOnline()
     if (leaveOpen != closeOnDisposal) throw new IllegalArgumentException(s"leaveOpen is $leaveOpen but should be $closeOnDisposal")
     if (startFrame < 0) throw new IllegalArgumentException(s"startFrame ($startFrame) must be >= 0")

@@ -13,10 +13,15 @@
 
 package de.sciss.lucre.synth
 
+import java.io.File
+
 import de.sciss.lucre.synth.Resource.TimeStamp
 import de.sciss.synth.{Buffer => SBuffer}
 import de.sciss.synth.io.{AudioFileType, SampleFormat}
 import de.sciss.lucre.synth.impl.BufferImpl
+import de.sciss.osc
+
+import scala.concurrent.ExecutionContext
 
 object Buffer {
   private var cueBufSz = 32768
@@ -44,9 +49,8 @@ object Buffer {
       s"Must be a power of two and in ($minSize, 131072): $value")
   }
 
-  /** Utility resource creation that defers buffer disposal until point where node has been freed. */
-  def disposeWithNode(buf: Buffer, nr: NodeRef): Resource = new Resource with Proxy {
-    override val self: Buffer = buf
+  private trait ProxyResource extends Resource with Proxy {
+    def self: Buffer
 
     def isOnline(implicit tx: Txn): Boolean = self.isOnline
 
@@ -54,10 +58,33 @@ object Buffer {
     private[synth] def timeStamp_=(value: TimeStamp)(implicit tx: Txn): Unit      = self.timeStamp = value
 
     def server: Server = self.server
+  }
+
+  /** Utility resource creation that defers buffer disposal until point where node has been freed. */
+  def disposeWithNode(buf: Buffer, nr: NodeRef): Resource = new ProxyResource {
+    val self: Buffer = buf
 
     def dispose()(implicit tx: Txn): Unit = nr.node.onEndTxn { implicit tx =>
       // println(s"disposeWithNode($buf, $nr)")
       self.dispose()
+    }
+  }
+
+  /** Writes the buffer content to a file when the node ends.
+    * The caller is responsible for eventually freeing the buffer!
+    * This is because we do not open a transaction after writing completes.
+    */
+  def writeWithNode(buf: Buffer, nr: NodeRef, artifact: File)(action: => Unit)
+                   (implicit exec: ExecutionContext): Resource = new ProxyResource {
+    val self: Buffer = buf
+
+    def dispose()(implicit tx: Txn): Unit = {
+      nr.node.onEnd {
+        val fut = self.server.!!(osc.Bundle.now(self.peer.writeMsg(path = artifact.getPath)))
+        fut.foreach { _ =>
+          action
+        }
+      }
     }
   }
 
@@ -120,4 +147,8 @@ trait Buffer extends Resource {
 
   def numChannels: Int
   def numFrames  : Int
+
+  def write(path: String, fileType: AudioFileType = AudioFileType.AIFF,
+            sampleFormat: SampleFormat = SampleFormat.Float, numFrames: Int = -1, startFrame: Int = 0,
+            leaveOpen: Boolean = false /* , completion: Optional[Packet] = None */)(implicit tx: Txn): Unit
 }

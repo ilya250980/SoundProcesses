@@ -29,7 +29,7 @@ object BufferOut {
   def apply(artifact: String, action: String, numFrames: GE, numChannels: GE = 1): BufferOut =
     kr(artifact, numFrames = numFrames, numChannels = numChannels, action = action)
 
-  /* private[proc] */ def controlName(key: String): String = s"$$buf_$key"
+  /* private[proc] */ def controlName(artifact: String, action: String): String = s"$$buf_${artifact}_$action"
 
   private def canResolve(in: GE): Boolean = in match {
     case _: Constant            => true
@@ -95,7 +95,7 @@ final case class BufferOut(rate: Rate, artifact: String, action: String, numFram
 
     b.requestInput(Input.BufferOut(artifact = artifact, action = action,
       numFrames = numFramesI, numChannels = numChannelsI))
-    val ctlName       = BufferOut.controlName(artifact)
+    val ctlName       = BufferOut.controlName(artifact = artifact, action = action)
     val ctl           = ControlProxy(rate, Vector(0f), Some(ctlName))
     ctl.expand
   }

@@ -217,11 +217,13 @@ object UGenGraphBuilder {
     /** Specifies access to an empty buffer that will be
       * written to disk when the encompassing graph finishes.
       */
-    final case class BufferOut(artifact: String, action: String, numFrames: Int, numChannels: Int) extends Input {
-      type Key    = AttributeKey
+    final case class BufferOut(artifact: String, action: String, numFrames: Int, numChannels: Int)
+      extends Input with Key {
+
+      type Key    = BufferOut
       type Value  = Unit
 
-      def key = AttributeKey(artifact)  // XXX TODO --- can we drop `action`?
+      def key = this
 
       override def productPrefix = "Input.BufferOut"
     }
@@ -243,6 +245,15 @@ object UGenGraphBuilder {
       def key = AttributeKey(name)
 
       override def productPrefix = "Input.Action"
+    }
+
+    case object StopSelf extends Input with Key {
+      type Key    = StopSelf.type
+      type Value  = Unit
+
+      def key = this
+
+      override def productPrefix = "Input.StopSelf"
     }
   }
   trait Input {

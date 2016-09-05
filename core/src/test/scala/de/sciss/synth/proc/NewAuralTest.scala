@@ -229,36 +229,54 @@ class NewAuralTest[S <: Sys[S]](name: String)(implicit cursor: stm.Cursor[S]) {
         |""".stripMargin)
 
     cursor.step { implicit tx =>
-      val proc1 = proc {
-        val in  = WhiteNoise.ar(Impulse.ar(SinOsc.ar(0.25).abs.linexp(0, 1, 5, 50)))
-        val buf = graph.BufferOut(artifact = "file", action = "done", numFrames = 88200, numChannels = 2)
-        RecordBuf.ar(in = in, buf = buf, doneAction = freeSelf)
+      val _view1 = procV {
+        val in    = WhiteNoise.ar(Impulse.ar(SinOsc.ar(0.25).abs.linexp(0, 1, 5, 50)))
+        val buf   = graph.BufferOut(artifact = "file", action = "done", numFrames = 88200, numChannels = 1)
+        val rec   = RecordBuf.ar(in = in, buf = buf, loop = 0)
+        val done  = Done.kr(rec)
+        graph.StopSelf(done)
       }
-      // val proc1H = tx.newHandle(proc1)
 
       val f     = File.createTemp("buffer", ".aif")
       val loc   = ArtifactLocation.newConst[S](f.parent)
       val art   = Artifact[S](loc, f)
 
+      val t2 = Transport[S]
+
       val body  = new Action.Body {
         def apply[T <: stm.Sys[T]](universe: Universe[T])(implicit tx: T#Tx): Unit = {
-          // val proc1 = proc1H()
           val spec = AudioFile.readSpec(f)
-          println("Done.")
           println(spec)
-          stopAndQuit(0.0)
+          val _proc2 = Proc[T]
+          val g = SynthGraph {
+            val in = graph.DiskIn.ar("file")
+            Out.ar(0, Pan2.ar(in * 0.5))
+          }
+          _proc2.graph() = SynthGraphObj.newConst[T](g)
+          val attr2 = _proc2.attr
+          val cue = AudioCue(f, spec, offset = 0L, gain = 1.0)
+          attr2.put("file", AudioCue.Obj.newConst[T](cue))
+//          val _view2T = AuralObj.Proc(_proc2)
+//          _view2T.play()
+          val t2T = t2.asInstanceOf[Transport[T]]
+          t2T.addObject(_proc2)
+          t2T.play()
+          stopAndQuit()
         }
       }
 
       Action.registerPredef("buffer-test", body)
       val action = Action.predef[S]("buffer-test")
 
-      proc1.attr.put("file", art)
-      proc1.attr.put("done", action)
+      val attr1 = _view1.obj().attr
+      attr1.put("file", art)
+      attr1.put("done", action)
 
-      val t = Transport[S]
-      t.addObject(proc1)
-      t.play()
+      _view1.play()
+
+//      val t = Transport[S]
+//      t.addObject(proc1)
+//      t.play()
     }
   }
 

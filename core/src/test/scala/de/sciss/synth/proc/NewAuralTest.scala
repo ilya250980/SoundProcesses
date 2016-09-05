@@ -85,6 +85,7 @@ class NewAuralTest[S <: Sys[S]](name: String)(implicit cursor: stm.Cursor[S]) {
       case "--test19" => test19()
       case "--test20" => test20()
       case "--test21" => test21()
+      case "--test22" => test22()
       case _         =>
         println("WARNING: No option given, using --test1")
         test1()
@@ -214,7 +215,52 @@ class NewAuralTest[S <: Sys[S]](name: String)(implicit cursor: stm.Cursor[S]) {
   }
 
   //////////////////////////////////////////////////////////////////////////////////////
-  //////////////////////////////////////////////////////////////////////////////////////
+
+  ////////////////////////////////////////////////////////////////////////////////////// 22
+
+  def test22()(implicit context: AuralContext[S]): Unit = {
+    println("----test22----")
+    println(
+      """
+        |Expected behaviour:
+        |We record two seconds of sound to a `BufferOut` element,
+        |then play back.
+        |
+        |""".stripMargin)
+
+    cursor.step { implicit tx =>
+      val proc1 = proc {
+        val in  = WhiteNoise.ar(Impulse.ar(SinOsc.ar(0.25).abs.linexp(0, 1, 5, 50)))
+        val buf = graph.BufferOut(artifact = "file", action = "done", numFrames = 88200, numChannels = 2)
+        RecordBuf.ar(in = in, buf = buf, doneAction = freeSelf)
+      }
+      // val proc1H = tx.newHandle(proc1)
+
+      val f     = File.createTemp("buffer", ".aif")
+      val loc   = ArtifactLocation.newConst[S](f.parent)
+      val art   = Artifact[S](loc, f)
+
+      val body  = new Action.Body {
+        def apply[T <: stm.Sys[T]](universe: Universe[T])(implicit tx: T#Tx): Unit = {
+          // val proc1 = proc1H()
+          val spec = AudioFile.readSpec(f)
+          println("Done.")
+          println(spec)
+          stopAndQuit(0.0)
+        }
+      }
+
+      Action.registerPredef("buffer-test", body)
+      val action = Action.predef[S]("buffer-test")
+
+      proc1.attr.put("file", art)
+      proc1.attr.put("done", action)
+
+      val t = Transport[S]
+      t.addObject(proc1)
+      t.play()
+    }
+  }
 
   ////////////////////////////////////////////////////////////////////////////////////// 21
 

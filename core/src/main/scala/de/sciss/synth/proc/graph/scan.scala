@@ -15,10 +15,11 @@ package de.sciss.synth
 package proc
 package graph
 
+import de.sciss.synth.Ops.stringToControl
 import de.sciss.synth.proc.UGenGraphBuilder.Input
-
-import collection.immutable.{IndexedSeq => Vec}
 import de.sciss.synth.ugen.UGenInGroup
+
+import scala.collection.immutable.{IndexedSeq => Vec}
 
 object ScanIn {
   /* private[proc] */ def controlName (key: String): String =
@@ -31,7 +32,7 @@ object ScanIn {
 
     final def makeUGens: UGenInLike = {
       val b = UGenGraphBuilder.get
-      val inp = Input.Attribute(
+      val inp = Input.Scalar(
         name                = key,
         requiredNumChannels = fixed,
         defaultNumChannels  = fixed /* -1 */)

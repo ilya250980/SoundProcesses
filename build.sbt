@@ -1,7 +1,7 @@
 lazy val baseName  = "SoundProcesses"
 lazy val baseNameL = baseName.toLowerCase
 
-lazy val projectVersion = "3.5.3-SNAPSHOT"
+lazy val projectVersion = "3.6.0-SNAPSHOT"
 
 lazy val commonSettings = Seq(
   version            := projectVersion,
@@ -15,7 +15,7 @@ lazy val commonSettings = Seq(
 ) ++ publishSettings
 
 lazy val lucreVersion               = "3.3.1"
-lazy val scalaColliderVersion       = "1.18.1"
+lazy val scalaColliderVersion       = "1.20.0"
 lazy val spanVersion                = "1.3.1"
 lazy val lucreSwingVersion          = "1.4.0"
 lazy val swingPlusVersion           = "0.2.1"
@@ -25,8 +25,8 @@ lazy val topologyVersion            = "1.0.0"
 
 // ---- test-only ----
 
-lazy val scalaColliderSwingVersion = "1.29.0"
-lazy val scalaTestVersion          = "2.2.6"
+lazy val scalaColliderSwingVersion = "1.30.0"
+lazy val scalaTestVersion          = "3.0.0"
 lazy val loggingEnabled            = true
 lazy val bdb                       = "bdb"  // either "bdb" or "bdb6"
 lazy val scoptVersion              = "3.5.0"

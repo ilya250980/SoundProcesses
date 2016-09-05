@@ -2,10 +2,11 @@ package de.sciss
 package synth
 package proc
 
-import ugen._
-import org.scalatest.FunSpec
 import de.sciss.serial.{DataInput, DataOutput}
 import de.sciss.synth.Curve.cubed
+import de.sciss.synth.Ops.stringToControl
+import de.sciss.synth.ugen._
+import org.scalatest.FunSpec
 
 /*
   To run only this suite:

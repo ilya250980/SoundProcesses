@@ -14,8 +14,9 @@
 package de.sciss.synth.proc
 package impl
 
-import de.sciss.lucre.synth.{ControlBus, Buffer, Synth, Resource, Txn}
-import de.sciss.synth.{addToHead, ControlSet, SynthGraph}
+import de.sciss.lucre.synth.{Buffer, ControlBus, Resource, Synth, Txn}
+import de.sciss.synth.Ops.stringToControl
+import de.sciss.synth.{ControlSet, SynthGraph, addToHead}
 
 object AudioArtifactScalarWriter {
   def apply(bus: ControlBus, audioVal: AudioCue)(implicit tx: Txn): Resource = {

@@ -16,7 +16,8 @@ package impl
 
 import java.util.concurrent.{Executors, ScheduledExecutorService}
 
-import de.sciss.synth.{ControlABusMap, ControlFillRange, ControlKBusMap, ControlSet, Optional}
+import de.sciss.optional.Optional
+import de.sciss.synth.{ControlABusMap, ControlFillRange, ControlKBusMap, ControlSet}
 
 import scala.collection.immutable.{IndexedSeq => Vec}
 import scala.concurrent.stm.{InTxn, Ref, TxnExecutor}

@@ -16,11 +16,12 @@ package graph
 
 import de.sciss.lucre.synth.Server
 import de.sciss.synth
-import de.sciss.synth.{GE, IsIndividual, Rate, UGenInLike, WritesBuffer, audio, control, scalar, ugen}
+import de.sciss.synth.Ops.stringToControl
 import de.sciss.synth.proc.UGenGraphBuilder.Input
 import de.sciss.synth.proc.graph.impl.Stream
 import de.sciss.synth.proc.impl.StreamBuffer
 import de.sciss.synth.ugen.Constant
+import de.sciss.synth.{GE, IsIndividual, Rate, UGenInLike, WritesBuffer, audio, control, scalar, ugen}
 
 // ---- ugen wrappers ----
 

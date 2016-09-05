@@ -20,6 +20,7 @@ import de.sciss.lucre.swing.{defer, deferTx}
 import de.sciss.lucre.synth.{Synth, Txn}
 import de.sciss.osc.Message
 import de.sciss.synth
+import de.sciss.synth.Ops.stringToControl
 import de.sciss.synth.{SynthGraph, message}
 
 import scala.collection.breakOut

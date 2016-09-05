@@ -18,6 +18,7 @@ import de.sciss.lucre.event.impl.ObservableImpl
 import de.sciss.lucre.stm.TxnLike
 import de.sciss.lucre.synth.{AudioBus, BusNodeSetter, DynamicUser, NodeRef, Resource, Synth, Sys, Txn}
 import de.sciss.synth
+import de.sciss.synth.Ops.stringToControl
 import de.sciss.synth.proc.AuralAttribute.{Scalar, Stream, Value}
 import de.sciss.synth.{ControlSet, SynthGraph}
 

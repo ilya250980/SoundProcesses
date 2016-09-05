@@ -15,6 +15,8 @@ package de.sciss.synth
 package proc
 package graph
 
+import de.sciss.synth.Ops.stringToControl
+
 object Time {
   private[proc] final val key = "$time"
 

@@ -22,9 +22,10 @@ import de.sciss.lucre.stm
 import de.sciss.lucre.synth.{Buffer, Server, Synth, Sys, Txn}
 import de.sciss.processor.Processor
 import de.sciss.processor.impl.ProcessorImpl
+import de.sciss.synth.Ops.stringToControl
 import de.sciss.synth.io.{AudioFileType, SampleFormat}
 import de.sciss.synth.proc.AuralView.{Playing, Prepared, Preparing, Stopped}
-import de.sciss.synth.{Server => SServer, SynthGraph, addToTail}
+import de.sciss.synth.{SynthGraph, addToTail, Server => SServer}
 import de.sciss.{osc, synth}
 
 import scala.annotation.tailrec

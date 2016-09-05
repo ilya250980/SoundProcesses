@@ -13,6 +13,7 @@
 
 package de.sciss.lucre.synth
 
+import de.sciss.optional.Optional
 import de.sciss.synth.{Node => SNode, _}
 
 trait Node extends Resource with NodeRef {

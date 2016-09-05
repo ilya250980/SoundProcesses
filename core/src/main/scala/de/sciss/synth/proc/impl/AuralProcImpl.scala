@@ -214,7 +214,7 @@ object AuralProcImpl {
       st match {
         case st0: Complete[S] =>
           acceptedOpt match {
-            case Some((_, UGB.Input.Attribute.Value(numChannels))) =>
+            case Some((_, UGB.Input.Scalar.Value(numChannels))) =>
               playingRef() match {
                 case p: PlayingNode =>
                   val nr      = p.node
@@ -371,7 +371,7 @@ object AuralProcImpl {
     /** Sub-classes may override this if invoking the super-method. */
     def requestInput[Res](in: UGB.Input { type Value = Res }, st: Incomplete[S])
                          (implicit tx: S#Tx): Res = in match {
-      case i: UGB.Input.Attribute =>
+      case i: UGB.Input.Scalar =>
         val procObj   = procCached()
         val valueOpt  = procObj.attr.get(i.name)
         val found     = valueOpt.fold(-1) { value =>
@@ -385,7 +385,7 @@ object AuralProcImpl {
           throw MissingIn(i.key)
         }
         val res = if (found >= 0) found else if (reqNum >= 0) reqNum else defNum
-        UGB.Input.Attribute.Value(res)
+        UGB.Input.Scalar.Value(res)
 
       case i: UGB.Input.Stream =>
         val value0  = requestAttrStreamValue(i.name)
@@ -471,7 +471,7 @@ object AuralProcImpl {
     def buildAttrInput(nr: NodeRef.Full[S], timeRef: TimeRef, key: String, value: UGB.Value)
                       (implicit tx: S#Tx): Unit = {
       value match {
-        case UGB.Input.Attribute.Value(numChannels) =>  // --------------------- scalar
+        case UGB.Input.Scalar.Value(numChannels) =>  // --------------------- scalar
           attrMap.get(key).foreach { a =>
             val target = AuralAttribute.Target(nr, key, Bus.audio(server, numChannels))
             a.play(timeRef = timeRef, target = target)

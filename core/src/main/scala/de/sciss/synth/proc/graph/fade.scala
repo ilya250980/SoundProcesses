@@ -15,8 +15,9 @@ package de.sciss.synth
 package proc
 package graph
 
+import de.sciss.synth.Ops.stringToControl
 import de.sciss.synth.proc.UGenGraphBuilder.Input
-import ugen._
+import de.sciss.synth.ugen._
 
 private[graph] object fade {
   abstract class Base extends GE.Lazy {
@@ -35,7 +36,7 @@ private[graph] object fade {
 
     /** Returns (dur, shape, floor) */
     final protected def readCtl(b: UGenGraphBuilder, key: String): (GE, Env.Curve, GE) = {
-      val numCh   = b.requestInput(Input.Attribute(key, requiredNumChannels = 4, defaultNumChannels = 4)).numChannels
+      val numCh   = b.requestInput(Input.Scalar(key, requiredNumChannels = 4, defaultNumChannels = 4)).numChannels
       assert (numCh == 4)
       // if (numCh != 4) throw new IllegalStateException(s"$this - requires a 4-channel attribute (found $numCh)")
       // b.addAttributeIn(key)

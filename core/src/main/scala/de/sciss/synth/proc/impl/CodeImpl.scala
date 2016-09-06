@@ -157,7 +157,8 @@ object CodeImpl {
     Code.SynthGraph.id -> Vec(
       "de.sciss.synth.{Buffer => _, _}",
       "de.sciss.synth.ugen.{DiskIn => _, VDiskIn => _, BufChannels => _, BufRateScale => _, BufSampleRate => _, _}",
-      "de.sciss.synth.proc.graph._"
+      "de.sciss.synth.proc.graph._",
+      "de.sciss.synth.proc.graph.Ops._"
     ),
     Code.Action.id -> Vec(     // what should go inside?
       "de.sciss.synth.proc._",

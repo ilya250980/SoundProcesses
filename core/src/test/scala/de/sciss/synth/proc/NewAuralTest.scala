@@ -230,10 +230,15 @@ class NewAuralTest[S <: Sys[S]](name: String)(implicit cursor: stm.Cursor[S]) {
 
     cursor.step { implicit tx =>
       val _view1 = procV {
-        val in    = WhiteNoise.ar(Impulse.ar(SinOsc.ar(0.25).abs.linexp(0, 1, 5, 50)))
-        val buf   = graph.BufferOut(artifact = "file", action = "done", numFrames = 88200, numChannels = 1)
-        val rec   = RecordBuf.ar(in = in, buf = buf, loop = 0)
-        val done  = Done.kr(rec)
+        import graph.Ops._
+        val dur       = "rec-dur".ir(8.0)
+        val indicesIn = "buses-in".ir
+        val numCh     = NumChannels(indicesIn)
+        val numFrames = dur * SampleRate.ir
+        val in        = WhiteNoise.ar(Pad(Impulse.ar(SinOsc.ar(0.25).abs.linexp(0, 1, 5, 50)), indicesIn))
+        val buf       = graph.BufferOut(artifact = "file", action = "done", numFrames = numFrames, numChannels = numCh)
+        val rec       = RecordBuf.ar(in = in, buf = buf, loop = 0)
+        val done      = Done.kr(rec)
         graph.StopSelf(done)
       }
 

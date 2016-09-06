@@ -17,7 +17,7 @@ package impl
 import de.sciss.file._
 import de.sciss.lucre.artifact.Artifact
 import de.sciss.lucre.event.impl.ObservableImpl
-import de.sciss.lucre.expr.{DoubleVector, StringObj}
+import de.sciss.lucre.expr.{DoubleVector, Expr, IntObj, StringObj}
 import de.sciss.lucre.stm
 import de.sciss.lucre.stm.{Disposable, Obj, TxnLike}
 import de.sciss.lucre.synth.{AudioBus, Buffer, Bus, BusNodeSetter, NodeRef, Server, Synth, Sys}
@@ -417,6 +417,13 @@ object AuralProcImpl {
         // larger files are asynchronously prepared, smaller ones read on the fly
         val async = (numCh * numFr) > UGB.Input.Buffer.AsyncThreshold   // XXX TODO - that threshold should be configurable
         UGB.Input.Buffer.Value(numFrames = numFr, numChannels = numCh, async = async)
+
+      case i: UGB.Input.AttrValue =>
+        val procObj = procCached()
+        val opt     = procObj.attr.get(i.name).collect {
+          case x: Expr[S, _] => x.value
+        }
+        UGB.Input.AttrValue.Value(opt)
 
       case i: UGB.Input.BufferOut => UGB.Unit
       case    UGB.Input.StopSelf  => UGB.Unit

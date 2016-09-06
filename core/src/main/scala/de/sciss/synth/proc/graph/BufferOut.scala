@@ -15,8 +15,8 @@ package de.sciss.synth
 package proc
 package graph
 
-import de.sciss.synth.proc.UGenGraphBuilder.Input
-import de.sciss.synth.ugen.{BinaryOpUGen, Constant, ControlProxy, UnaryOpUGen}
+import de.sciss.synth.proc.UGenGraphBuilder.{Input, MissingIn}
+import de.sciss.synth.ugen.ControlProxy
 
 object BufferOut {
   def ir(artifact: String, action: String, numFrames: GE, numChannels: GE = 1): BufferOut =
@@ -31,11 +31,22 @@ object BufferOut {
 
   /* private[proc] */ def controlName(artifact: String, action: String): String = s"$$buf_${artifact}_$action"
 
-  private def canResolve(in: GE): Boolean = in match {
-    case _: Constant            => true
-    case _: Attribute           => true
-    case UnaryOpUGen (_, a   )  => canResolve(a)
-    case BinaryOpUGen(_, a, b)  => canResolve(a) && canResolve(b)
+  private def canResolve(in: GE): Either[String, Unit] = {
+    import ugen._
+    in match {
+      case _: Constant            => Right(())
+      case _: Attribute           => Right(())
+      case UnaryOpUGen (_, a   )  => canResolve(a)
+      case BinaryOpUGen(_, a, b)  =>
+        for {
+          _ <- canResolve(a).right
+          _ <- canResolve(b).right
+        } yield ()
+
+      case _: SampleRate          => Right(())
+      case _: NumChannels         => Right(())
+      case _                      => Left(s"Element: $in")
+    }
   }
 
 //  private def resolveInt(in: GE, builder: UGenGraphBuilder): Int = in match {
@@ -57,16 +68,64 @@ object BufferOut {
 //      resolveFloat(in, builder).toInt
 //  }
 
-  private def resolveFloat(in: GE, builder: UGenGraphBuilder): Float = in match {
-    case Constant(f) => f
-    case a: Attribute => ???
-    case UnaryOpUGen(op, a)  =>
-      val af = resolveFloat(a, builder)
-      op.make1(af)
-    case BinaryOpUGen(op, a, b) =>
-      val af = resolveFloat(a, builder)
-      val bf = resolveFloat(a, builder)
-      op.make1(af, bf)
+  private def resolveFloat(in: GE, builder: UGenGraphBuilder): Either[String, Float] = {
+    import ugen._
+    in match {
+      case Constant(f) => Right(f)
+
+      case a: Attribute =>
+        val input = UGenGraphBuilder.Input.AttrValue(a.key)
+        val opt   = builder.requestInput(input)   .asInstanceOf[UGenGraphBuilder.Input.AttrValue.Value]
+        opt.peer.fold[Either[String, Float]] {
+          a.default.fold[Either[String, Float]] {
+            throw MissingIn(input.key)
+          } { sq =>
+            if (sq.size == 1) Right(sq.head)
+            else Left(s"Cannot use multi-channel element as single Float: $sq")
+          }
+        } {
+          case i: Int     => Right(i.toFloat)
+          case d: Double  => Right(d.toFloat)
+          case n: Long    => Right(n.toFloat)
+          case b: Boolean => Right(if (b) 1f else 0f)
+          case other      => Left(s"Cannot convert attribute value to Float: $other")
+        }
+
+      case UnaryOpUGen(op, a)  =>
+        val af = resolveFloat(a, builder)
+        af.right.map(op.make1)
+
+      case BinaryOpUGen(op, a, b) =>
+        for {
+          af <- resolveFloat(a, builder).right
+          bf <- resolveFloat(b, builder).right
+        } yield op.make1(af, bf)
+
+      case _: SampleRate   =>
+        val sr = builder.server.sampleRate.toFloat
+        Right(sr)
+
+      case NumChannels(in0) =>
+        var uIns    = Vector.empty[UGenIn]
+        var uInsOk  = true
+        var exp     = 0
+        val args    = in0.expand.outputs
+        args.foreach(_.unbubble match {
+          case u: UGenIn => if (uInsOk) uIns :+= u
+          case g: ugen.UGenInGroup =>
+            exp     = math.max(exp, g.numOutputs)
+            uInsOk  = false // don't bother adding further UGenIns to uIns
+        })
+        if (uInsOk) {
+          Right(uIns.size.toFloat)
+        } else {
+          Left(s"Cannot use multi-channel element as single Float: $in0")
+        }
+
+//      case g: ugen.UGenInGroup =>
+//        if (g.numOutputs == 1) resolveFloat(g.outputs.head, builder)
+//        else Left(s"Cannot convert multi-channel element to Float: $in")
+    }
   }
 }
 /** A graph element that creates an empty buffer for the synth graph to write to. Upon completion
@@ -85,13 +144,16 @@ final case class BufferOut(rate: Rate, artifact: String, action: String, numFram
 
   import BufferOut.{canResolve, resolveFloat}
 
-  require(canResolve(numFrames  ), "BufferOut.numFrames cannot be resolved at initialization time")
-  require(canResolve(numChannels), "BufferOut.numChannels cannot be resolved at initialization time")
+  private def fail(arg: String, detail: String): Nothing =
+    throw new IllegalArgumentException(s"BufferOut.$arg cannot be resolved at initialization time: $detail")
+
+  canResolve(numFrames  ).left.foreach(fail("numFrames"  , _))
+  canResolve(numChannels).left.foreach(fail("numChannels", _))
 
   protected def makeUGens: UGenInLike = {
     val b             = UGenGraphBuilder.get
-    val numFramesI    = resolveFloat(numFrames  , b).toInt
-    val numChannelsI  = resolveFloat(numChannels, b).toInt
+    val numFramesI    = resolveFloat(numFrames  , b).fold[Float](fail("numFrames"  , _), identity).toInt
+    val numChannelsI  = resolveFloat(numChannels, b).fold[Float](fail("numChannels", _), identity).toInt
 
     b.requestInput(Input.BufferOut(artifact = artifact, action = action,
       numFrames = numFramesI, numChannels = numChannelsI))

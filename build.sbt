@@ -15,7 +15,7 @@ lazy val commonSettings = Seq(
 ) ++ publishSettings
 
 lazy val lucreVersion               = "3.3.1"
-lazy val scalaColliderVersion       = "1.20.0"
+lazy val scalaColliderVersion       = "1.20.1-SNAPSHOT"
 lazy val spanVersion                = "1.3.1"
 lazy val lucreSwingVersion          = "1.4.0"
 lazy val swingPlusVersion           = "0.2.1"

@@ -188,6 +188,25 @@ object UGenGraphBuilder {
       override def productPrefix = "Input.Scalar"
     }
 
+    object AttrValue {
+      final case class Value(peer: Option[Any]) extends UGenGraphBuilder.Value {
+        def async = false
+        override def productPrefix = "Input.AttrValue.Value"
+      }
+    }
+    /** Specifies access to a an attribute's value at build time.
+      *
+      * @param name   name (key) of the attribute
+      */
+    final case class AttrValue(name: String) extends Input {
+      type Key    = AttributeKey
+      type Value  = AttrValue.Value
+
+      def key = AttributeKey(name)
+
+      override def productPrefix = "Input.AttrValue"
+    }
+
     object Buffer {
       /** Maximum number of samples (channels multiplied by frames)
         * prepared on-the-fly. If the number of samples exceeds this

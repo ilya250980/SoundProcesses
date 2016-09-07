@@ -188,23 +188,23 @@ object UGenGraphBuilder {
       override def productPrefix = "Input.Scalar"
     }
 
-    object AttrValue {
+    object Attribute {
       final case class Value(peer: Option[Any]) extends UGenGraphBuilder.Value {
         def async = false
-        override def productPrefix = "Input.AttrValue.Value"
+        override def productPrefix = "Input.Attribute.Value"
       }
     }
     /** Specifies access to a an attribute's value at build time.
       *
       * @param name   name (key) of the attribute
       */
-    final case class AttrValue(name: String) extends Input {
+    final case class Attribute(name: String) extends Input {
       type Key    = AttributeKey
-      type Value  = AttrValue.Value
+      type Value  = Attribute.Value
 
       def key = AttributeKey(name)
 
-      override def productPrefix = "Input.AttrValue"
+      override def productPrefix = "Input.Attribute"
     }
 
     object Buffer {

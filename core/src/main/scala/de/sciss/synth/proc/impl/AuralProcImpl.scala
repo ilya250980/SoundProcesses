@@ -418,12 +418,15 @@ object AuralProcImpl {
         val async = (numCh * numFr) > UGB.Input.Buffer.AsyncThreshold   // XXX TODO - that threshold should be configurable
         UGB.Input.Buffer.Value(numFrames = numFr, numChannels = numCh, async = async)
 
-      case i: UGB.Input.AttrValue =>
+      case i: UGB.Input.Attribute =>
         val procObj = procCached()
-        val opt     = procObj.attr.get(i.name).collect {
-          case x: Expr[S, _] => x.value
+        // WARNING: Scala compiler bug, cannot use `collect` with
+        // `PartialFunction` here, only total function works.
+        val opt: Option[Any] = procObj.attr.get(i.name).flatMap {
+          case x: Expr[S, _] => Some(x.value)
+          case _ => None
         }
-        UGB.Input.AttrValue.Value(opt)
+        UGB.Input.Attribute.Value(opt)
 
       case i: UGB.Input.BufferOut => UGB.Unit
       case    UGB.Input.StopSelf  => UGB.Unit
@@ -593,6 +596,8 @@ object AuralProcImpl {
           nr.addControl(ctlName -> rb.id)
           val late = Buffer.disposeWithNode(rb, nr)
           nr.addResource(late)
+
+        case _: UGB.Input.Attribute.Value =>
 
         case _ =>
           throw new IllegalStateException(s"Unsupported input attribute request $value")

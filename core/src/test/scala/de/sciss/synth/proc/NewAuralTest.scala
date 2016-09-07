@@ -2,7 +2,7 @@ package de.sciss.synth.proc
 
 import de.sciss.file._
 import de.sciss.lucre.artifact.{Artifact, ArtifactLocation}
-import de.sciss.lucre.expr.{BooleanObj, DoubleObj, IntObj, SpanLikeObj}
+import de.sciss.lucre.expr.{BooleanObj, DoubleObj, DoubleVector, IntObj, SpanLikeObj}
 import de.sciss.lucre.stm
 import de.sciss.lucre.stm.Obj
 import de.sciss.lucre.stm.store.BerkeleyDB
@@ -274,6 +274,8 @@ class NewAuralTest[S <: Sys[S]](name: String)(implicit cursor: stm.Cursor[S]) {
       val action = Action.predef[S]("buffer-test")
 
       val attr1 = _view1.obj().attr
+      attr1.put("rec-dur", IntObj.newConst[S](2))
+      attr1.put("buses-in", DoubleVector.newConst[S](Vector(0, 1)))
       attr1.put("file", art)
       attr1.put("done", action)
 

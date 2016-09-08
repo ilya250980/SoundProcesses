@@ -345,7 +345,7 @@ object CodeImpl {
 
   private val pkgAction = "de.sciss.synth.proc.Action"
   private val pkgCode   = "de.sciss.synth.proc.impl.CodeImpl"
-  private val pkgSys    = "de.sciss.lucre.event"
+  private val pkgSys    = "de.sciss.lucre.stm"
 
   // note: synchronous
   private def compileThunk(code: String, w: Wrapper[_, _, _], execute: Boolean)(implicit compiler: Code.Compiler): Any = {

@@ -146,4 +146,3 @@ lazy val publishSettings = Seq(
 </developers>
   }
 )
-

@@ -75,15 +75,17 @@ object SoundProcesses {
   private[this] lazy val _init: Unit = {
     de.sciss.lucre.expr.init()
     Action  .init()
+    AudioCue.init()
     Code    .init()
+    Color   .init()
+    Cursors .init()
     CurveObj.init()
     Ensemble.init()
     FadeSpec.init()
     Folder  .init()
     Grapheme.init()
-    AudioCue.init()
-    Proc    .init()
     Output  .init()
+    Proc    .init()
     Timeline.init()
   }
 

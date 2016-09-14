@@ -17,7 +17,7 @@ import de.sciss.lucre.synth.impl.{GroupImpl => Impl}
 import de.sciss.synth.{AddAction, addToHead, Group => SGroup}
 
 object Group {
-  def apply(target: Node /* = server.defaultGroup */, addAction: AddAction = addToHead)(implicit tx: Txn): Group = {
+  def play(target: Node /* = server.defaultGroup */, addAction: AddAction = addToHead)(implicit tx: Txn): Group = {
     val server  = target.server
     val nodeID  = server.nextNodeID()
     val g       = Impl(server, SGroup(server.peer, nodeID))(online0 = false)

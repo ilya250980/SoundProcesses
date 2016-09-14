@@ -16,6 +16,8 @@ package de.sciss.lucre.synth
 import de.sciss.optional.Optional
 import de.sciss.synth.{Node => SNode, _}
 
+import scala.collection.immutable.{Seq => ISeq}
+
 trait Node extends Resource with NodeRef {
   // ---- abstract ----
   def peer: SNode
@@ -23,7 +25,8 @@ trait Node extends Resource with NodeRef {
   /** Refers to itself */
   def node(implicit tx: Txn): Node = this
 
-  //   final val isOnline: State = State( this, "isOnline", init = initOnline )
+  def play(target: Node, args: ISeq[ControlSet], addAction: AddAction, dependencies: List[Resource])
+          (implicit tx: Txn): Unit
 
   def onEndTxn(fun: Txn => Unit)(implicit tx: Txn): Unit
   def onEnd   (code:    => Unit)(implicit tx: Txn): Unit

@@ -61,11 +61,9 @@ object Synth {
     res
   }
 
-  /* private[synth] */ def expanded(server: Server, graph: UGenGraph, nameHint: Option[String] = None)
-                            (implicit tx: Txn): Synth = {
+  def expanded(server: Server, graph: UGenGraph, nameHint: Option[String] = None)(implicit tx: Txn): Synth = {
     val df = server.acquireSynthDef(graph, nameHint)
     val res = create(df)
-    // releaseDefOnEnd(res)
     res
   }
 
@@ -80,7 +78,4 @@ trait Synth extends Node {
   def peer: SSynth
 
   def definition: SynthDef
-
-  /* private[synth] */ def play(target: Node, args: ISeq[ControlSet], addAction: AddAction, dependencies: List[Resource])
-                         (implicit tx: Txn): Unit
 }

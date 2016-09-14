@@ -16,7 +16,7 @@ package impl
 
 import de.sciss.lucre.stm.TxnLike
 import de.sciss.lucre.synth.{DynamicUser, Group, Node, Resource, Synth, Sys, Txn}
-import de.sciss.synth.{ControlSet, addBefore, addToHead}
+import de.sciss.synth.{ControlSet, NestedUGenGraphBuilder, addBefore, addToHead}
 
 import scala.concurrent.stm.Ref
 
@@ -27,6 +27,64 @@ object AuralNodeImpl {
     node.server.addVertex(res)
     res
   }
+
+  private final case class Prepared()
+
+//  def prepare(res0: NestedUGenGraphBuilder.Result, s: Server, args: List[ControlSet] = Nil): Prepared = {
+//    var defs  = List.empty[SynthDef]
+//    var defSz = 0   // used to create unique def names
+//    var msgs  = List.empty[osc.Message] // synchronous
+//    var ctl   = args.reverse  // init
+//    var buses = List.empty[Bus]
+//
+//    def loop(child: NestedUGenGraphBuilder.Result, parent: Group, addAction: AddAction): Node = {
+//      val name        = s"test-$defSz"
+//      val sd          = SynthDef(name, child.graph)
+//      defs          ::= sd
+//      defSz          += 1
+//      val syn         = Synth(s)
+//      val hasChildren = child.children.nonEmpty
+//      val group       = if (!hasChildren) parent else {
+//        val g   = Group(s)
+//        msgs  ::= g.newMsg(parent, addAction)
+//        g
+//      }
+//      val node  = if (hasChildren) group else syn
+//      msgs ::= syn.newMsg(name, target = group, addAction = if (hasChildren) addToHead else addAction)
+//
+//      child.children.foreach { cc =>
+//        val ccn = loop(cc, group, addToTail)
+//        if (cc.id >= 0) ctl ::= NestedUGenGraphBuilder.pauseNodeCtlName(cc.id) -> ccn.id
+//      }
+//
+//      child.links.foreach { link =>
+//        val bus = link.rate match {
+//          case `audio`    => Bus.audio  (s, numChannels = link.numChannels)
+//          case `control`  => Bus.control(s, numChannels = link.numChannels)
+//          case other      => throw new IllegalArgumentException(s"Unsupported link rate $other")
+//        }
+//        buses ::= bus
+//        ctl   ::= NestedUGenGraphBuilder.linkCtlName(link.id) -> bus.index
+//      }
+//
+//      node
+//    }
+//
+//    val mainNode = loop(res0, parent = s.defaultGroup, addAction = addToHead)
+//    mainNode.onEnd {
+//      buses.foreach(_.free())
+//    }
+//
+//    msgs ::= mainNode.setMsg(ctl.reverse: _*)
+//    msgs ::= synth.message.SynthDefFree(defs.map(_.name): _*)
+//
+//    val b1 = osc.Bundle.now(msgs.reverse: _*)
+//    val defL :: defI = defs
+//    val async = defL.recvMsg(b1) :: defI.map(_.recvMsg)
+//    val b2 = osc.Bundle.now(async.reverse: _*)
+//
+//    (b2, mainNode)
+//  }
 
   /*
    * The possible differentiation of groups for an aural process. The minimum configuration is one main
@@ -73,7 +131,7 @@ object AuralNodeImpl {
 
     def group()(implicit tx: S#Tx): Group =
       groupOption.getOrElse {
-        val res = Group(graphMain, addBefore) // i.e. occupy the same place as before
+        val res = Group.play(graphMain, addBefore) // i.e. occupy the same place as before
         group_=(res)
         res
       }
@@ -102,7 +160,7 @@ object AuralNodeImpl {
         val all       = groupsRef().get
         val target    = anchorNode()
         val addAction = addBefore
-        val res       = Group(target = target, addAction = addAction)
+        val res       = Group.play(target = target, addAction = addAction)
         groupsRef.set(Some(all.copy(pre = Some(res))))
         res
       }

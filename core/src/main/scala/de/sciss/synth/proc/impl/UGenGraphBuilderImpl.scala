@@ -15,13 +15,9 @@ package de.sciss.synth.proc
 package impl
 
 import de.sciss.lucre.synth.{Server, Sys}
-import de.sciss.synth.NestedUGenGraphBuilder.{Basic, ExpIfCase, Inner}
-import de.sciss.synth.impl.BasicUGenGraphBuilder
-import de.sciss.synth.proc.UGenGraphBuilder.Input
-import de.sciss.synth.ugen.ControlProxyLike
-import de.sciss.synth.{Lazy, NestedUGenGraphBuilder, SynthGraph, UGen, UGenGraph, proc}
-
-import scala.collection.immutable.{IndexedSeq => Vec}
+import de.sciss.synth.NestedUGenGraphBuilder.ExpIfCase
+import de.sciss.synth.proc.UGenGraphBuilder.{Input, Key}
+import de.sciss.synth.{NestedUGenGraphBuilder, SynthGraph, proc}
 
 object UGenGraphBuilderImpl {
   import UGenGraphBuilder.{Complete, Context, Incomplete, MissingIn, State}
@@ -39,45 +35,30 @@ object UGenGraphBuilderImpl {
   def init[S <: Sys[S]](proc: Proc[S])
                        (implicit tx: S#Tx): Incomplete[S] = {
     val g   = proc.graph.value
-    val in  = new IncompleteImpl[S](
-      remaining = g.sources, controlProxies = g.controlProxies,
-      ugens = Vec.empty, controlValues = Vec.empty, controlNames = Vec.empty,
-      sourceMap = Map.empty, outputs = Map.empty, acceptedInputs = Map.empty,
-      rejectedInputs = Set.empty
-    )
+    val in  = new IncompleteImpl[S](g, Set.empty)
     in
   }
 
   // ---- impl ----
 
-  private final class IncompleteImpl[S <: Sys[S]](
-      val remaining     : Vec[Lazy],
-      val controlProxies: Set[ControlProxyLike],
-      val ugens         : Vec[UGen],
-      val controlValues : Vec[Float],
-      val controlNames  : Vec[(String, Int)],
-      val sourceMap     : Map[AnyRef, Any],
-      val outputs       : Map[String, Int],
-      val acceptedInputs: Map[UGenGraphBuilder.Key, (Input, Input#Value)],
-      val rejectedInputs: Set[UGenGraphBuilder.Key]
-   )
+  private final class IncompleteImpl[S <: Sys[S]](g: SynthGraph, val rejectedInputs: Set[UGenGraphBuilder.Key])
     extends Incomplete[S] {
 
     override def toString = s"UGenGraphBuilder.Incomplete@${hashCode.toHexString}"
 
+    def acceptedInputs  = Map.empty[Key, (Input, Input#Value)]
+    def outputs         = Map.empty[String, Int]
+
     def retry(context: Context[S])(implicit tx: S#Tx): State[S] =
-      new OuterImpl[S](context, this, tx).tryBuild()
+      new OuterImpl[S](context, this, tx).tryBuild(g)
   }
 
-  private final class CompleteImpl[S <: Sys[S]](val resultX: UGenGraph,
+  private final class CompleteImpl[S <: Sys[S]](val result: NestedUGenGraphBuilder.Result,
       val outputs       : Map[String, Int],
       val acceptedInputs: Map[UGenGraphBuilder.Key, (Input, Input#Value)]
-   )
-    extends Complete[S] {
+   ) extends Complete[S] {
 
     override def toString = s"UGenGraphBuilder.Complete@${hashCode.toHexString}"
-
-    def result: NestedUGenGraphBuilder.Result = ??? // NNN
   }
 
   private final class OuterImpl[S <: Sys[S]](protected val context: Context[S],
@@ -87,7 +68,7 @@ object UGenGraphBuilderImpl {
   }
 
   private trait Impl[S <: Sys[S]]
-    extends NestedUGenGraphBuilder.Basic with proc.UGenGraphBuilder with Incomplete[S] {
+    extends NestedUGenGraphBuilder.Basic with proc.UGenGraphBuilder {
     builder =>
 
     // ---- abstract ----
@@ -103,12 +84,8 @@ object UGenGraphBuilderImpl {
     protected def mkInner(childId: Int, thisExpIfCase: Option[ExpIfCase], parent: NestedUGenGraphBuilder.Basic,
                           name: String): NestedUGenGraphBuilder.Inner = ??? // NNN
 
-    private[this] var remaining       = in.remaining
-    private[this] var controlProxies  = in.controlProxies
-
-    var outputs                 = in.outputs
-    var acceptedInputs          = in.acceptedInputs
-    var rejectedInputs          = Set.empty[UGenGraphBuilder.Key]
+    var outputs         = in.outputs
+    var acceptedInputs  = in.acceptedInputs
 
     def server: Server = context.server
 
@@ -118,7 +95,7 @@ object UGenGraphBuilderImpl {
     def requestInput(req: Input): req.Value = {
       // we pass in `this` and not `in`, because that way the context
       // can find accepted inputs that have been added during the current build cycle!
-      val res = context.requestInput[req.Value](req, this /* in */)(tx)
+      val res = context.requestInput[req.Value](req /* , in */)(tx)
       acceptedInputs += req.key -> (req, res)
       logAural(s"acceptedInputs += ${req.key} -> $res")
       res
@@ -135,63 +112,13 @@ object UGenGraphBuilderImpl {
         }
       }
 
-    def tryBuild(): State[S] = UGenGraph.use(this) {
-      var missingElems  = Vector.empty[Lazy]
-      // var someSucceeded = false
-      while (remaining.nonEmpty) {  // XXX TODO: this can go through many exceptions. perhaps should short circuit?
-        val g = SynthGraph {
-          remaining.foreach { elem =>
-            // save rollback information -- not very elegant; should figure out how scala-stm nesting works
-            val savedSourceMap      = sourceMap
-            val savedControlNames   = controlNames
-            val savedControlValues  = controlValues
-            val savedUGens          = ugens
-            val savedScanOuts       = outputs
-            val savedAcceptedInputs = acceptedInputs
-            try {
-              elem.force(builder)
-              // someSucceeded = true
-            } catch {
-              case MissingIn(rejected) =>
-                sourceMap           = savedSourceMap
-                controlNames        = savedControlNames
-                controlValues       = savedControlValues
-                ugens               = savedUGens
-                outputs             = savedScanOuts
-                acceptedInputs      = savedAcceptedInputs
-                missingElems      :+= elem
-                rejectedInputs     += rejected // .key
-                // logAural(s"rejectedInputs += ${rejected /* .key */}")
-            }
-          }
-        }
-        if (g.nonEmpty) {
-          remaining        = g.sources
-          controlProxies ++= g.controlProxies
-        } else {
-          remaining        = Vector.empty
-        }
-      }
-
-      val newState = if (missingElems.isEmpty) {
-        val result = build(controlProxies)
+    def tryBuild(g: SynthGraph): State[S] =
+      try {
+        val result = build(g)
         new CompleteImpl[S](result, outputs = outputs, acceptedInputs = acceptedInputs)
-
-      } else {
-        // NOTE: we have to return a new object even if no elem succeeded,
-        // because `rejectedInputs` may contain a new key!
-
-        // if (someSucceeded) {
-          new IncompleteImpl[S](
-            remaining = missingElems, controlProxies = controlProxies,
-            ugens = ugens, controlValues = controlValues, controlNames = controlNames,
-            sourceMap = sourceMap, outputs = outputs, acceptedInputs = acceptedInputs,
-            rejectedInputs = rejectedInputs
-          )
-        // } else in
+      } catch {
+        case MissingIn(rejected) =>
+          new IncompleteImpl[S](g, Set(rejected))
       }
-
-      newState
-    }
   }
 }

@@ -47,7 +47,7 @@ object UGenGraphBuilder {
   trait Context[S <: Sys[S]] {
     def server: Server
 
-    def requestInput[Res](req: UGenGraphBuilder.Input { type Value = Res }, state: Incomplete[S])
+    def requestInput[Res](req: UGenGraphBuilder.Input { type Value = Res } /* , state: Incomplete[S] */)
                          (implicit tx: S#Tx): Res
   }
 

@@ -236,7 +236,7 @@ object AuralProcImpl {
             // new request is rejected, we have to
             // rebuild the whole thing
             try {
-              val valueNow = requestInput[input.Value](input, st0)
+              val valueNow = requestInput[input.Value](input /* , st0 */)
               if (valueNow != valueBefore) newSynthGraph()
             } catch {
               case MissingIn(_) => newSynthGraph()
@@ -369,7 +369,7 @@ object AuralProcImpl {
     }
 
     /** Sub-classes may override this if invoking the super-method. */
-    def requestInput[Res](in: UGB.Input { type Value = Res }, st: Incomplete[S])
+    def requestInput[Res](in: UGB.Input { type Value = Res } /* , st: Incomplete[S] */)
                          (implicit tx: S#Tx): Res = in match {
       case i: UGB.Input.Scalar =>
         val procObj   = procCached()
@@ -390,15 +390,16 @@ object AuralProcImpl {
       case i: UGB.Input.Stream =>
         val value0  = requestAttrStreamValue(i.name)
         val value1  = if (value0.numChannels < 0) value0.copy(numChannels = 1) else value0 // simply default to 1
-        val newSpecs0 = st.acceptedInputs.get(i.key) match {
-          case Some((_, v: UGB.Input.Stream.Value))   => v.specs
-          case _                                      => Nil
-        }
-        val newSpecs = if (i.spec.isEmpty) newSpecs0 else {
-          i.spec :: newSpecs0
-        }
-        val value2 = if (newSpecs.isEmpty) value1 else value1.copy(specs = newSpecs)
-        value2
+        ??? // NNN
+//        val newSpecs0 = st.acceptedInputs.get(i.key) match {
+//          case Some((_, v: UGB.Input.Stream.Value))   => v.specs
+//          case _                                      => Nil
+//        }
+//        val newSpecs = if (i.spec.isEmpty) newSpecs0 else {
+//          i.spec :: newSpecs0
+//        }
+//        val value2 = if (newSpecs.isEmpty) value1 else value1.copy(specs = newSpecs)
+//        value2
 
       case i: UGB.Input.Buffer =>
         val procObj = procCached()

@@ -15,8 +15,8 @@ package de.sciss.synth.proc
 package impl
 
 import de.sciss.lucre.stm.TxnLike
-import de.sciss.lucre.synth.{DynamicUser, Group, Node, Resource, Synth, Sys, Txn}
-import de.sciss.synth.{ControlSet, NestedUGenGraphBuilder, addBefore, addToHead}
+import de.sciss.lucre.synth.{Bus, DynamicUser, Group, Node, Resource, Server, Synth, Sys, Txn}
+import de.sciss.synth.{ControlSet, NestedUGenGraphBuilder, addBefore, addToHead, audio, control}
 
 import scala.concurrent.stm.Ref
 
@@ -28,49 +28,58 @@ object AuralNodeImpl {
     res
   }
 
-  private final case class Prepared()
+  private final case class Result(tree: Tree, controls: List[ControlSet], buses: List[Bus])
 
-//  def prepare(res0: NestedUGenGraphBuilder.Result, s: Server, args: List[ControlSet] = Nil): Prepared = {
+  private sealed trait Tree { def main: Node }
+  private final case class Leaf  (main: Synth)                                   extends Tree
+  private final case class Branch(main: Group, syn: Synth, children: List[Tree]) extends Tree
+
+  private def prepare(res0: NestedUGenGraphBuilder.Result, s: Server, nameHint: Option[String])
+                     (implicit tx: Txn): Result = {
 //    var defs  = List.empty[SynthDef]
 //    var defSz = 0   // used to create unique def names
 //    var msgs  = List.empty[osc.Message] // synchronous
-//    var ctl   = args.reverse  // init
-//    var buses = List.empty[Bus]
-//
-//    def loop(child: NestedUGenGraphBuilder.Result, parent: Group, addAction: AddAction): Node = {
+    var ctl   = List.empty[ControlSet]
+    var buses = List.empty[Bus]
+
+    def loop(tree: NestedUGenGraphBuilder.Result): Tree = {
 //      val name        = s"test-$defSz"
-//      val sd          = SynthDef(name, child.graph)
+//      val sd          = SynthDef(name, tree.graph)
 //      defs          ::= sd
 //      defSz          += 1
-//      val syn         = Synth(s)
-//      val hasChildren = child.children.nonEmpty
-//      val group       = if (!hasChildren) parent else {
-//        val g   = Group(s)
-//        msgs  ::= g.newMsg(parent, addAction)
-//        g
-//      }
-//      val node  = if (hasChildren) group else syn
+      val syn         = Synth.expanded(s, tree.graph, nameHint = nameHint)
+      val hasChildren = tree.children.nonEmpty
+
+      val child: Tree = if (hasChildren) {
+        val group = Group(s)
+        val children = tree.children.map { cc =>
+          val ccn = loop(cc)
+          if (cc.id >= 0) ctl ::= NestedUGenGraphBuilder.pauseNodeCtlName(cc.id) -> ccn.main.peer.id
+          ccn
+        }
+        Branch(main = group, syn = syn, children = children)
+
+      } else {
+        Leaf(syn)
+      }
+
 //      msgs ::= syn.newMsg(name, target = group, addAction = if (hasChildren) addToHead else addAction)
-//
-//      child.children.foreach { cc =>
-//        val ccn = loop(cc, group, addToTail)
-//        if (cc.id >= 0) ctl ::= NestedUGenGraphBuilder.pauseNodeCtlName(cc.id) -> ccn.id
-//      }
-//
-//      child.links.foreach { link =>
-//        val bus = link.rate match {
-//          case `audio`    => Bus.audio  (s, numChannels = link.numChannels)
-//          case `control`  => Bus.control(s, numChannels = link.numChannels)
-//          case other      => throw new IllegalArgumentException(s"Unsupported link rate $other")
-//        }
-//        buses ::= bus
-//        ctl   ::= NestedUGenGraphBuilder.linkCtlName(link.id) -> bus.index
-//      }
-//
-//      node
-//    }
-//
-//    val mainNode = loop(res0, parent = s.defaultGroup, addAction = addToHead)
+
+      tree.links.foreach { link =>
+        val bus = link.rate match {
+          case `audio`    => Bus.audio  (s, numChannels = link.numChannels)
+          case `control`  => Bus.control(s, numChannels = link.numChannels)
+          case other      => throw new IllegalArgumentException(s"Unsupported link rate $other")
+        }
+        buses ::= bus
+        ctl   ::= NestedUGenGraphBuilder.linkCtlName(link.id) -> (??? : Int) // NNN bus.index
+      }
+
+      child
+    }
+
+    val top = loop(res0)
+    Result(tree = top, controls = ctl, buses = buses)
 //    mainNode.onEnd {
 //      buses.foreach(_.free())
 //    }
@@ -84,7 +93,7 @@ object AuralNodeImpl {
 //    val b2 = osc.Bundle.now(async.reverse: _*)
 //
 //    (b2, mainNode)
-//  }
+  }
 
   /*
    * The possible differentiation of groups for an aural process. The minimum configuration is one main

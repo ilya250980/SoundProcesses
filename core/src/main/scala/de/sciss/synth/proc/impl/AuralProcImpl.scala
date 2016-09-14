@@ -17,10 +17,10 @@ package impl
 import de.sciss.file._
 import de.sciss.lucre.artifact.Artifact
 import de.sciss.lucre.event.impl.ObservableImpl
-import de.sciss.lucre.expr.{DoubleVector, Expr, IntObj, StringObj}
+import de.sciss.lucre.expr.{DoubleVector, Expr, StringObj}
 import de.sciss.lucre.stm
 import de.sciss.lucre.stm.{Disposable, Obj, TxnLike}
-import de.sciss.lucre.synth.{AudioBus, Buffer, Bus, BusNodeSetter, NodeRef, Server, Synth, Sys}
+import de.sciss.lucre.synth.{AudioBus, Buffer, Bus, BusNodeSetter, Node, NodeRef, Server, Synth, Sys}
 import de.sciss.numbers
 import de.sciss.span.Span
 import de.sciss.synth.ControlSet
@@ -318,6 +318,10 @@ object AuralProcImpl {
      * it calls `play` on the proc-views whose target-state is to play.
      */
     private def buildAdvanced(before: UGB.State[S], now: UGB.State[S])(implicit tx: S#Tx): Unit = {
+      // XXX TODO XXX TODO XXX TODO
+      // this code is now partly wrong, because
+      // we do not create the UGen graphs incrementally
+      // any longer.
 
       // handle newly rejected inputs
       if (now.rejectedInputs.isEmpty) {
@@ -767,7 +771,7 @@ object AuralProcImpl {
 
       val ug            = ugen.result
       val nameHint      = p.attr.$[StringObj](ObjKeys.attrName).map(_.value)
-      val synth         = ??? : Synth // NNN Synth.expanded(server, ug, nameHint = nameHint)
+      val synth         = ??? : Node // Synth // NNN Synth.expanded(server, ug, nameHint = nameHint)
 
       val builder       = AuralNode[S](timeRef, sched.time, synth)
 

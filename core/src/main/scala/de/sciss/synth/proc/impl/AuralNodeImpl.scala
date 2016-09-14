@@ -21,10 +21,10 @@ import de.sciss.synth.{ControlSet, addBefore, addToHead}
 import scala.concurrent.stm.Ref
 
 object AuralNodeImpl {
-  def apply[S <: Sys[S]](timeRef: TimeRef, wallClock: Long, synth: Synth)(implicit tx: Txn): AuralNode.Builder[S] = {
+  def apply[S <: Sys[S]](timeRef: TimeRef, wallClock: Long, node: Node)(implicit tx: Txn): AuralNode.Builder[S] = {
     // XXX TODO -- probably we can throw `users` and `resources` together as disposables
-    val res = new Impl[S](timeRef, wallClock, synth)
-    synth.server.addVertex(res)
+    val res = new Impl[S](timeRef, wallClock, node)
+    node.server.addVertex(res)
     res
   }
 
@@ -39,7 +39,7 @@ object AuralNodeImpl {
                                      core: Option[Group] = None,
                                      post: Option[Group] = None, back: Option[Group] = None)
 
-  private final class Impl[S <: Sys[S]](val timeRef: TimeRef, wallClock: Long, synth: Synth)
+  private final class Impl[S <: Sys[S]](val timeRef: TimeRef, wallClock: Long, graphMain: Node)
     extends AuralNode.Builder[S] {
 
     import TxnLike.peer
@@ -51,18 +51,18 @@ object AuralNodeImpl {
     // we only add to `setMap` before `play`, thus does not need to be transactional
     private[this] var setMap    = List.empty[ControlSet]
 
-    override def toString = s"AuralProc($synth)"
+    override def toString = s"AuralProc($graphMain)"
 
-    def server = synth.server
+    def server = graphMain.server
 
     def groupOption(implicit tx: Txn): Option[Group] = groupsRef().map(_.main)
 
-    def node(implicit tx: Txn): Node = groupOption.getOrElse(synth)
+    def node(implicit tx: Txn): Node = groupOption.getOrElse(graphMain)
 
     def play()(implicit tx: S#Tx): Unit = {
       // `play` calls `requireOffline`, so we are safe against accidental repeated calls
       val target = server.defaultGroup
-      synth.play(target = target, addAction = addToHead, args = setMap.reverse, dependencies = resources().reverse)
+      ??? // graphMain.play(target = target, addAction = addToHead, args = setMap.reverse, dependencies = resources().reverse)
       users().reverse.foreach(_.add())
     }
 
@@ -73,7 +73,7 @@ object AuralNodeImpl {
 
     def group()(implicit tx: S#Tx): Group =
       groupOption.getOrElse {
-        val res = Group(synth, addBefore) // i.e. occupy the same place as before
+        val res = Group(graphMain, addBefore) // i.e. occupy the same place as before
         group_=(res)
         res
       }
@@ -82,7 +82,7 @@ object AuralNodeImpl {
       groupsRef.transform { groupsOpt =>
         val res = groupsOpt.fold {
           val all = AllGroups(main = newGroup)
-          synth.moveToHead(newGroup)
+          graphMain.moveToHead(newGroup)
           all
         } { all =>
           moveAllTo(all, newGroup)
@@ -108,7 +108,7 @@ object AuralNodeImpl {
       }
 
     private def anchorNode()(implicit tx: S#Tx): Node =
-      groupsRef().flatMap(_.core) getOrElse synth
+      groupsRef().flatMap(_.core) getOrElse graphMain
 
     private def moveAllTo(all: AllGroups, newGroup: Group)(implicit tx: S#Tx): Unit = {
       val core = anchorNode()
@@ -130,13 +130,13 @@ object AuralNodeImpl {
     }
 
     def addControl(pair: ControlSet)(implicit tx: S#Tx): Unit = {
-      if (synth.isOnline) node.set(pair)
+      if (graphMain.isOnline) node.set(pair)
       else setMap ::= pair
     }
 
     def addUser(user: DynamicUser)(implicit tx: Txn): Unit = {
       users.transform(user :: _)
-      if (synth.isOnline) user.add()
+      if (graphMain.isOnline) user.add()
     }
 
     def removeUser(user: DynamicUser )(implicit tx: Txn): Unit =

@@ -14,12 +14,12 @@
 package de.sciss.synth.proc
 
 import de.sciss.lucre.stm.Sys
-import de.sciss.lucre.synth.{Group, NodeRef, Synth, Sys => SSys, Txn}
+import de.sciss.lucre.synth.{Group, NodeRef, Node, Txn, Sys => SSys}
 import de.sciss.synth.proc.impl.{AuralNodeImpl => Impl}
 
 object AuralNode {
-  def apply[S <: SSys[S]](timeRef: TimeRef, wallClock: Long, synth: Synth)(implicit tx: Txn): Builder[S] =
-    Impl[S](timeRef, wallClock, synth)
+  def apply[S <: SSys[S]](timeRef: TimeRef, wallClock: Long, node: Node)(implicit tx: Txn): Builder[S] =
+    Impl[S](timeRef, wallClock, node)
 
   trait Builder[S <: Sys[S]] extends AuralNode[S] {
     def play()(implicit tx: S#Tx): Unit

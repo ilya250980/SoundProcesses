@@ -50,7 +50,7 @@ object UGenGraphBuilderImpl {
     def outputs         = Map.empty[String, Int]
 
     def retry(context: Context[S])(implicit tx: S#Tx): State[S] =
-      new OuterImpl[S](context, this, tx).tryBuild(g)
+      new OuterImpl[S](context, tx).tryBuild(g)
   }
 
   private final class CompleteImpl[S <: Sys[S]](val result: NestedUGenGraphBuilder.Result,
@@ -62,10 +62,16 @@ object UGenGraphBuilderImpl {
   }
 
   private final class OuterImpl[S <: Sys[S]](protected val context: Context[S],
-                                             protected val in: IncompleteImpl[S], protected val tx: S#Tx)
-    extends NestedUGenGraphBuilder.Outer with Impl[S] {
+                                             protected val tx: S#Tx)
+    extends NestedUGenGraphBuilder.Outer with Impl[S]
 
-  }
+  private final class InnerImpl[S <: Sys[S]](protected val childId: Int,
+                                             protected val thisExpIfCase: Option[ExpIfCase],
+                                             protected val parent: NestedUGenGraphBuilder.Basic,
+                                             protected val name: String,
+                                             protected val context: Context[S],
+                                             protected val tx: S#Tx)
+    extends NestedUGenGraphBuilder.Inner with Impl[S]
 
   private trait Impl[S <: Sys[S]]
     extends NestedUGenGraphBuilder.Basic with UGB with UGB.IO[S] {
@@ -73,7 +79,6 @@ object UGenGraphBuilderImpl {
 
     // ---- abstract ----
 
-    protected def in: IncompleteImpl[S]
     protected def context: Context[S]
     protected def tx: S#Tx
 
@@ -82,10 +87,12 @@ object UGenGraphBuilderImpl {
     override def toString = s"UGenGraphBuilder.Incomplete@${hashCode.toHexString} (active)"
 
     protected def mkInner(childId: Int, thisExpIfCase: Option[ExpIfCase], parent: NestedUGenGraphBuilder.Basic,
-                          name: String): NestedUGenGraphBuilder.Inner = ??? // NNN
+                          name: String): NestedUGenGraphBuilder.Inner =
+      new InnerImpl(childId = childId, thisExpIfCase = thisExpIfCase, parent = parent, name = name,
+                    context = context, tx = tx)
 
-    var outputs         = in.outputs
-    var acceptedInputs  = in.acceptedInputs
+    var acceptedInputs  = Map.empty[UGB.Key, (UGB.Input, UGB.Input#Value)]
+    var outputs         = Map.empty[String, Int]
 
     def server: Server = context.server
 

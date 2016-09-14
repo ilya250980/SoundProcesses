@@ -63,10 +63,15 @@ object Action extends Obj.Type {
     def apply[S <: Sys[S]](universe: Universe[S])(implicit tx: S#Tx): Unit
   }
 
+  /** Possible type for `universe.value`. Overcomes erasure. */
+  final case class DoubleVector(xs: Vec[Double])
+  /** Possible type for `universe.value`. Overcomes erasure. */
+  final case class FloatVector (xs: Vec[Float ])
+
   object Universe {
     def apply[S <: Sys[S]](self: Action[S], workspace: WorkspaceHandle[S], invoker: Option[Obj[S]] = None,
-                           values: Vec[Double] = Vector.empty)(implicit cursor: stm.Cursor[S]): Universe[S] =
-      new Impl.UniverseImpl(self, workspace, invoker, values)
+                           value: Any = ())(implicit cursor: stm.Cursor[S]): Universe[S] =
+      new Impl.UniverseImpl(self, workspace, invoker, value)
   }
   trait Universe[S <: Sys[S]] {
     /** The action object itself, most prominently giving access to
@@ -77,10 +82,16 @@ object Action extends Obj.Type {
     /** Root folder of the workspace containing the action. */
     def root(implicit tx: S#Tx): Folder[S]
 
-    /** A collection of sampled values if the action was invoked through
-      * `graph.Reaction` (otherwise empty).
+//    /** A collection of sampled values if the action was invoked through
+//      * `graph.Reaction` (otherwise empty).
+//      */
+//    def values: Vec[Double]
+
+    /** A result object from the invoker. To permit different kind of invocations,
+      * this value is untyped. Conventionally, `Action.DoubleVector` and `Action.FloatVector`
+      * are used for collections of numbers.
       */
-    def values: Vec[Double]
+    def value: Any
 
     /** Parent component from which the action is invoked. For example
       * if used from within a synth-graph, this will be some `Proc.Obj`.
@@ -89,6 +100,8 @@ object Action extends Obj.Type {
     def invoker: Option[Obj[S]]
 
     implicit def cursor: stm.Cursor[S]
+
+    implicit def workspace: WorkspaceHandle[S]
   }
 
   def readIdentifiedObj[S <: Sys[S]](in: DataInput, access: S#Acc)(implicit tx: S#Tx): Obj[S] =

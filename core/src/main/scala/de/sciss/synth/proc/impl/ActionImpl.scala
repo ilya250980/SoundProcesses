@@ -21,14 +21,11 @@ import de.sciss.lucre.{stm, event => evt}
 import de.sciss.serial.{DataInput, DataOutput, Serializer}
 
 import scala.annotation.switch
-import scala.collection.immutable.{IndexedSeq => Vec}
 import scala.collection.mutable
 import scala.concurrent.stm.{InTxn, TMap, TSet}
 import scala.concurrent.{Future, Promise, blocking}
 
 object ActionImpl {
-  // private val count = TxnLocal(0) // to distinguish different action class-names within the same transaction
-
   private final val CONST_EMPTY   = 0
   private final val CONST_JAR     = 1
   private final val CONST_VAR     = 2
@@ -42,8 +39,7 @@ object ActionImpl {
                           (implicit tx: S#Tx, cursor: stm.Cursor[S],
                            compiler: Code.Compiler): Future[stm.Source[S#Tx, Action[S]]] = {
     val id      = tx.newID()
-    // val cnt     = count.getAndTransform(_ + 1)(tx.peer)
-    val name    = s"Action${IDPeek(id)}"  // _$cnt
+    val name    = s"Action${IDPeek(id)}"
     val p       = Promise[stm.Source[S#Tx, Action[S]]]()
     val system  = tx.system
     tx.afterCommit(performCompile(p, name, source, system))
@@ -80,17 +76,6 @@ object ActionImpl {
       new MemoryClassLoader
     })
   }
-
-  //  def execute[S <: Sys[S]](name: String, jar: Array[Byte])(implicit tx: S#Tx): Unit = {
-  //    implicit val itx = tx.peer
-  //    val cl = classLoader[S]
-  //    cl.add(name, jar)
-  //    val fullName  = s"${Code.UserPackage}.$name"
-  //    val clazz     = Class.forName(fullName, true, cl)
-  //    //  println("Instantiating...")
-  //    val fun = clazz.newInstance().asInstanceOf[() => Unit]
-  //    fun()
-  //  }
 
   def execute[S <: Sys[S]](universe: Action.Universe[S], name: String, jar: Array[Byte])(implicit tx: S#Tx): Unit = {
     implicit val itx = tx.peer
@@ -130,8 +115,8 @@ object ActionImpl {
 
   // ---- universe ----
 
-  final class UniverseImpl[S <: Sys[S]](val self: Action[S], workspace: WorkspaceHandle[S],
-                                        val invoker: Option[Obj[S]], val values: Vec[Double])
+  final class UniverseImpl[S <: Sys[S]](val self: Action[S], val workspace: WorkspaceHandle[S],
+                                        val invoker: Option[Obj[S]], val value: Any)
                                        (implicit val cursor: stm.Cursor[S])
     extends Action.Universe[S] {
 
@@ -184,17 +169,7 @@ object ActionImpl {
 
   private final class VarSer[S <: Sys[S]] extends ObjSerializer[S, Action.Var[S]] {
     def tpe: Obj.Type = Action
-
-//    def read(in: DataInput, access: S#Acc, targets: evt.Targets[S])(implicit tx: S#Tx): Action.Var[S] =
-//      ActionImpl.readVar(in, access, targets)
   }
-
-//  private def readVar[S <: Sys[S]](in: DataInput, access: S#Acc, targets: evt.Targets[S])
-//                                  (implicit tx: S#Tx): Action.Var[S] =
-//    readCookieAndTpe(in) /* : @switch */ match {
-//      case CONST_VAR  => readIdentifiedVar(in, access, targets)
-//      case other      => sys.error(s"Unexpected action cookie $other")
-//    }
 
   private def readIdentifiedVar[S <: Sys[S]](in: DataInput, access: S#Acc, targets: evt.Targets[S])
                                   (implicit tx: S#Tx): Action.Var[S] = {
@@ -263,13 +238,6 @@ object ActionImpl {
     def copy[Out <: Sys[Out]]()(implicit tx: S#Tx, txOut: Out#Tx, context: Copy[S, Out]): Elem[Out] =
       new ConstEmptyImpl(txOut.newID()) // .connect()
 
-    //    override def equals(that: Any): Boolean = that match {
-//      case e: ConstEmptyImpl[_] => true
-//      case _ => super.equals(that)
-//    }
-//
-//    override def hashCode(): Int = 0
-
     protected def writeData(out: DataOutput): Unit =
       out.writeByte(CONST_EMPTY)
   }
@@ -296,9 +264,6 @@ object ActionImpl {
 
     object changed extends Changed with evt.impl.RootGenerator[S, Unit]
 
-//    // stupidly defined on stm.Var
-//    def transform(fun: Action[S] => Action[S])(implicit tx: S#Tx): Unit = update(fun(apply()))
-
     def execute(universe: Action.Universe[S])(implicit tx: S#Tx): Unit = peer().execute(universe)
 
     protected def disposeData()(implicit tx: S#Tx): Unit = peer.dispose()
@@ -312,7 +277,6 @@ object ActionImpl {
   // ---- class loader ----
 
   private final class MemoryClassLoader extends ClassLoader {
-    // private var map: Map[String, Array[Byte]] = Map.empty
     private val setAdded    = TSet.empty[String]
     private val mapClasses  = TMap.empty[String, Array[Byte]]
 
@@ -340,13 +304,4 @@ object ActionImpl {
         super.findClass(name) // throws exception
       }
   }
-
-  // ---- elem ----
-//  def mkCopy()(implicit tx: S#Tx): Action.Elem[S] = {
-//    val cpy = peer match {
-//      case Action.Var(vr) => Action.Var(vr())
-//      case other => other
-//    }
-//    Action.Elem(cpy)
-//  }
 }

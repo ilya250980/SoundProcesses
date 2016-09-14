@@ -51,8 +51,8 @@ final class ActionResponder[S <: Sys[S]](objH: stm.Source[S#Tx, Obj[S]], key: St
     case osc.Message(Name, NodeID, 0, raw @ _*) =>
       if (DEBUG) println(s"ActionResponder($key, $NodeID) - received trigger")
       // logAural(m.toString)
-      val values: Vec[Float] = raw.collect {
-        case f: Float => f
+      val values: Vec[Double] = raw.collect {
+        case f: Float => f.toDouble
       } (breakOut)
 
       import context.scheduler.cursor

@@ -65,7 +65,7 @@ object Action extends Obj.Type {
 
   object Universe {
     def apply[S <: Sys[S]](self: Action[S], workspace: WorkspaceHandle[S], invoker: Option[Obj[S]] = None,
-                           values: Vec[Float] = Vector.empty)(implicit cursor: stm.Cursor[S]): Universe[S] =
+                           values: Vec[Double] = Vector.empty)(implicit cursor: stm.Cursor[S]): Universe[S] =
       new Impl.UniverseImpl(self, workspace, invoker, values)
   }
   trait Universe[S <: Sys[S]] {
@@ -80,7 +80,7 @@ object Action extends Obj.Type {
     /** A collection of sampled values if the action was invoked through
       * `graph.Reaction` (otherwise empty).
       */
-    def values: Vec[Float]
+    def values: Vec[Double]
 
     /** Parent component from which the action is invoked. For example
       * if used from within a synth-graph, this will be some `Proc.Obj`.

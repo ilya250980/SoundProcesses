@@ -16,8 +16,8 @@ package impl
 
 import de.sciss.lucre.synth.{Server, Sys}
 import de.sciss.synth.NestedUGenGraphBuilder.ExpIfCase
-import de.sciss.synth.proc.UGenGraphBuilder.{Input, Key}
-import de.sciss.synth.{NestedUGenGraphBuilder, SynthGraph, proc}
+import de.sciss.synth.proc.{UGenGraphBuilder => UGB}
+import de.sciss.synth.{NestedUGenGraphBuilder, SynthGraph}
 
 object UGenGraphBuilderImpl {
   import UGenGraphBuilder.{Complete, Context, Incomplete, MissingIn, State}
@@ -46,7 +46,7 @@ object UGenGraphBuilderImpl {
 
     override def toString = s"UGenGraphBuilder.Incomplete@${hashCode.toHexString}"
 
-    def acceptedInputs  = Map.empty[Key, (Input, Input#Value)]
+    def acceptedInputs  = Map.empty[UGB.Key, (UGB.Input, UGB.Input#Value)]
     def outputs         = Map.empty[String, Int]
 
     def retry(context: Context[S])(implicit tx: S#Tx): State[S] =
@@ -55,7 +55,7 @@ object UGenGraphBuilderImpl {
 
   private final class CompleteImpl[S <: Sys[S]](val result: NestedUGenGraphBuilder.Result,
       val outputs       : Map[String, Int],
-      val acceptedInputs: Map[UGenGraphBuilder.Key, (Input, Input#Value)]
+      val acceptedInputs: Map[UGenGraphBuilder.Key, (UGB.Input, UGB.Input#Value)]
    ) extends Complete[S] {
 
     override def toString = s"UGenGraphBuilder.Complete@${hashCode.toHexString}"
@@ -68,7 +68,7 @@ object UGenGraphBuilderImpl {
   }
 
   private trait Impl[S <: Sys[S]]
-    extends NestedUGenGraphBuilder.Basic with proc.UGenGraphBuilder {
+    extends NestedUGenGraphBuilder.Basic with UGB with UGB.IO[S] {
     builder =>
 
     // ---- abstract ----
@@ -92,10 +92,10 @@ object UGenGraphBuilderImpl {
     def retry(context: Context[S])(implicit tx: S#Tx): State[S] =
       throw new IllegalStateException("Cannot retry an ongoing build")
 
-    def requestInput(req: Input): req.Value = {
+    def requestInput(req: UGB.Input): req.Value = {
       // we pass in `this` and not `in`, because that way the context
       // can find accepted inputs that have been added during the current build cycle!
-      val res = context.requestInput[req.Value](req /* , in */)(tx)
+      val res = context.requestInput[req.Value](req, this)(tx)
       acceptedInputs += req.key -> (req, res)
       logAural(s"acceptedInputs += ${req.key} -> $res")
       res

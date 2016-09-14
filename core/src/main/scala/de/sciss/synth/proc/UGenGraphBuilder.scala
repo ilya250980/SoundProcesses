@@ -47,18 +47,20 @@ object UGenGraphBuilder {
   trait Context[S <: Sys[S]] {
     def server: Server
 
-    def requestInput[Res](req: UGenGraphBuilder.Input { type Value = Res } /* , state: Incomplete[S] */)
-                         (implicit tx: S#Tx): Res
+    def requestInput[Res](req: UGenGraphBuilder.Input { type Value = Res }, io: IO[S])(implicit tx: S#Tx): Res
   }
 
-  sealed trait State[S <: Sys[S]] {
+  trait IO[S <: Sys[S]] {
     def acceptedInputs: Map[Key, (Input, Input#Value)]
-    def rejectedInputs: Set[Key]
 
     /** Current set of used outputs (scan keys to number of channels).
       * This is guaranteed to only grow during incremental building, never shrink.
       */
     def outputs: Map[String, Int]
+  }
+
+  sealed trait State[S <: Sys[S]] extends IO[S] {
+    def rejectedInputs: Set[Key]
 
     def isComplete: Boolean
   }

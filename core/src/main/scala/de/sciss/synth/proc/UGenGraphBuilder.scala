@@ -14,7 +14,7 @@
 package de.sciss.synth.proc
 
 import de.sciss.lucre.synth.{Server, Sys}
-import de.sciss.synth.UGenGraph
+import de.sciss.synth.{NestedUGenGraphBuilder, UGenGraph}
 
 import scala.util.control.ControlThrowable
 import impl.{UGenGraphBuilderImpl => Impl}
@@ -70,7 +70,7 @@ object UGenGraphBuilder {
   }
 
   trait Complete[S <: Sys[S]] extends State[S] {
-    def result: UGenGraph
+    def result: NestedUGenGraphBuilder.Result
 
     final def isComplete = true
     // final def missingIns = Set.empty[String]
@@ -101,22 +101,6 @@ object UGenGraphBuilder {
   type Unit = Unit.type
 
   object Input {
-//    object Scan {
-//      final case class Value(numChannels: Int) extends UGenGraphBuilder.Value {
-//        def async = false
-//        override def productPrefix = "Input.Scan.Value"
-//        override def toString = s"$productPrefix(numChannels = $numChannels)"
-//      }
-//    }
-//    final case class Scan(name: String, fixed: Int) extends Input {
-//      type Key    = ScanKey
-//      type Value  = Scan.Value
-//
-//      def key = ScanKey(name)
-//
-//      override def productPrefix = "Input.Scan"
-//    }
-
     object Stream {
       def EmptySpec = Spec(0.0, 0)
 
@@ -282,7 +266,7 @@ object UGenGraphBuilder {
     def key: Key
   }
 }
-trait UGenGraphBuilder extends UGenGraph.Builder {
+trait UGenGraphBuilder extends NestedUGenGraphBuilder {
   import UGenGraphBuilder._
 
   def server: Server

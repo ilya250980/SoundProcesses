@@ -15,15 +15,16 @@ package de.sciss.synth.proc
 package impl
 
 import de.sciss.lucre.synth.{Server, Sys}
+import de.sciss.synth.NestedUGenGraphBuilder.{Basic, ExpIfCase, Inner}
 import de.sciss.synth.impl.BasicUGenGraphBuilder
 import de.sciss.synth.proc.UGenGraphBuilder.Input
 import de.sciss.synth.ugen.ControlProxyLike
-import de.sciss.synth.{Lazy, SynthGraph, UGen, UGenGraph}
+import de.sciss.synth.{Lazy, NestedUGenGraphBuilder, SynthGraph, UGen, UGenGraph, proc}
 
 import scala.collection.immutable.{IndexedSeq => Vec}
 
 object UGenGraphBuilderImpl {
-  import UGenGraphBuilder.{State, Complete, Incomplete, MissingIn, Context}
+  import UGenGraphBuilder.{Complete, Context, Incomplete, MissingIn, State}
 
   /** '''Note''': The resulting object is mutable, therefore must not be shared across threads and also must be
     * created and consumed within the same transaction. That is to say, to be transactionally safe, it may only
@@ -65,23 +66,42 @@ object UGenGraphBuilderImpl {
     override def toString = s"UGenGraphBuilder.Incomplete@${hashCode.toHexString}"
 
     def retry(context: Context[S])(implicit tx: S#Tx): State[S] =
-      new Impl[S](context, this, tx).tryBuild()
+      new OuterImpl[S](context, this, tx).tryBuild()
   }
 
-  private final class CompleteImpl[S <: Sys[S]](val result: UGenGraph,
+  private final class CompleteImpl[S <: Sys[S]](val resultX: UGenGraph,
       val outputs       : Map[String, Int],
       val acceptedInputs: Map[UGenGraphBuilder.Key, (Input, Input#Value)]
    )
     extends Complete[S] {
 
     override def toString = s"UGenGraphBuilder.Complete@${hashCode.toHexString}"
+
+    def result: NestedUGenGraphBuilder.Result = ??? // NNN
   }
 
-  private final class Impl[S <: Sys[S]](context: Context[S], in: IncompleteImpl[S], val tx: S#Tx)
-    extends BasicUGenGraphBuilder with UGenGraphBuilder with Incomplete[S] {
+  private final class OuterImpl[S <: Sys[S]](protected val context: Context[S],
+                                             protected val in: IncompleteImpl[S], protected val tx: S#Tx)
+    extends NestedUGenGraphBuilder.Outer with Impl[S] {
+
+  }
+
+  private trait Impl[S <: Sys[S]]
+    extends NestedUGenGraphBuilder.Basic with proc.UGenGraphBuilder with Incomplete[S] {
     builder =>
 
+    // ---- abstract ----
+
+    protected def in: IncompleteImpl[S]
+    protected def context: Context[S]
+    protected def tx: S#Tx
+
+    // ---- impl ----
+
     override def toString = s"UGenGraphBuilder.Incomplete@${hashCode.toHexString} (active)"
+
+    protected def mkInner(childId: Int, thisExpIfCase: Option[ExpIfCase], parent: NestedUGenGraphBuilder.Basic,
+                          name: String): NestedUGenGraphBuilder.Inner = ??? // NNN
 
     private[this] var remaining       = in.remaining
     private[this] var controlProxies  = in.controlProxies
@@ -94,15 +114,6 @@ object UGenGraphBuilderImpl {
 
     def retry(context: Context[S])(implicit tx: S#Tx): State[S] =
       throw new IllegalStateException("Cannot retry an ongoing build")
-
-    // def sensorBus: SControlBus = aural.sensorBus
-
-    //    def addScanIn(key: String, numChannels: Int): Int = {
-    //      val fixed = numChannels >= 0
-    //      val res   = aural.scanInNumChannels(key = key, numChannels = numChannels)(tx)
-    //      scanIns  += key -> ScanIn(numChannels = res, fixed = fixed)
-    //      res
-    //    }
 
     def requestInput(req: Input): req.Value = {
       // we pass in `this` and not `in`, because that way the context
@@ -123,25 +134,6 @@ object UGenGraphBuilderImpl {
           sys.error(s"$s1 $s2")
         }
       }
-
-    //    def addAttributeIn(key: String): Int = {
-    //      val res       = aural.attrNumChannels(key = key)(tx)
-    //      attributeIns += key
-    //      res
-    //    }
-
-    //    def addStreamIn(key: String, info: StreamIn): (Int, Int) = {
-    //      val numCh = aural.attrNumChannels(key = key)(tx)
-    //      val idx   = if (info.isEmpty) {
-    //        if (!streamIns.contains(key)) streamIns += key -> Nil
-    //        0
-    //      } else {
-    //        val oldValue = streamIns.getOrElse(key, Nil)
-    //        streamIns += key -> (info :: oldValue)
-    //        oldValue.size
-    //      }
-    //      (numCh, idx)
-    //    }
 
     def tryBuild(): State[S] = UGenGraph.use(this) {
       var missingElems  = Vector.empty[Lazy]
@@ -165,7 +157,7 @@ object UGenGraphBuilderImpl {
                 controlNames        = savedControlNames
                 controlValues       = savedControlValues
                 ugens               = savedUGens
-                outputs            = savedScanOuts
+                outputs             = savedScanOuts
                 acceptedInputs      = savedAcceptedInputs
                 missingElems      :+= elem
                 rejectedInputs     += rejected // .key

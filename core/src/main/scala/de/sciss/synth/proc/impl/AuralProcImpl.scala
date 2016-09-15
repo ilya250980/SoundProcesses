@@ -771,7 +771,7 @@ object AuralProcImpl {
 
       val ug            = ugen.result
       val nameHint      = p.attr.$[StringObj](ObjKeys.attrName).map(_.value)
-      val synth         = ??? : Node // Synth // NNN Synth.expanded(server, ug, nameHint = nameHint)
+      val synth         = ???! : Node // Synth // NNN Synth.expanded(server, ug, nameHint = nameHint)
 
       val builder       = AuralNode[S](timeRef, sched.time, synth)
 

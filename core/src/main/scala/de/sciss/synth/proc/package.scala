@@ -33,4 +33,11 @@ package object proc {
 
   @elidable(CONFIG) private[proc] def log(what: => String): Unit =
     if (showLog) Console.out.println(logHeader.format(new Date()) + what)
+
+  /** Exception are sometimes swallowed without printing in a transaction. This ensures a print. */
+  private[proc] def ???! : Nothing = {
+    val err = new NotImplementedError
+    err.printStackTrace()
+    throw err
+  }
 }

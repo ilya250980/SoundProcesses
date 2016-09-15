@@ -26,7 +26,7 @@ The following dependency is necessary:
 
     "de.sciss" %% "soundprocesses" % v
 
-The current stable version `v` is `"3.5.2"`. The current experimental version can be seen in the Maven badge above.
+The current version `v` is `"3.6.0"`.
 
 The following sub modules are available:
 

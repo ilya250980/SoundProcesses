@@ -1,7 +1,7 @@
 lazy val baseName  = "SoundProcesses"
 lazy val baseNameL = baseName.toLowerCase
 
-lazy val projectVersion = "3.6.0-SNAPSHOT"
+lazy val projectVersion = "3.6.0"
 
 lazy val commonSettings = Seq(
   version            := projectVersion,
@@ -11,12 +11,13 @@ lazy val commonSettings = Seq(
   licenses           := Seq("LGPL v2.1+" -> url("http://www.gnu.org/licenses/lgpl-2.1.txt")),
   scalaVersion       := "2.11.8",
   crossScalaVersions := Seq("2.11.8", "2.10.6"),
-  resolvers          += "Oracle Repository" at "http://download.oracle.com/maven"  // required for sleepycat
+  resolvers          += "Oracle Repository" at "http://download.oracle.com/maven",  // required for sleepycat
+  parallelExecution in Test := false
 ) ++ publishSettings
 
 lazy val lucreVersion               = "3.3.1"
 lazy val scalaColliderVersion       = "1.20.1"
-lazy val scalaColliderIfVersion     = "0.1.0-SNAPSHOT"
+lazy val scalaColliderIfVersion     = "0.1.0"
 lazy val spanVersion                = "1.3.1"
 lazy val lucreSwingVersion          = "1.4.0"
 lazy val swingPlusVersion           = "0.2.1"
@@ -35,9 +36,9 @@ lazy val scoptVersion              = "3.5.0"
 scalacOptions in ThisBuild ++= {
   // "-Xfatal-warnings" -- breaks for cross-scala-build and deprecations
   // -stars-align produces wrong warnings with decomposing OSC messages
-  val xs = Seq("-deprecation", "-unchecked", "-feature", "-encoding", "utf8", "-Xfuture",
-    "-Xlint:-stars-align,_")
-  if (loggingEnabled || isSnapshot.value) xs else xs ++ Seq("-Xelide-below", "INFO")
+  val xs = Seq("-deprecation", "-unchecked", "-feature", "-encoding", "utf8", "-Xfuture")
+  val ys = if (scalaVersion.value.startsWith("2.10")) xs else xs :+ "-Xlint:-stars-align,_"  // syntax not supported in Scala 2.10
+  if (loggingEnabled || isSnapshot.value) ys else ys ++ Seq("-Xelide-below", "INFO")
 }
 
 // SI-7481

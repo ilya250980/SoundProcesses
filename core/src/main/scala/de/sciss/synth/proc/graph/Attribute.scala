@@ -112,7 +112,7 @@ object Attribute {
     mk(audio, key, default, fixed = fixed)
 
   private def mk(rate: Rate, key: String, default: ControlValues, fixed: Boolean): Attribute =
-    new Attribute(scalar , key, Some(default.seq), fixed = if (fixed) default.seq.size else -1)
+    new Attribute(rate, key, Some(default.seq), fixed = if (fixed) default.seq.size else -1)
 }
 final case class Attribute(rate: Rate, key: String, default: Option[Vec[Float]], fixed: Int)
   extends GE.Lazy {

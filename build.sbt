@@ -33,9 +33,10 @@ lazy val bdb                       = "bdb"  // either "bdb" or "bdb6"
 lazy val scoptVersion              = "3.5.0"
 
 scalacOptions in ThisBuild ++= {
-  // "-Xlint" -- produces problems with implicit objects and traits in package object
   // "-Xfatal-warnings" -- breaks for cross-scala-build and deprecations
-  val xs = Seq("-deprecation", "-unchecked", "-feature", "-encoding", "utf8", "-Xfuture")
+  // -stars-align produces wrong warnings with decomposing OSC messages
+  val xs = Seq("-deprecation", "-unchecked", "-feature", "-encoding", "utf8", "-Xfuture",
+    "-Xlint:-stars-align,_")
   if (loggingEnabled || isSnapshot.value) xs else xs ++ Seq("-Xelide-below", "INFO")
 }
 

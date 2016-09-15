@@ -843,7 +843,7 @@ class NewAuralTest[S <: Sys[S]](name: String)(implicit cursor: stm.Cursor[S]) {
             // scanIn  <- procH().inputs .get("in" )
           } {
             println("--connect noise--")
-            scanOut ~> (procH(), "in")
+            scanOut ~> (procH() -> "in")
           }
 
           after(2.0) { implicit tx =>
@@ -852,7 +852,7 @@ class NewAuralTest[S <: Sys[S]](name: String)(implicit cursor: stm.Cursor[S]) {
               // scanIn  <- procH().inputs .get("in" )
             } {
               println("--connect dust--")
-              scanOut ~> (procH(), "in") // scanIn
+              scanOut ~> (procH() -> "in") // scanIn
             }
 
             after(2.0) { implicit tx =>
@@ -861,7 +861,7 @@ class NewAuralTest[S <: Sys[S]](name: String)(implicit cursor: stm.Cursor[S]) {
                 // scanIn  <- procH().inputs .get("in" )
               } {
                 println("--disconnect noise--")
-                scanOut ~/> (procH(), "in") // scanIn
+                scanOut ~/> (procH() -> "in") // scanIn
               }
 
               after(2.0) { implicit tx =>
@@ -870,7 +870,7 @@ class NewAuralTest[S <: Sys[S]](name: String)(implicit cursor: stm.Cursor[S]) {
                   // scanIn  <- procH().inputs.get("in" )
                 } {
                   println("--disconnect dust--")
-                  scanOut ~/> (procH(), "in") // scanIn
+                  scanOut ~/> (procH() -> "in") // scanIn
                 }
 
                 stopAndQuit()

@@ -18,7 +18,7 @@ object IntpTest extends App {
   implicit val compiler = Compiler()
   import ExecutionContext.Implicits.global
   val ft = Code.FileTransform("""println(s"input = $in, output = $out")""")
-  val res = ft.execute(new java.io.File("alpha"), new java.io.File("beta"), _.addListener { case x => println(s"Observed: $x") })
+  val res = ft.execute((new java.io.File("alpha"), new java.io.File("beta"), _.addListener { case x => println(s"Observed: $x") }))
   println(res)
 
   val t: Thread = new Thread {

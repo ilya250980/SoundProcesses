@@ -103,7 +103,7 @@ trait AuralGraphemeBase[S <: Sys[S], I <: stm.Sys[I], Target, Elem <: AuralView[
         private[this] var _ended    : Boolean                 = _
         private[this] var _succOpt  : Option[(Obj[S], Long)]  = _
 
-        def hasNext(): Boolean = !_ended
+        def hasNext: Boolean = !_ended
 
         private def advance(child: Obj[S], start: Long): Unit =
           if (start >= spanP.stop) {

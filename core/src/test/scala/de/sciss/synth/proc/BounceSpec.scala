@@ -1,6 +1,7 @@
 package de.sciss.synth.proc
 
 import de.sciss.file._
+import de.sciss.lucre.expr.DoubleObj
 import de.sciss.lucre.stm
 import de.sciss.lucre.stm.Obj
 import de.sciss.lucre.stm.store.BerkeleyDB
@@ -9,11 +10,14 @@ import de.sciss.numbers
 import de.sciss.span.Span
 import de.sciss.synth.SynthGraph
 import de.sciss.synth.io.AudioFile
-import org.scalatest.{FutureOutcome, Matchers, fixture}
+import org.scalactic.source
+import org.scalatest.{FutureOutcome, Matchers, compatible, fixture}
 
+import scala.collection.immutable.{Iterable => IIterable}
 import scala.concurrent.{ExecutionContext, Future}
 import scala.concurrent.duration._
 import scala.concurrent.stm.Txn
+import scala.language.implicitConversions
 import scala.util.Try
 
 abstract class BounceSpec extends fixture.AsyncFlatSpec with Matchers {
@@ -45,11 +49,53 @@ abstract class BounceSpec extends fixture.AsyncFlatSpec with Matchers {
     }
   }
 
-  // ---- utility ----
+  // ---- enrichment ----
+
+  implicit final class NoCeremony(s: String) {
+    def works(testFun: FixtureParam => Future[compatible.Assertion])(implicit pos: source.Position): Unit =
+      s should "produce the predicted sound output" in testFun
+  }
 
   implicit final class FrameOps(sec: Double) /* extends AnyVal */ {
-    def seconds: Long = frame(sec)
+    def seconds : Long = frame(sec)
+    def secondsI: Int  = seconds.toInt
+
+    def secondsFile : Long = (sec * sampleRate).toLong
+    def secondsFileI: Int  = secondsFile.toInt
   }
+
+  implicit class OutputOps(val `this`: Output[S]) /* extends AnyVal */ {
+    def ~> (that: (Proc[S], String))(implicit tx: S#Tx): Unit = {
+      val (sink, key) = that
+      val attr = sink.attr
+      attr.get(key).fold[Unit] {
+        attr.put(key, `this`)
+      } {
+        case f: Folder[S] => f.addLast(`this`)
+        case prev =>
+          val f = Folder[S]
+          f.addLast(prev)
+          f.addLast(`this`)
+          attr.put(key, f)
+      }
+    }
+
+    def ~/> (that: (Proc[S], String))(implicit tx: S#Tx): Unit = {
+      val (sink, key) = that
+      val attr = sink.attr
+      attr.get(key).getOrElse(sys.error(s"Attribute $key was not assigned")) match {
+        case `sink` => attr.remove(key)
+        case f: Folder[S] =>
+          val idx = f.indexOf(`this`)
+          if (idx < 0) sys.error(s"Attribute $key has a folder but does not contain ${`this`}")
+          f.removeAt(idx)
+
+        case other => sys.error(s"Cannot remove output from $other")
+      }
+    }
+  }
+
+  // ---- utility ----
 
   def frame  (secs  : Double): Long   = (secs  * TimeRef.SampleRate).toLong
   def seconds(frames: Long  ): Double = frames / TimeRef.SampleRate
@@ -63,12 +109,49 @@ abstract class BounceSpec extends fixture.AsyncFlatSpec with Matchers {
     p
   }
 
-  final def printVector(arr: Array[Float]): Unit =
-    println(arr.mkString("Vector(", ",", ")"))
+  final def printVector(arr: Array[Float]): Unit = {
+    val s = arr.grouped(12).map(_.mkString(", ")).mkString("Vector(", ",\n", ")")
+    println(s) // arr.mkString("Vector(", ",", ")"))
+  }
 
   final def mkSine(freq: Double, startFrame: Int, len: Int, sampleRate: Double = sampleRate): Array[Float] = {
     val freqN = 2 * math.Pi * freq / sampleRate
     Array.tabulate(len)(i => math.sin((startFrame + i) * freqN).toFloat)
+  }
+
+  final def mkLFPulse(freq: Double, startFrame: Int, len: Int, sampleRate: Double = sampleRate): Array[Float] = {
+    val period = sampleRate / freq
+    Array.tabulate(len)(i => if ((((startFrame + i) / period) % 1.0) < 0.5) 1f else 0f)
+  }
+
+  final def mulScalar(in: Array[Float], f: Float, start: Int = 0, len: Int = -1): Unit = {
+    val len0 = if (len < 0) in.length - start else len
+    var i = start
+    val j = start + len0
+    while (i < j) {
+      in(i) *= f
+      i += 1
+    }
+  }
+
+  final def mulArray(a: Array[Float], b: Array[Float], start: Int = 0, len: Int = -1): Unit = {
+    val len0 = if (len < 0) math.min(a.length, b.length) - start else len
+    var i = start
+    val j = start + len0
+    while (i < j) {
+      a(i) *= b(i)
+      i += 1
+    }
+  }
+
+  final def add(a: Array[Float], b: Array[Float], start: Int = 0, len: Int = -1): Unit = {
+    val len0 = if (len < 0) math.min(a.length, b.length) - start else len
+    var i = start
+    val j = start + len0
+    while (i < j) {
+      a(i) += b(i)
+      i += 1
+    }
   }
 
   final def mkConstant(value: Float, len: Int): Array[Float] = Array.fill(len)(value)
@@ -81,6 +164,12 @@ abstract class BounceSpec extends fixture.AsyncFlatSpec with Matchers {
   }
 
   final def mkSilent(len: Int): Array[Float] = new Array(len)
+
+  def doubleAttr(proc: Proc[S], key: String, value: Double)(implicit tx: S#Tx): Unit =
+    proc.attr.put(key, value: DoubleObj[S])
+
+  def addOutput(proc: Proc[S], key: String = "out")(implicit tx: S#Tx): Output[S] =
+    proc.outputs.add(key)
 
   // ---- impl ----
 
@@ -99,7 +188,13 @@ abstract class BounceSpec extends fixture.AsyncFlatSpec with Matchers {
   def requireOutsideTxn(): Unit =
     require(Txn.findCurrent.isEmpty, "Must be called outside of transaction")
 
-  final def config(obj: stm.Source[S#Tx, Obj[S]], span: Span, numChannels: Int = 1): Bounce.ConfigBuilder[S] = {
+  object Objects {
+    implicit def single  (x :           stm.Source[S#Tx, Obj[S]] ): Objects = new Objects(x :: Nil)
+    implicit def multiple(xs: IIterable[stm.Source[S#Tx, Obj[S]]]): Objects = new Objects(xs)
+  }
+  final class Objects(val peer: IIterable[stm.Source[S#Tx, Obj[S]]])
+
+  final def config(objects: Objects, span: Span, numChannels: Int = 1): Bounce.ConfigBuilder[S] = {
     requireOutsideTxn()
     val res = Bounce.Config[S]
     res.span                      = span
@@ -107,9 +202,12 @@ abstract class BounceSpec extends fixture.AsyncFlatSpec with Matchers {
     res.server.sampleRate         = sampleRateI
     res.server.blockSize          = blockSize
     res.server.nrtOutputPath      = File.createTemp(suffix = ".aif").path
-    res.group                     = obj :: Nil
+    res.group                     = objects.peer
     res
   }
+
+  final def action(config: Bounce.ConfigBuilder[S], frame: Long)(fun: S#Tx => Unit): Unit =
+    config.actions = config.actions ++ (Scheduler.Entry[S](time = frame, fun = fun) :: Nil)
 
   final def bounce(config: Bounce.Config[S], timeOut: Duration = 20.seconds)
                   (implicit cursor: stm.Cursor[S]): Future[Array[Array[Float]]] = {

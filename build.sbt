@@ -91,7 +91,8 @@ lazy val core = Project(id = s"$baseNameL-core", base = file("core"))
       "de.sciss"          %% "fileutil"         % fileUtilVersion,
       "org.scalatest"     %% "scalatest"        % scalaTestVersion  % "test",
       "de.sciss"          %% s"lucre-$bdb"      % lucreVersion      % "test",
-      "com.github.scopt"  %% "scopt"            % scoptVersion      % "test"
+      "com.github.scopt"  %% "scopt"            % scoptVersion      % "test",
+      "de.sciss"          %% "scalacolliderswing-plotting" % scalaColliderSwingVersion % "test"
     )
   )
 

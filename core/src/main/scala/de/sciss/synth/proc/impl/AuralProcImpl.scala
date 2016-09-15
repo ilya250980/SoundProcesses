@@ -769,11 +769,10 @@ object AuralProcImpl {
       val p = procCached()
       logA(s"begin launch  $p (${hashCode.toHexString})")
 
-      val ug            = ugen.result
+      val ubRes         = ugen.result
       val nameHint      = p.attr.$[StringObj](ObjKeys.attrName).map(_.value)
-      val synth         = ???! : Node // Synth // NNN Synth.expanded(server, ug, nameHint = nameHint)
-
-      val builder       = AuralNode[S](timeRef, sched.time, synth)
+      val builder       = AuralNode[S](timeRef, sched.time, ubRes, server, nameHint = nameHint)
+      val synth         = builder.node
 
       // "consume" prepared state
       playingRef.swap(PlayingNone) match {

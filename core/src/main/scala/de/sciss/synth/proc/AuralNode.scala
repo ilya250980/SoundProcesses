@@ -14,12 +14,14 @@
 package de.sciss.synth.proc
 
 import de.sciss.lucre.stm.Sys
-import de.sciss.lucre.synth.{Group, NodeRef, Node, Txn, Sys => SSys}
+import de.sciss.lucre.synth.{Group, NodeRef, Server, Txn, Sys => SSys}
+import de.sciss.synth.NestedUGenGraphBuilder
 import de.sciss.synth.proc.impl.{AuralNodeImpl => Impl}
 
 object AuralNode {
-  def apply[S <: SSys[S]](timeRef: TimeRef, wallClock: Long, node: Node)(implicit tx: Txn): Builder[S] =
-    Impl[S](timeRef, wallClock, node)
+  def apply[S <: SSys[S]](timeRef: TimeRef, wallClock: Long, ubRes: NestedUGenGraphBuilder.Result,
+                          server: Server, nameHint: Option[String])(implicit tx: Txn): Builder[S] =
+    Impl[S](timeRef, wallClock, ubRes, server, nameHint = nameHint)
 
   trait Builder[S <: Sys[S]] extends AuralNode[S] {
     def play()(implicit tx: S#Tx): Unit

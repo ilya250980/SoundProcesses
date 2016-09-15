@@ -112,11 +112,17 @@ final class BounceImpl[S <: Sys[S], I <: stm.Sys[I]](implicit cursor: stm.Cursor
       promise.foreach(_.tryFailure(Processor.Aborted()))
     }
 
+    private def addActions(scheduler: Scheduler[S])(implicit tx: S#Tx): Unit =
+      config.actions.foreach { entry =>
+        scheduler.schedule(entry.time)(entry.fun)
+      }
+
     private def bodyRealtime(sCfg: Server.Config): Unit = {
       val pServer = Promise[Server]()
       promiseSync.synchronized(promise = Some(pServer))
       val (span, scheduler, transport, __aural) = cursor.step { implicit tx =>
         val _scheduler  = Scheduler[S]
+        addActions(_scheduler)
         val _span       = config.span
 
         val _aural = AuralSystem()
@@ -231,6 +237,7 @@ final class BounceImpl[S <: Sys[S], I <: stm.Sys[I]](implicit cursor: stm.Cursor
 
       val (span, scheduler, transport, __aural) = cursor.step { implicit tx =>
         val _scheduler  = Scheduler.offline[S]
+        addActions(_scheduler)
         val _span       = config.span
 
         val _aural = AuralSystem.offline(server)
@@ -241,6 +248,7 @@ final class BounceImpl[S <: Sys[S], I <: stm.Sys[I]](implicit cursor: stm.Cursor
         }
         _transport.seek(_span.start)
         _transport.play()
+
         (_span, _scheduler, _transport, _aural)
       }
       aural = __aural

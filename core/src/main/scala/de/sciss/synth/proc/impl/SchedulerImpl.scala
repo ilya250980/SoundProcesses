@@ -21,6 +21,7 @@ import de.sciss.lucre.stm
 import de.sciss.lucre.stm.Sys
 import de.sciss.serial.ImmutableSerializer
 import de.sciss.synth.proc
+import de.sciss.synth.proc.Scheduler.Entry
 import proc.{logTransport => logT}
 
 import scala.concurrent.stm.{Ref, TMap, TxnLocal}
@@ -148,12 +149,10 @@ object SchedulerImpl {
 
     // ---- implemented ----
 
-    private final class ScheduledFunction(val time: Long, val fun: S#Tx => Unit)
-
     private type Token = Int
 
     private val tokenRef    = Ref(0)
-    private val tokenMap    = TMap.empty[Int, ScheduledFunction]
+    private val tokenMap    = TMap.empty[Int, Entry[S]]
 
     final protected val sampleRateN = 0.014112 // = Timeline.SampleRate * 1.0e-9
     protected final val infoVar     = Ref(infInfo)
@@ -166,7 +165,7 @@ object SchedulerImpl {
       val t             = time
       if (targetTime < t) throw new IllegalArgumentException(s"Cannot schedule in the past ($targetTime < $time)")
       val token         = tokenRef.getAndTransform(_ + 1)
-      tokenMap.put(token, new ScheduledFunction(targetTime, fun))
+      tokenMap.put(token, new Entry[S](targetTime, fun))
       val oldInfo       = infoVar()
       val reschedule    = targetTime < oldInfo.targetTime
 

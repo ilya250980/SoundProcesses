@@ -63,6 +63,8 @@ object Bounce {
 
     /** Whether to run the server in real-time or offline. */
     def realtime: Boolean
+
+    def actions: IIterable[Scheduler.Entry[S]]
   }
   object Config {
     val NoOp = (_: Any, _: Any) => ()
@@ -87,7 +89,14 @@ object Bounce {
     /** The default server configuration is ScalaCollider's
       * default, a block-size of one, no input and one output channel.
       */
-    val server: Server.ConfigBuilder    = Server.Config()
+    val server: Server.ConfigBuilder    = {
+      val res = Server.Config()
+      // some sensible defaults
+      res.blockSize          = 1
+      res.inputBusChannels   = 0
+      res.outputBusChannels  = 1
+      res
+    }
 
     var beforePrepare: (S#Tx, Server) => Unit  = Config.NoOp
     var beforePlay   : (S#Tx, Server) => Unit  = Config.NoOp
@@ -95,18 +104,19 @@ object Bounce {
     /** The default mode is offline (realtime == `false`) */
     var realtime: Boolean = false
 
-    // some sensible defaults
-    server.blockSize          = 1
-    server.inputBusChannels   = 0
-    server.outputBusChannels  = 1
+    var actions: IIterable[Scheduler.Entry[S]] = Nil
 
     def build: Config[S] = ConfigImpl(group = group, span = span, server = server,
-      beforePrepare = beforePrepare, beforePlay = beforePlay, realtime = realtime)
+      beforePrepare = beforePrepare, beforePlay = beforePlay, realtime = realtime, actions = actions)
   }
 
-  private final case class ConfigImpl[S <: Sys[S]](group: GroupH[S], span: Span, server: Server.Config,
+  private final case class ConfigImpl[S <: Sys[S]](group        : GroupH[S],
+                                                   span         : Span,
+                                                   server       : Server.Config,
                                                    beforePrepare: (S#Tx, Server) => Unit,
-                                                   beforePlay   : (S#Tx, Server) => Unit, realtime: Boolean)
+                                                   beforePlay   : (S#Tx, Server) => Unit,
+                                                   realtime     : Boolean,
+                                                   actions      : IIterable[Scheduler.Entry[S]])
     extends Config[S] {
 
     override def productPrefix = "Config"

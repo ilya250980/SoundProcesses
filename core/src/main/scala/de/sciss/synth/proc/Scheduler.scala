@@ -28,6 +28,8 @@ object Scheduler {
     def step()    (implicit tx: S#Tx): Unit
     def stepTarget(implicit tx: S#Tx): Option[Long]
   }
+
+  final case class Entry[S <: Sys[S]](time: Long, fun: S#Tx => Unit)
 }
 
 /** A `Scheduler` uses a logical frame clock to execute functions transactionally

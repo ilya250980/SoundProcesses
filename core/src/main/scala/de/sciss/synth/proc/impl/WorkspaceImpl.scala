@@ -51,10 +51,10 @@ object WorkspaceImpl {
   private implicit def InMemorySer : Ser[InMem] = ConfluentSer.asInstanceOf[Ser[InMem]]
 
   private def requireExists(dir: File): Unit =
-    if (!dir.isDirectory) throw new FileNotFoundException(s"Workspace ${dir.path} does not exist")
+    if (!(dir / "open").isFile) throw new FileNotFoundException(s"Workspace ${dir.path} does not exist")
 
   private def requireExistsNot(dir: File): Unit =
-    if (dir.exists()) throw new IOException(s"Workspace ${dir.path} already exists")
+    if ((dir / "open").exists()) throw new IOException(s"Workspace ${dir.path} already exists")
 
   def read(dir: File, ds: DataStore.Factory /* config: BerkeleyDB.Config */): WorkspaceLike = {
     requireExists(dir)

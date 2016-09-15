@@ -111,6 +111,10 @@ object SynthGraphObj extends expr.impl.ExprTypeImpl[SynthGraph, SynthGraphObj] {
           if (o.isDefined) writeElem(o.get, out, ref)
         case xs: Seq[_] =>  // 'X'. either indexed seq or var arg (e.g. wrapped array)
           writeElemSeq(xs, out, ref)
+        case y: SynthGraph =>
+          out.writeByte('Y')
+          writeIdentifiedGraph(y, out, ref)
+        // important: `Product` must come after all other types that might _also_ be a `Product`
         case p: Product =>
           writeProduct(p, out, ref) // 'P' or '<'
         case i: Int =>
@@ -132,11 +136,10 @@ object SynthGraphObj extends expr.impl.ExprTypeImpl[SynthGraph, SynthGraphObj] {
 
     def write(v: SynthGraph, out: DataOutput): Unit = {
       out.writeShort(SER_VERSION)
-      writeNew(v, out)
+      writeIdentifiedGraph(v, out, new RefMapOut)
     }
 
-    private def writeNew(v: SynthGraph, out: DataOutput): Unit = {
-      val ref = new RefMapOut
+    private def writeIdentifiedGraph(v: SynthGraph, out: DataOutput, ref: RefMapOut): Unit = {
       writeElemSeq(v.sources, out, ref)
       val ctl = v.controlProxies
       out.writeByte('T')
@@ -198,12 +201,14 @@ object SynthGraphObj extends expr.impl.ExprTypeImpl[SynthGraph, SynthGraphObj] {
       res
     }
 
+    // taken: < B C D F I O P R S X Y
     private def readElem(in: DataInput, ref: RefMapIn): Any = {
       (in.readByte(): @switch) match {
         case 'C' => Constant(in.readFloat())
         case 'R' => MaybeRate(in.readByte())
         case 'O' => if (in.readBoolean()) Some(readElem(in, ref)) else None
-        case 'X' => readIdentifiedSeq(in, ref)
+        case 'X' => readIdentifiedSeq    (in, ref)
+        case 'Y' => readIdentifiedGraph  (in, ref)
         case 'P' => readIdentifiedProduct(in, ref)
         case '<' =>
           val id = in.readInt()
@@ -219,12 +224,11 @@ object SynthGraphObj extends expr.impl.ExprTypeImpl[SynthGraph, SynthGraphObj] {
     def read(in: DataInput): SynthGraph = {
       val cookie  = in.readShort()
       require(cookie == SER_VERSION, s"Unexpected cookie $cookie")
-      val res2  = readNew(in)
+      val res2  = readIdentifiedGraph(in, new RefMapIn)
       res2
     }
 
-    private def readNew(in: DataInput): SynthGraph = {
-      val ref     = new RefMapIn
+    private def readIdentifiedGraph(in: DataInput, ref: RefMapIn): SynthGraph = {
       val b1 = in.readByte()
       require(b1 == 'X')    // expecting sequence
       val numSources  = in.readInt()

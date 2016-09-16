@@ -24,14 +24,18 @@ import de.sciss.serial.{DataInput, DataOutput, ImmutableSerializer, Writable}
 import de.sciss.synth
 import de.sciss.synth.proc.impl.{CodeImpl => Impl}
 
-import scala.annotation.switch
 import scala.collection.immutable.{IndexedSeq => Vec}
 import scala.concurrent.{ExecutionContext, Future, blocking}
 
 object Code {
   final val typeID = 0x20001
 
-  def init(): Unit = Obj.init()
+  def init(): Unit = {
+    Obj.init()
+    FileTransform.init()
+    SynthGraph   .init()
+    Action       .init()
+  }
 
   final val UserPackage = "user"
 
@@ -42,17 +46,29 @@ object Code {
 
   def read(in: DataInput): Code = serializer.read(in)
 
-  def apply(id: Int, source: String): Code = (id: @switch) match {
-    case FileTransform.id => FileTransform(source)
-    case SynthGraph   .id => SynthGraph   (source)
-    case Action       .id => Action       (source)
-  }
-
   def future[A](fun: => A)(implicit compiler: Code.Compiler): Future[A] = Impl.future(fun)
 
   def registerImports(id: Int, imports: Seq[String]): Unit = Impl.registerImports(id, imports)
 
   def getImports(id: Int): Vec[String] = Impl.getImports(id)
+
+  // ---- type ----
+
+  def apply(id: Int, source: String): Code = Impl(id, source)
+
+  def addType(tpe: Type): Unit = Impl.addType(tpe)
+
+  def getType(id: Int): Code.Type = Impl.getType(id)
+
+  trait Type {
+    def id: Int
+
+    private[this] lazy val _init: Unit = Code.addType(this)
+
+    def init(): Unit = _init
+
+    def mkCode(source: String): Code
+  }
 
   // ---- compiler ----
 
@@ -87,9 +103,11 @@ object Code {
 
   // ---- type: FileTransform ----
 
-  object FileTransform {
+  object FileTransform extends Type {
     final val id    = 0
     final val name  = "File Transform"
+
+    def mkCode(source: String): Code = FileTransform(source)
   }
   final case class FileTransform(source: String) extends Code {
     type In     = (File, File, ProcessorLike[Any, Any] => Unit)
@@ -107,9 +125,11 @@ object Code {
 
   // ---- type: SynthGraph ----
 
-  object SynthGraph {
+  object SynthGraph extends Type {
     final val id    = 1
     final val name  = "Synth Graph"
+
+    def mkCode(source: String): Code = SynthGraph(source)
   }
   final case class SynthGraph(source: String) extends Code {
     type In     = Unit
@@ -127,9 +147,11 @@ object Code {
 
   // ---- type: Action ----
 
-  object Action {
+  object Action extends Type {
     final val id    = 2
     final val name  = "Action"
+
+    def mkCode(source: String): Code = SynthGraph(source)
   }
   final case class Action(source: String) extends Code {
     type In     = String
@@ -176,7 +198,7 @@ object Code {
   }
   trait Obj[S <: Sys[S]] extends expr.Expr[S, Code]
 }
-sealed trait Code extends Writable { me =>
+trait Code extends Writable { me =>
   type Self = Code { type In = me.In; type Out = me.Out }
 
   /** The interfacing input type */

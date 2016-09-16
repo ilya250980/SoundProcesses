@@ -29,6 +29,24 @@ import scala.util.{Failure, Success}
 object CodeImpl {
   private final val COOKIE  = 0x436F6465  // "Code"
 
+  // ---- type ----
+
+  @volatile private var map = Map.empty[Int, Code.Type]
+
+  def addType(tpe: Code.Type): Unit = sync.synchronized {
+    val typeID = tpe.id
+    if (map.contains(typeID))
+      throw new IllegalArgumentException(s"Code type $typeID was already registered ($tpe overrides ${map(typeID)})")
+
+    map += typeID -> tpe
+  }
+
+  def getType(id: Int): Code.Type = map.getOrElse(id, sys.error(s"Unknown element type $id"))
+
+  def apply(id: Int, source: String): Code = getType(id).mkCode(source)
+
+  // ----
+
   def unpackJar(bytes: Array[Byte]): Map[String, Array[Byte]] = {
     import java.util.jar._
 
@@ -169,7 +187,7 @@ object CodeImpl {
   )
 
   def registerImports(id: Int, imports: Seq[String]): Unit = sync.synchronized {
-    importsMap += id -> (importsMap(id) ++ imports)
+    importsMap += id -> importsMap.get(id).fold(imports.toIndexedSeq)(_ ++ imports)
   }
 
   def getImports(id: Int): Vec[String] = importsMap(id)
@@ -194,8 +212,6 @@ object CodeImpl {
       }
 
       def blockTag = "Unit" // = typeTag[Unit]
-      //      def inTag     = typeTag[File]
-      //      def outTag    = typeTag[File]
     }
 
     implicit object SynthGraph
@@ -208,28 +224,13 @@ object CodeImpl {
       def wrap(in: Unit)(fun: => Any): synth.SynthGraph = synth.SynthGraph(fun)
 
       def blockTag = "Unit" // typeTag[Unit]
-      //      def inTag     = typeTag[Unit]
-      //      def outTag    = typeTag[synth.SynthGraph]
     }
-
-    //    implicit object Action
-    //      extends Wrapper[Unit, Unit, Code.Action] {
-    //
-    //      def id = Code.Action.id
-    //
-    //      def binding = None
-    //
-    //      def wrap(in: Unit)(fun: => Any): Unit = fun
-    //
-    //      def blockTag  = typeTag[Unit]
-    ////      def inTag     = typeTag[Unit]
-    ////      def outTag    = typeTag[Unit]
-    //    }
   }
   trait Wrapper[In, Out, Repr] {
     protected def id: Int
 
     final def imports: ISeq[String] = importsMap(id)
+
     def binding: Option[String]
 
     /** When `execute` is called, the result of executing the compiled code

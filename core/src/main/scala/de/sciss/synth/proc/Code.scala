@@ -63,11 +63,13 @@ object Code {
   trait Type {
     def id: Int
 
+    type Repr <: Code
+
     private[this] lazy val _init: Unit = Code.addType(this)
 
     def init(): Unit = _init
 
-    def mkCode(source: String): Code
+    def mkCode(source: String): Repr
   }
 
   // ---- compiler ----
@@ -107,7 +109,9 @@ object Code {
     final val id    = 0
     final val name  = "File Transform"
 
-    def mkCode(source: String): Code = FileTransform(source)
+    type Repr = FileTransform
+
+    def mkCode(source: String): Repr = FileTransform(source)
   }
   final case class FileTransform(source: String) extends Code {
     type In     = (File, File, ProcessorLike[Any, Any] => Unit)
@@ -128,8 +132,9 @@ object Code {
   object SynthGraph extends Type {
     final val id    = 1
     final val name  = "Synth Graph"
+    type Repr = SynthGraph
 
-    def mkCode(source: String): Code = SynthGraph(source)
+    def mkCode(source: String): Repr = SynthGraph(source)
   }
   final case class SynthGraph(source: String) extends Code {
     type In     = Unit
@@ -150,8 +155,9 @@ object Code {
   object Action extends Type {
     final val id    = 2
     final val name  = "Action"
+    type Repr = Action
 
-    def mkCode(source: String): Code = SynthGraph(source)
+    def mkCode(source: String): Repr = Action(source)
   }
   final case class Action(source: String) extends Code {
     type In     = String

@@ -1,7 +1,8 @@
 lazy val baseName  = "SoundProcesses"
 lazy val baseNameL = baseName.toLowerCase
 
-lazy val projectVersion = "3.6.1-SNAPSHOT"
+lazy val mimaVersion    = "3.6.0" // used for migration-manager
+lazy val projectVersion = "3.6.1"
 
 lazy val commonSettings = Seq(
   version            := projectVersion,
@@ -71,7 +72,8 @@ lazy val synth = Project(id = "lucresynth", base = file("synth"))
       "de.sciss" %% "topology"        % topologyVersion,
       "de.sciss" %% "lucre-core"      % lucreVersion,
       "de.sciss" %% "scalacollider"   % scalaColliderVersion
-    )
+    ),
+    mimaPreviousArtifacts := Set("de.sciss" %% "lucresynth" % mimaVersion)
   )
 
 lazy val core = Project(id = s"$baseNameL-core", base = file("core"))
@@ -94,7 +96,8 @@ lazy val core = Project(id = s"$baseNameL-core", base = file("core"))
       "de.sciss"          %% s"lucre-$bdb"      % lucreVersion      % "test",
       "com.github.scopt"  %% "scopt"            % scoptVersion      % "test",
       "de.sciss"          %% "scalacolliderswing-plotting" % scalaColliderSwingVersion % "test"
-    )
+    ),
+    mimaPreviousArtifacts := Set("de.sciss" %% s"$baseNameL-core" % mimaVersion)
   )
 
 lazy val views = Project(id = s"$baseNameL-views", base = file("views"))
@@ -107,7 +110,8 @@ lazy val views = Project(id = s"$baseNameL-views", base = file("views"))
       "de.sciss" %% "swingplus"          % swingPlusVersion,
       "de.sciss" %% "audiowidgets-swing" % audioWidgetsVersion,
       "de.sciss" %% "audiowidgets-app"   % audioWidgetsVersion
-    )
+    ),
+    mimaPreviousArtifacts := Set("de.sciss" %% s"$baseNameL-views" % mimaVersion)
   )
 
 lazy val compiler = Project(id = s"$baseNameL-compiler", base = file("compiler"))
@@ -121,7 +125,8 @@ lazy val compiler = Project(id = s"$baseNameL-compiler", base = file("compiler")
       "de.sciss"       %% "fileutil"                % fileUtilVersion           % "test",
       "de.sciss"       %% "lucreswing"              % lucreSwingVersion         % "test",
       "de.sciss"       %% "scalacolliderswing-core" % scalaColliderSwingVersion % "test"
-    )
+    ),
+    mimaPreviousArtifacts := Set("de.sciss" %% s"$baseNameL-compiler" % mimaVersion)
   )
 
 // ---- publishing ----

@@ -205,16 +205,16 @@ object AuralProcImpl {
       val st          = buildState
       val aKey        = UGB.AttributeKey(key)
       val rejected    = st.rejectedInputs.contains(aKey)
-      val acceptedOpt = st.acceptedInputs.get(aKey)
-      val used        = rejected || acceptedOpt.isDefined
+      val acceptedMap = st.acceptedInputs.getOrElse(aKey, Map.empty)
+      val used        = rejected || acceptedMap.nonEmpty
       logA(s"AttrAdded   to   ${procCached()} ($key) - used? $used")
       if (!used) return
 
       val view = mkAuralAttribute(key, value)
       st match {
         case st0: Complete[S] =>
-          acceptedOpt match {
-            case Some((_, UGB.Input.Scalar.Value(numChannels))) =>
+          acceptedMap.foreach {
+            case (_, UGB.Input.Scalar.Value(numChannels)) =>
               playingRef() match {
                 case p: PlayingNode =>
                   val nr      = p.node
@@ -228,10 +228,10 @@ object AuralProcImpl {
           }
 
         case st0: Incomplete[S] =>
-          acceptedOpt.fold[Unit] {  // rejected
+          if (acceptedMap.isEmpty) {  // rejected
             // give it another incremental try
             tryBuild()
-          } { case (input, valueBefore) =>
+          } else acceptedMap.foreach { case (input, valueBefore) =>
             // if the request value changes or the
             // new request is rejected, we have to
             // rebuild the whole thing
@@ -394,10 +394,11 @@ object AuralProcImpl {
       case i: UGB.Input.Stream =>
         val value0  = requestAttrStreamValue(i.name)
         val value1  = if (value0.numChannels < 0) value0.copy(numChannels = 1) else value0 // simply default to 1
-        val newSpecs0 = st.acceptedInputs.get(i.key) match {
-          case Some((_, v: UGB.Input.Stream.Value))   => v.specs
-          case _                                      => Nil
-        }
+        val newSpecs0 = List.empty[UGB.Input.Stream.Spec]
+//        st.acceptedInputs.get(i.key) match {
+//          case Some((_, v: UGB.Input.Stream.Value))   => v.specs
+//          case _                                      => Nil
+//        }
         val newSpecs = if (i.spec.isEmpty) newSpecs0 else {
           i.spec :: newSpecs0
         }
@@ -732,8 +733,10 @@ object AuralProcImpl {
       logA(s"begin prepare $p (${hashCode.toHexString})")
 
       val b = new AsyncProcBuilder(p)
-      ugen.acceptedInputs.foreach { case (key, (_, value)) =>
-        if (value.async) buildAsyncInput(b, key, value)
+      ugen.acceptedInputs.foreach { case (key, map) =>
+        map.foreach { case (_, value) =>
+          if (value.async) buildAsyncInput(b, key, value)
+        }
       }
       val res   = b.resources
       val done  = res.isEmpty
@@ -792,8 +795,10 @@ object AuralProcImpl {
         case _ => // Double.PositiveInfinity
       }
 
-      ugen.acceptedInputs.foreach { case (key, (_, value)) =>
-        if (!value.async) buildSyncInput(builder, timeRef, key, value)
+      ugen.acceptedInputs.foreach { case (key, map) =>
+        map.foreach { case (_, value) =>
+          if (!value.async) buildSyncInput(builder, timeRef, key, value)
+        }
       }
 
       // ---- handle output buses, and establish missing links to sinks ----

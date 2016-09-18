@@ -75,7 +75,7 @@ object BufferOut {
 
       case a: Attribute =>
         val input = UGenGraphBuilder.Input.Attribute(a.key)
-        val opt   = builder.requestInput(input)   .asInstanceOf[UGenGraphBuilder.Input.Attribute.Value]
+        val opt   = builder.requestInput(input)  // .asInstanceOf[UGenGraphBuilder.Input.Attribute.Value]
         opt.peer.fold[Either[String, Float]] {
           a.default.fold[Either[String, Float]] {
             throw MissingIn(input.key)

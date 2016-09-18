@@ -51,7 +51,7 @@ object UGenGraphBuilder {
   }
 
   trait IO[S <: Sys[S]] {
-    def acceptedInputs: Map[Key, (Input, Input#Value)]
+    def acceptedInputs: Map[Key, Map[Input, Input#Value]]
 
     /** Current set of used outputs (scan keys to number of channels).
       * This is guaranteed to only grow during incremental building, never shrink.

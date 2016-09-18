@@ -46,7 +46,7 @@ object UGenGraphBuilderImpl {
 
     override def toString = s"UGenGraphBuilder.Incomplete@${hashCode.toHexString}"
 
-    def acceptedInputs  = Map.empty[UGB.Key, (UGB.Input, UGB.Input#Value)]
+    def acceptedInputs  = Map.empty[UGB.Key, Map[UGB.Input, UGB.Input#Value]]
     def outputs         = Map.empty[String, Int]
 
     def retry(context: Context[S])(implicit tx: S#Tx): State[S] =
@@ -55,7 +55,7 @@ object UGenGraphBuilderImpl {
 
   private final class CompleteImpl[S <: Sys[S]](val result: NestedUGenGraphBuilder.Result,
       val outputs       : Map[String, Int],
-      val acceptedInputs: Map[UGenGraphBuilder.Key, (UGB.Input, UGB.Input#Value)]
+      val acceptedInputs: Map[UGB.Key, Map[UGB.Input, UGB.Input#Value]]
    ) extends Complete[S] {
 
     override def toString = s"UGenGraphBuilder.Complete@${hashCode.toHexString}"
@@ -91,7 +91,7 @@ object UGenGraphBuilderImpl {
       new InnerImpl(childId = childId, thisExpIfCase = thisExpIfCase, parent = parent, name = name,
                     context = context, tx = tx)
 
-    var acceptedInputs  = Map.empty[UGB.Key, (UGB.Input, UGB.Input#Value)]
+    var acceptedInputs  = Map.empty[UGB.Key, Map[UGB.Input, UGB.Input#Value]]
     var outputs         = Map.empty[String, Int]
 
     def server: Server = context.server
@@ -102,8 +102,11 @@ object UGenGraphBuilderImpl {
     def requestInput(req: UGB.Input): req.Value = {
       // we pass in `this` and not `in`, because that way the context
       // can find accepted inputs that have been added during the current build cycle!
-      val res = context.requestInput[req.Value](req, this)(tx)
-      acceptedInputs += req.key -> ((req, res))
+      val res   = context.requestInput[req.Value](req, this)(tx)
+      val key   = req.key
+      val map0  = acceptedInputs.getOrElse(key, Map.empty)
+      val map1  = map0 + (req -> res)
+      acceptedInputs += key -> map1
       logAural(s"acceptedInputs += ${req.key} -> $res")
       res
     }

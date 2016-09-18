@@ -231,7 +231,8 @@ class NewAuralTest[S <: Sys[S]](name: String)(implicit cursor: stm.Cursor[S]) {
     cursor.step { implicit tx =>
       val _view1 = procV {
         import graph.Ops._
-        val dur       = "rec-dur".ir(8.0)
+        val dur       = "rec-dur".ir // (8.0)
+        dur.poll(0, "dur should be 8")
         val indicesIn = "buses-in".ir
         val numCh     = NumChannels(indicesIn)
         val numFrames = dur * SampleRate.ir
@@ -274,7 +275,7 @@ class NewAuralTest[S <: Sys[S]](name: String)(implicit cursor: stm.Cursor[S]) {
       val action = Action.predef[S]("buffer-test")
 
       val attr1 = _view1.obj().attr
-      attr1.put("rec-dur", IntObj.newConst[S](2))
+      attr1.put("rec-dur" , IntObj.newConst[S](8))
       attr1.put("buses-in", DoubleVector.newConst[S](Vector(0, 1)))
       attr1.put("file", art)
       attr1.put("done", action)

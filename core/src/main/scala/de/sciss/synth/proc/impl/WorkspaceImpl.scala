@@ -23,11 +23,12 @@ import de.sciss.lucre.synth.{InMemory => InMem}
 import de.sciss.lucre.{confluent, stm}
 import de.sciss.serial.{DataInput, DataOutput, Serializer}
 import de.sciss.synth.proc.SoundProcesses.atomic
-import de.sciss.synth.proc.{Durable => Dur, Confluent => Cf}
+import de.sciss.synth.proc.{Confluent => Cf, Durable => Dur}
 
 import scala.collection.immutable.{IndexedSeq => Vec}
 import scala.concurrent.stm.{Ref, Txn}
 import scala.language.existentials
+import scala.util.Try
 
 object WorkspaceImpl {
   private final class Ser[S <: Sys[S]] extends Serializer[S#Tx, S#Acc, Data[S]] {
@@ -112,14 +113,28 @@ object WorkspaceImpl {
     new InMemoryImpl(system, access)
   }
 
-  private def openDataStore(dir: File, ds: DataStore.Factory /* config: BerkeleyDB.Config */, confluent: Boolean): DataStore.Factory = {
-//    val res             = BerkeleyDB.factory(dir, config)
-    val fos             = new FileOutputStream(dir / "open")
-    val prop            = new Properties()
-    prop.setProperty("type", if (confluent) "confluent" else "ephemeral")
-    prop.store(fos, "Mellite Workspace Meta-Info")
-    fos.close()
-    ds // res
+  private def buildInfVersion(pkg: String): Option[String] = buildInfString(pkg = pkg, key = "version")
+
+  private def buildInfString(pkg: String, key: String): Option[String] = Try {
+    val clazz = Class.forName(s"$pkg.BuildInfo")
+    val m     = clazz.getMethod(key)
+    m.invoke(null).toString
+  } .toOption
+
+  private def openDataStore(dir: File, ds: DataStore.Factory, confluent: Boolean): DataStore.Factory = {
+    val fos = new FileOutputStream(dir / "open")
+    try {
+      val prop = new Properties()
+      prop.setProperty("type", if (confluent) "confluent" else "ephemeral")
+      // store version information for sp and known applications
+      buildInfVersion("de.sciss.synth.proc").foreach(prop.setProperty("soundprocesses-version", _))
+      buildInfVersion("de.sciss.mellite"   ).foreach(prop.setProperty("mellite-version"       , _))
+      buildInfVersion("at.iem.sysson"      ).foreach(prop.setProperty("sysson-version"        , _))
+      prop.store(fos, "Mellite Workspace Meta-Info")
+    } finally {
+      fos.close()
+    }
+    ds
   }
 
   private def applyConfluent(dir: File, ds: DataStore.Factory /* config: BerkeleyDB.Config */): Workspace.Confluent = {

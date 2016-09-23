@@ -22,7 +22,7 @@ import de.sciss.serial.{DataInput, DataOutput, Serializer}
 
 import scala.annotation.switch
 import scala.collection.mutable
-import scala.concurrent.stm.{InTxn, TMap, TSet}
+import scala.concurrent.stm.TMap
 import scala.concurrent.{Future, Promise, blocking}
 
 object ActionImpl {
@@ -272,36 +272,5 @@ object ActionImpl {
       out.writeByte(CONST_VAR)
       peer.write(out)
     }
-  }
-
-  // ---- class loader ----
-
-  private final class MemoryClassLoader extends ClassLoader {
-    private val setAdded    = TSet.empty[String]
-    private val mapClasses  = TMap.empty[String, Array[Byte]]
-
-    def add(name: String, jar: Array[Byte])(implicit tx: InTxn): Unit = {
-      val isNew = setAdded.add(name)
-      if (DEBUG) println(s"ActionImpl: Class loader add '$name' - isNew? $isNew")
-      if (isNew) {
-        val entries = Code.unpackJar(jar)
-        if (DEBUG) {
-          entries.foreach { case (n, _) =>
-            println(s"...'$n'")
-          }
-        }
-        mapClasses ++= entries
-      }
-    }
-
-    override protected def findClass(name: String): Class[_] =
-      mapClasses.single.get(name).map { bytes =>
-        if (DEBUG) println(s"ActionImpl: Class loader: defineClass '$name'")
-        defineClass(name, bytes, 0, bytes.length)
-
-      } .getOrElse {
-        if (DEBUG) println(s"ActionImpl: Class loader: not found '$name' - calling super")
-        super.findClass(name) // throws exception
-      }
   }
 }

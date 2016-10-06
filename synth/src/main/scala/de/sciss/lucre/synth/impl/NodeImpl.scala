@@ -16,7 +16,6 @@ package impl
 
 import java.util.concurrent.{Executors, ScheduledExecutorService}
 
-import de.sciss.optional.Optional
 import de.sciss.synth.{ControlABusMap, ControlFillRange, ControlKBusMap, ControlSet}
 
 import scala.collection.immutable.{IndexedSeq => Vec}
@@ -216,7 +215,7 @@ trait NodeImpl extends ResourceImpl with Node {
     tx.addMessage(this, peer.runMsg(state), dependencies = Nil)
   }
 
-  final def release(releaseTime: Optional[Double])(implicit tx: Txn): Unit = {
+  final def release(releaseTime: Double)(implicit tx: Txn): Unit = {
     requireOnline()
     tx.addMessage(this, peer.releaseMsg(releaseTime))
   }

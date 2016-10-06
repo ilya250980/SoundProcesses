@@ -16,10 +16,9 @@ package proc
 package graph
 
 import de.sciss.synth.Ops.stringToControl
+import de.sciss.synth.UGenSource._
 import de.sciss.synth.proc.UGenGraphBuilder.Input
 import de.sciss.synth.ugen.UGenInGroup
-
-import scala.collection.immutable.{IndexedSeq => Vec}
 
 object ScanIn {
   /* private[proc] */ def controlName (key: String): String =
@@ -82,11 +81,11 @@ final case class ScanOut(key: String, in: GE)
 
   protected def makeUGens: Unit = {
     val bus = ScanOut.controlName(key).kr
-    unwrap(Vector(bus.expand) ++ in.expand.outputs)
+    unwrap(this, Vector(bus.expand) ++ in.expand.outputs)
   }
 
   // first arg: bus control, remaining args: signal to write; thus numChannels = _args.size - 1
-  protected def makeUGen(_args: Vec[UGenIn]): Unit = {
+  private[synth] def makeUGen(_args: Vec[UGenIn]): Unit = {
     val busArg      = _args.head
     val sigArg      = _args.tail
     val numChannels = sigArg.size

@@ -13,7 +13,6 @@
 
 package de.sciss.lucre.synth
 
-import de.sciss.optional.Optional
 import de.sciss.synth.{Node => SNode, _}
 
 import scala.collection.immutable.{Seq => ISeq}
@@ -69,5 +68,11 @@ trait Node extends Resource with NodeRef {
 
   def run(state: Boolean)(implicit tx: Txn): Unit
 
-  def release(releaseTime: Optional[Double] = None)(implicit tx: Txn): Unit
+  /**
+    * @param   releaseTime the optional release time in seconds within which the synth should fade out,
+    *                      or `-1` (default) if the envelope should be released at its nominal release time.
+    *                      If the `EnvGen` has a `doneAction` of `freeSelf`, the synth will be freed after
+    *                      the release phase.
+    */
+  def release(releaseTime: Double = -1.0)(implicit tx: Txn): Unit
 }

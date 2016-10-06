@@ -1,7 +1,7 @@
 lazy val baseName  = "SoundProcesses"
 lazy val baseNameL = baseName.toLowerCase
 
-lazy val projectVersion = "3.7.1-SNAPSHOT"
+lazy val projectVersion = "3.8.0"
 lazy val mimaVersion    = "3.7.0" // used for migration-manager
 
 lazy val commonSettings = Seq(
@@ -17,8 +17,8 @@ lazy val commonSettings = Seq(
 ) ++ publishSettings
 
 lazy val lucreVersion               = "3.3.1"
-lazy val scalaColliderVersion       = "1.20.1"
-lazy val scalaColliderIfVersion     = "0.1.0"
+lazy val scalaColliderVersion       = "1.21.0"
+lazy val scalaColliderIfVersion     = "0.2.0"
 lazy val spanVersion                = "1.3.1"
 lazy val lucreSwingVersion          = "1.4.0"
 lazy val swingPlusVersion           = "0.2.1"
@@ -28,7 +28,7 @@ lazy val topologyVersion            = "1.0.0"
 
 // ---- test-only ----
 
-lazy val scalaColliderSwingVersion = "1.30.0"
+lazy val scalaColliderSwingVersion = "1.31.0"
 lazy val scalaTestVersion          = "3.0.0"
 lazy val loggingEnabled            = true
 lazy val bdb                       = "bdb"  // either "bdb" or "bdb6"
@@ -90,7 +90,7 @@ lazy val core = Project(id = s"$baseNameL-core", base = file("core"))
     libraryDependencies ++= Seq(
       "de.sciss"          %% "lucre-confluent"  % lucreVersion,
       "de.sciss"          %% "lucre-expr"       % lucreVersion,
-      "at.iem.sysson"     %% "scalacollider-if" % scalaColliderIfVersion,
+      "at.iem"            %% "scalacollider-if" % scalaColliderIfVersion,
       "de.sciss"          %% "fileutil"         % fileUtilVersion,
       "org.scalatest"     %% "scalatest"        % scalaTestVersion  % "test",
       "de.sciss"          %% s"lucre-$bdb"      % lucreVersion      % "test",

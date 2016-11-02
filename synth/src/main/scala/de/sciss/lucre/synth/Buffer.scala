@@ -20,6 +20,7 @@ import de.sciss.synth.{Buffer => SBuffer}
 import de.sciss.synth.io.{AudioFileType, SampleFormat}
 import de.sciss.lucre.synth.impl.BufferImpl
 import de.sciss.osc
+import de.sciss.synth.message.BufferGen
 
 import scala.concurrent.ExecutionContext
 
@@ -132,6 +133,8 @@ object Buffer {
     def zero()(implicit tx: Txn): Unit
 
     def fill(index: Int, num: Int, value: Float)(implicit tx: Txn): Unit
+
+    def gen(cmd: BufferGen.Command)(implicit tx: Txn): Unit
 
     def read(path: String, fileStartFrame: Long = 0L, numFrames: Int = -1, bufStartFrame: Int = 0)
             (implicit tx: Txn): Unit

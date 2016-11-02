@@ -31,7 +31,7 @@ object BufferOut {
 
   /* private[proc] */ def controlName(artifact: String, action: String): String = s"$$buf_${artifact}_$action"
 
-  private def canResolve(in: GE): Either[String, Unit] = {
+  private[graph] def canResolve(in: GE): Either[String, Unit] = {
     import ugen._
     in match {
       case _: Constant            => Right(())
@@ -68,7 +68,7 @@ object BufferOut {
 //      resolveFloat(in, builder).toInt
 //  }
 
-  private def resolveFloat(in: GE, builder: UGenGraphBuilder): Either[String, Float] = {
+  private[graph] def resolveFloat(in: GE, builder: UGenGraphBuilder): Either[String, Float] = {
     import ugen._
     in match {
       case Constant(f) => Right(f)

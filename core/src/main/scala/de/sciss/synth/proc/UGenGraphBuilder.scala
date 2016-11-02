@@ -47,7 +47,7 @@ object UGenGraphBuilder {
   trait Context[S <: Sys[S]] {
     def server: Server
 
-    def requestInput[Res](req: UGenGraphBuilder.Input { type Value = Res }, io: IO[S])(implicit tx: S#Tx): Res
+    def requestInput[Res](req: UGenGraphBuilder.Input { type Value = Res }, io: Requester[S])(implicit tx: S#Tx): Res
   }
 
   trait IO[S <: Sys[S]] {
@@ -57,6 +57,13 @@ object UGenGraphBuilder {
       * This is guaranteed to only grow during incremental building, never shrink.
       */
     def outputs: Map[String, Int]
+  }
+
+  trait Requester[S <: Sys[S]] extends IO[S] {
+    /** Asks for a unique (monotonously increasing) number that can be used
+      * to created a unique control name, for example.
+      */
+    def allocUniqueID(): Int
   }
 
   sealed trait State[S <: Sys[S]] extends IO[S] {
@@ -231,6 +238,24 @@ object UGenGraphBuilder {
       def key = this
 
       override def productPrefix = "Input.BufferOut"
+    }
+
+    object BufferGen {
+      final case class Value(id: Int) extends UGenGraphBuilder.Value {
+        def async = false
+        override def productPrefix = "Input.BufferGen.Value"
+      }
+    }
+    /** Specifies access to an buffer filled by a generator function. */
+    final case class BufferGen(cmd: graph.BufferGen.Command, numFrames: Int, numChannels: Int)
+      extends Input with Key {
+
+      type Key    = BufferGen
+      type Value  = BufferGen.Value
+
+      def key = this
+
+      override def productPrefix = "Input.BufferGen"
     }
 
     object Action {

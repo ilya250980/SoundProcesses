@@ -14,8 +14,9 @@
 package de.sciss.lucre.synth
 package impl
 
-import de.sciss.synth.{Buffer => SBuffer, FillRange}
-import de.sciss.synth.io.{SampleFormat, AudioFileType}
+import de.sciss.synth.{FillRange, Buffer => SBuffer}
+import de.sciss.synth.io.{AudioFileType, SampleFormat}
+import de.sciss.synth.message.BufferGen
 
 final case class BufferImpl(server: Server, peer: SBuffer)
                            (val numFrames: Int, val numChannels: Int, closeOnDisposal: Boolean)
@@ -101,6 +102,39 @@ final case class BufferImpl(server: Server, peer: SBuffer)
     if (index + num > size) throw new IndexOutOfBoundsException(s"index ($index) + num ($num) > size ($size)")
     requireOnline()
     tx.addMessage(this, peer.fillMsg(FillRange(index = index, num = num, value = value)))
+  }
+
+  def gen(cmd: BufferGen.Command)(implicit tx: Txn): Unit = {
+    requireOnline()
+    tx.addMessage(this, peer.genMsg(cmd))
+  }
+
+  def sine1(partials: Seq[Float], normalize: Boolean = true, wavetable: Boolean = true, clear: Boolean = true)
+          (implicit tx: Txn): Unit = {
+    requireOnline()
+    tx.addMessage(this, peer.sine1Msg(
+      partials = partials, normalize = normalize, wavetable = wavetable, clear = clear))
+  }
+
+  def sine2(partials: Seq[(Float, Float)], normalize: Boolean = true, wavetable: Boolean = true,
+            clear: Boolean = true)(implicit tx: Txn): Unit = {
+    requireOnline()
+    tx.addMessage(this, peer.sine2Msg(
+      partials = partials, normalize = normalize, wavetable = wavetable, clear = clear))
+  }
+
+  def sine3(partials: Seq[(Float, Float, Float)], normalize: Boolean = true, wavetable: Boolean = true,
+            clear: Boolean = true)(implicit tx: Txn): Unit = {
+    requireOnline()
+    tx.addMessage(this, peer.sine3Msg(
+      partials = partials, normalize = normalize, wavetable = wavetable, clear = clear))
+  }
+
+  def cheby(amps: Seq[Float], normalize: Boolean = true, wavetable: Boolean = true, clear: Boolean = true)
+           (implicit tx: Txn): Unit = {
+    requireOnline()
+    tx.addMessage(this, peer.chebyMsg(
+      amps = amps, normalize = normalize, wavetable = wavetable, clear = clear))
   }
 
   def dispose()(implicit tx: Txn): Unit = {

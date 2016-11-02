@@ -20,7 +20,7 @@ import de.sciss.lucre.event.impl.ObservableImpl
 import de.sciss.lucre.expr.{DoubleVector, Expr, StringObj}
 import de.sciss.lucre.stm
 import de.sciss.lucre.stm.{Disposable, Obj, TxnLike}
-import de.sciss.lucre.synth.{AudioBus, Buffer, Bus, BusNodeSetter, Node, NodeRef, Server, Synth, Sys}
+import de.sciss.lucre.synth.{AudioBus, Buffer, Bus, BusNodeSetter, NodeRef, Server, Sys}
 import de.sciss.numbers
 import de.sciss.span.Span
 import de.sciss.synth.ControlSet
@@ -228,20 +228,21 @@ object AuralProcImpl {
           }
 
         case st0: Incomplete[S] =>
-          if (acceptedMap.isEmpty) {  // rejected
+          assert(acceptedMap.isEmpty)
+          // if (acceptedMap.isEmpty) {  // rejected
             // give it another incremental try
             tryBuild()
-          } else acceptedMap.foreach { case (input, valueBefore) =>
-            // if the request value changes or the
-            // new request is rejected, we have to
-            // rebuild the whole thing
-            try {
-              val valueNow = requestInput[input.Value](input, st0)
-              if (valueNow != valueBefore) newSynthGraph()
-            } catch {
-              case MissingIn(_) => newSynthGraph()
-            }
-          }
+//          } else acceptedMap.foreach { case (input, valueBefore) =>
+//            // if the request value changes or the
+//            // new request is rejected, we have to
+//            // rebuild the whole thing
+//            try {
+//              val valueNow = requestInput[input.Value](input, st0)
+//              if (valueNow != valueBefore) newSynthGraph()
+//            } catch {
+//              case MissingIn(_) => newSynthGraph()
+//            }
+//          }
 
         case _ =>
       }
@@ -373,7 +374,7 @@ object AuralProcImpl {
     }
 
     /** Sub-classes may override this if invoking the super-method. */
-    def requestInput[Res](in: UGB.Input { type Value = Res }, st: UGB.IO[S])
+    def requestInput[Res](in: UGB.Input { type Value = Res }, st: UGB.Requester[S])
                          (implicit tx: S#Tx): Res = in match {
       case i: UGB.Input.Scalar =>
         val procObj   = procCached()
@@ -437,6 +438,7 @@ object AuralProcImpl {
       case    UGB.Input.StopSelf  => UGB.Unit
       case i: UGB.Input.Action    => UGB.Input.Action .Value
       case i: UGB.Input.DiskOut   => UGB.Input.DiskOut.Value(i.numChannels)
+      case i: UGB.Input.BufferGen => UGB.Input.BufferGen.Value(st.allocUniqueID())
 
       case _ => throw new IllegalStateException(s"Unsupported input request $in")
     }
@@ -693,6 +695,15 @@ object AuralProcImpl {
       case UGB.Input.StopSelf =>
         val resp = new StopSelfResponder[S](view = impl, synth = nr.node)
         nr.addUser(resp)
+
+      case bg: UGB.Input.BufferGen =>
+        val UGB.Input.BufferGen.Value(id) = value
+        val rb      = Buffer(nr.server)(numFrames = bg.numFrames, numChannels = bg.numChannels)
+        rb.gen(bg.cmd)
+        val ctlName = graph.BufferGen.controlName(id)
+        nr.addControl(ctlName -> rb.id)
+        val late = Buffer.disposeWithNode(rb, nr)
+        nr.addResource(late)
 
       case _ =>
         throw new IllegalStateException(s"Unsupported input request $keyW")

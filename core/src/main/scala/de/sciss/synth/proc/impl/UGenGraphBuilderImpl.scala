@@ -74,7 +74,7 @@ object UGenGraphBuilderImpl {
     extends NestedUGenGraphBuilder.Inner with Impl[S]
 
   private trait Impl[S <: Sys[S]]
-    extends NestedUGenGraphBuilder.Basic with UGB with UGB.IO[S] {
+    extends NestedUGenGraphBuilder.Basic with UGB with UGB.Requester[S] {
     builder =>
 
     // ---- abstract ----
@@ -86,20 +86,21 @@ object UGenGraphBuilderImpl {
 
     override def toString = s"UGenGraphBuilder.Incomplete@${hashCode.toHexString} (active)"
 
-    protected def mkInner(childId: Int, thisExpIfCase: Option[ExpIfCase], parent: NestedUGenGraphBuilder.Basic,
+    protected final def mkInner(childId: Int, thisExpIfCase: Option[ExpIfCase], parent: NestedUGenGraphBuilder.Basic,
                           name: String): NestedUGenGraphBuilder.Inner =
       new InnerImpl(childId = childId, thisExpIfCase = thisExpIfCase, parent = parent, name = name,
                     context = context, tx = tx)
 
-    var acceptedInputs  = Map.empty[UGB.Key, Map[UGB.Input, UGB.Input#Value]]
-    var outputs         = Map.empty[String, Int]
+    final var acceptedInputs  = Map.empty[UGB.Key, Map[UGB.Input, UGB.Input#Value]]
+    final var outputs         = Map.empty[String, Int]
+    private[this] var uniqueID = 0
 
-    def server: Server = context.server
+    final def server: Server = context.server
 
-    def retry(context: Context[S])(implicit tx: S#Tx): State[S] =
+    final def retry(context: Context[S])(implicit tx: S#Tx): State[S] =
       throw new IllegalStateException("Cannot retry an ongoing build")
 
-    def requestInput(req: UGB.Input): req.Value = {
+    final def requestInput(req: UGB.Input): req.Value = {
       // we pass in `this` and not `in`, because that way the context
       // can find accepted inputs that have been added during the current build cycle!
       val res   = context.requestInput[req.Value](req, this)(tx)
@@ -111,7 +112,13 @@ object UGenGraphBuilderImpl {
       res
     }
 
-    def addOutput(key: String, numChannels: Int): Unit =
+    final def allocUniqueID(): Int = {
+      val res = uniqueID
+      uniqueID += 1
+      res
+    }
+
+    final def addOutput(key: String, numChannels: Int): Unit =
       outputs.get(key).fold {
         outputs += key -> numChannels
       } { prevChans =>
@@ -122,7 +129,7 @@ object UGenGraphBuilderImpl {
         }
       }
 
-    def tryBuild(g: SynthGraph): State[S] =
+    final def tryBuild(g: SynthGraph): State[S] =
       try {
         val result = build(g)
         new CompleteImpl[S](result, outputs = outputs, acceptedInputs = acceptedInputs)

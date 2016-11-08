@@ -440,7 +440,7 @@ object ServerImpl {
       bufferAllocator.free(index, numConsecutive)(tx.peer)
 
     final def nextNodeID()(implicit tx: Txn): Int = nodeAllocator.alloc()(tx.peer)
-    
+
     // ---- former Server ----
 
     private type T = Topology[NodeRef, NodeRef.Edge]
@@ -541,7 +541,7 @@ object ServerImpl {
     }
 
     final private[this] val uniqueDefID = Ref(0)
-    
+
     final private[this] def allCharsOk(name: String): Boolean = {
       val len = name.length
       var i   = 0
@@ -554,21 +554,27 @@ object ServerImpl {
       true
     }
 
-    final def mkSynthDefName(nameHint: Option[String])(implicit tx: Txn): String =
-      abbreviate(s"${nameHint.getOrElse("proc")}_${nextDefID()}")
+    final def mkSynthDefName(nameHint: Option[String])(implicit tx: Txn): String = {
+      val id = nextDefID()
+      abbreviate(nameHint.getOrElse("proc"), s"_$id")
+    }
 
-    final private[this] def abbreviate(name: String): String = {
+    final private[this] def abbreviate(name: String, suffix: String): String = {
       val len = name.length
-      if ((len <= 16) && allCharsOk(name)) return name
-
+      val lim = 16 - suffix.length
       val sb  = new StringBuffer(16)
-      var i   = 0
-      while (i < len && sb.length() < 16) {
-        val c = name.charAt(i).toInt
-        val ok = c > 36 && c < 123 || c != 95 // in particular, disallow underscore
-        if (ok) sb.append(c.toChar)
-        i += 1
+      if ((len <= lim) && allCharsOk(name)) {
+        sb.append(name)
+      } else {
+        var i   = 0
+        while (i < len && sb.length() < lim) {
+          val c = name.charAt(i).toInt
+          val ok = c > 36 && c < 123 || c != 95 // in particular, disallow underscore
+          if (ok) sb.append(c.toChar)
+          i += 1
+        }
       }
+      sb.append(suffix)
       sb.toString
     }
 

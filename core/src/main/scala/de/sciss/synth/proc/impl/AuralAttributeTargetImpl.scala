@@ -51,7 +51,10 @@ final class AuralAttributeTargetImpl[S <: Sys[S]](target: NodeRef.Full[S], val k
     def add()(implicit tx: Txn): Unit = users.foreach(_.add())
 
     def remove()(implicit tx: Txn): Unit = {
-      if (resources.nonEmpty) resources.foreach(target.removeResource)
+      if (resources.nonEmpty) resources.foreach { res =>
+        target.removeResource(res)
+        res.dispose()
+      }
       if (users.nonEmpty) {
         target.removeUser(this)
         users.foreach(_.remove())
@@ -252,7 +255,7 @@ final class AuralAttributeTargetImpl[S <: Sys[S]](target: NodeRef.Full[S], val k
           target = server, dependencies = sc.source.node :: Nil)
         val inEdge      = NodeRef.Edge(sc.source, syn)
         val inEdgeUser  = new AddRemoveEdge(inEdge)
-        val inBusUser   = BusNodeSetter.mapper("in" , sc.bus   , syn)
+        val inBusUser   = BusNodeSetter.mapper("in" , sc.bus, syn)
         val users0      = inEdgeUser :: inBusUser :: Nil
         make(syn, users0)
     }

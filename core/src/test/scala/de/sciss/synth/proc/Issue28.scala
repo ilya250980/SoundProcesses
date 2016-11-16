@@ -19,22 +19,26 @@ class Issue28 extends BounceSpec {
   "Auxiliary attribute map synths are correctly freed" works { implicit cursor =>
 
     val tlH = cursor.step { implicit tx =>
+      import Implicits._
       val _p1 = proc {
         import ugen._
         import graph._
         ScanOut(WhiteNoise.ar(0.1))     // actual signal has no significance
       }
+      _p1.name = "noise"
       val _p2 = proc {
         import ugen._
         import graph._
         ScanOut(SinOsc.ar(441) * 0.1)   // actual signal has no significance
       }
+      _p2.name = "sine"
       val _p3 = proc {
         import ugen._
         import graph._
         val sig = ScanInFix(numChannels = 1)
         Out.ar(0, sig)
       }
+      _p3.name = "main"
 
       addOutput(_p1) ~> (_p3 -> "in")
       addOutput(_p2) ~> (_p3 -> "in")
@@ -59,7 +63,7 @@ class Issue28 extends BounceSpec {
       t.play()
       t.scheduler.schedule(5.0.seconds) { implicit tx =>
         // println("Here [2]")
-        t.dispose()
+        // t.dispose()
         tx.afterCommit {
           Responder.once(s.peer) {
             case m: StatusReply =>
@@ -86,7 +90,7 @@ class Issue28 extends BounceSpec {
 
     res.future.map { status =>
       assert(status.numGroups === 2)
-      assert(status.numSynths === 0)
+      assert(status.numSynths === 1)    // only global should be left
     }
   }
 }

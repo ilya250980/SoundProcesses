@@ -72,7 +72,9 @@ final class AuralOutputAttribute[S <: Sys[S]](val key: String, val obj: stm.Sour
     val aObs = auralOutput.react { implicit tx => {
       case AuralOutput.Play(n) =>
         playRef().foreach(update(_, auralOutput))
-      case AuralOutput.Stop => // XXX TODO: ignore?
+      case AuralOutput.Stop =>
+        println(s"Aural stopped + ${playRef().isDefined}")
+        // playRef().foreach(update(_, auralOutput))
     }}
     aObsRef.swap(Some(aObs)).foreach(_.dispose())
     playRef().foreach(update(_, auralOutput))
@@ -81,6 +83,7 @@ final class AuralOutputAttribute[S <: Sys[S]](val key: String, val obj: stm.Sour
   def prepare(timeRef: TimeRef.Option)(implicit tx: S#Tx): Unit = state = Prepared
 
   def play(timeRef: TimeRef.Option, target: Target[S])(implicit tx: S#Tx): Unit /* Instance */ = {
+    println(s"PLAY $this")
     require (playRef.swap(Some(target)).isEmpty)
     // target.add(this)
     auralRef().foreach(update(target, _))
@@ -88,13 +91,15 @@ final class AuralOutputAttribute[S <: Sys[S]](val key: String, val obj: stm.Sour
   }
 
   def stop()(implicit tx: S#Tx): Unit = {
+    println(s"STOP $this")
     stopNoFire()
     state = Stopped
   }
 
-  private def stopNoFire()(implicit tx: S#Tx): Unit = {
-    playRef.swap(None).foreach(_.remove(this))
-  }
+  private def stopNoFire()(implicit tx: S#Tx): Unit =
+    playRef.swap(None).foreach { target =>
+      target.remove(this)
+    }
 
   private def update(target: Target[S], audioOutput: AuralOutput[S])(implicit tx: S#Tx): Unit = {
     val nodeRefOpt = audioOutput.view.nodeOption
@@ -104,10 +109,10 @@ final class AuralOutputAttribute[S <: Sys[S]](val key: String, val obj: stm.Sour
   }
 
   def dispose()(implicit tx: S#Tx): Unit = {
+    println(s"DISPOSE $this")
     stopNoFire()
     auralRef.set(None)
     aObsRef.swap(None).foreach(_.dispose())
     obs.dispose()
   }
 }
-  

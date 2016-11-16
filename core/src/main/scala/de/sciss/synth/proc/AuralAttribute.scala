@@ -68,7 +68,7 @@ object AuralAttribute {
     * a particular attribute input, its `valueOption` gives the
     * overall signal output as sent to the node. For instance,
     * a stream input will have a bus to which is ''writes'', whereas
-    * the target itself may provide a bus from this node ''reads''.
+    * the target itself may provide a bus from which this node ''reads''.
     */
   trait Target[S <: Sys[S]] extends Observable[S#Tx, Value] {
     def key: String

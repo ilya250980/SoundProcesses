@@ -49,6 +49,7 @@ object Grapheme extends Obj.Type {
 
   type Leaf   [S <: Sys[S]] = BiPin.Leaf   [S, Obj[S]]
   type Entry  [S <: Sys[S]] = BiPin.Entry  [S, Obj[S]]
+  val  Entry                = BiPin.Entry
 
   type Added  [S <: Sys[S]] = BiPin.Added  [S, Obj[S]]
   val  Added                = BiPin.Added

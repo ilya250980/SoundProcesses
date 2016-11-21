@@ -574,6 +574,13 @@ object AuralProcImpl {
               _buf.read(path = path, fileStartFrame = offset)
               _buf
 
+            case dv: DoubleVector[S] =>
+              val values    = dv.value.map(_.toFloat)
+              val bufSize   = values.size
+              val _buf      = Buffer(server)(numFrames = bufSize, numChannels = 1)
+              _buf.setn(values)
+              _buf
+
             case a => sys.error(s"Cannot use attribute $a as a buffer content")
           }
           val ctlName    = graph.Buffer.controlName(key)

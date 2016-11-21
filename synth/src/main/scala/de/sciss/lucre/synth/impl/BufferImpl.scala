@@ -104,6 +104,19 @@ final case class BufferImpl(server: Server, peer: SBuffer)
     tx.addMessage(this, peer.fillMsg(FillRange(index = index, num = num, value = value)))
   }
 
+  def setn(values: IndexedSeq[Float])(implicit tx: Txn): Unit = setn((0, values))
+
+  def setn(pairs: (Int, IndexedSeq[Float])*)(implicit tx: Txn): Unit = {
+    val size = numFrames * numChannels
+    pairs.foreach { case (index, values) =>
+      val num = values.size
+      if (index < 0         ) throw new IllegalArgumentException (s"index ($index) must be >= 0")
+      if (index + num > size) throw new IndexOutOfBoundsException(s"index ($index) + num ($num) > size ($size)")
+    }
+    requireOnline()
+    tx.addMessage(this, peer.setnMsg(pairs: _*))
+  }
+
   def gen(cmd: BufferGen.Command)(implicit tx: Txn): Unit = {
     requireOnline()
     tx.addMessage(this, peer.genMsg(cmd))

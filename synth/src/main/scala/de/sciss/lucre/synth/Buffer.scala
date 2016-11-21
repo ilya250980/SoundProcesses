@@ -134,6 +134,10 @@ object Buffer {
 
     def fill(index: Int, num: Int, value: Float)(implicit tx: Txn): Unit
 
+    def setn(values: IndexedSeq[Float])(implicit tx: Txn): Unit
+
+    def setn(pairs: (Int, IndexedSeq[Float])*)(implicit tx: Txn): Unit
+
     def gen(cmd: BufferGen.Command)(implicit tx: Txn): Unit
 
     def read(path: String, fileStartFrame: Long = 0L, numFrames: Int = -1, bufStartFrame: Int = 0)

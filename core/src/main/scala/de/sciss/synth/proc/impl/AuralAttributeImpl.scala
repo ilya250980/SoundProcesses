@@ -123,7 +123,7 @@ object AuralAttributeImpl {
   private[this] object IntAttribute extends Factory {
     type Repr[S <: stm.Sys[S]] = IntObj[S]
 
-    def typeID = IntObj.typeID
+    def typeID: Int = IntObj.typeID
 
     def apply[S <: Sys[S]](key: String, value: IntObj[S], observer: Observer[S])
                           (implicit tx: S#Tx, context: AuralContext[S]): AuralAttribute[S] =
@@ -132,7 +132,7 @@ object AuralAttributeImpl {
   private final class IntAttribute[S <: Sys[S]](val key: String, val obj: stm.Source[S#Tx, IntObj[S]])
     extends NumberImpl[S, Int] {
 
-    def typeID = IntObj.typeID
+    def typeID: Int = IntObj.typeID
 
     protected def mkValue(value: Int): AuralAttribute.Value = value.toFloat
 
@@ -144,7 +144,7 @@ object AuralAttributeImpl {
   private[this] object DoubleAttribute extends Factory {
     type Repr[S <: stm.Sys[S]] = DoubleObj[S]
 
-    def typeID = DoubleObj.typeID
+    def typeID: Int = DoubleObj.typeID
 
     def apply[S <: Sys[S]](key: String, value: DoubleObj[S], observer: Observer[S])
                           (implicit tx: S#Tx, context: AuralContext[S]): AuralAttribute[S] =
@@ -153,7 +153,7 @@ object AuralAttributeImpl {
   private final class DoubleAttribute[S <: Sys[S]](val key: String, val obj: stm.Source[S#Tx, DoubleObj[S]])
     extends NumberImpl[S, Double] {
 
-    def typeID = DoubleObj.typeID
+    def typeID: Int = DoubleObj.typeID
 
     protected def mkValue(value: Double): AuralAttribute.Value = value.toFloat
 
@@ -165,7 +165,7 @@ object AuralAttributeImpl {
   private[this] object BooleanAttribute extends Factory {
     type Repr[S <: stm.Sys[S]] = BooleanObj[S]
 
-    def typeID = BooleanObj.typeID
+    def typeID: Int = BooleanObj.typeID
 
     def apply[S <: Sys[S]](key: String, value: BooleanObj[S], observer: Observer[S])
                           (implicit tx: S#Tx, context: AuralContext[S]): AuralAttribute[S] =
@@ -174,7 +174,7 @@ object AuralAttributeImpl {
   private final class BooleanAttribute[S <: Sys[S]](val key: String, val obj: stm.Source[S#Tx, BooleanObj[S]])
     extends NumberImpl[S, Boolean] {
 
-    def typeID = BooleanObj.typeID
+    def typeID: Int = BooleanObj.typeID
 
     protected def mkValue(value: Boolean): AuralAttribute.Value = if (value) 1f else 0f
 
@@ -186,7 +186,7 @@ object AuralAttributeImpl {
   private[this] object FadeSpecAttribute extends Factory {
     type Repr[S <: stm.Sys[S]] = FadeSpec.Obj[S]
 
-    def typeID = FadeSpec.Obj.typeID
+    def typeID: Int = FadeSpec.Obj.typeID
 
     def apply[S <: Sys[S]](key: String, value: FadeSpec.Obj[S], observer: Observer[S])
                           (implicit tx: S#Tx, context: AuralContext[S]): AuralAttribute[S] =
@@ -195,7 +195,7 @@ object AuralAttributeImpl {
   private final class FadeSpecAttribute[S <: Sys[S]](val key: String, val obj: stm.Source[S#Tx, FadeSpec.Obj[S]])
     extends ExprImpl[S, FadeSpec] {
 
-    def typeID = FadeSpec.Obj.typeID
+    def typeID: Int = FadeSpec.Obj.typeID
 
     def preferredNumChannels(implicit tx: S#Tx): Int = 4
 
@@ -217,7 +217,7 @@ object AuralAttributeImpl {
   private[this] object DoubleVectorAttribute extends Factory {
     type Repr[S <: stm.Sys[S]] = DoubleVector[S]
 
-    def typeID = DoubleVector.typeID
+    def typeID: Int = DoubleVector.typeID
 
     def apply[S <: Sys[S]](key: String, value: DoubleVector[S], observer: Observer[S])
                           (implicit tx: S#Tx, context: AuralContext[S]): AuralAttribute[S] =
@@ -226,7 +226,7 @@ object AuralAttributeImpl {
   private final class DoubleVectorAttribute[S <: Sys[S]](val key: String, val obj: stm.Source[S#Tx, DoubleVector[S]])
     extends ExprImpl[S, Vec[Double]] {
 
-    def typeID = DoubleVector.typeID
+    def typeID: Int = DoubleVector.typeID
 
     def preferredNumChannels(implicit tx: S#Tx): Int = obj().value.size
 

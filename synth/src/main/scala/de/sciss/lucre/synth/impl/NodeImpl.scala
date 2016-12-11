@@ -25,7 +25,7 @@ object NodeImpl {
   private val EmptyOnEnd: OnEnd = OnEnd(Vector.empty, Vector.empty)
 
   private final case class OnEnd(direct: Vec[() => Unit], inTxn: Vec[Txn => Unit]) {
-    def nonEmpty = direct.nonEmpty || inTxn.nonEmpty
+    def nonEmpty: Boolean = direct.nonEmpty || inTxn.nonEmpty
   }
 
   var poolSize: Option[Int] = None

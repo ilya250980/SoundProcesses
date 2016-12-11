@@ -41,7 +41,7 @@ object SensorSystem {
     var osc: Channel.Net.ConfigBuilder = UDP.Config()
     osc.localPort = defaultPort
 
-    var command = defaultCommand
+    var command: String = defaultCommand
 
     def build = Config(osc.build, command = command)
   }

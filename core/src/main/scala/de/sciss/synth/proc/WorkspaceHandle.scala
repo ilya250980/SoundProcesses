@@ -22,8 +22,8 @@ object WorkspaceHandle {
     private val dummyVal = new DummyImpl[NoSys]
 
     private class DummyImpl[S <: Sys[S]] extends WorkspaceHandle[S] {
-      def addDependent   (dep: Disposable[S#Tx])(implicit tx: TxnLike) = ()
-      def removeDependent(dep: Disposable[S#Tx])(implicit tx: TxnLike) = ()
+      def addDependent   (dep: Disposable[S#Tx])(implicit tx: TxnLike): Unit = ()
+      def removeDependent(dep: Disposable[S#Tx])(implicit tx: TxnLike): Unit = ()
 
       def root(implicit tx: S#Tx): Folder[S] =
         throw new UnsupportedOperationException("No root folder on a dummy workspace handle")

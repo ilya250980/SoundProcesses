@@ -343,7 +343,7 @@ object SynthGraphObj extends expr.impl.ExprTypeImpl[SynthGraph, SynthGraphObj] {
 
     def changed: EventLike[S, Change[SynthGraph]] = Dummy[S, Change[SynthGraph]]
 
-    def dispose()(implicit tx: S#Tx) = ()
+    def dispose()(implicit tx: S#Tx): Unit = ()
 
     def constValue: SynthGraph = cookie match {
       // case `oldTapeCookie`  => oldTapeSynthGraph

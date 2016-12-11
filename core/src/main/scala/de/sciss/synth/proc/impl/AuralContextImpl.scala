@@ -41,7 +41,7 @@ object AuralContextImpl {
                                           (implicit val workspaceHandle: WorkspaceHandle[S])
     extends AuralContext[S] with AuxContextImpl[S] {
 
-    protected val auxObservers = tx0.newInMemoryIDMap[List[AuxObserver]]
+    protected val auxObservers: IdentifierMap[S#ID, S#Tx, List[AuxObserver]] = tx0.newInMemoryIDMap
 
     def acquire[A <: Disposable[S#Tx]](obj: Obj[S])(init: => A)(implicit tx: S#Tx): A = {
       val id = obj.id

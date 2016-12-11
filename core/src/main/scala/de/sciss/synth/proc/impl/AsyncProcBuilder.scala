@@ -20,5 +20,5 @@ import de.sciss.lucre.synth.Sys
   * the addition of asynchronous processors.
   */
 final class AsyncProcBuilder[S <: Sys[S]](val obj: Proc[S]) {
-  var resources = List.empty[AsyncResource[S]]
+  var resources: List[AsyncResource[S]] = Nil
 }

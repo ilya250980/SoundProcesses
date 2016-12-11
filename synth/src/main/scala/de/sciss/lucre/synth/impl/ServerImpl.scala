@@ -51,7 +51,7 @@ object ServerImpl {
     }
 
   private final case class OnlineImpl(peer: SServer) extends Impl {
-    override def toString = peer.toString()
+    override def toString: String = peer.toString
 
     def maxPacketSize: Int      = MaxOnlinePacketSize
     def isLocal      : Boolean  = peer.isLocal
@@ -320,7 +320,7 @@ object ServerImpl {
       }
     }
 
-    def commit(future: Future[Unit]) = ()  // we don't use these
+    def commit(future: Future[Unit]): Unit = ()  // we don't use these
   }
 
   private final case class OfflineImpl(peer: SServer) extends Impl with Server.Offline {

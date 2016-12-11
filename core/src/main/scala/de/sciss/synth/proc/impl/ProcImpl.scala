@@ -103,10 +103,10 @@ object ProcImpl {
 
     def copy[Out <: Sys[Out]]()(implicit tx: S#Tx, txOut: Out#Tx, context: Copy[S, Out]): Elem[Out] =
       new Impl[Out] { out =>
-        protected val targets   = Targets[Out]
-        val graph               = context(proc.graph)
-        // val scanInMap           = SkipList.Map.empty[Out, String, ScanEntry[Out]]
-        val outputsMap          = SkipList.Map.empty[Out, String, Output[Out]]
+        protected val targets: Targets[Out]                     = Targets[Out]
+        val graph :SynthGraphObj.Var[Out]                       = context(proc.graph)
+        val outputsMap: SkipList.Map[Out, String, Output[Out]]  = SkipList.Map.empty
+
         context.defer(proc, out) {
           def copyMap(in : SkipList.Map[S  , String, Output[S  ]],
                       out: SkipList.Map[Out, String, Output[Out]]): Unit =
@@ -216,10 +216,9 @@ object ProcImpl {
   }
 
   private final class New[S <: Sys[S]](implicit tx0: S#Tx) extends Impl[S] {
-    protected val targets   = evt.Targets[S](tx0)
-    val graph               = SynthGraphObj.newVar(SynthGraphObj.empty)
-    // val scanInMap           = SkipList.Map.empty[S, String, ScanEntry[S]]
-    val outputsMap          = SkipList.Map.empty[S, String, Output[S]]
+    protected val targets: Targets[S] = evt.Targets[S](tx0)
+    val graph     : SynthGraphObj.Var[S]                = SynthGraphObj.newVar(SynthGraphObj.empty)
+    val outputsMap: SkipList.Map[S, String, Output[S]]  = SkipList.Map.empty
     connect()(tx0)
   }
 
@@ -232,8 +231,7 @@ object ProcImpl {
       if (serVer != SER_VERSION) sys.error(s"Incompatible serialized (found $serVer, required $SER_VERSION)")
     }
 
-    val graph         = SynthGraphObj.readVar(in, access)
-    // val scanInMap     = SkipList.Map.read[S, String, ScanEntry[S]](in, access)
-    val outputsMap    = SkipList.Map.read[S, String, Output[S]](in, access)
+    val graph     : SynthGraphObj.Var[S]                = SynthGraphObj.readVar(in, access)
+    val outputsMap: SkipList.Map[S, String, Output[S]]  = SkipList.Map .read   (in, access)
   }
 }

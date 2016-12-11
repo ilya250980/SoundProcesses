@@ -17,13 +17,14 @@ import de.sciss.lucre.event.Targets
 import de.sciss.lucre.expr.Expr
 import de.sciss.lucre.expr.impl.ExprTypeImpl
 import de.sciss.lucre.stm.Sys
-import de.sciss.synth.{proc, Curve}
+import de.sciss.serial.ImmutableSerializer
+import de.sciss.synth.{Curve, proc}
 
 object CurveObj extends ExprTypeImpl[Curve, CurveObj] {
   import proc.{CurveObj => Repr}
 
   final val typeID = 15
-  final val valueSerializer = Curve.serializer
+  final val valueSerializer: ImmutableSerializer[Curve] = Curve.serializer
 
   protected def mkConst[S <: Sys[S]](id: S#ID, value: A)(implicit tx: S#Tx): Const[S] =
     new _Const[S](id, value)

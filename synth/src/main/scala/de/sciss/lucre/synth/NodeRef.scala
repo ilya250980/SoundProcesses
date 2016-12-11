@@ -49,8 +49,8 @@ object NodeRef {
   final case class Edge(source: NodeRef, sink: NodeRef)
     extends Topology.Edge[NodeRef] {
 
-    def sourceVertex = source
-    def targetVertex = sink
+    def sourceVertex: NodeRef = source
+    def targetVertex: NodeRef = sink
   }
 }
 trait NodeRef {

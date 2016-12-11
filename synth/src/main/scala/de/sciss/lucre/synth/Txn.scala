@@ -33,7 +33,7 @@ object Txn {
     def append(msg: Message): Bundle = new Bundle(stamp, msgs :+ msg)
 
     /** A bundle depends on messages with any smaller time stamp (this stamp minus one). */
-    def depStamp = stamp - 1
+    def depStamp: Int = stamp - 1
   }
 
   type Bundles = Vec[Bundle]

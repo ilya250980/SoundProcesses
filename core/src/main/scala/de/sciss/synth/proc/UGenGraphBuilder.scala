@@ -235,7 +235,7 @@ object UGenGraphBuilder {
       type Key    = BufferOut
       type Value  = Unit
 
-      def key = this
+      def key: Key = this
 
       override def productPrefix = "Input.BufferOut"
     }
@@ -253,7 +253,7 @@ object UGenGraphBuilder {
       type Key    = BufferGen
       type Value  = BufferGen.Value
 
-      def key = this
+      def key: Key = this
 
       override def productPrefix = "Input.BufferGen"
     }
@@ -281,7 +281,7 @@ object UGenGraphBuilder {
       type Key    = StopSelf.type
       type Value  = Unit
 
-      def key = this
+      def key: Key = this
 
       override def productPrefix = "Input.StopSelf"
     }

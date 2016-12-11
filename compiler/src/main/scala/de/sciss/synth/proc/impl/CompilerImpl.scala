@@ -133,6 +133,7 @@ object CompilerImpl {
   private final class IMainImpl(cSet: nsc.Settings)
     extends IMain(cSet, new NewLinePrintWriter(new ConsoleWriter, autoFlush = true)) {
 
-    override protected def parentClassLoader = CompilerImpl.getClass.getClassLoader
+    override protected def parentClassLoader: ClassLoader =
+      CompilerImpl.getClass.getClassLoader
   }
 }

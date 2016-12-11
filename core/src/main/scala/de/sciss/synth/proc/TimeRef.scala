@@ -102,8 +102,8 @@ final case class TimeRef(span: Span.HasStart, offset: Long) extends TimeRef.Opti
 
   def frame : Long = offset + span.start
 
-  def isDefined = true
-  def force     = this
+  def isDefined       = true
+  def force: TimeRef  = this
 
   def shift(deltaFrames: Long): TimeRef =
     new TimeRef(span, offset = offset + deltaFrames)

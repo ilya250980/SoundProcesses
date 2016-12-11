@@ -15,6 +15,7 @@ package de.sciss.synth.proc
 package impl
 
 import de.sciss.lucre.bitemp.impl.BiGroupImpl
+import de.sciss.lucre.bitemp.impl.BiGroupImpl.TreeImpl
 import de.sciss.lucre.event.Targets
 import de.sciss.lucre.stm.impl.ObjSerializer
 import de.sciss.lucre.stm.{Copy, Elem, NoSys, Obj, Sys}
@@ -24,7 +25,7 @@ import de.sciss.serial.{DataInput, Serializer}
 object TimelineImpl {
   def apply[S <: Sys[S]](implicit tx: S#Tx): Timeline.Modifiable[S] =
     new Impl[S](evt.Targets[S]) {
-      val tree = newTree()
+      val tree: TreeImpl[S, Obj] = newTree()
     }
 
   // ---- serialization ----
@@ -54,7 +55,7 @@ object TimelineImpl {
   def readIdentifiedObj[S <: Sys[S]](in: DataInput, access: S#Acc)(implicit tx: S#Tx): Timeline[S] = {
     val targets = Targets.read(in, access)
     new Impl[S](targets) {
-      val tree = readTree(in,access)
+      val tree: TreeImpl[S, Obj] = readTree(in,access)
     }
   }
 
@@ -69,7 +70,7 @@ object TimelineImpl {
 
     def copy[Out <: Sys[Out]]()(implicit tx: S#Tx, txOut: Out#Tx, context: Copy[S, Out]): Elem[Out] =
       new Impl(Targets[Out]) { out =>
-        val tree = newTree()
+        val tree: TreeImpl[Out, Obj] = newTree()
         context.defer(in, out)(BiGroupImpl.copyTree(in.tree, out.tree, out))
         // .connect()
       }

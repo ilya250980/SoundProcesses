@@ -37,7 +37,7 @@ object InMemoryImpl {
 
     private type S = InMemory
 
-    def inMemory = this
+    def inMemory: I = this
     def inMemoryTx(tx: Tx): Tx = tx
 
     def wrap(peer: InTxn): S#Tx = new TxnImpl(this, peer)

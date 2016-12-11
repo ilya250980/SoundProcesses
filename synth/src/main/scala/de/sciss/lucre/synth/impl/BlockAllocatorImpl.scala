@@ -58,7 +58,7 @@ object BlockAllocatorImpl {
       logAlloc(s"$name free $address, $size @${tx.hashCode().toHexString}/${Thread.currentThread().hashCode().toHexString}")
       val b       = Block(address, size)
       val state0  = ref()
-      require(state0.used.contains(b), "Freeing an unregistered block " + b)
+      require(state0.used.contains(b), s"Freeing an unregistered block $b")
       val state1  = state0.copy(used = state0.used - b)
 
       @tailrec def merge(iter: Iterator[Block], b: Block, bRem: List[Block]): (Block, List[Block]) = {
@@ -141,20 +141,20 @@ object BlockAllocatorImpl {
         require(!f11.touches(f22), f)
       }
       for (f1 <- f; f11 <- f1._2) {
-        require(g.contains(f11.start), "In freeBySize but not ...ByStart : " + f11)
-        require(!h.contains(f11), "In freeBySize but not used : " + f11)
+        require(g.contains(f11.start), s"In freeBySize but not ...ByStart : $f11")
+        require(!h.contains(f11), s"In freeBySize but not used : $f11")
       }
       for (g1 <- g) {
         val g1b = g1._2
-        require(f.getOrElse(g1b.size, Set.empty).contains(g1b), "In freeByStart but not ...BySize : " + g1b)
-        require(!h.contains(g1b), "In freeByStart but not used : " + g1b)
+        require(f.getOrElse(g1b.size, Set.empty).contains(g1b), s"In freeByStart but not ...BySize : $g1b")
+        require(!h.contains(g1b), s"In freeByStart but not used : $g1b")
       }
 
       val all0  = (f.values.flatten ++ g.values ++ h).toSet.toSeq
       val all   = all0.sortBy(_.start)
       //         if( all.size > 1 ) {
       all.sliding(2, 1).foreach {
-        seq => val a = seq.head; val b = seq.last; require(a.touches(b), "" + a + " does not touch " + b)
+        seq => val a = seq.head; val b = seq.last; require(a.touches(b), s"$a does not touch $b")
       }
       //         }
       val one = all.reduce(_ join _)
@@ -163,7 +163,7 @@ object BlockAllocatorImpl {
   }
 
   private final case class Block(start: Int, size: Int) {
-    override def toString = "Block(start = " + start + ", size = " + size + ")"
+    override def toString = s"Block(start = $start, size = $size)"
 
     def touches(b: Block): Boolean =
       ((  start <= b.start) && (  start +   size >= b.start)) ||

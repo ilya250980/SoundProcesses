@@ -19,21 +19,6 @@ import de.sciss.lucre.stm.Disposable
 object Resource {
   type TimeStamp = Int
 
-  //  object Source {
-  //    def apply(resource: Resource): Source = new Impl(resource)
-  //
-  //    private final class Impl(_res: Resource) extends Source {
-  //      override def toString = s"Resource.Source($_res)"
-  //
-  //      def resource(implicit tx: Txn): Resource = _res
-  //    }
-  //  }
-  //  trait Source {
-  //    def resource(implicit tx: Txn): Resource
-  //  }
-
-  // def User() = ()
-
   /** Forwards the resource API to a peer resource */
   trait Proxy extends Resource {
     protected def resourcePeer: Resource

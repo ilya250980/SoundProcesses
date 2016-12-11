@@ -28,7 +28,7 @@ object DummySerializerFactory {
     implicit def dummySerializer[A1]: Serializer[I#Tx, I#Acc, A1] =
       this.asInstanceOf[Serializer[I#Tx, I#Acc, A1]]
 
-    def write(v: A, out: DataOutput) = ()
+    def write(v: A, out: DataOutput): Unit = ()
 
     def read(in: DataInput, access: I#Acc)(implicit tx: I#Tx): A =
       sys.error("Operation not supported")

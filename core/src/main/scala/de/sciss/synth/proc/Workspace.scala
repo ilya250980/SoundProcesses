@@ -53,7 +53,7 @@ object Workspace {
     // def system: S
 
     def cursors: Cursors[S, S#D]
-    }
+  }
 
   object Durable {
     def read (dir: File, ds: DataStore.Factory /* config: BerkeleyDB.Config */): Durable = Impl.readDurable (dir, ds)

@@ -28,7 +28,7 @@ import scala.concurrent.stm.Ref
 object AuralFolderAttribute extends Factory {
   type Repr[S <: stm.Sys[S]] = Folder[S]
 
-  def typeID = Folder.typeID
+  def typeID: Int = Folder.typeID
 
   def apply[S <: Sys[S]](key: String, value: Folder[S], observer: Observer[S])
                         (implicit tx: S#Tx, context: AuralContext[S]): AuralAttribute[S] =
@@ -44,7 +44,7 @@ final class AuralFolderAttribute[S <: Sys[S]](val key: String, val obj: stm.Sour
 
   type Elem = AuralAttribute[S]
 
-  def typeID = Folder.typeID
+  def typeID: Int = Folder.typeID
 
   private sealed trait InternalState extends Disposable[S#Tx] {
     def external: AuralView.State
@@ -52,7 +52,7 @@ final class AuralFolderAttribute[S <: Sys[S]](val key: String, val obj: stm.Sour
 
   private[this] object IStopped extends InternalState {
     def dispose()(implicit tx: S#Tx): Unit = ()
-    def external = Stopped
+    def external: AuralView.State = Stopped
   }
 
   private final case class IPreparing(map: Map[Elem, Disposable[S#Tx]], timeRef: TimeRef)
@@ -60,7 +60,7 @@ final class AuralFolderAttribute[S <: Sys[S]](val key: String, val obj: stm.Sour
 
     def dispose()(implicit tx: S#Tx): Unit = map.foreach(_._2.dispose())
 
-    def external = if (map.isEmpty) Prepared else Preparing
+    def external: AuralView.State = if (map.isEmpty) Prepared else Preparing
   }
 
   private final case class IPlaying(wallClock: Long, timeRef: TimeRef, target: Target[S])

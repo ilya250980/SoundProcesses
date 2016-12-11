@@ -52,7 +52,7 @@ object FadeSpec {
   }
 
   object Obj extends expr.impl.ExprTypeImpl[FadeSpec, FadeSpec.Obj] {
-    def typeID = FadeSpec.typeID
+    def typeID: Int = FadeSpec.typeID
 
     import FadeSpec.{Obj => Repr}
 

@@ -42,7 +42,7 @@ object WorkspaceImpl {
       if (version != VERSION) sys.error(s"Incompatible file version (found $version, but need $VERSION)")
 
       new Data[S] {
-        val root = Folder.read[S](in, access)
+        val root: Folder[S] = Folder.read(in, access)
       }
     }
   }
@@ -105,7 +105,7 @@ object WorkspaceImpl {
 
     val access = system.root[Data[S]] { implicit tx =>
       val data: Data[S] = new Data[S] {
-        val root = Folder[S](tx)
+        val root: Folder[S] = Folder(tx)
       }
       data
     }
@@ -144,7 +144,7 @@ object WorkspaceImpl {
 
     val (access, cursors) = system.rootWithDurable[Data[S], Cursors[S, S#D]] { implicit tx =>
       val data: Data[S] = new Data[S] {
-        val root = Folder[S](tx)
+        val root: Folder[S] = Folder(tx)
       }
       data
 
@@ -164,7 +164,7 @@ object WorkspaceImpl {
 
     val access = system.root[Data[S]] { implicit tx =>
       val data: Data[S] = new Data[S] {
-        val root = Folder[S](tx)
+        val root: Folder[S] = Folder(tx)
       }
       data
     }
@@ -260,31 +260,27 @@ object WorkspaceImpl {
                                     val cursors: Cursors[Cf, Cf#D])
     extends Workspace.Confluent with Impl[Cf] {
 
-    def folder  = Some(_folder)
-    def name    = _folder.base
-
-    // val systemType = implicitly[reflect.runtime.universe.TypeTag[Cf]]
+    def folder: Option[File]  = Some(_folder)
+    def name  : String        = _folder.base
 
     type I = system.I
-    val inMemoryBridge = (tx: S#Tx) => tx.inMemory  // Confluent.inMemory(tx)
-    def inMemoryCursor: stm.Cursor[I] = system.inMemory
+    val inMemoryBridge: S#Tx => S#I#Tx  = _.inMemory
+    def inMemoryCursor: stm.Cursor[I]   = system.inMemory
 
     // def cursor = cursors.cursor
-    val cursor = confluent.Cursor.wrap(cursors.cursor)(system)
+    val cursor: stm.Cursor[S] = confluent.Cursor.wrap(cursors.cursor)(system)
   }
 
   private final class DurableImpl(_folder: File, val system: Dur,
                                   protected val access: stm.Source[Dur#Tx, Data[Dur]])
     extends Workspace.Durable with Impl[Dur] {
 
-    // val systemType = implicitly[reflect.runtime.universe.TypeTag[Dur]]
-
-    def folder  = Some(_folder)
-    def name    = _folder.base
+    def folder: Option[File]  = Some(_folder)
+    def name  : String        = _folder.base
 
     type I = system.I
-    val inMemoryBridge = (tx: S#Tx) => Dur.inMemory(tx)
-    def inMemoryCursor: stm.Cursor[I] = system.inMemory
+    val inMemoryBridge: S#Tx => S#I#Tx  = Dur.inMemory
+    def inMemoryCursor: stm.Cursor[I]   = system.inMemory
 
     def cursor: stm.Cursor[S] = system
   }
@@ -295,8 +291,8 @@ object WorkspaceImpl {
     // val systemType = implicitly[reflect.runtime.universe.TypeTag[InMem]]
 
     type I = system.I
-    val inMemoryBridge = (tx: S#Tx) => tx
-    def inMemoryCursor: stm.Cursor[I] = system.inMemory
+    val inMemoryBridge: S#Tx => S#I#Tx  = tx => tx
+    def inMemoryCursor: stm.Cursor[I]   = system.inMemory
 
     def cursor: stm.Cursor[S] = system
 

@@ -58,16 +58,10 @@ object DynamicBusUser {
   def writer(bus: ControlBus): DynamicControlBusUser =
     new ControlWriterImpl(bus)
 
-  //   def readerWriter( bus: AudioBus ) : DynamicAudioBusUser =
-  //      new AudioReaderWriterImpl( bus )
-
-  //   def readerWriter( bus: ControlBus ) : DynamicControlBusUser =
-  //      new ControlReaderWriterImpl( bus )
-
   private abstract class AbstractAudioImpl extends DynamicAudioBusUser with AudioBus.User {
     final val added = ScalaRef(initialValue = false)
 
-    final def busChanged(bus: SAudioBus, isDummy: Boolean)(implicit tx: Txn) = ()
+    final def busChanged(bus: SAudioBus, isDummy: Boolean)(implicit tx: Txn): Unit = ()
 
     final def migrateTo(newBus: AudioBus)(implicit tx: Txn): DynamicAudioBusUser = {
       require(newBus.numChannels == bus.numChannels)
@@ -98,7 +92,7 @@ object DynamicBusUser {
   private abstract class AbstractControlImpl extends DynamicControlBusUser with ControlBus.User {
     final val added = ScalaRef(initialValue = false)
 
-    final def busChanged(bus: SControlBus)(implicit tx: Txn) = ()
+    final def busChanged(bus: SControlBus)(implicit tx: Txn): Unit = ()
 
     final def migrateTo(newBus: ControlBus)(implicit tx: Txn): DynamicControlBusUser = {
       require(newBus.numChannels == bus.numChannels)

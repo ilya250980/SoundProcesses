@@ -26,9 +26,9 @@ import de.sciss.synth.proc.{logAural => logA}
 import scala.concurrent.stm.Ref
 
 object AuralScheduledBase {
-  final         val LOOK_AHEAD      = (1.0 * TimeRef.SampleRate).toLong  // one second. XXX TODO -- make configurable
-  private final val PREP_FRAMES     = (0.5 * TimeRef.SampleRate).toLong  // XXX TODO -- make configurable
-  private final val LOOK_STOP       = LOOK_AHEAD + PREP_FRAMES
+  final         val LOOK_AHEAD : Long = (1.0 * TimeRef.SampleRate).toLong  // one second. XXX TODO -- make configurable
+  private final val PREP_FRAMES: Long = (0.5 * TimeRef.SampleRate).toLong  // XXX TODO -- make configurable
+  private final val LOOK_STOP  : Long = LOOK_AHEAD + PREP_FRAMES
 
   private val EmptyScheduled = new Scheduled(-1, Long.MaxValue)
 
@@ -138,7 +138,7 @@ trait AuralScheduledBase[S <: Sys[S], Target, Elem <: AuralView[S, Target]]
 
   protected case object IStopped extends InternalState {
     def dispose()(implicit tx: S#Tx): Unit = ()
-    def external = Stopped
+    def external: AuralView.State = Stopped
   }
 
   protected sealed trait ITimedState extends InternalState {
@@ -154,7 +154,7 @@ trait AuralScheduledBase[S <: Sys[S], Target, Elem <: AuralView[S, Target]]
 
     def dispose()(implicit tx: S#Tx): Unit = map.foreach(_._2.dispose())
 
-    def external = if (map.isEmpty) Prepared else Preparing
+    def external: AuralView.State = if (map.isEmpty) Prepared else Preparing
   }
 
   protected final class IPlaying(val wallClock: Long, val timeRef: TimeRef, val target: Target)

@@ -49,7 +49,7 @@ private[proc] object ConfluentImpl {
                                  val cursorCache: confluent.Cache[S#Tx])
     extends confluent.impl.RegularTxnMixin[S, stm.Durable] with TxnImpl {
 
-    lazy val peer = durable.peer
+    lazy val peer: InTxn = durable.peer
   }
 
   private final class RootTxn(val system: S, val peer: InTxn)
@@ -66,9 +66,9 @@ private[proc] object ConfluentImpl {
     extends confluent.impl.Mixin[S]
     with Confluent {
 
-    def inMemory              = durable.inMemory
-    def durableTx (tx: S#Tx)  = tx.durable
-    def inMemoryTx(tx: S#Tx)  = tx.inMemory
+    def inMemory            : I     = durable.inMemory
+    def durableTx (tx: S#Tx): D#Tx  = tx.durable
+    def inMemoryTx(tx: S#Tx): I#Tx  = tx.inMemory
 
     protected def wrapRegular(dtx: /* evt. */ Durable#Tx, inputAccess: S#Acc, retroactive: Boolean,
                               cursorCache: confluent.Cache[S#Tx]) =

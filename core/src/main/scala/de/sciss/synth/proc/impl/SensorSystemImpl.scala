@@ -158,7 +158,7 @@ object SensorSystemImpl {
     private val state   = Ref(StateStopped: State)
 
     private var _dumpOSC = false
-    def dumpOSC = _dumpOSC
+    def dumpOSC: Boolean = _dumpOSC
     def dumpOSC_=(value: Boolean): Unit = if (value != _dumpOSC) {
       _dumpOSC = value
       state.single.get.serverOption.foreach { server =>
@@ -218,7 +218,7 @@ object SensorSystemImpl {
               fun(s)
             }
 
-            def sensorsStopped()(implicit tx: TxnLike) = ()
+            def sensorsStopped()(implicit tx: TxnLike): Unit = ()
 
             def sensorsUpdate(values: Vec[Float])(implicit tx: TxnLike): Unit = ()
           }

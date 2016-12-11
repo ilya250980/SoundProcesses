@@ -47,7 +47,7 @@ object Color {
   object Obj extends ExprTypeImpl[Color, Obj] {
     import Color.{Obj => Repr}
 
-    def typeID = Color.typeID
+    def typeID: Int = Color.typeID
 
     implicit def valueSerializer: ImmutableSerializer[Color] = Color.serializer
 

@@ -67,7 +67,7 @@ object Bounce {
     def actions: IIterable[Scheduler.Entry[S]]
   }
   object Config {
-    val NoOp = (_: Any, _: Any) => ()
+    val NoOp: (Any, Any) => Unit = (_, _) => ()
 
     def apply[S <: Sys[S]]: ConfigBuilder[S] = new ConfigBuilder
 

@@ -116,15 +116,15 @@ object Code {
   final case class FileTransform(source: String) extends Code {
     type In     = (File, File, ProcessorLike[Any, Any] => Unit)
     type Out    = Future[Unit]
-    def id      = FileTransform.id
+    def id: Int = FileTransform.id
 
     def compileBody()(implicit compiler: Code.Compiler): Future[Unit] = Impl.compileBody[In, Out, FileTransform](this)
 
     def execute(in: In)(implicit compiler: Code.Compiler): Out = Impl.execute[In, Out, FileTransform](this, in)
 
-    def contextName = FileTransform.name
+    def contextName: String = FileTransform.name
 
-    def updateSource(newText: String) = copy(source = newText)
+    def updateSource(newText: String): FileTransform = copy(source = newText)
   }
 
   // ---- type: SynthGraph ----
@@ -139,15 +139,15 @@ object Code {
   final case class SynthGraph(source: String) extends Code {
     type In     = Unit
     type Out    = synth.SynthGraph
-    def id      = SynthGraph.id
+    def id: Int = SynthGraph.id
 
     def compileBody()(implicit compiler: Code.Compiler): Future[Unit] = Impl.compileBody[In, Out, SynthGraph](this)
 
     def execute(in: In)(implicit compiler: Code.Compiler): Out = Impl.execute[In, Out, SynthGraph](this, in)
 
-    def contextName = SynthGraph.name
+    def contextName: String = SynthGraph.name
 
-    def updateSource(newText: String) = copy(source = newText)
+    def updateSource(newText: String): SynthGraph = copy(source = newText)
   }
 
   // ---- type: Action ----
@@ -162,7 +162,7 @@ object Code {
   final case class Action(source: String) extends Code {
     type In     = String
     type Out    = Array[Byte]
-    def id      = Action.id
+    def id: Int = Action.id
 
     def compileBody()(implicit compiler: Code.Compiler): Future[Unit] = future(blocking { execute("Unnamed"); () })
 
@@ -171,9 +171,9 @@ object Code {
       Impl.compileToFunction(in, this)
     }
 
-    def contextName = Action.name
+    def contextName: String = Action.name
 
-    def updateSource(newText: String) = copy(source = newText)
+    def updateSource(newText: String): Action = copy(source = newText)
 
     // def compileToFunction(name: String): Future[Array[Byte]] = Impl.compileToFunction(name, this)
   }
@@ -183,7 +183,7 @@ object Code {
   object Obj extends ExprTypeImpl[Code, Obj] {
     import Code.{Obj => Repr}
 
-    def typeID = Code.typeID
+    def typeID: Int = Code.typeID
 
     def valueSerializer: ImmutableSerializer[Code] = Code.serializer
 

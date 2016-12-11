@@ -54,7 +54,7 @@ object KeyMapImpl {
       info.valueSerializer.write(value, out)
     }
 
-    def dispose()(implicit tx: S#Tx) = ()
+    def dispose()(implicit tx: S#Tx): Unit = ()
 
 //    def pullUpdate(pull: evt.Pull[S])(implicit tx: S#Tx): Option[(Key, ValueUpd)] =
 //      pull(info.valueEvent(value)).map(key -> _)

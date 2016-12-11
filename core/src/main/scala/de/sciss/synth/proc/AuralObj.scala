@@ -76,7 +76,7 @@ object AuralObj {
   object Proc extends AuralObj.Factory {
     type Repr[S <: Sys[S]] = _Proc[S]
 
-    def typeID = _Proc.typeID
+    def typeID: Int = _Proc.typeID
 
     def apply[S <: SSys[S]](obj: _Proc[S])(implicit tx: S#Tx, context: AuralContext[S]): AuralObj.Proc[S] =
       AuralProcImpl(obj)
@@ -156,7 +156,7 @@ object AuralObj {
   object Timeline extends AuralObj.Factory {
     type Repr[S <: Sys[S]] = _Timeline[S]
 
-    def typeID = _Timeline.typeID
+    def typeID: Int = _Timeline.typeID
 
     def apply[S <: SSys[S]](obj: _Timeline[S])(implicit tx: S#Tx, context: AuralContext[S]): AuralObj.Timeline[S] =
       AuralTimelineImpl(obj)
@@ -189,7 +189,7 @@ object AuralObj {
   object Ensemble extends AuralObj.Factory {
     type Repr[S <: Sys[S]] = _Ensemble[S]
 
-    def typeID = _Ensemble.typeID
+    def typeID: Int = _Ensemble.typeID
 
     def apply[S <: SSys[S]](obj: _Ensemble[S])(implicit tx: S#Tx, context: AuralContext[S]): AuralObj.Ensemble[S] =
       AuralEnsembleImpl(obj)
@@ -203,7 +203,7 @@ object AuralObj {
   object Folder extends AuralObj.Factory {
     type Repr[S <: Sys[S]] = _Folder[S]
 
-    def typeID = _Folder.typeID
+    def typeID: Int = _Folder.typeID
 
     def apply[S <: SSys[S]](obj: _Folder[S])(implicit tx: S#Tx, context: AuralContext[S]): AuralObj.Folder[S] =
       AuralFolderImpl(obj)
@@ -217,7 +217,7 @@ object AuralObj {
   object Action extends AuralObj.Factory {
     type Repr[S <: Sys[S]] = _Action[S]
 
-    def typeID = _Action.typeID
+    def typeID: Int = _Action.typeID
 
     def apply[S <: SSys[S]](obj: _Action[S])(implicit tx: S#Tx, context: AuralContext[S]): AuralObj.Action[S] =
       AuralActionImpl(obj)

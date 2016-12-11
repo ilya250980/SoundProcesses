@@ -32,7 +32,7 @@ object AuralEnsembleImpl {
     extends AuralFolderLikeImpl[S, Ensemble[S], AuralObj.Ensemble[S]]
     with AuralObj.Ensemble[S] { impl =>
     
-    def typeID = Ensemble.typeID
+    def typeID: Int = Ensemble.typeID
 
     def folder(implicit tx: S#Tx): Folder[S] = ensemble.folder
 

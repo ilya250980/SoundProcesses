@@ -199,7 +199,7 @@ object CodeImpl {
     implicit object FileTransform
       extends Wrapper[(File, File, ProcessorLike[Any, Any] => Unit), Future[Unit], Code.FileTransform] {
 
-      def id = Code.FileTransform.id
+      def id: Int = Code.FileTransform.id
 
       def binding: Option[String] = Some("FileTransformContext")
 
@@ -218,7 +218,7 @@ object CodeImpl {
     implicit object SynthGraph
       extends Wrapper[Unit, synth.SynthGraph, Code.SynthGraph] {
 
-      def id = Code.SynthGraph.id
+      def id: Int = Code.SynthGraph.id
 
       def binding = None
 

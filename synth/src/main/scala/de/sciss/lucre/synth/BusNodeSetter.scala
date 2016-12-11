@@ -227,21 +227,27 @@ object BusNodeSetter {
    */
   private final class AudioReaderImpl(val controlName: String, val bus: AudioBus, val node: Node)
     extends AbstractAudioReader with AudioSetterLike {
-    def newInstance(newBus: AudioBus) = reader(controlName, newBus, node)
+
+    def newInstance(newBus: AudioBus): AudioBusNodeSetter =
+      reader(controlName, newBus, node)
 
     override def toString = s"BusNodeSetter.reader($controlName, $bus, $node)"
   }
 
   private final class ControlReaderImpl(val controlName: String, val bus: ControlBus, val node: Node)
     extends AbstractControlReader with ControlSetterLike {
-    def newInstance(newBus: ControlBus) = reader(controlName, newBus, node)
+
+    def newInstance(newBus: ControlBus): ControlBusNodeSetter =
+      reader(controlName, newBus, node)
 
     override def toString = s"BusNodeSetter.reader($controlName, $bus, $node)"
   }
 
   private final class AudioMapperImpl(val controlName: String, val bus: AudioBus, val node: Node)
     extends AbstractAudioReader with AudioMapperLike {
-    def newInstance(newBus: AudioBus) = mapper(controlName, newBus, node)
+
+    def newInstance(newBus: AudioBus): AudioBusNodeSetter =
+      mapper(controlName, newBus, node)
 
     override def toString = s"BusNodeSetter.mapper($controlName, $bus, $node)"
 
@@ -252,7 +258,9 @@ object BusNodeSetter {
 
   private final class ControlMapperImpl(val controlName: String, val bus: ControlBus, val node: Node)
     extends AbstractControlReader with ControlMapperLike {
-    def newInstance( newBus: ControlBus ) = mapper( controlName, newBus, node )
+
+    def newInstance(newBus: ControlBus): ControlBusNodeSetter =
+      mapper(controlName, newBus, node)
 
     override def toString = s"BusNodeSetter.mapper($controlName, $bus, $node)"
   }
@@ -263,6 +271,7 @@ object BusNodeSetter {
    */
   private final class AudioWriterImpl(val controlName: String, val bus: AudioBus, val node: Node)
     extends AbstractAudioImpl with AudioSetterLike {
+
     def add()(implicit tx: Txn): Unit = {
       val wasAdded = added.swap(true)(tx.peer)
       if (wasAdded) sys.error(s"Was already added : $this")
@@ -274,13 +283,15 @@ object BusNodeSetter {
       if (wasAdded) bus.removeWriter(this)
     }
 
-    def newInstance(newBus: AudioBus) = writer(controlName, newBus, node)
+    def newInstance(newBus: AudioBus): AudioBusNodeSetter =
+      writer(controlName, newBus, node)
 
     override def toString = s"BusNodeSetter.writer($controlName, $bus, $node)"
   }
 
   private final class ControlWriterImpl(val controlName: String, val bus: ControlBus, val node: Node)
     extends AbstractControlImpl with ControlSetterLike {
+
     def add()(implicit tx: Txn): Unit = {
       val wasAdded = added.swap(true)(tx.peer)
       if (wasAdded) sys.error(s"Was already added : $this")
@@ -292,7 +303,8 @@ object BusNodeSetter {
       if (wasAdded) bus.removeWriter(this)
     }
 
-    def newInstance(newBus: ControlBus) = writer(controlName, newBus, node)
+    def newInstance(newBus: ControlBus): ControlBusNodeSetter =
+      writer(controlName, newBus, node)
 
     override def toString = s"BusNodeSetter.writer($controlName, $bus, $node)"
   }
@@ -305,7 +317,7 @@ object BusNodeSetter {
    extends AbstractAudioImpl with AudioSetterLike {
 
     object dummy extends AudioBus.User {
-      def busChanged(b: SAudioBus, isDummy: Boolean)(implicit tx: Txn) = ()
+      def busChanged(b: SAudioBus, isDummy: Boolean)(implicit tx: Txn): Unit = ()
     }
 
     def add()(implicit tx: Txn): Unit = {
@@ -323,7 +335,8 @@ object BusNodeSetter {
       }
     }
 
-    def newInstance(newBus: AudioBus) = readerWriter(controlName, newBus, node)
+    def newInstance(newBus: AudioBus): AudioBusNodeSetter =
+      readerWriter(controlName, newBus, node)
 
     override def toString = s"BusNodeSetter.readerWriter($controlName, $bus, $node)"
   }
@@ -332,12 +345,12 @@ object BusNodeSetter {
     extends AbstractControlImpl with ControlSetterLike {
 
     object dummy extends ControlBus.User {
-      def busChanged(b: SControlBus)(implicit tx: Txn) = ()
+      def busChanged(b: SControlBus)(implicit tx: Txn): Unit = ()
     }
 
     def add()(implicit tx: Txn): Unit = {
       val wasAdded = added.swap(true)(tx.peer)
-      if (wasAdded) sys.error("Was already added : " + this)
+      if (wasAdded) sys.error(s"Was already added : $this")
       bus.addReader(this)
       bus.addWriter(dummy)
     }
@@ -350,7 +363,8 @@ object BusNodeSetter {
       }
     }
 
-    def newInstance(newBus: ControlBus) = readerWriter(controlName, newBus, node)
+    def newInstance(newBus: ControlBus): ControlBusNodeSetter =
+      readerWriter(controlName, newBus, node)
 
     override def toString = s"BusNodeSetter.readerWriter($controlName, $bus, $node)"
   }

@@ -31,9 +31,8 @@ object DiskIn {
 final case class DiskIn(rate: Rate, key: String, loop: synth.GE)
   extends Stream with IsIndividual {
 
-  // protected def info = UGenGraphBuilder.StreamIn(1.0, -
-  protected def maxSpeed  = 1.0
-  protected def interp    = -1
+  protected def maxSpeed: Double  = 1.0
+  protected def interp  : Int     = -1
 
   protected def makeUGen(server: Server, numChannels: Int, sampleRate: Double, idx: Int,
                          buf: synth.GE, gain: synth.GE): UGenInLike =

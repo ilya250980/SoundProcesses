@@ -60,7 +60,7 @@ object ScanIn {
 final case class ScanIn(key: String /*, default: Double = 0.0 */)
   extends ScanIn.Like {
 
-  protected def fixed = -1
+  protected def fixed: Int = -1
 
   protected def mkUGen(ctlName: String, numCh: Int): UGenInLike =
     if (numCh == 1) {
@@ -105,7 +105,7 @@ object ScanInFix {
 final case class ScanInFix(key: String, numChannels: Int)
   extends ScanIn.Like {
 
-  protected def fixed = numChannels
+  protected def fixed: Int = numChannels
 
   protected def mkUGen(ctlName: String, numCh: Int): UGenInLike =
     if (numCh == 1) {

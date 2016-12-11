@@ -57,7 +57,7 @@ object AudioCue {
   }
 
   object Obj extends expr.impl.ExprTypeImpl[AudioCue, AudioCue.Obj] {
-    def typeID = AudioCue.typeID
+    def typeID: Int = AudioCue.typeID
 
     import AudioCue.{Obj => Repr}
 
@@ -371,8 +371,8 @@ object AudioCue {
 
     private[this] object LongTuple1s extends Type.Extension1[LongObj] {
       // final val arity = 1
-      final val opLo  = Offset.id
-      final val opHi  = Offset.id
+      final val opLo: Int = Offset.id
+      final val opHi: Int = Offset.id
 
       val name = "AudioCue-Long Ops"
 

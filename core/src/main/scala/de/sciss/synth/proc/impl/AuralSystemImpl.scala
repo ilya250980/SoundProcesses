@@ -197,7 +197,7 @@ object AuralSystemImpl {
               tx.afterCommit(fun(server))
             }
 
-            def auralStopped()(implicit tx: Txn) = ()
+            def auralStopped()(implicit tx: Txn): Unit = ()
           }
           addClient(c)
       }

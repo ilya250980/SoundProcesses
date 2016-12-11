@@ -24,10 +24,10 @@ object FolderImpl {
 
   def apply[S <: Sys[S]](implicit tx: S#Tx): Folder[S] =
     new Impl1[S] {
-      protected val targets = Targets[S]
-      protected val sizeRef = tx.newIntVar(id, 0)
-      protected val headRef = tx.newVar[C](id, null)(CellSer)
-      protected val lastRef = tx.newVar[C](id, null)(CellSer)
+      protected val targets: Targets[S] = Targets[S]
+      protected val sizeRef: S#Var[Int] = tx.newIntVar(id, 0)
+      protected val headRef: S#Var[C]   = tx.newVar[C](id, null)(CellSer)
+      protected val lastRef: S#Var[C]   = tx.newVar[C](id, null)(CellSer)
     }
 
   def serializer[S <: Sys[S]]: Serializer[S#Tx, S#Acc, Folder[S]] =
@@ -56,10 +56,10 @@ object FolderImpl {
   private def read[S <: Sys[S]](in: DataInput, access: S#Acc, _targets: Targets[S])
                                (implicit tx: S#Tx): Impl1[S] =
     new Impl1[S] {
-      protected val targets = _targets
-      protected val sizeRef = tx.readIntVar(id, in)
-      protected val headRef = tx.readVar[C](id, in)
-      protected val lastRef = tx.readVar[C](id, in)
+      protected val targets: Targets[S] = _targets
+      protected val sizeRef: S#Var[Int] = tx.readIntVar(id, in)
+      protected val headRef: S#Var[C]   = tx.readVar[C](id, in)
+      protected val lastRef: S#Var[C]   = tx.readVar[C](id, in)
     }
 
   private abstract class Impl1[S <: Sys[S]]

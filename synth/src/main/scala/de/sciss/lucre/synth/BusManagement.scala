@@ -318,8 +318,8 @@ object Bus {
   private abstract class AbstractAudioImpl extends AudioBus {
     import AudioBus.{User => AU}
 
-    final protected val readers = TSet.empty[AU]
-    final protected val writers = TSet.empty[AU]
+    final protected val readers: TSet[AU] = TSet.empty
+    final protected val writers: TSet[AU] = TSet.empty
   }
 
   private final case class FixedImpl(server: Server, bus: SAudioBus)
@@ -327,7 +327,7 @@ object Bus {
 
     import AudioBus.{User => AU}
 
-    def numChannels = bus.numChannels
+    def numChannels: Int = bus.numChannels
 
     def busOption(implicit tx: Txn): Option[SAudioBus] = Some(bus)
 
@@ -345,11 +345,11 @@ object Bus {
     private def remove(users: TSet[AU], u: AU)(implicit tx: Txn): Unit =
       users.remove(u)(tx.peer) // users.transform(_ - u)(tx.peer)
 
-    override def toString = "h-abus(" + bus + ")"
+    override def toString = s"h-abus($bus)"
   }
 
   private abstract class BasicAudioImpl extends AbstractAudioImpl {
-    final protected val bus = Ref.make[AudioBusHolder]
+    final protected val bus: Ref[AudioBusHolder] = Ref.make[AudioBusHolder]
 
     final def busOption(implicit tx: Txn): Option[SAudioBus] = {
       val bh = bus.get(tx.peer)
@@ -550,7 +550,7 @@ object Bus {
 
     override def toString = s"cbus_$numChannels@${hashCode().toHexString}"
 
-    def busOption(implicit tx: Txn) = {
+    def busOption(implicit tx: Txn): Option[SControlBus] = {
       val bh = bus.get(tx.peer)
       if (bh != null) Some(bh.peer) else None
     }

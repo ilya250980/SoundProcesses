@@ -11,7 +11,7 @@ import de.sciss.span.Span
 import de.sciss.synth.SynthGraph
 import de.sciss.synth.io.AudioFile
 import org.scalactic.source
-import org.scalatest.{FutureOutcome, Matchers, compatible, fixture}
+import org.scalatest.{Assertion, FutureOutcome, Matchers, compatible, fixture}
 
 import scala.collection.immutable.{Iterable => IIterable}
 import scala.concurrent.{ExecutionContext, Future}
@@ -179,7 +179,7 @@ abstract class BounceSpec extends fixture.AsyncFlatSpec with Matchers {
     res
   }
 
-  final def assertSameSignal(a: Array[Float], b: Array[Float], tol: Float = 1.0e-4f) = {
+  final def assertSameSignal(a: Array[Float], b: Array[Float], tol: Float = 1.0e-4f): Assertion = {
     assert(a.length === b.length +- blockSize)
     val diff = (a, b).zipped.map((x, y) => math.abs(x - y))
     all (diff) should be < tol

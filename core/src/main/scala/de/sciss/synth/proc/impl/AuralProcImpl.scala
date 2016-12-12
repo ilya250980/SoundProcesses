@@ -291,7 +291,9 @@ object AuralProcImpl {
       attrMap .clear()
     }
 
-    private def buildState(implicit tx: S#Tx): UGB.State[S] = buildStateRef()
+    protected final def buildState(implicit tx: S#Tx): UGB.State[S] = buildStateRef()
+
+    protected final def addObserver(obs: Disposable[S#Tx]): Unit = observers ::= obs
 
     /* If the ugen graph is incomplete, tries to (incrementally)
      * build it. Calls `buildAdvanced` with the old and new

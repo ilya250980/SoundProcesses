@@ -2,7 +2,7 @@
  *  AuralObj.scala
  *  (SoundProcesses)
  *
- *  Copyright (c) 2010-2016 Hanns Holger Rutz. All rights reserved.
+ *  Copyright (c) 2010-2017 Hanns Holger Rutz. All rights reserved.
  *
  *	This software is published under the GNU Lesser General Public License v2.1+
  *
@@ -38,13 +38,6 @@ object AuralObj {
   def factories: Iterable[Factory] = Impl.factories
 
   def apply[S <: SSys[S]](obj: Obj[S])(implicit tx: S#Tx, context: AuralContext[S]): AuralObj[S] = Impl(obj)
-
-//  /* The current state a view is in. */
-//  sealed trait State
-//  case object Stopped   extends State
-//  case object Preparing extends State
-//  case object Prepared  extends State
-//  case object Playing   extends State
 
   /* The target state indicates the eventual state the process should have,
      independent of the current state which might not yet be ready.

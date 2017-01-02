@@ -2,7 +2,7 @@
  *  AuralObjImpl.scala
  *  (SoundProcesses)
  *
- *  Copyright (c) 2010-2016 Hanns Holger Rutz. All rights reserved.
+ *  Copyright (c) 2010-2017 Hanns Holger Rutz. All rights reserved.
  *
  *	This software is published under the GNU Lesser General Public License v2.1+
  *
@@ -35,7 +35,7 @@ object AuralObjImpl {
     val tid = obj.tpe.typeID
     val opt: Option[Factory] = map.get(tid)
     opt.fold[AuralObj[S]](Generic(obj)) { f =>
-      f[S](obj.asInstanceOf[f.Repr[S]])   // XXX IntelliJ highlighting bug
+      f.apply[S](obj.asInstanceOf[f.Repr[S]])
     }
   }
 

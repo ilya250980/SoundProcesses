@@ -1,7 +1,7 @@
 lazy val baseName  = "SoundProcesses"
 lazy val baseNameL = baseName.toLowerCase
 
-lazy val projectVersion = "3.10.2"
+lazy val projectVersion = "3.10.3-SNAPSHOT"
 lazy val mimaVersion    = "3.10.0" // used for migration-manager
 
 lazy val commonSettings = Seq(
@@ -10,7 +10,7 @@ lazy val commonSettings = Seq(
   homepage           := Some(url(s"https://github.com/Sciss/$baseName")),
   description        := "A framework for creating and managing ScalaCollider based sound processes",
   licenses           := Seq("LGPL v2.1+" -> url("http://www.gnu.org/licenses/lgpl-2.1.txt")),
-  scalaVersion       := "2.11.8",
+  scalaVersion       := "2.12.1",
   crossScalaVersions := Seq("2.12.1", "2.11.8", "2.10.6"),
   resolvers          += "Oracle Repository" at "http://download.oracle.com/maven",  // required for sleepycat
   parallelExecution in Test := false

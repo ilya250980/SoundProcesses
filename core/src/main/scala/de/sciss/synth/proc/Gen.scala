@@ -13,15 +13,18 @@
 
 package de.sciss.synth.proc
 
+import de.sciss.lucre.event.Publisher
 import de.sciss.lucre.stm.{Obj, Sys}
 
-import scala.util.Try
+object Gen {
+  trait Update[S <: Sys[S]] {
+    def gen  : Gen[S]
+    def value: Option[Obj[S]]
+  }
 
-trait Gen[S <: Sys[S]] extends Obj[S] {
+  // sealed trait Value[S <: Sys[S]]
+}
+trait Gen[S <: Sys[S]] extends Obj[S] with Publisher[S, Gen.Update[S]] {
   def valueType: Obj.Type
-  def value(implicit tx: S#Tx): Option[Try[Obj[S]]] // analogous to `Future`
-
-//  def render()   (implicit tx: S#Tx):        Processor[Obj[S]]
-//  def rendering  (implicit tx: S#Tx): Option[Processor[Obj[S]]]
-//  def isRendering(implicit tx: S#Tx): Boolean
+  def value(implicit tx: S#Tx): Option[Obj[S]]
 }

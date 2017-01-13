@@ -18,6 +18,7 @@ import de.sciss.lucre.stm
 import de.sciss.lucre.stm.{Disposable, Obj, Sys}
 import impl.{GenViewImpl => Impl}
 
+import scala.concurrent.Future
 import scala.language.higherKinds
 import scala.util.Try
 
@@ -61,8 +62,11 @@ trait GenView[S <: Sys[S]] extends Observable[S#Tx, GenView.State] with Disposab
   def state(implicit tx: S#Tx): GenView.State
 
   def valueType: Obj.Type
-  def value(implicit tx: S#Tx): Option[Try[Obj[S]]]
+  // def value(implicit tx: S#Tx): Option[Try[Obj[S]]]
 
   def start()(implicit tx: S#Tx): Unit
   def stop ()(implicit tx: S#Tx): Unit
+
+  def acquire()(implicit tx: S#Tx): Future[Obj[S]]
+  def release(obj: Obj[S])(implicit tx: S#Tx): Unit
 }

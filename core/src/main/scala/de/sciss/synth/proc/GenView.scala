@@ -56,6 +56,8 @@ object GenView {
 trait GenView[S <: Sys[S]] extends Observable[S#Tx, GenView.State] with Disposable[S#Tx] {
   def typeID: Int
 
+  type Key
+
   /** The view must store a handle to its underlying model. */
   def obj: stm.Source[S#Tx, Gen[S]]
 
@@ -63,10 +65,12 @@ trait GenView[S <: Sys[S]] extends Observable[S#Tx, GenView.State] with Disposab
 
   def valueType: Obj.Type
   // def value(implicit tx: S#Tx): Option[Try[Obj[S]]]
+   def value(key: Key)(implicit tx: S#Tx): Option[Try[Obj[S]]]
 
-  def start()(implicit tx: S#Tx): Unit
-  def stop ()(implicit tx: S#Tx): Unit
+//  def start()(implicit tx: S#Tx): Unit
+//  def stop ()(implicit tx: S#Tx): Unit
 
-  def acquire()(implicit tx: S#Tx): Future[Obj[S]]
-  def release(obj: Obj[S])(implicit tx: S#Tx): Unit
+  def acquire()(implicit tx: S#Tx): Key // Future[Obj[S]]
+//  def release(obj: Obj[S])(implicit tx: S#Tx): Unit
+  def release(key: Key)(implicit tx: S#Tx): Unit
 }

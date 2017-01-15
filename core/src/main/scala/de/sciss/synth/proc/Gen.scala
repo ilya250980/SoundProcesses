@@ -13,18 +13,8 @@
 
 package de.sciss.synth.proc
 
-import de.sciss.lucre.event.Publisher
 import de.sciss.lucre.stm.{Obj, Sys}
 
-object Gen {
-//  trait Update[S <: Sys[S]] {
-//    def gen  : Gen[S]
-//    def value: Option[Obj[S]]
-//  }
-
-  // sealed trait Value[S <: Sys[S]]
-}
-trait Gen[S <: Sys[S]] extends Obj[S] /* with Publisher[S, Gen.Update[S]] */ {
+trait Gen[S <: Sys[S]] extends Obj[S] {
   def valueType: Obj.Type
-  // def value(implicit tx: S#Tx): Option[Obj[S]]
 }

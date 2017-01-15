@@ -14,22 +14,19 @@
 package de.sciss.synth.proc
 
 import de.sciss.lucre.event.Observable
-import de.sciss.lucre.stm
 import de.sciss.lucre.stm.{Disposable, Obj, Sys}
-import impl.{GenViewImpl => Impl}
+import de.sciss.synth.proc.impl.{GenViewImpl => Impl}
 
-import scala.concurrent.Future
 import scala.language.higherKinds
-import scala.util.Try
 
 object GenView {
   /* The current state a view is in. */
   sealed trait State {
     def isComplete: Boolean
   }
-  case object Stopped extends State {
-    def isComplete = false
-  }
+//  case object Stopped extends State {
+//    def isComplete = false
+//  }
   case object Completed extends State {
     def isComplete = true
   }
@@ -56,21 +53,10 @@ object GenView {
 trait GenView[S <: Sys[S]] extends Observable[S#Tx, GenView.State] with Disposable[S#Tx] {
   def typeID: Int
 
-  type Key
-
-  /** The view must store a handle to its underlying model. */
-  def obj: stm.Source[S#Tx, Gen[S]]
+//  /** The view must store a handle to its underlying model. */
+//  def obj: stm.Source[S#Tx, Gen[S]]
 
   def state(implicit tx: S#Tx): GenView.State
 
   def valueType: Obj.Type
-  // def value(implicit tx: S#Tx): Option[Try[Obj[S]]]
-   def value(key: Key)(implicit tx: S#Tx): Option[Try[Obj[S]]]
-
-//  def start()(implicit tx: S#Tx): Unit
-//  def stop ()(implicit tx: S#Tx): Unit
-
-  def acquire()(implicit tx: S#Tx): Key // Future[Obj[S]]
-//  def release(obj: Obj[S])(implicit tx: S#Tx): Unit
-  def release(key: Key)(implicit tx: S#Tx): Unit
 }

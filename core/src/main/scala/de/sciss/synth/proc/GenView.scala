@@ -54,8 +54,7 @@ object GenView {
 trait GenView[S <: Sys[S]] extends Observable[S#Tx, GenView.State] with Disposable[S#Tx] {
   def typeID: Int
 
-//  /** The view must store a handle to its underlying model. */
-//  def obj: stm.Source[S#Tx, Gen[S]]
+  def reactNow(fun: S#Tx => GenView.State => Unit)(implicit tx: S#Tx): Disposable[S#Tx]
 
   def state(implicit tx: S#Tx): GenView.State
 

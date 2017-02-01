@@ -11,7 +11,7 @@ object BusTest extends App {
   class DummyUser extends AudioBus.User {
     var observed = Vector.empty[Boolean]
 
-    def busChanged(peer: SAudioBus, isDummy: Boolean)(implicit tx: Txn) = observed :+= isDummy
+    def busChanged(peer: SAudioBus, isDummy: Boolean)(implicit tx: Txn): Unit = observed :+= isDummy
   }
 
   val sync = new AnyRef

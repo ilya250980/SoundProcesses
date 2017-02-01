@@ -84,7 +84,7 @@ object AuralProcImpl {
     }
 
     private[this] object PlayingNone extends PlayingRef {
-      def dispose()(implicit tx: S#Tx) = ()
+      def dispose()(implicit tx: S#Tx): Unit = ()
       def nodeOption = None
     }
     private final class PlayingNode(val node: AuralNode[S]) extends PlayingRef {
@@ -375,6 +375,31 @@ object AuralProcImpl {
       if (buildState.rejectedInputs.contains(aKey)) tryBuild()
     }
 
+    /** Sub-classes may override this if invoking the super-method.
+      * The `async` field of the return value is not used but overwritten
+      * by the calling instance. It can thus be left at an arbitrary value.
+      */
+    protected def requestInputBuffer(value: Obj[S])(implicit tx: S#Tx): UGB.Input.Buffer.Value = value match {
+      case a: DoubleVector[S] =>
+        val v = a.value   // XXX TODO: would be better to write a.peer.size.value
+        UGB.Input.Buffer.Value(numFrames = v.size.toLong, numChannels = 1, async = false)
+
+      case a: AudioCue.Obj[S] =>
+        // val spec = a.spec
+        val spec = a.value.spec
+        UGB.Input.Buffer.Value(numFrames = spec.numFrames, numChannels = spec.numChannels, async = false)
+
+      case a: Gen[S] =>
+        // bloody hell --- what should we return now?
+        // we should look at the future, if it is immediately
+        // successful; if not, we should throw `MissingIn` and
+        // trace the completion of the async build process
+        ???
+
+      case _ =>
+        throw new IllegalStateException(s"Unsupported input attribute buffer source $value")
+    }
+
     /** Sub-classes may override this if invoking the super-method. */
     def requestInput[Res](in: UGB.Input { type Value = Res }, st: UGB.Requester[S])
                          (implicit tx: S#Tx): Res = in match {
@@ -409,22 +434,12 @@ object AuralProcImpl {
         value2
 
       case i: UGB.Input.Buffer =>
-        val procObj = procCached()
-        val (numFr, numCh) = procObj.attr.get(i.name).fold((-1L, -1)) {
-          case a: DoubleVector[S] =>
-            val v = a.value   // XXX TODO: would be better to write a.peer.size.value
-            (v.size.toLong, 1)
-          case a: AudioCue.Obj[S] =>
-            // val spec = a.spec
-            val spec = a.value.spec
-            (spec.numFrames, spec.numChannels)
-
-          case _ => (-1L, -1)
-        }
-        if (numCh < 0) throw MissingIn(i.key)
+        val procObj   = procCached()
+        val attrValue = procObj.attr.get(i.name).getOrElse(throw MissingIn(i.key))
+        val res0      = requestInputBuffer(attrValue)
         // larger files are asynchronously prepared, smaller ones read on the fly
-        val async = (numCh * numFr) > UGB.Input.Buffer.AsyncThreshold   // XXX TODO - that threshold should be configurable
-        UGB.Input.Buffer.Value(numFrames = numFr, numChannels = numCh, async = async)
+        val async     = res0.numSamples > UGB.Input.Buffer.AsyncThreshold   // XXX TODO - that threshold should be configurable
+        if (async == res0.async) res0 else res0.copy(async = async)
 
       case i: UGB.Input.Attribute =>
         val procObj = procCached()
@@ -767,7 +782,7 @@ object AuralProcImpl {
         val prep = setPlayingPrepare(res)
         tx.afterCommit {
           import SoundProcesses.executionContext
-          val reduced = Future.reduce(res)((_, _) => ())
+          val reduced = Future.reduceLeft(res)((_, _) => ())
           reduced.foreach { _ =>
             cursor.step { implicit tx =>
               if (playingRef() == prep) {

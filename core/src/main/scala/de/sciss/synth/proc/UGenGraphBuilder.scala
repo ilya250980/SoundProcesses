@@ -210,6 +210,8 @@ object UGenGraphBuilder {
       final case class Value(numFrames: Long, numChannels: Int, async: Boolean) extends UGenGraphBuilder.Value {
         override def productPrefix = "Input.Buffer.Value"
         override def toString = s"$productPrefix(numFrames = $numFrames, numChannels = $numChannels, async = $async)"
+
+        def numSamples: Long = numFrames * numChannels
       }
     }
     /** Specifies access to a random access buffer.

@@ -38,8 +38,17 @@ import scala.concurrent.stm.{Ref, TMap, TxnLocal}
 
 object AuralProcImpl {
   def apply[S <: Sys[S]](proc: Proc[S])(implicit tx: S#Tx, context: AuralContext[S]): AuralObj.Proc[S] = {
-    val res   = new Impl[S]
+    val res = new Impl[S]
     res.init(proc)
+  }
+
+  private final class ObservedGenView[S <: Sys[S]](val gen: GenView[S], obs: Disposable[S#Tx])
+    extends Disposable[S#Tx] {
+
+    def dispose()(implicit tx: S#Tx): Unit = {
+      obs.dispose()
+      gen.dispose()
+    }
   }
 
   class Impl[S <: Sys[S]](implicit val context: AuralContext[S])
@@ -55,9 +64,11 @@ object AuralProcImpl {
     private[this] val buildStateRef = Ref.make[UGB.State[S]]()
 
     // running attribute inputs
-    private[this] val attrMap       = TMap.empty[String, AuralAttribute[S]]
+    private[this] val auralAttrMap  = TMap.empty[String, AuralAttribute[S]]
     private[this] val outputBuses   = TMap.empty[String, AudioBus]
     private[this] val auralOutputs  = TMap.empty[String, AuralOutput.Owned[S]]
+
+    private[this] val genViewMap    = TMap.empty[String, ObservedGenView[S]]
 
     private[this] val procLoc       = TxnLocal[Proc[S]]() // cache-only purpose
 
@@ -75,7 +86,7 @@ object AuralProcImpl {
       def apply(update: AuralObj.Proc.Update[S])(implicit tx: S#Tx): Unit = fire(update)
     }
 
-    def getAttr  (key: String)(implicit tx: S#Tx): Option[AuralAttribute[S]] = attrMap     .get(key)
+    def getAttr  (key: String)(implicit tx: S#Tx): Option[AuralAttribute[S]] = auralAttrMap.get(key)
     def getOutput(key: String)(implicit tx: S#Tx): Option[AuralOutput   [S]] = auralOutputs.get(key)
 
     /* The ongoing build aural node build process, as stored in `playingRef`. */
@@ -92,7 +103,7 @@ object AuralProcImpl {
         auralOutputs.foreach { case (_, view) =>
           view.stop()
         }
-        attrMap.foreach { case (_, view) =>
+        auralAttrMap.foreach { case (_, view) =>
           view.stop()
         }
         node.dispose()
@@ -250,7 +261,7 @@ object AuralProcImpl {
 
     private def attrRemoved(key: String, value: Obj[S])(implicit tx: S#Tx): Unit = {
       logA(s"AttrRemoved from ${procCached()} ($key)")
-      attrMap.remove(key).foreach { view =>
+      auralAttrMap.remove(key).foreach { view =>
         ports(AuralObj.Proc.AttrRemoved(this, view))
         view.dispose()
       }
@@ -284,11 +295,16 @@ object AuralProcImpl {
       auralOutputs.clear()
       outputBuses .clear()
 
-      attrMap .foreach { case (_, view) =>
+      auralAttrMap.foreach { case (_, view) =>
         ports(AuralObj.Proc.AttrRemoved(this, view))
         view.dispose()
       }
-      attrMap .clear()
+      auralAttrMap.clear()
+
+      genViewMap.foreach { case (_, view) =>
+        view.dispose()
+      }
+      genViewMap.clear()
     }
 
     protected final def buildState(implicit tx: S#Tx): UGB.State[S] = buildStateRef()
@@ -362,9 +378,9 @@ object AuralProcImpl {
     }
 
     private def mkAuralAttribute(key: String, value: Obj[S])(implicit tx: S#Tx): AuralAttribute[S] =
-      attrMap.get(key).getOrElse {
+      auralAttrMap.get(key).getOrElse {
         val view = AuralAttribute(key, value, this)
-        attrMap.put(key, view)
+        auralAttrMap.put(key, view)
         ports(AuralObj.Proc.AttrAdded(this, view))
         view
       }
@@ -375,11 +391,26 @@ object AuralProcImpl {
       if (buildState.rejectedInputs.contains(aKey)) tryBuild()
     }
 
+    private def genComplete(key: String)(implicit tx: S#Tx): Unit = {
+      val st          = buildState
+      val aKey        = UGB.AttributeKey(key)
+      val rejected    = st.rejectedInputs.contains(aKey)
+      val acceptedMap = st.acceptedInputs.getOrElse(aKey, Map.empty)
+      logA(s"genComplete to ${procCached()} ($key) - rejected? $rejected")
+      if (!rejected || acceptedMap.nonEmpty) return
+
+      st match {
+        case st0: Incomplete[S] =>
+          tryBuild()
+        case _ =>
+      }
+    }
+
     /** Sub-classes may override this if invoking the super-method.
       * The `async` field of the return value is not used but overwritten
       * by the calling instance. It can thus be left at an arbitrary value.
       */
-    protected def requestInputBuffer(value: Obj[S])(implicit tx: S#Tx): UGB.Input.Buffer.Value = value match {
+    protected def requestInputBuffer(key: String, value: Obj[S])(implicit tx: S#Tx): UGB.Input.Buffer.Value = value match {
       case a: DoubleVector[S] =>
         val v = a.value   // XXX TODO: would be better to write a.peer.size.value
         UGB.Input.Buffer.Value(numFrames = v.size.toLong, numChannels = 1, async = false)
@@ -394,7 +425,18 @@ object AuralProcImpl {
         // we should look at the future, if it is immediately
         // successful; if not, we should throw `MissingIn` and
         // trace the completion of the async build process
-        ???
+        val genView: GenView[S] = genViewMap.get(key).getOrElse {
+          import context.gen
+          val view  = GenView(a)
+          val obs   = view.react { implicit tx => state => if (state.isComplete) genComplete(key) }
+          val res   = new ObservedGenView(view, obs)
+          genViewMap.put(key, res)
+          res
+        } .gen
+
+        val tryValue  = genView.value.getOrElse(throw MissingIn(UGB.AttributeKey(key)))
+        val newValue  = tryValue.get
+        requestInputBuffer(key, newValue) // XXX TODO --- there is no sensible value for `key` now
 
       case _ =>
         throw new IllegalStateException(s"Unsupported input attribute buffer source $value")
@@ -435,8 +477,9 @@ object AuralProcImpl {
 
       case i: UGB.Input.Buffer =>
         val procObj   = procCached()
-        val attrValue = procObj.attr.get(i.name).getOrElse(throw MissingIn(i.key))
-        val res0      = requestInputBuffer(attrValue)
+        val aKey      = i.name
+        val attrValue = procObj.attr.get(aKey).getOrElse(throw MissingIn(i.key))
+        val res0      = requestInputBuffer(aKey, attrValue)
         // larger files are asynchronously prepared, smaller ones read on the fly
         val async     = res0.numSamples > UGB.Input.Buffer.AsyncThreshold   // XXX TODO - that threshold should be configurable
         if (async == res0.async) res0 else res0.copy(async = async)
@@ -508,7 +551,7 @@ object AuralProcImpl {
                       (implicit tx: S#Tx): Unit = {
       value match {
         case UGB.Input.Scalar.Value(numChannels) =>  // --------------------- scalar
-          attrMap.get(key).foreach { a =>
+          auralAttrMap.get(key).foreach { a =>
             val target = AuralAttribute.Target(nr, key, Bus.audio(server, numChannels))
             a.play(timeRef = timeRef, target = target)
           }
@@ -734,29 +777,42 @@ object AuralProcImpl {
     }
 
     /** Sub-classes may override this if invoking the super-method. */
+    protected def buildAsyncAttrBufferInput(b: AsyncProcBuilder[S], key: String, value: Obj[S])
+                                           (implicit tx: S#Tx): Unit = value match {
+      case a: AudioCue.Obj[S] =>
+        val audioVal  = a.value
+        val spec      = audioVal.spec
+        val f         = audioVal.artifact
+        val offset    = audioVal.fileOffset
+        // XXX TODO - for now, gain is ignored.
+        // one might add an auxiliary control proxy e.g. Buffer(...).gain
+        // val _gain     = audioElem.gain    .value
+        if (spec.numFrames > 0x3FFFFFFF)
+          sys.error(s"File too large for in-memory buffer: $f (${spec.numFrames} frames)")
+        val bufSize   = spec.numFrames.toInt
+        val buf       = Buffer(server)(numFrames = bufSize, numChannels = spec.numChannels)
+        val cfg       = BufferPrepare.Config(f = f, spec = spec, offset = offset, buf = buf, key = key)
+        b.resources ::= BufferPrepare[S](cfg)
+
+      case a: Gen[S] =>
+        val valueOpt: Option[Obj[S]] = for {
+          observed <- genViewMap.get(key)
+          tryOpt   <- observed.gen.value
+          value    <- tryOpt.toOption
+        } yield value
+
+        val newValue = valueOpt.getOrElse(sys.error(s"Missing attribute $key for buffer content"))
+        buildAsyncAttrBufferInput(b, key, newValue)
+
+      case a => sys.error(s"Cannot use attribute $a as a buffer content")
+    }
+
+    /** Sub-classes may override this if invoking the super-method. */
     protected def buildAsyncAttrInput(b: AsyncProcBuilder[S], key: String, value: UGB.Value)
                                      (implicit tx: S#Tx): Unit = value match {
-      case UGB.Input.Buffer.Value(numFr, numCh, true) =>   // ----------------------- random access buffer
-        b.obj.attr.get(key).fold[Unit] {
-          sys.error(s"Missing attribute $key for buffer content")
-        } {
-          case a: AudioCue.Obj[S] =>
-            val audioVal  = a.value
-            val spec      = audioVal.spec
-            val f         = audioVal.artifact
-            val offset    = audioVal.fileOffset
-            // XXX TODO - for now, gain is ignored.
-            // one might add an auxiliary control proxy e.g. Buffer(...).gain
-            // val _gain     = audioElem.gain    .value
-            if (spec.numFrames > 0x3FFFFFFF)
-              sys.error(s"File too large for in-memory buffer: $f (${spec.numFrames} frames)")
-            val bufSize   = spec.numFrames.toInt
-            val buf       = Buffer(server)(numFrames = bufSize, numChannels = spec.numChannels)
-            val cfg       = BufferPrepare.Config(f = f, spec = spec, offset = offset, buf = buf, key = key)
-            b.resources ::= BufferPrepare[S](cfg)
-
-          case a => sys.error(s"Cannot use attribute $a as a buffer content")
-        }
+      case buf @ UGB.Input.Buffer.Value(numFr, numCh, true) =>   // ----------------------- random access buffer
+        val bValue = b.obj.attr.get(key).getOrElse(sys.error(s"Missing attribute $key for buffer content"))
+        buildAsyncAttrBufferInput(b, key, bValue)
 
       case _ =>
         throw new IllegalStateException(s"Unsupported input attribute request $value")

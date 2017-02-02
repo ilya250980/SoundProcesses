@@ -22,7 +22,9 @@ object AuralContextImpl {
                         (implicit tx: S#Tx, workspaceHandle: WorkspaceHandle[S]): AuralContext[S] = {
     val objMap  = tx.newInMemoryIDMap[ContextEntry[S]]
     val auxMap  = tx.newInMemoryIDMap[Any]
-    val res     = new Impl[S](objMap, auxMap, sched, server, tx)
+    import sched.cursor
+    val gen     = GenContext[S]
+    val res     = new Impl[S](objMap, auxMap, sched, server, gen, tx)
     logAural(s"create context ${res.hashCode().toHexString}")
     // (new Throwable).printStackTrace()
     res
@@ -30,8 +32,10 @@ object AuralContextImpl {
 
   private final class Impl[S <: Sys[S]](protected val objMap: IdentifierMap[S#ID, S#Tx, ContextEntry[S]],
                                         protected val auxMap: IdentifierMap[S#ID, S#Tx, Any],
-                                        val scheduler: Scheduler[S],
-                                        val server: Server, tx0: S#Tx)
+                                        val scheduler       : Scheduler[S],
+                                        val server          : Server,
+                                        val gen             : GenContext[S],
+                                        tx0: S#Tx)
                                        (implicit val workspaceHandle: WorkspaceHandle[S])
     extends ContextImpl[S] with AuralContext[S] with AuxContextImpl[S] {
 

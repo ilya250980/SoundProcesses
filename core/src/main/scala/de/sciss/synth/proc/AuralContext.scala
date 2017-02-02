@@ -41,4 +41,6 @@ trait AuralContext[S <: Sys[S]] extends AuxContext[S] {
   val scheduler: Scheduler[S]
 
   implicit def workspaceHandle: WorkspaceHandle[S]
+
+  implicit def gen: GenContext[S]
 }

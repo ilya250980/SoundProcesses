@@ -26,6 +26,13 @@ object GenViewImpl {
     map += tid -> f
   }
 
+  def tryAddFactory(f: Factory): Boolean = sync.synchronized {
+    val tid = f.typeID
+    val res = !map.contains(tid)
+    map += tid -> f
+    res
+  }
+
   def factories: Iterable[Factory] = map.values
 
   def apply[S <: Sys[S]](obj: Obj[S])(implicit tx: S#Tx, context: GenContext[S]): GenView[S] = {

@@ -45,7 +45,8 @@ object GenView {
     def apply[S <: Sys[S]](obj: Repr[S])(implicit tx: S#Tx, context: GenContext[S]): GenView[S]
   }
 
-  def addFactory(f: Factory): Unit = Impl.addFactory(f)
+  def addFactory   (f: Factory): Unit     = Impl.addFactory   (f)
+  def tryAddFactory(f: Factory): Boolean  = Impl.tryAddFactory(f)
 
   def factories: Iterable[Factory] = Impl.factories
 

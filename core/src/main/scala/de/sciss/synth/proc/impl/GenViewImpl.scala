@@ -29,7 +29,7 @@ object GenViewImpl {
   def tryAddFactory(f: Factory): Boolean = sync.synchronized {
     val tid = f.typeID
     val res = !map.contains(tid)
-    map += tid -> f
+    if (res) map += tid -> f
     res
   }
 

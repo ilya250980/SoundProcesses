@@ -317,17 +317,23 @@ object AuralProcImpl {
      * build it. Calls `buildAdvanced` with the old and new
      * state then.
      */
-    final def tryBuild()(implicit tx: S#Tx): Unit = {
+    protected final def tryBuild()(implicit tx: S#Tx): Unit = {
       buildState match {
         case s0: Incomplete[S] =>
           logA(s"try build ${procCached()} - ${procCached().name}")
-          val s1          = s0.retry(this)
+          val s1          = invokeRetry(s0)
           buildStateRef() = s1
           buildAdvanced(before = s0, now = s1)
 
         case s0: Complete[S] => // nada
       }
     }
+
+    /** Sub-classes may override this to provide additional context,
+      * but should then call `super.invokeRetry`.
+      */
+    protected def invokeRetry(state: UGB.Incomplete[S])(implicit tx: S#Tx): UGB.State[S] =
+      state.retry(this)
 
     /* Called after invoking `retry` on the ugen graph builder.
      * The methods looks for new scan-ins and scan-outs used by
@@ -408,7 +414,7 @@ object AuralProcImpl {
       }
     }
 
-    private def mkGenView(a: Gen[S], key: String)(implicit tx: S#Tx): GenView[S] =
+    final protected def mkGenView(a: Gen[S], key: String)(implicit tx: S#Tx): GenView[S] =
       genViewMap.get(key).getOrElse {
         import context.gen
         val view  = GenView(a)

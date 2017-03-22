@@ -225,7 +225,7 @@ object AuralProcImpl {
 
       val view = mkAuralAttribute(key, value)
       st match {
-        case st0: Complete[S] =>
+        case _: Complete[S] =>
           acceptedMap.foreach {
             case (_, UGB.Input.Scalar.Value(numChannels)) =>
               playingRef() match {
@@ -240,7 +240,7 @@ object AuralProcImpl {
             case _ =>
           }
 
-        case st0: Incomplete[S] =>
+        case _: Incomplete[S] =>
           assert(acceptedMap.isEmpty)
           // if (acceptedMap.isEmpty) {  // rejected
             // give it another incremental try
@@ -325,7 +325,7 @@ object AuralProcImpl {
           buildStateRef() = s1
           buildAdvanced(before = s0, now = s1)
 
-        case s0: Complete[S] => // nada
+        case _: Complete[S] => // nada
       }
     }
 
@@ -408,7 +408,7 @@ object AuralProcImpl {
       if (!rejected || acceptedMap.nonEmpty) return
 
       st match {
-        case st0: Incomplete[S] =>
+        case _: Incomplete[S] =>
           tryBuild()
         case _ =>
       }
@@ -610,7 +610,7 @@ object AuralProcImpl {
         }
         new BufferAndGain(_buf, _gain.toFloat)
 
-      case a: Gen[S] =>
+      case _: Gen[S] =>
         val valueOpt: Option[Obj[S]] = for {
           observed <- genViewMap.get(key)
           tryOpt   <- observed.gen.value
@@ -639,7 +639,7 @@ object AuralProcImpl {
             a.play(timeRef = timeRef, target = target)
           }
 
-        case UGB.Input.Stream.Value(numChannels, _, specs) =>  // ------------------ streaming
+        case UGB.Input.Stream.Value(_ /* numChannels */, _, specs) =>  // ------------------ streaming
           val infoSeq = if (specs.isEmpty) UGB.Input.Stream.EmptySpec :: Nil else specs
 
           infoSeq.zipWithIndex.foreach { case (info, idx) =>
@@ -668,7 +668,7 @@ object AuralProcImpl {
             nr.addResource(late)
           }
 
-        case UGB.Input.Buffer.Value(numFr, numCh, false) =>   // ----------------------- random access buffer
+        case UGB.Input.Buffer.Value(_ /* numFr */, _ /* numCh */, false) =>   // ----------------------- random access buffer
           val rb = procCached().attr.get(key).fold[Buffer] {
             sys.error(s"Missing attribute $key for buffer content")
           } {
@@ -749,12 +749,14 @@ object AuralProcImpl {
           }
 
         case _ =>
+          state = Preparing
       }
     }
 
     // same as `play` but reusing previous `timeRef`
     private def playAfterRebuild()(implicit tx: S#Tx): Unit = {
-      if (state != Stopped) return
+      // if (state != Stopped) return
+      if (state == Playing) return
 
       (buildState, targetStateRef()) match {
         case (s: UGB.Complete[S], tp: TargetPlaying) =>
@@ -847,7 +849,7 @@ object AuralProcImpl {
         val cfg       = BufferPrepare.Config(f = f, spec = spec, offset = offset, buf = buf, key = key)
         b.resources ::= BufferPrepare[S](cfg)
 
-      case a: Gen[S] =>
+      case _: Gen[S] =>
         val valueOpt: Option[Obj[S]] = for {
           observed <- genViewMap.get(key)
           tryOpt   <- observed.gen.value
@@ -863,7 +865,7 @@ object AuralProcImpl {
     /** Sub-classes may override this if invoking the super-method. */
     protected def buildAsyncAttrInput(b: AsyncProcBuilder[S], key: String, value: UGB.Value)
                                      (implicit tx: S#Tx): Unit = value match {
-      case buf @ UGB.Input.Buffer.Value(numFr, numCh, true) =>   // ----------------------- random access buffer
+      case UGB.Input.Buffer.Value(_ /* numFr */, _ /* numCh */, true) =>   // ----------------------- random access buffer
         val bValue = b.obj.attr.get(key).getOrElse(sys.error(s"Missing attribute $key for buffer content"))
         buildAsyncAttrBufferInput(b, key, bValue)
 
@@ -946,7 +948,7 @@ object AuralProcImpl {
       }
 
       // ---- handle output buses, and establish missing links to sinks ----
-      ugen.outputs.foreach { case (key, numCh) =>
+      ugen.outputs.foreach { case (key, _ /* numCh */) =>
         val bus    = getOutputBus(key) getOrElse sys.error(s"Scan bus $key not provided")
         logA(s"addOutputBus($key, $bus) (${hashCode.toHexString})")
         val res    = BusNodeSetter.writer(graph.ScanOut.controlName(key), bus, synth)

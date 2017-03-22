@@ -62,7 +62,7 @@ object Proc extends Obj.Type {
   /** Audio input file (tape) grapheme. */
   final val graphAudio = "sig"
 
-  /** Hint key for copying scan connections during `copy`. Value should be a
+  /** NOT USED ANY LONGER. Hint key for copying scan connections during `copy`. Value should be a
     * predicate function `(Proc[S]) => Boolean`. If absent, all connections
     * are copied.
     */

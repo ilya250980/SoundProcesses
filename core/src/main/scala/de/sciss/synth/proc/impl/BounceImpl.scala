@@ -11,11 +11,11 @@
  *  contact@sciss.de
  */
 
-package de.sciss.synth.proc
-package impl
+package de.sciss.synth.proc.impl
 
 import java.io.{File, RandomAccessFile}
 import java.nio.ByteBuffer
+import java.util.concurrent.TimeUnit
 
 import de.sciss.file._
 import de.sciss.lucre.stm
@@ -25,12 +25,13 @@ import de.sciss.processor.impl.ProcessorImpl
 import de.sciss.synth.Ops.stringToControl
 import de.sciss.synth.io.{AudioFileType, SampleFormat}
 import de.sciss.synth.proc.AuralView.{Playing, Prepared, Preparing, Stopped}
+import de.sciss.synth.proc.{AuralObj, AuralSystem, AuralView, Bounce, Scheduler, TimeRef, Transport, WorkspaceHandle, logTransport, showTransportLog}
 import de.sciss.synth.{SynthGraph, addToTail, Server => SServer}
 import de.sciss.{osc, synth}
 
 import scala.annotation.tailrec
 import scala.concurrent.duration.Duration
-import scala.concurrent.{Await, Future, Promise, blocking}
+import scala.concurrent.{Await, ExecutionContext, Future, Promise, blocking}
 import scala.util.Success
 
 object BounceImpl {
@@ -156,7 +157,10 @@ final class BounceImpl[S <: Sys[S], I <: stm.Sys[I]](implicit cursor: stm.Cursor
         config.beforePrepare.apply(tx, server)
       }
 
-      prepare(transport)(state => state == Prepared || state == Stopped)
+      prepare(transport) { state =>
+//        println(s"STATE2 $state")
+        state == Prepared || state == Stopped
+      }
 
       lazy val scheduleProgress: (S#Tx) => Unit = { implicit tx: S#Tx =>
         val now = scheduler.time
@@ -255,7 +259,10 @@ final class BounceImpl[S <: Sys[S], I <: stm.Sys[I]](implicit cursor: stm.Cursor
 
       val srRatio = server.sampleRate / TimeRef.SampleRate
 
-      prepare(transport)(state => state == Playing | state == Stopped)
+      prepare(transport) { state =>
+//        println(s"STATE1 $state")
+        state == Playing | state == Stopped
+      }
 
       if (config.beforePlay != Bounce.Config.NoOp) cursor.step { implicit tx =>
         config.beforePlay.apply(tx, server)
@@ -391,9 +398,11 @@ final class BounceImpl[S <: Sys[S], I <: stm.Sys[I]](implicit cursor: stm.Cursor
         val p = Promise[Any]()
         promiseSync.synchronized {
           promise = Some(p)
+//          println(s"executionContext = $executionContext | global = ${ExecutionContext.global}")
           p.completeWith(Future.sequence(prepFutures))
         }
         Await.result(p.future, Duration.Inf)
+//        Await.result(p.future, Duration(4.0, TimeUnit.SECONDS))
         logTransport("...preparations completed")
       }
     }

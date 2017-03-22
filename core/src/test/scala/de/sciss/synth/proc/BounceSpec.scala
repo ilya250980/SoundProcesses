@@ -217,7 +217,8 @@ abstract class BounceSpec extends fixture.AsyncFlatSpec with Matchers {
     val p = b(config)
     // Important: don't use the single threaded SP context,
     // as bounce will block and hang
-    p.start()(ExecutionContext.Implicits.global)
+    import ExecutionContext.Implicits.global
+    p.start()(global)
     p.map { f =>
       try {
         val a = AudioFile.openRead(f)
@@ -229,6 +230,6 @@ abstract class BounceSpec extends fixture.AsyncFlatSpec with Matchers {
       } finally {
         f.delete()
       }
-    }
+    } (global)
   }
 }

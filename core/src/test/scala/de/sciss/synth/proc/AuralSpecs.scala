@@ -3,6 +3,8 @@ package de.sciss.synth.proc
 import de.sciss.span.Span
 import de.sciss.synth.ugen
 
+import scala.concurrent.ExecutionContext
+
 /*
 
 test-only de.sciss.synth.proc.AuralSpecs
@@ -21,11 +23,12 @@ class AuralSpecs extends BounceSpec {
     }
 
     val c = config(pH, Span(0, 1.0.seconds))
+    import ExecutionContext.Implicits.global
     val r = bounce(c)
     r.map { case Array(arr) =>
       val man = mkSine(freq, startFrame = 1, len = 1.0.secondsFileI)
       assertSameSignal(arr, man)
-    }
+    } (global)
   }
 
   "Two connected procs (generator -> filter)" works { implicit cursor =>
@@ -64,7 +67,10 @@ class AuralSpecs extends BounceSpec {
       scanOut ~> scanIn
     }
 
-    bounce(c).map { case Array(arr0, arr1) =>
+    import ExecutionContext.Implicits.global
+    showTransportLog = true
+    val r = bounce(c)
+    r.map { case Array(arr0, arr1) =>
       val flt   = mkLFPulse(sampleRate / 2, startFrame = 1 /* 0.5.secondsFileI */, len = 0.5.secondsFileI)
       mulScalar(flt, 0.5f)
       val mod   = mkSine(freq, startFrame = 1 /* 0.5.secondsFileI */, len = 0.5.secondsFileI)
@@ -81,6 +87,6 @@ class AuralSpecs extends BounceSpec {
       assertSameSignal(arr0, man)
       assertSameSignal(arr1, man)
       assert(true)
-    }
+    } (global)
   }
 }

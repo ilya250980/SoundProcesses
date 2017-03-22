@@ -749,7 +749,7 @@ object AuralProcImpl {
           }
 
         case _ =>
-          state = Preparing
+          // state = Preparing
       }
     }
 

@@ -68,7 +68,7 @@ class AuralSpecs extends BounceSpec {
     }
 
     import ExecutionContext.Implicits.global
-    showTransportLog = true
+    // showTransportLog = true
     val r = bounce(c)
     r.map { case Array(arr0, arr1) =>
       val flt   = mkLFPulse(sampleRate / 2, startFrame = 1 /* 0.5.secondsFileI */, len = 0.5.secondsFileI)

@@ -15,7 +15,6 @@ package de.sciss.synth.proc.impl
 
 import java.io.{File, RandomAccessFile}
 import java.nio.ByteBuffer
-import java.util.concurrent.TimeUnit
 
 import de.sciss.file._
 import de.sciss.lucre.stm
@@ -31,14 +30,13 @@ import de.sciss.{osc, synth}
 
 import scala.annotation.tailrec
 import scala.concurrent.duration.Duration
-import scala.concurrent.{Await, ExecutionContext, Future, Promise, blocking}
+import scala.concurrent.{Await, Future, Promise, blocking}
 import scala.util.Success
 
 object BounceImpl {
   var DEBUG = false
 }
-final class BounceImpl[S <: Sys[S], I <: stm.Sys[I]](implicit cursor: stm.Cursor[S], bridge: S#Tx => I#Tx,
-                                                     workspace: WorkspaceHandle[S])
+final class BounceImpl[S <: Sys[S], I <: stm.Sys[I]](implicit cursor: stm.Cursor[S], workspace: WorkspaceHandle[S])
   extends Bounce[S] {
 
   import BounceImpl.DEBUG

@@ -1,7 +1,7 @@
 package de.sciss.synth.proc
 
 import de.sciss.lucre.expr
-import de.sciss.lucre.expr.{SpanObj, LongObj, Expr}
+import de.sciss.lucre.expr.{LongObj, SpanObj}
 import de.sciss.lucre.stm.Sys
 import de.sciss.span.Span
 

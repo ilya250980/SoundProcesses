@@ -43,7 +43,7 @@ private[proc] object DurableImpl {
     with Durable {
     // with evt.impl.ReactionMapImpl.Mixin[Durable] {
 
-    private type S = Durable
+    type S = Durable
 
     val inMemory: /* evt. */ InMemory = /* evt. */ InMemory()
     def inMemoryTx(tx: Tx): I#Tx = tx.inMemory

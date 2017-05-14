@@ -97,8 +97,8 @@ object UGenGraphBuilderImpl {
 
     final def server: Server = context.server
 
-    final def retry(context: Context[S])(implicit tx: S#Tx): State[S] =
-      throw new IllegalStateException("Cannot retry an ongoing build")
+//    final def retry(context: Context[S])(implicit tx: S#Tx): State[S] =
+//      throw new IllegalStateException("Cannot retry an ongoing build")
 
     final def requestInput(req: UGB.Input): req.Value = {
       // we pass in `this` and not `in`, because that way the context

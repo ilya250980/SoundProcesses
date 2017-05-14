@@ -2,14 +2,13 @@ package de.sciss.synth.proc
 
 import de.sciss.file._
 import de.sciss.lucre.artifact.{Artifact, ArtifactLocation}
-import de.sciss.lucre.expr
-import de.sciss.lucre.synth.InMemory
-import de.sciss.synth.io.{AudioFile, AudioFileSpec}
-import de.sciss.synth.{freeSelf, ugen, SynthGraph}
-import de.sciss.span.Span
-import scala.concurrent.ExecutionContext
-import de.sciss.processor.Processor
 import de.sciss.lucre.stm.store.BerkeleyDB
+import de.sciss.processor.Processor
+import de.sciss.span.Span
+import de.sciss.synth.io.{AudioFile, AudioFileSpec}
+import de.sciss.synth.{SynthGraph, freeSelf, ugen}
+
+import scala.concurrent.ExecutionContext
 
 object AsyncBounceTest {
   // type S = InMemory

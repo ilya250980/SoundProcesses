@@ -42,7 +42,7 @@ object AuralOutputImpl {
     override def toString: String = s"AuralOutput($bus)"
 
     def play(n: NodeRef)(implicit tx: S#Tx): Unit = {
-      implicit val itx = tx.peer
+//      implicit val itx = tx.peer
       logA(s"AuralOutput play; $view, $key")
       fire(AuralOutput.Play(n))
     }
@@ -54,7 +54,7 @@ object AuralOutputImpl {
 
     def dispose()(implicit tx: S#Tx): Unit = {
       logA(s"AuralOutput dispose; $view, $key")
-      implicit val itx = tx.peer
+//      implicit val itx = tx.peer
       view.context.removeAux(idH())
     }
   }

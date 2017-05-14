@@ -893,7 +893,7 @@ object AuralProcImpl {
         val prep = setPlayingPrepare(res)
         tx.afterCommit {
           import SoundProcesses.executionContext
-          val reduced = Future.reduce(res)((_, _) => ())
+          val reduced = Future.reduce(res)((_, _) => ()) // reduceLeft requires Scala 2.12
           reduced.foreach { _ =>
             cursor.step { implicit tx =>
               if (playingRef() == prep) {

@@ -20,10 +20,8 @@ import de.sciss.lucre.stm.DataStore
 import de.sciss.lucre.synth.{InMemory, Sys}
 import de.sciss.synth.proc.impl.{ConfluentImpl => Impl}
 
-import scala.language.implicitConversions
-
 object Confluent {
-  private type S = Confluent
+  import proc.{Confluent => S}
 
   def apply(storeFactory: DataStore.Factory): S = Impl(storeFactory)
 

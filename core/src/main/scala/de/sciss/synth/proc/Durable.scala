@@ -11,7 +11,8 @@
  *  contact@sciss.de
  */
 
-package de.sciss.synth.proc
+package de.sciss.synth
+package proc
 
 import de.sciss.lucre.stm.{DataStore, DurableLike}
 import de.sciss.lucre.synth.{InMemory, Sys}
@@ -20,7 +21,7 @@ import de.sciss.synth.proc.impl.{DurableImpl => Impl}
 import scala.language.implicitConversions
 
 object Durable {
-  private type S = Durable
+  import proc.{Durable => S}
 
   def apply(factory: DataStore.Factory, mainName: String = "data"): S = Impl(factory, mainName = mainName)
 

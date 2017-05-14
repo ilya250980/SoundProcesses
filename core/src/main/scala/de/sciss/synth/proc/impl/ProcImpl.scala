@@ -128,7 +128,7 @@ object ProcImpl {
 
     // ---- key maps ----
 
-    def isConnected(implicit tx: S#Tx): Boolean = targets.nonEmpty
+//    def isConnected(implicit tx: S#Tx): Boolean = targets.nonEmpty
 
 //    sealed trait ProcEvent {
 //      final def node: Proc[S] with evt.Node[S] = proc

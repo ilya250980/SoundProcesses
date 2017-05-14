@@ -74,11 +74,11 @@ class Issue15 extends ConfluentEventSpec {
     val obs1 = timelineObservation()
 
     def muteObservation(): Unit = {
-      val muteH = system.step { implicit tx =>
+      /* val muteH = */ system.step { implicit tx =>
         assertChildren("BEFORE FIRST MUTATION", 4)
 
         val pObj    = pObjH()
-        val tl      = tlH()
+//        val tl      = tlH()
         val muteObj = BooleanObj.newConst[S](true) : BooleanObj[S]
         // val timed   = BiGroup.Entry(timedIDH(), spanH(), pObj)
         pObj.attr.put(ObjKeys.attrMute, muteObj)
@@ -99,8 +99,8 @@ class Issue15 extends ConfluentEventSpec {
         assertChildren("BEFORE SECOND MUTATION", 4)
 
         val pObj    = pObjH()
-        val tl      = tlH()
-        val muteObj = muteH()
+//        val tl      = tlH()
+//        val muteObj = muteH()
         // val timed   = BiGroup.Entry(timedIDH(), spanH(), pObj)
         pObj.attr.remove(ObjKeys.attrMute)
         obs.assertEquals()

@@ -166,7 +166,7 @@ trait AuralTimelineBase[S <: Sys[S], I <: stm.Sys[I], Target, Elem <: AuralView[
 
   private def stopViews(it: Iterator[Leaf])(implicit tx: S#Tx): Unit = {
     // logA("timeline - stopViews")
-    implicit val itx: I#Tx = iSys(tx)
+//    implicit val itx: I#Tx = iSys(tx)
     // Note: `toList` makes sure the iterator is not
     // invalidated when `removeView` removes element from `tree`!
     if (it.hasNext) it.toList.foreach { case (span, views) =>

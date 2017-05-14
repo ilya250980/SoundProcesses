@@ -2,7 +2,7 @@
  *  TimeDisplayImpl.scala
  *  (SoundProcesses)
  *
- *  Copyright (c) 2010-2016 Hanns Holger Rutz. All rights reserved.
+ *  Copyright (c) 2010-2017 Hanns Holger Rutz. All rights reserved.
  *
  *	This software is published under the GNU General Public License v2+
  *

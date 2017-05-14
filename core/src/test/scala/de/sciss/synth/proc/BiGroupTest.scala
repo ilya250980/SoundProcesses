@@ -1,12 +1,10 @@
 package de.sciss.synth.proc
 
-import de.sciss.lucre.{stm, expr, bitemp, event => evt}
-import de.sciss.lucre.stm.{Sys, Cursor}
-import bitemp.BiGroup
-import de.sciss.lucre.expr.{SpanLikeObj, LongObj, Expr}
-import de.sciss.span.{Span, SpanLike}
+import de.sciss.lucre.bitemp.BiGroup
+import de.sciss.lucre.expr.{LongObj, SpanLikeObj}
+import de.sciss.lucre.stm.{Cursor, Sys}
 import de.sciss.lucre.synth.InMemory
-import de.sciss.lucre
+import de.sciss.span.{Span, SpanLike}
 
 object BiGroupTest {
   def apply(): BiGroupTest[InMemory] = new BiGroupTest(InMemory())

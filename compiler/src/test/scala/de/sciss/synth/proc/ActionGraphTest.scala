@@ -1,7 +1,7 @@
 package de.sciss.synth.proc
 
 import de.sciss.lucre.expr.StringObj
-import de.sciss.lucre.{expr, stm}
+import de.sciss.lucre.stm
 import de.sciss.lucre.stm.store.BerkeleyDB
 import de.sciss.lucre.synth.{Server, Sys}
 import de.sciss.synth
@@ -18,14 +18,14 @@ object ActionGraphTest extends App {
 
   if (confluent) {
     type S  = Confluent
-    type I  = S#I
+//    type I  = S#I
     val sys = Confluent(BerkeleyDB.tmp())
     val (_, cursor) = sys.cursorRoot(_ => ())(implicit tx => _ => sys.newCursor())
     new ActionGraphTest[S]()(cursor)
 
   } else {
     type S  = Durable
-    type I  = S#I
+//    type I  = S#I
     val sys = Durable(BerkeleyDB.tmp())
     val cursor: stm.Cursor[S] = sys
     new ActionGraphTest[S]()(cursor)
@@ -45,10 +45,10 @@ class ActionGraphTest[S <: Sys[S]]()(implicit cursor: stm.Cursor[S]) {
     }
 
     s.peer.dumpOSC()
-    implicit val context = cursor.step { implicit tx =>
-      import WorkspaceHandle.Implicits._
-      AuralContext[S](s)
-    }
+//    implicit val context = cursor.step { implicit tx =>
+//      import WorkspaceHandle.Implicits._
+//      AuralContext[S](s)
+//    }
 
     print("Compiling...")
     implicit val compiler = Compiler()

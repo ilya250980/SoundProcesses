@@ -18,8 +18,6 @@ import de.sciss.lucre.stm.{Obj, Sys}
 import de.sciss.serial.{DataInput, Serializer}
 import de.sciss.synth.proc.impl.{FolderImpl => Impl}
 
-import scala.language.existentials
-
 object Folder extends Obj.Type {
   final val typeID = 0x10000
 

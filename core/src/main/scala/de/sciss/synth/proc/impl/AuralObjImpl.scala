@@ -60,8 +60,6 @@ object AuralObjImpl {
 
       def typeID: Int = 0
 
-      def isPrepared(implicit tx: S#Tx): Boolean = true
-
       def play(timeRef: TimeRef.Option, unit: Unit)(implicit tx: S#Tx): Unit = ()
       def stop(/* time: Long */)(implicit tx: S#Tx): Unit = ()
 

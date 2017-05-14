@@ -26,7 +26,7 @@ The following dependency is necessary:
 
     "de.sciss" %% "soundprocesses" % v
 
-The current version `v` is `"3.11.1"`.
+The current version `v` is `"3.12.0"`.
 
 The following sub modules are available:
 

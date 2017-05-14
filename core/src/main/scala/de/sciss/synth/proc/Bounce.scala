@@ -26,7 +26,7 @@ import scala.collection.immutable.{Iterable => IIterable}
 import scala.language.implicitConversions
 
 object Bounce {
-  def apply[S <: Sys[S], I <: stm.Sys[I]](implicit cursor: stm.Cursor[S], bridge: S#Tx => I#Tx,
+  def apply[S <: Sys[S], I <: stm.Sys[I]](implicit cursor: stm.Cursor[S],
                                           workspace: WorkspaceHandle[S]): Bounce[S] =
     new Impl[S, I]
 

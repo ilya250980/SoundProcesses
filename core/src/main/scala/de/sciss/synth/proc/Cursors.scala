@@ -29,19 +29,14 @@ object Cursors extends Elem.Type {
   def readIdentifiedObj[S <: Sys[S]](in: DataInput, access: S#Acc)(implicit tx: S#Tx): Elem[S] =
     Impl.readIdentifiedObj(in: DataInput, access)
 
-  def apply[S <: KSys[S], D1 <: DSys[D1]](seminal: S#Acc)
-                                         (implicit tx: D1#Tx, system: S { type D = D1 }): Cursors[S, D1] =
+  def apply[S <: KSys[S], D1 <: DSys[D1]](seminal: S#Acc)(implicit tx: D1#Tx): Cursors[S, D1] =
     Impl[S, D1](seminal)
 
-
-  implicit def serializer[S <: KSys[S], D1 <: DSys[D1]](implicit system: S { type D = D1 }):
-      serial.Serializer[D1#Tx, D1#Acc, Cursors[S, D1]] /* with evt.Reader[D1, Cursors[S, D1]] */ =
+  implicit def serializer[S <: KSys[S], D1 <: DSys[D1]]:
+      serial.Serializer[D1#Tx, D1#Acc, Cursors[S, D1]] =
     Impl.serializer[S, D1]
 
   final case class Update[S <: KSys[S], D <: stm.Sys[D]](source: Cursors[S, D], changes: Vec[Change[S, D]])
-
-  // final case class Advanced[S <: Sys[S], D <: Sys[D]](source: Cursors[S, D], change: m.Change[S#Acc])
-  //   extends Update[S, D]
 
   sealed trait Change[S <: KSys[S], D <: stm.Sys[D]]
 
@@ -54,13 +49,11 @@ trait Cursors[S <: KSys[S], D <: stm.Sys[D]]
   extends Elem[D] with evt.Publisher[D, Cursors.Update[S, D]] with serial.Writable {
 
   def seminal: S#Acc
-  // def cursor: stm.Cursor[S]
+
   def cursor: confluent.Cursor.Data[S, D]
 
   def name(implicit tx: D#Tx): StringObj[D]
   def name_=(value: StringObj[D])(implicit tx: D#Tx): Unit
-
-  // def children: expr.LinkedList.Modifiable[D, Cursors[S, D], Unit]
 
   def descendants(implicit tx: D#Tx): Iterator[Cursors[S, D]]
 

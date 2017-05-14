@@ -36,14 +36,10 @@ object CursorsImpl {
     new Impl(targets, seminal, cursor, name, list).connect()
   }
 
-  // private final class CursorImpl
-  
-  //   serial.Serializer[D#Tx, D#Acc, Cursors[S, D]]
+  implicit def serializer[S <: KSys[S], D1 <: DSys[D1]]:
+    Serializer[D1#Tx, D1#Acc, Cursors[S, D1]] = new Ser[S, D1]
 
-  implicit def serializer[S <: KSys[S], D1 <: DSys[D1]](implicit system: S { type D = D1 }):
-    Serializer[D1#Tx, D1#Acc, Cursors[S, D1]] /* with evt.Reader[D1, Cursors[S, D1]] */ = new Ser[S, D1]
-
-  private final class Ser[S <: KSys[S], D1 <: DSys[D1]](implicit system: S { type D = D1 })
+  private final class Ser[S <: KSys[S], D1 <: DSys[D1]]
     extends Serializer[D1#Tx, D1#Acc, Cursors[S, D1]] {
 
     def write(v: Cursors[S, D1], out: DataOutput): Unit = v.write(out)

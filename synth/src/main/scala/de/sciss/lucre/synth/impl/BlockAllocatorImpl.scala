@@ -89,14 +89,14 @@ object BlockAllocatorImpl {
       f.from(n).headOption.map(_._2.head)
     }
 
-    private def addFree(state: State, b: Block)(implicit tx: InTxn): State = {
+    private def addFree(state: State, b: Block): State = {
       state.copy(freeBySize = {
         val map = state.freeBySize
         map + (b.size -> (map.getOrElse(b.size, Set.empty) + b))
       }, freeByStart = state.freeByStart + (b.start -> b))
     }
 
-    private def removeFree(state: State, b: Block)(implicit tx: InTxn): State = {
+    private def removeFree(state: State, b: Block): State = {
       state.copy(freeBySize = {
         val map     = state.freeBySize
         val newSet  = map.getOrElse(b.size, Set.empty) - b
@@ -127,9 +127,8 @@ object BlockAllocatorImpl {
       res
     }
 
-    @inline private def addToUsed(state: State, b: Block)(implicit tx: InTxn): State = {
+    @inline private def addToUsed(state: State, b: Block): State =
       state.copy(used = state.used + b)
-    }
 
     def consistencyCheck()(implicit tx: InTxn): Unit = {
       val state = ref()

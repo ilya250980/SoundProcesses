@@ -19,7 +19,6 @@ import de.sciss.synth.proc.UGenGraphBuilder.Input
 import de.sciss.synth.ugen.{AudioControlProxy, ControlProxy, ControlValues}
 
 import scala.collection.immutable.{IndexedSeq => Vec}
-import scala.language.implicitConversions
 
 object Attribute {
   // private val CtlSingleZero = ControlValues(Vector(0f))

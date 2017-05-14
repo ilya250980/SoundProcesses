@@ -27,7 +27,6 @@ import de.sciss.synth.proc.{Confluent => Cf, Durable => Dur}
 
 import scala.collection.immutable.{IndexedSeq => Vec}
 import scala.concurrent.stm.{Ref, Txn}
-import scala.language.existentials
 import scala.util.Try
 
 object WorkspaceImpl {
@@ -217,7 +216,7 @@ object WorkspaceImpl {
       } (tx.peer)
 
     final def collectObjects[A](pf: PartialFunction[Obj[S], A])(implicit tx: S#Tx): Vec[A] = {
-      var b   = Vec.newBuilder[A]
+      val b   = Vector.newBuilder[A]
       val fun = pf.lift
 
       def loop(f: Folder[S]): Unit =

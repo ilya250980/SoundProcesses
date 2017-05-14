@@ -35,7 +35,7 @@ object InMemoryImpl {
     extends stm.impl.InMemoryImpl.Mixin[InMemory]
     with InMemory with ReactionMapImpl.Mixin[InMemory] {
 
-    private type S = InMemory
+    type S = InMemory
 
     def inMemory: I = this
     def inMemoryTx(tx: Tx): Tx = tx

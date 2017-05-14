@@ -17,8 +17,6 @@ import de.sciss.lucre.expr.{BooleanObj, Expr, StringObj}
 import de.sciss.lucre.stm.{Obj, Sys}
 import de.sciss.span.SpanLike
 
-import scala.language.implicitConversions
-
 object Implicits {
   implicit class SecFrames(val `this`: Double) extends AnyVal { me =>
     import me.{`this` => d}

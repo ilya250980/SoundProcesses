@@ -4,6 +4,7 @@ import de.sciss.file.File
 import de.sciss.lucre.stm.store.BerkeleyDB
 
 import scala.concurrent.ExecutionContext
+import scala.util.Failure
 
 object ActionTest2 extends App {
   type S = Confluent
@@ -27,10 +28,11 @@ object ActionTest2 extends App {
     Action.compile(code)
   }
 
-  futAction.onFailure {
-    case e =>
+  futAction.onComplete {
+    case Failure(e) =>
       println("Compilation failed!")
       e.printStackTrace()
+    case _ =>
   }
 
   futAction.foreach { actionH =>

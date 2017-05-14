@@ -17,8 +17,6 @@ package impl
 import de.sciss.lucre.stm
 import de.sciss.lucre.stm.{Disposable, IdentifierMap}
 
-import scala.language.higherKinds
-
 /** Building block for things like AuralContext. */
 trait AuxContextImpl[S <: stm.Sys[S]] {
   // ---- abstract ----
@@ -52,7 +50,7 @@ trait AuxContextImpl[S <: stm.Sys[S]] {
 
   final def putAux[A](id: S#ID, value: A)(implicit tx: S#Tx): Unit = {
     auxMap.put(id, value)
-    implicit val itx = tx.peer
+//    implicit val itx = tx.peer
     val list = auxObservers.getOrElse(id, Nil)
     if (list.nonEmpty) {
       val upd = AuxContext.Added(id, value)

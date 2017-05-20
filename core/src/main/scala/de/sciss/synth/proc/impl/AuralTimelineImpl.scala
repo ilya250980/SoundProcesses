@@ -35,22 +35,22 @@ object AuralTimelineImpl {
   }
 
   /** An empty view that does not listen for events on the timeline. */
-  def empty[S <: Sys[S]](tlObj: Timeline[S])
+  def empty[S <: Sys[S]](timeline: Timeline[S])
                         (implicit tx: S#Tx, context: AuralContext[S]): AuralObj.Timeline.Manual[S] = {
     val system = tx.system
-    val res = prepare[S, system.I](tlObj, system)
-    res
+    val res = prepare[S, system.I](timeline, system)
+    res.init(timeline)
   }
 
-  private def prepare[S <: Sys[S], I1 <: stm.Sys[I1]](tlObj: Timeline[S], system: S { type I = I1 })
+  private def prepare[S <: Sys[S], I1 <: stm.Sys[I1]](timeline: Timeline[S], system: S { type I = I1 })
                                                      (implicit tx: S#Tx, context: AuralContext[S]): Impl[S, I1] = {
     implicit val iSys     = system.inMemoryTx _
     implicit val itx      = iSys(tx)
-    implicit val pointView = (l: Leaf[S], tx: I1#Tx) => spanToPoint(l._1)
+    implicit val pointView = (l: Leaf[S], _: I1#Tx) => spanToPoint(l._1)
     implicit val dummyKeySer = DummySerializerFactory[system.I].dummySerializer[Leaf[S]]
     val tree = SkipOctree.empty[I1, LongSpace.TwoDim, Leaf[S]](BiGroup.MaxSquare)
 
-    val res = new Impl[S, I1](tx.newHandle(tlObj), tree)
+    val res = new Impl[S, I1](tx.newHandle(timeline), tree)
     res
   }
 

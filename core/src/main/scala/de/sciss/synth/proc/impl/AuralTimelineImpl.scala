@@ -37,9 +37,10 @@ object AuralTimelineImpl {
   /** An empty view that does not listen for events on the timeline. */
   def empty[S <: Sys[S]](timeline: Timeline[S])
                         (implicit tx: S#Tx, context: AuralContext[S]): AuralObj.Timeline.Manual[S] = {
+    println("WARNING: AuralTimelineImpl.empty -- doesn't make any sense; aural views are constructed nevertheless")
     val system = tx.system
     val res = prepare[S, system.I](timeline, system)
-    res.init(timeline)
+    res.init(null)
   }
 
   private def prepare[S <: Sys[S], I1 <: stm.Sys[I1]](timeline: Timeline[S], system: S { type I = I1 })

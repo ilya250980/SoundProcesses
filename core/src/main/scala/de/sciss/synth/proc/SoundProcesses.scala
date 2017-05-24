@@ -89,6 +89,7 @@ object SoundProcesses {
     Proc          .init()
     SynthGraphObj .init()
     Timeline      .init()
+    Markdown      .init()
   }
 
   /** Registers all known types. */

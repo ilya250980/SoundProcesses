@@ -190,9 +190,14 @@ trait AuralTimelineBase[S <: Sys[S], I <: stm.Sys[I], Target, Elem <: AuralView[
   private[this] def eventsAt(offset: Long)(implicit tx: S#Tx): (Iterator[Leaf], Iterator[Leaf]) =
     BiGroupImpl.eventsAt(tree)(offset)(iSys(tx))
 
+  /** Initializes the object.
+    *
+    * @param tl the timeline to listen to. If `null` (yes, ugly), requires
+    *           manual additional of views
+    */
   def init(tl: Timeline[S])(implicit tx: S#Tx): this.type = {
-    viewMap     = tx.newInMemoryIDMap[ElemHandle]
-    tlObserver  = tl.changed.react { implicit tx => upd =>
+    viewMap = tx.newInMemoryIDMap[ElemHandle]
+    if (tl != null) tlObserver = tl.changed.react { implicit tx => upd =>
       upd.changes.foreach {
         case Timeline.Added  (span, timed)    => elemAdded  (timed.id, span, timed.value)
         case Timeline.Removed(span, timed)    => elemRemoved(timed.id, span, timed.value)

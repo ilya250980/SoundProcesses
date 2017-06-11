@@ -79,7 +79,7 @@ object Code {
   trait Compiler {
     implicit def executionContext: ExecutionContext
 
-    /** Synchronous call to cmpile a source code consisting of a body which is wrapped in a `Function0` apply method,
+    /** Synchronous call to compile a source code consisting of a body which is wrapped in a `Function0` apply method,
       * returning the raw jar file produced in the compilation.
       *
       * May throw `CompilationFailed` or `CodeIncomplete`

@@ -14,8 +14,8 @@
 package de.sciss.synth.proc
 package impl
 
-import de.sciss.lucre.event.impl.ObservableImpl
-import de.sciss.lucre.expr.{DoubleVector, BooleanObj, DoubleObj, Expr, IntObj}
+import de.sciss.lucre.event.impl.{DummyObservableImpl, ObservableImpl}
+import de.sciss.lucre.expr.{BooleanObj, DoubleObj, DoubleVector, Expr, IntObj}
 import de.sciss.lucre.stm
 import de.sciss.lucre.stm.{Disposable, Obj, TxnLike}
 import de.sciss.lucre.synth.Sys
@@ -41,9 +41,14 @@ object AuralAttributeImpl {
 
   def apply[S <: Sys[S]](key: String, value: Obj[S], observer: Observer[S])
                         (implicit tx: S#Tx, context: AuralContext[S]): AuralAttribute[S] = {
-    val tid     = value.tpe.typeID
-    val factory = map.getOrElse(tid, throw new IllegalArgumentException(s"No AuralAttribute available for $value"))
-    factory(key, value.asInstanceOf[factory.Repr[S]], observer)
+    val tid = value.tpe.typeID
+    map.get(tid) match {
+      case Some(factory) =>
+        factory(key, value.asInstanceOf[factory.Repr[S]], observer)
+      case None =>
+        Console.err.println(s"Warning: AuralAttribute - no factory for ${value.tpe}")
+        new DummyAttribute[S](key, tx.newHandle(value))
+    }
   }
 
   private[this] var map = Map[Int, Factory](
@@ -233,6 +238,30 @@ object AuralAttributeImpl {
     protected def mkValue(vec: Vec[Double]): AuralAttribute.Value = vec.map(_.toFloat)
 
     override def toString = s"DoubleVectorAttribute($key)@${hashCode.toHexString}"
+  }
+
+  // ------------------- generic (dummy) -------------------
+  private final class DummyAttribute[S <: Sys[S]](val key: String, val obj: stm.Source[S#Tx, Obj[S]])
+    extends AuralAttribute[S] {
+
+    def typeID: Int = throw new UnsupportedOperationException("DummyAtribute.typeID")
+
+    def preferredNumChannels(implicit tx: S#Tx): Int = 0
+
+    def targetOption(implicit tx: S#Tx): Option[Target[S]] = None
+
+    def state(implicit tx: S#Tx): State = Stopped
+
+    def prepare(timeRef: TimeRef.Option)(implicit tx: S#Tx): Unit = ()
+
+    def play(timeRef: TimeRef.Option, target: Target[S])(implicit tx: S#Tx): Unit = ()
+
+    def stop   ()(implicit tx: S#Tx): Unit = ()
+    def dispose()(implicit tx: S#Tx): Unit = ()
+
+    def react(fun: (S#Tx) => (State) => Unit)(implicit tx: S#Tx): Disposable[S#Tx] = DummyObservableImpl
+
+    override def toString = s"DummyAttribute($key)@${hashCode.toHexString}"
   }
 }
 trait AuralAttributeImpl[S <: Sys[S]] extends AuralAttribute[S] with ObservableImpl[S, AuralView.State] {

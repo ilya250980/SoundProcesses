@@ -25,9 +25,28 @@ import scala.collection.immutable.{IndexedSeq => Vec}
 object MkSynthGraphSource {
   private final case class ArgAssign(name: Option[String], shape: UGenSpec.SignalShape, value: Any)
 
-  private final class GraphLine(val elemName: String, val constructor: String, val args: Vec[ArgAssign]) {
+  private sealed trait GraphLine {
     var uses    = Set   .empty[String]
     var valName = Option.empty[String]
+
+    def elemName: String
+
+    def hasArgNamed(n: String): Boolean
+  }
+
+  private final class StdGraphLine(val elemName: String, val constructor: String, val args: Vec[ArgAssign])
+    extends GraphLine {
+
+    def hasArgNamed(n: String): Boolean = {
+      val nOpt = Some(n)
+      args.exists(_.name == nOpt)
+    }
+  }
+
+  private final class AttrGraphLine(val peer: graph.Attribute) extends GraphLine {
+    def elemName: String = "Attr" // --- only used for val names; "Attribute"
+
+    def hasArgNamed(n: String): Boolean = false
   }
 
   private[this] def escapedChar(ch: Char): String = ch match {
@@ -56,26 +75,35 @@ object MkSynthGraphSource {
     var lines   = Vector.empty[GraphLine]
     val lazyMap = new ju.IdentityHashMap[Lazy, GraphLine]
 
-    def mkLine(elem: Product): GraphLine = {
+    def mkLine(elem: Product): GraphLine = elem match {
+      case attr @ graph.Attribute(_, _, _, -1)  => new AttrGraphLine(attr)
+      case other                                => mkStdLine(other)
+    }
+
+    def mkStdLine(elem: Product): GraphLine = {
       val elemName  = elem.productPrefix
       val argVals   = elem.productIterator.toIndexedSeq
 
       val line = ugenMap.get(elemName).fold[GraphLine] {
         val ins = argVals.map(ArgAssign(None, UGenSpec.SignalShape.Generic, _))
 
-        new GraphLine(elemName = elemName, constructor = "apply", args = ins)
+        new StdGraphLine(elemName = elemName, constructor = "apply", args = ins)
       } { spec =>
-        val (rate: Rate, rateMethod: UGenSpec.RateMethod, argVals1: Vec[Any]) = spec.rates match {
+        val (rate: MaybeRate, rateMethod: UGenSpec.RateMethod, argVals1: Vec[Any]) = spec.rates match {
           case UGenSpec.Rates.Implied(r, m) => (r, m, argVals)
           case UGenSpec.Rates.Set(_) =>
             argVals.head match {
               case r: Rate => (r, UGenSpec.RateMethod.Default, argVals.tail)
+              // case x => throw new MatchError(s"For spec $spec, the first arg $x is not of type Rate")
+              case _ =>
+                // this currently happens for helper elements such as `LinLin`
+                (UndefinedRate, UGenSpec.RateMethod.Default, argVals)
             }
         }
         val rateMethodName = rateMethod match {
           case UGenSpec.RateMethod.Alias (name) => name
           case UGenSpec.RateMethod.Custom(name) => name
-          case UGenSpec.RateMethod.Default      => rate.methodName
+          case UGenSpec.RateMethod.Default      => rate.toOption.fold("apply")(_.methodName)
         }
         val ins = (spec.args zip argVals1).map { case (arg, argVal) =>
           val shape = arg.tpe match {
@@ -84,7 +112,7 @@ object MkSynthGraphSource {
           }
           ArgAssign(Some(arg.name), shape, argVal)
         }
-        new GraphLine(elemName = elemName, constructor = rateMethodName, args = ins)
+        new StdGraphLine(elemName = elemName, constructor = rateMethodName, args = ins)
       }
       line
     }
@@ -95,7 +123,12 @@ object MkSynthGraphSource {
       lazyMap.put(elem, line)
       val elemName  = elem.productPrefix
 
-      line.args.foreach {
+      val args = line match {
+        case std: StdGraphLine => std.args
+        case _ => Vector.empty
+      }
+
+      args.foreach {
         case ArgAssign(argNameOpt, _, argVal: Lazy) =>
           val ref = lazyMap.get(argVal)
           if (ref == null) {
@@ -135,11 +168,13 @@ object MkSynthGraphSource {
       val uses = line.uses
       if (uses.nonEmpty) (uses - "unnamed").toList match {
         case single :: Nil if single != "unnamed" => line.valName = Some(single)
-        case multiple =>
-          val nameUp0 = if (line.elemName == "BinaryOpUGen") {
-            val x = line.args.head.value.getClass.getName
-            x.substring(0, x.length - 1)
-          } else line.elemName
+        case _ =>
+          val nameUp0 = line match {
+            case std: StdGraphLine if std.elemName == "BinaryOpUGen" =>
+              val x = std.args.head.value.getClass.getName
+              x.substring(0, x.length - 1)
+            case other => other.elemName
+          }
 
           val di      = nameUp0.lastIndexOf('$')
           val nameUp  = nameUp0.substring(di + 1)
@@ -153,7 +188,7 @@ object MkSynthGraphSource {
         val same = lines.filter(_.valName == line.valName)
         // cf. https://issues.scala-lang.org/browse/SI-9353
         val si9353 = lines.iterator.zipWithIndex.exists { case (line1, lj) =>
-          lj < li && line1.args.exists(_.name == line.valName)
+          lj < li && line.valName.exists(line1.hasArgNamed)
         }
         if (same.size > 1 || si9353) {
           same.zipWithIndex.foreach { case (line1, i) =>
@@ -166,7 +201,37 @@ object MkSynthGraphSource {
     val maxValNameSz0 = (0 /: lines)((res, line) => line.valName.fold(res)(n => math.max(n.length, res)))
     val maxValNameSz  = maxValNameSz0 | 1 // odd
 
+    def mkFloatString(f: Float): String =
+      if (f.isPosInfinity) "inf" else if (f.isNegInfinity) "-inf" else if (f.isNaN) "Float.NaN" else s"${f}f"
+
+    def mkFloatAsDoubleString(f: Float): String =
+      if (f.isPosInfinity) "inf" else if (f.isNegInfinity) "-inf" else if (f.isNaN) "Double.NaN" else f.toString
+
+    def mkDoubleString(d: Double): String =
+      if (d.isPosInfinity) "inf" else if (d.isNegInfinity) "-inf" else if (d.isNaN) "Double.NaN" else d.toString
+
     def mkLineSource(line: GraphLine): String = {
+      val invoke = line match {
+        case std: StdGraphLine    => mkStdLineSource(std)
+        case attr: AttrGraphLine  => mkAttrLineSource(attr)
+      }
+      line.valName.fold(invoke) { valName =>
+        val pad = " " * (maxValNameSz - valName.length)
+        s"val $valName$pad = $invoke"
+      }
+    }
+
+    def mkAttrLineSource(line: AttrGraphLine): String = {
+      import line.peer._
+      val dfStr = default.fold("") { values =>
+        val inner = if (values.size == 1) mkFloatAsDoubleString(values.head)
+        else values.map(mkFloatString).mkString("Vector(", ", ", ")")
+        s"($inner)"
+      }
+      s"${quote(key)}.${rate.methodName}$dfStr"
+    }
+
+    def mkStdLineSource(line: StdGraphLine): String = {
       val numArgs = line.args.size
       val args    = line.args.zipWithIndex.map { case (arg, ai) =>
         def mkString(x: Any): String = x match {
@@ -175,7 +240,7 @@ object MkSynthGraphSource {
             arg.shape match {
               case Int | Trigger | Gate | Switch if c == c.toInt => c.toInt.toString
               case DoneAction => synth.DoneAction(c.toInt).toString
-              case _ => if (c.isPosInfinity) "inf" else if (c.isNegInfinity) "-inf" else c.toString
+              case _ => mkFloatAsDoubleString(c)
             }
 
           case l: Lazy =>
@@ -190,14 +255,24 @@ object MkSynthGraphSource {
             val escaped = quote(s)
             escaped
 
-          case f: Float =>
-            if (f.isPosInfinity) "inf" else if (f.isNegInfinity) "-inf" else if (f.isNaN) "Float.NaN" else s"${f}f"
+          case f: Float   => mkFloatString (f)
+          case d: Double  => mkDoubleString(d)
 
-          case d: Double =>
-            if (d.isPosInfinity) "inf" else if (d.isNegInfinity) "-inf" else if (d.isNaN) "Double.NaN" else d.toString
+          case i: Int     => i.toString
+          case n: Long    => s"${n}L"
+          case b: Boolean => b.toString
+
+          case opt: Option[_] =>
+            opt.map(mkString).toString
+
+          case v: Vec[_] =>
+            val argsS = v.map(mkString)
+            argsS.mkString("Vector(", ", ", ")")
+
+          case r: Rate => r.toString
 
           case other =>
-            other.toString
+            s"$other /* could not parse! */"
         }
         val valString = mkString(arg.value)
         if (numArgs == 1) valString else arg.name.fold(valString) { argName =>
@@ -248,10 +323,7 @@ object MkSynthGraphSource {
           sb.toString
         }
       }
-      line.valName.fold(invoke) { valName =>
-        val pad = " " * (maxValNameSz - valName.length)
-        s"val $valName$pad = $invoke"
-      }
+      invoke
     }
 
     // turn to source

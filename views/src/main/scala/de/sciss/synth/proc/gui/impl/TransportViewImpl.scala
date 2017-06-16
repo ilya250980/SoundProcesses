@@ -17,6 +17,7 @@ package impl
 
 import java.awt.event.{ActionEvent, ActionListener}
 import javax.swing.event.{ChangeEvent, ChangeListener}
+import javax.swing.{AbstractAction, ButtonModel, JComponent, KeyStroke, Timer}
 
 import de.sciss.audiowidgets.{TimelineModel, Transport => GUITransport}
 import de.sciss.desktop.Implicits._
@@ -55,26 +56,96 @@ object TransportViewImpl {
     view
   }
 
+//  private final class Foo(m: ButtonModel, dir: Int) extends ChangeListener {
+//    var pressed = false
+//
+//    def stateChanged(e: ChangeEvent): Unit = {
+//      val p = m.isPressed
+//      if (p != pressed) {
+//        pressed = p
+//        if (p) {
+//          //println( "-restart" )
+//          cueDirection = dir
+//          cueTimer.restart()
+//        } else {
+//          //println( "-stop" )
+//          cueTimer.stop()
+//        }
+//      }
+//    }
+//  }
+
   private final class Impl[S <: Sys[S]](val transport: Transport[S] /* .Realtime[S, Obj.T[S, Proc.Elem], Transport.Proc.Update[S]] */,
                                         val timelineModel: TimelineModel)
                                        (implicit protected val cursor: Cursor[S])
     extends TransportView[S] with ComponentHolder[Component] with CursorHolder[S] {
 
-    private val modOpt  = timelineModel.modifiableOption
-
     var observer: Disposable[S#Tx] = _
 
-    // private var millisVar: Long = 0L
-    private var playTimer: javax.swing.Timer = _
-    private var cueTimer : javax.swing.Timer = _
-    // private var playingVar   = false
-    private var cueDirection = 1
+    private[this] val modOpt  = timelineModel.modifiableOption
 
-    private var timerFrame  = 0L
-    private var timerSys    = 0L
-    private val srm         = 0.001 * TimeRef.SampleRate // transport.sampleRate
+    private[this] var playTimer   : Timer = _
+    private[this] var cueTimer    : Timer = _
+    private[this] var cueDirection = 1
 
-    private var transportStrip: Component with GUITransport.ButtonStrip = _
+    private[this] var timerFrame  = 0L
+    private[this] var timerSys    = 0L
+    private[this] val srm         = 0.001 * TimeRef.SampleRate // transport.sampleRate
+
+    private[this] var transportStrip: Component with GUITransport.ButtonStrip = _
+
+    private[this] val loopSpan  = Ref[Span.SpanOrVoid](Span.Void)
+    private[this] val loopToken = Ref(-1)
+
+    import GUITransport.{FastForward, GoToBegin, Loop, Play, Rewind, Stop}
+
+    private final class ActionCue(elem: GUITransport.Element, key: Key.Value, onOff: Boolean)
+      extends AbstractAction(elem.toString) { action =>
+
+//      private[this] var lastWhen: Long = 0L
+
+      private[this] val b = transportStrip.button(elem).get
+
+      b.peer.registerKeyboardAction(this, s"${if (onOff) "start" else "stop"}-${elem.toString}",
+        KeyStroke.getKeyStroke(key.id, 0, !onOff), JComponent.WHEN_IN_FOCUSED_WINDOW)
+
+      private def perform(): Unit = {
+        val bm = b.peer.getModel
+        // println(s"AQUI pressed = ${bm.isPressed}; armed = ${bm.isArmed}; onOff = $onOff")
+        if (bm.isPressed != onOff) bm.setPressed(onOff)
+        if (bm.isArmed   != onOff) bm.setArmed  (onOff)
+      }
+
+      def actionPerformed(e: ActionEvent): Unit = {
+        // println(s"actionPerformed ${elem.toString}; onOff = $onOff")
+//        lastWhen = e.getWhen
+        perform()
+      }
+    }
+
+    private final class CueListener(elem: GUITransport.Element, dir: Int) extends ChangeListener {
+      private[this] val m: ButtonModel      = transportStrip.button(elem).get.peer.getModel
+      private[this] var pressed             = false
+      private[this] var transportWasRunning = false
+
+      m.addChangeListener(this)
+
+      def stateChanged(e: ChangeEvent): Unit = {
+        val p = m.isPressed
+        if (p != pressed) {
+          pressed = p
+          if (p) {
+            cueDirection = dir
+            transportWasRunning = transportStrip.button(Play).exists(_.selected)
+            if (transportWasRunning) stop()
+            cueTimer.restart()
+          } else {
+            cueTimer.stop()
+            if (transportWasRunning) play()
+          }
+        }
+      }
+    }
 
     def dispose()(implicit tx: S#Tx): Unit = {
       observer.dispose()
@@ -85,11 +156,8 @@ object TransportViewImpl {
       }
     }
 
-    private def cancelLoop()(implicit tx: S#Tx): Unit =
+    private def cancelLoop()(implicit tx: S#Tx) =
       transport.scheduler.cancel(loopToken.swap(-1)(tx.peer))
-
-    // ---- transport ----
-    import GUITransport.{Play, Stop, GoToBegin, Rewind, FastForward, Loop}
 
     def startedPlaying(time: Long)(implicit tx: S#Tx): Unit = {
       checkLoop()
@@ -115,7 +183,7 @@ object TransportViewImpl {
       }
     }
 
-    private def rtz(): Unit = {
+    private def rtz() = {
       stop()
       modOpt.foreach { mod =>
         val start     = mod.bounds.start
@@ -124,33 +192,46 @@ object TransportViewImpl {
       }
     }
 
-    private def playOrStop(): Unit =
+    private def playOrStop() = {
+      // we have both visual feedback
+      // and transactional control here,
+      // because we want to see the buttons
+      // depressed, but we also want zero
+      // latency in taking action.
+      val isPlaying =
+        (for {
+          ggStop <- transportStrip.button(Stop)
+          ggPlay <- transportStrip.button(Play)
+        } yield {
+          val _isPlaying = ggPlay.selected
+          val but = if (_isPlaying) ggStop else ggPlay
+          but.doClick()
+          _isPlaying
+        }).getOrElse(false)
+
       atomic { implicit tx =>
-        if (transport.isPlaying) transport.stop() else {
-          transport.seek(timelineModel.position)
-          transport.play()
-        }
+        if (isPlaying)
+          transport.stop()
+        else
+          playTxn()
       }
+    }
 
-    private def stop(): Unit =
-      atomic { implicit tx => transport.stop() }
+    private def stop() = atomic { implicit tx =>
+      transport.stop()
+    }
 
-    private def play(): Unit =
-      atomic { implicit tx => playTxn(timelineModel.position) }
+    private def play() = atomic { implicit tx =>
+      playTxn()
+    }
 
-    private def playTxn(pos: Long)(implicit tx: S#Tx): Unit = {
+    private def playTxn(pos: Long = timelineModel.position)(implicit tx: S#Tx) = {
       transport.stop()
       transport.seek(pos)
       transport.play()
     }
 
-    //    private def rewind()      = ()
-    //    private def fastForward() = ()
-
-    private val loopSpan  = Ref[Span.SpanOrVoid](Span.Void)
-    private val loopToken = Ref(-1)
-
-    private def toggleLoop(): Unit = transportStrip.button(Loop).foreach { ggLoop =>
+    private def toggleLoop() = transportStrip.button(Loop).foreach { ggLoop =>
       val wasLooping  = ggLoop.selected
       val sel         = if (wasLooping) Span.Void else timelineModel.selection
       val isLooping   = sel.nonEmpty
@@ -164,7 +245,7 @@ object TransportViewImpl {
       }
     }
 
-    private def checkLoop()(implicit tx: S#Tx): Unit = {
+    private def checkLoop()(implicit tx: S#Tx) = {
       val pos       = transport.position
       val loopStop  = loopSpan.get(tx.peer) match { case hs: Span.HasStop => hs.stop; case _ => Long.MinValue }
       if (loopStop > pos) {
@@ -176,7 +257,7 @@ object TransportViewImpl {
       }
     }
 
-    private def loopEndReached()(implicit tx: S#Tx): Unit = loopSpan.get(tx.peer) match {
+    private def loopEndReached()(implicit tx: S#Tx) = loopSpan.get(tx.peer) match {
       case hs: Span.HasStart => playTxn(hs.start)
       case _ =>
     }
@@ -203,62 +284,51 @@ object TransportViewImpl {
         contents += transportStrip
       }
 
+      def addClickAction(name: String, key: Key.Value, elem: GUITransport.Element) =
+        transportPane.addAction(name, focus = FocusType.Window, action = new Action(name) {
+          accelerator = Some(KeyStrokes.plain + key)
+          enabled     = modOpt.isDefined
+          def apply(): Unit =
+            transportStrip.button(elem).foreach(_.doClick())
+        })
+
       if (hasShortcuts) {
         transportPane.addAction("play-stop", focus = FocusType.Window, action = new Action("play-stop") {
           accelerator = Some(KeyStrokes.plain + Key.Space)
           def apply(): Unit = playOrStop()
         })
-        transportPane.addAction("rtz", focus = FocusType.Window, action = new Action("rtz") {
-          accelerator = Some(KeyStrokes.plain + Key.Enter)
-          enabled     = modOpt.isDefined
-          def apply(): Unit =
-            transportStrip.button(GoToBegin).foreach(_.doClick())
-        })
+        addClickAction("rtz" , Key.Enter, GoToBegin)
+        addClickAction("loop", Key.Slash, Loop     )
+
+        mkCue(Rewind      , Key.OpenBracket )
+        mkCue(FastForward , Key.CloseBracket)
       }
 
-      playTimer = new javax.swing.Timer(47,
-        Swing.ActionListener(modOpt.fold((_: ActionEvent) => ()) { mod => (e: ActionEvent) =>
+      playTimer = new javax.swing.Timer(27 /* 47 */,
+        Swing.ActionListener(modOpt.fold((_: ActionEvent) => ()) { mod => (_: ActionEvent) =>
           val elapsed = ((System.currentTimeMillis() - timerSys) * srm).toLong
           mod.position = timerFrame + elapsed
         })
       )
 
-      cueTimer = new javax.swing.Timer(63, new ActionListener {
+      cueTimer = new javax.swing.Timer(25 /* 63 */, new ActionListener {
         def actionPerformed(e: ActionEvent): Unit = modOpt.foreach { mod =>
           val isPlaying = atomic { implicit tx => transport.isPlaying }
           if (!isPlaying) {
-            mod.position = mod.position + (TimeRef.SampleRate * 0.25 * cueDirection).toLong
+            mod.position = mod.position + (TimeRef.SampleRate * 0.1 /* 0.25 */ * cueDirection).toLong
           }
         }
       })
 
-      configureCueButton(Rewind     , -1)
-      configureCueButton(FastForward, +1)
+      new CueListener(Rewind     , -1)
+      new CueListener(FastForward, +1)
 
       component = transportPane
     }
 
-    private def configureCueButton(act: GUITransport.Element, dir: Int): Unit =
-      transportStrip.button(act).foreach { b =>
-        val m = b.peer.getModel
-        m.addChangeListener(new ChangeListener {
-          var pressed = false
-
-          def stateChanged(e: ChangeEvent): Unit = {
-            val p = m.isPressed
-            if (p != pressed) {
-              pressed = p
-              if (p) {
-                //println( "-restart" )
-                cueDirection = dir
-                cueTimer.restart()
-              } else {
-                //println( "-stop" )
-                cueTimer.stop()
-              }
-            }
-          }
-        })
-      }
+    private def mkCue(elem: GUITransport.Element, key: Key.Value): Unit = {
+      new ActionCue(elem, key, onOff = false)
+      new ActionCue(elem, key, onOff = true )
+    }
   }
 }

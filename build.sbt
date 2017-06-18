@@ -1,7 +1,7 @@
 lazy val baseName  = "SoundProcesses"
 lazy val baseNameL = baseName.toLowerCase
 
-lazy val projectVersion = "3.12.3-SNAPSHOT"
+lazy val projectVersion = "3.12.3"
 lazy val mimaVersion    = "3.12.0" // used for migration-manager
 
 lazy val commonSettings = Seq(
@@ -11,13 +11,13 @@ lazy val commonSettings = Seq(
   description        := "A framework for creating and managing ScalaCollider based sound processes",
   licenses           := Seq("LGPL v2.1+" -> url("http://www.gnu.org/licenses/lgpl-2.1.txt")),
   scalaVersion       := "2.12.2",
-  crossScalaVersions := Seq("2.12.2", "2.11.11", "2.10.6"),
+  crossScalaVersions := Seq("2.12.2", "2.11.11"),
   resolvers          += "Oracle Repository" at "http://download.oracle.com/maven",  // required for sleepycat
   parallelExecution in Test := false
 ) ++ publishSettings
 
-lazy val lucreVersion               = "3.4.0"
-lazy val scalaColliderVersion       = "1.22.3"
+lazy val lucreVersion               = "3.4.1"
+lazy val scalaColliderVersion       = "1.22.4"
 lazy val scalaColliderIfVersion     = "0.3.1"
 lazy val spanVersion                = "1.3.1"
 lazy val lucreSwingVersion          = "1.5.1"

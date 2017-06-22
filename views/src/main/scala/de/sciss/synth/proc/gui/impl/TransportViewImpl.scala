@@ -15,7 +15,7 @@ package de.sciss.synth.proc
 package gui
 package impl
 
-import java.awt.event.{ActionEvent, ActionListener}
+import java.awt.event.{ActionEvent, ActionListener, InputEvent}
 import javax.swing.event.{ChangeEvent, ChangeListener}
 import javax.swing.{AbstractAction, ButtonModel, JComponent, KeyStroke, Timer}
 
@@ -75,6 +75,11 @@ object TransportViewImpl {
 //    }
 //  }
 
+  // (0 until 20).map(i => (math.sin(i.linlin(0, 20, 0, math.Pi)) * 7.20).round).scanLeft(10.0) { case (sum, i) => sum + i }
+  private final val cueSteps = Array[Float](
+      0.010f, 0.010f, 0.011f, 0.013f, 0.016f, 0.020f, 0.025f, 0.031f, 0.037f, 0.044f,
+      0.051f, 0.058f, 0.065f, 0.072f, 0.078f, 0.084f, 0.089f, 0.093f, 0.096f, 0.098f, 0.099f)
+
   private final class Impl[S <: Sys[S]](val transport: Transport[S] /* .Realtime[S, Obj.T[S, Proc.Elem], Transport.Proc.Update[S]] */,
                                         val timelineModel: TimelineModel)
                                        (implicit protected val cursor: Cursor[S])
@@ -86,7 +91,9 @@ object TransportViewImpl {
 
     private[this] var playTimer   : Timer = _
     private[this] var cueTimer    : Timer = _
-    private[this] var cueDirection = 1
+    private[this] var cueDirection  = 1
+    private[this] var cueCount      = 0
+    private[this] var cueSelect     = false
 
     private[this] var timerFrame  = 0L
     private[this] var timerSys    = 0L
@@ -99,7 +106,7 @@ object TransportViewImpl {
 
     import GUITransport.{FastForward, GoToBegin, Loop, Play, Rewind, Stop}
 
-    private final class ActionCue(elem: GUITransport.Element, key: Key.Value, onOff: Boolean)
+    private final class ActionCue(elem: GUITransport.Element, key: Key.Value, onOff: Boolean, select: Boolean)
       extends AbstractAction(elem.toString) { action =>
 
 //      private[this] var lastWhen: Long = 0L
@@ -107,11 +114,12 @@ object TransportViewImpl {
       private[this] val b = transportStrip.button(elem).get
 
       b.peer.registerKeyboardAction(this, s"${if (onOff) "start" else "stop"}-${elem.toString}",
-        KeyStroke.getKeyStroke(key.id, 0, !onOff), JComponent.WHEN_IN_FOCUSED_WINDOW)
+        KeyStroke.getKeyStroke(key.id, if (select) InputEvent.SHIFT_MASK else 0, !onOff),
+        JComponent.WHEN_IN_FOCUSED_WINDOW)
 
       private def perform(): Unit = {
         val bm = b.peer.getModel
-        // println(s"AQUI pressed = ${bm.isPressed}; armed = ${bm.isArmed}; onOff = $onOff")
+        cueSelect = select
         if (bm.isPressed != onOff) bm.setPressed(onOff)
         if (bm.isArmed   != onOff) bm.setArmed  (onOff)
       }
@@ -123,10 +131,12 @@ object TransportViewImpl {
       }
     }
 
-    private final class CueListener(elem: GUITransport.Element, dir: Int) extends ChangeListener {
-      private[this] val m: ButtonModel      = transportStrip.button(elem).get.peer.getModel
-      private[this] var pressed             = false
-      private[this] var transportWasRunning = false
+    private final class CueListener(elem: GUITransport.Element, dir: Int)
+      extends ChangeListener {
+
+      private[this] val m: ButtonModel  = transportStrip.button(elem).get.peer.getModel
+      private[this] var pressed         = false
+      private[this] var wasPlaying      = false
 
       m.addChangeListener(this)
 
@@ -136,12 +146,16 @@ object TransportViewImpl {
           pressed = p
           if (p) {
             cueDirection = dir
-            transportWasRunning = transportStrip.button(Play).exists(_.selected)
-            if (transportWasRunning) stop()
+            wasPlaying   = transportStrip.button(Play).exists(_.selected)
+            // start at higher cue speed if direction is
+            // forward and transport was playing,
+            // because otherwise it appears sluggish
+            cueCount     = if (wasPlaying /* && dir > 0 */) 10 else 0
+            if (wasPlaying) stop()
             cueTimer.restart()
           } else {
             cueTimer.stop()
-            if (transportWasRunning) play()
+            if (wasPlaying) play()
           }
         }
       }
@@ -315,7 +329,33 @@ object TransportViewImpl {
         def actionPerformed(e: ActionEvent): Unit = modOpt.foreach { mod =>
           val isPlaying = atomic { implicit tx => transport.isPlaying }
           if (!isPlaying) {
-            mod.position = mod.position + (TimeRef.SampleRate * 0.1 /* 0.25 */ * cueDirection).toLong
+            val cc = cueCount
+            cueCount = cc + 1
+            val inc =
+//              if (cc < 14) {
+//                math.max(1, cc - 4) * 10
+              if (cc < 21) {
+                cueSteps(cc)
+              } else if (cc < 210 /* 209 */) {
+                0.1f
+              } else {
+                0.5f
+              }
+            val d         = (TimeRef.SampleRate * inc * cueDirection).toLong
+            val posOld    = mod.position
+            val posNew    = posOld + d
+            mod.position  = posNew
+            if (cueSelect) {
+              val selNew = mod.selection match {
+                case Span.Void => Span(posOld, posNew)
+                case Span(start, stop) =>
+                  if (math.abs(posNew - start) < math.abs(posNew - stop))
+                    Span(math.min(posNew, stop ), math.max(posNew, stop ))
+                  else
+                    Span(math.min(posNew, start), math.max(posNew, start))
+              }
+              mod.selection = selNew
+            }
           }
         }
       })
@@ -327,8 +367,10 @@ object TransportViewImpl {
     }
 
     private def mkCue(elem: GUITransport.Element, key: Key.Value): Unit = {
-      new ActionCue(elem, key, onOff = false)
-      new ActionCue(elem, key, onOff = true )
+      new ActionCue(elem, key, onOff = false, select = false)
+      new ActionCue(elem, key, onOff = true , select = false)
+      new ActionCue(elem, key, onOff = false, select = true )
+      new ActionCue(elem, key, onOff = true , select = true )
     }
   }
 }

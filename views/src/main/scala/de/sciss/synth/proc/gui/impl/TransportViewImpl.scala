@@ -239,11 +239,12 @@ object TransportViewImpl {
       playTxn()
     }
 
-    private def playTxn(pos: Long = timelineModel.position)(implicit tx: S#Tx) = {
-      transport.stop()
-      transport.seek(pos)
-      transport.play()
-    }
+    private def playTxn(pos: Long = timelineModel.position)(implicit tx: S#Tx) =
+      if (!transport.isPlaying) {
+//        transport.stop()
+        transport.seek(pos  )
+        transport.play()
+      }
 
     private def toggleLoop() = transportStrip.button(Loop).foreach { ggLoop =>
       val wasLooping  = ggLoop.selected
@@ -346,13 +347,15 @@ object TransportViewImpl {
             val posNew    = posOld + d
             mod.position  = posNew
             if (cueSelect) {
+              def mkSpan(a: Long, b: Long) = Span(math.min(a, b), math.max(a, b))
+
               val selNew = mod.selection match {
-                case Span.Void => Span(posOld, posNew)
+                case Span.Void => mkSpan(posOld, posNew)
                 case Span(start, stop) =>
                   if (math.abs(posNew - start) < math.abs(posNew - stop))
-                    Span(math.min(posNew, stop ), math.max(posNew, stop ))
+                    mkSpan(stop, posNew)
                   else
-                    Span(math.min(posNew, start), math.max(posNew, start))
+                    mkSpan(start, posNew)
               }
               mod.selection = selNew
             }

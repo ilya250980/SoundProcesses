@@ -199,21 +199,23 @@ object WorkspaceImpl {
 
     override def toString = s"Workspace<${folder.fold("in-memory")(_.name)}>" // + hashCode().toHexString
 
-    private val dependents  = Ref(Vec.empty[Disposable[S#Tx]])
+    private[this] val _dependents  = Ref(Vec.empty[Disposable[S#Tx]])
 
     final val rootH: stm.Source[S#Tx, Folder[S]] = stm.Source.map(access)(_.root)
 
     final def root(implicit tx: S#Tx): Folder[S] = access().root
 
     final def addDependent   (dep: Disposable[S#Tx])(implicit tx: TxnLike): Unit =
-      dependents.transform(_ :+ dep)(tx.peer)
+      _dependents.transform(_ :+ dep)(tx.peer)
 
     final def removeDependent(dep: Disposable[S#Tx])(implicit tx: TxnLike): Unit =
-      dependents.transform { in =>
+      _dependents.transform { in =>
         val idx = in.indexOf(dep)
         require(idx >= 0, s"Dependent $dep was not registered")
         in.patch(idx, Nil, 1)
       } (tx.peer)
+
+    final def dependents(implicit tx: TxnLike): Iterable[Disposable[S#Tx]] = _dependents.get(tx.peer)
 
     final def collectObjects[A](pf: PartialFunction[Obj[S], A])(implicit tx: S#Tx): Vec[A] = {
       val b   = Vector.newBuilder[A]
@@ -242,9 +244,9 @@ object WorkspaceImpl {
       // logInfoTx(s"Dispose workspace $name")
 
       // first dispose all dependents
-      val dep = dependents.get(tx.peer)
+      val dep = _dependents.get(tx.peer)
       dep.foreach(_.dispose())
-      dependents.update(Vec.empty)(tx.peer)
+      _dependents.update(Vec.empty)(tx.peer)
 
       // if the transaction is successful...
       Txn.afterCommit { _ =>

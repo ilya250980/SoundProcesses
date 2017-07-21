@@ -56,9 +56,7 @@ object CompilerImpl {
 
       if (compiler.reporter.hasErrors) throw Code.CompilationFailed()
 
-      // NB -- we could eventually use Scala-version specific sources in sbt
-      val d0    = intp.virtualDirectory // method deprecated in Scala 2.11, but necessary for Scala 2.10
-      // intp.replOutput.dir
+      val d0    = intp.replOutput.dir
 
       packJar(d0)
     }

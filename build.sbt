@@ -1,7 +1,7 @@
 lazy val baseName  = "SoundProcesses"
 lazy val baseNameL = baseName.toLowerCase
 
-lazy val projectVersion = "3.13.0"
+lazy val projectVersion = "3.13.1-SNAPSHOT"
 lazy val mimaVersion    = "3.13.0" // used for migration-manager
 
 lazy val commonSettings = Seq(
@@ -10,8 +10,8 @@ lazy val commonSettings = Seq(
   homepage           := Some(url(s"https://github.com/Sciss/$baseName")),
   description        := "A framework for creating and managing ScalaCollider based sound processes",
   licenses           := Seq("LGPL v2.1+" -> url("http://www.gnu.org/licenses/lgpl-2.1.txt")),
-  scalaVersion       := "2.12.2",
-  crossScalaVersions := Seq("2.12.2", "2.11.11"),
+  scalaVersion       := "2.12.3",
+  crossScalaVersions := Seq("2.12.3", "2.11.11"),
   resolvers          += "Oracle Repository" at "http://download.oracle.com/maven",  // required for sleepycat
   parallelExecution in Test := false
 ) ++ publishSettings
@@ -21,15 +21,15 @@ lazy val scalaColliderVersion       = "1.22.4"
 lazy val scalaColliderIfVersion     = "0.3.1"
 lazy val spanVersion                = "1.3.1"
 lazy val lucreSwingVersion          = "1.6.0"
-lazy val swingPlusVersion           = "0.2.3"
+lazy val swingPlusVersion           = "0.2.4"
 lazy val audioWidgetsVersion        = "1.11.0"
-lazy val fileUtilVersion            = "1.1.2"
+lazy val fileUtilVersion            = "1.1.3"
 lazy val topologyVersion            = "1.0.1"
 
 // ---- test-only ----
 
-lazy val scalaColliderSwingVersion = "1.34.0"
-lazy val scalaTestVersion          = "3.0.3"
+lazy val scalaColliderSwingVersion = "1.34.1"
+lazy val scalaTestVersion          = "3.0.4"
 lazy val loggingEnabled            = true
 lazy val bdb                       = "bdb"  // either "bdb" or "bdb6"
 lazy val subminVersion             = "0.2.1"
@@ -121,6 +121,7 @@ lazy val compiler = Project(id = s"$baseNameL-compiler", base = file("compiler")
   .settings(commonSettings)
   .settings(
     description := "Compiler-support for Sound Processes",
+    scalacOptions += "-Yrangepos",  // this is needed to extract source code
     libraryDependencies ++= Seq(
       "org.scala-lang" %  "scala-compiler"          % scalaVersion.value,
       "de.sciss"       %% s"lucre-$bdb"             % lucreVersion              % "test",

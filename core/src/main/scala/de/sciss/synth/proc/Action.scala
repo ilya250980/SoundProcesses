@@ -33,7 +33,9 @@ object Action extends Obj.Type {
 
   def empty[S <: Sys[S]](implicit tx: S#Tx): Action[S] = Impl.empty[S]
 
-  def apply[S <: Sys[S]](name: String, jar: Array[Byte])(implicit tx: S#Tx): Action[S] =
+  def mkName[S <: Sys[S]]()(implicit tx: S#Tx): String = Impl.mkName[S]()
+
+  def newConst[S <: Sys[S]](name: String, jar: Array[Byte])(implicit tx: S#Tx): Action[S] =
     Impl.newConst(name, jar)
 
   def predef[S <: Sys[S]](id: String)(implicit tx: S#Tx): Action[S] = Impl.predef(id)

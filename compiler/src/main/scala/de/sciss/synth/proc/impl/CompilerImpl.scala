@@ -33,7 +33,7 @@ object CompilerImpl {
     c
   })
 
-  private final class Impl(intp0: => IMainImpl) extends Code.Compiler {
+  private[impl] final class Impl(intp0: => IMain) extends Code.Compiler {
     private lazy val intp = intp0
 
     override def toString = s"Compiler@${hashCode().toHexString}"

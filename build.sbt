@@ -1,7 +1,7 @@
 lazy val baseName  = "SoundProcesses"
 lazy val baseNameL = baseName.toLowerCase
 
-lazy val projectVersion = "3.13.1-SNAPSHOT"
+lazy val projectVersion = "3.14.0-SNAPSHOT"
 lazy val mimaVersion    = "3.13.0" // used for migration-manager
 
 lazy val commonSettings = Seq(
@@ -83,6 +83,7 @@ lazy val core = Project(id = s"$baseNameL-core", base = file("core"))
   .settings(commonSettings)
   .settings(
     description := "A framework for creating and managing ScalaCollider based sound processes",
+    scalacOptions in Test += "-Yrangepos",  // this is needed to extract source code
     buildInfoKeys := Seq(name, organization, version, scalaVersion, description,
       BuildInfoKey.map(homepage) { case (k, opt)           => k -> opt.get },
       BuildInfoKey.map(licenses) { case (_, Seq((lic, _))) => "license" -> lic }
@@ -93,6 +94,7 @@ lazy val core = Project(id = s"$baseNameL-core", base = file("core"))
       "de.sciss"          %% "lucre-expr"       % lucreVersion,
       "at.iem"            %% "scalacollider-if" % scalaColliderIfVersion,
       "de.sciss"          %% "fileutil"         % fileUtilVersion,
+      "org.scala-lang"    %  "scala-compiler"   % scalaVersion.value % "provided",
       "org.scalatest"     %% "scalatest"        % scalaTestVersion  % "test",
       "de.sciss"          %% s"lucre-$bdb"      % lucreVersion      % "test",
       "com.github.scopt"  %% "scopt"            % scoptVersion      % "test",

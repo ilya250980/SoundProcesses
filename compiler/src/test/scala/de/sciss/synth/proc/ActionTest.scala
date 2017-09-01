@@ -37,7 +37,7 @@ object ActionTest extends App {
       |println(xs.map(_.capitalize).mkString(" "))
       |""".stripMargin
 
-  implicit val compiler = Compiler()
+  implicit val compiler: Code.Compiler = Compiler()
   import ExecutionContext.Implicits.global
 
   iter("Foo").andThen {

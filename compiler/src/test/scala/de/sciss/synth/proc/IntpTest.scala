@@ -15,7 +15,7 @@ object IntpTest extends App {
   //  }
   //  process.start()
 
-  implicit val compiler = Compiler()
+  implicit val compiler: Code.Compiler = Compiler()
   import ExecutionContext.Implicits.global
   val ft = Code.FileTransform("""println(s"input = $in, output = $out")""")
   val res = ft.execute((new java.io.File("alpha"), new java.io.File("beta"), _.addListener { case x => println(s"Observed: $x") }))

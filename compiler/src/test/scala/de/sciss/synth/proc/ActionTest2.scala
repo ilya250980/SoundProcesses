@@ -1,6 +1,7 @@
 package de.sciss.synth.proc
 
 import de.sciss.file.File
+import de.sciss.lucre.stm
 import de.sciss.lucre.stm.store.BerkeleyDB
 
 import scala.concurrent.ExecutionContext
@@ -12,14 +13,14 @@ object ActionTest2 extends App {
   val factory = BerkeleyDB.factory(dir)
   val system  = Confluent(factory)
   val (_, cursor0) = system.cursorRoot(_ => ()) { implicit tx => _ => system.newCursor() }
-  implicit val cursor = cursor0
+  implicit val cursor: stm.Cursor[S] = cursor0
 
   val source1 =
     """val xs = List("hello", "world")
       |println(xs.map(_.capitalize).mkString(" "))
       |""".stripMargin
 
-  implicit val compiler = Compiler()
+  implicit val compiler: Code.Compiler = Compiler()
   import ExecutionContext.Implicits.global
 
   val futAction = cursor.step { implicit tx =>

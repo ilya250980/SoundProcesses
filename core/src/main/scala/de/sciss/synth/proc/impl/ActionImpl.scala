@@ -22,7 +22,7 @@ import de.sciss.serial.{DataInput, DataOutput, Serializer}
 
 import scala.annotation.switch
 import scala.collection.mutable
-import scala.concurrent.stm.TMap
+import scala.concurrent.stm.{InTxn, TMap}
 import scala.concurrent.{Future, Promise, blocking}
 
 object ActionImpl {
@@ -35,11 +35,15 @@ object ActionImpl {
 
   // ---- creation ----
 
+  def mkName[S <: Sys[S]]()(implicit tx: S#Tx): String = {
+    val id = tx.newID()
+    s"Action${IDPeek(id)}"
+  }
+
   def compile[S <: Sys[S]](source: Code.Action)
                           (implicit tx: S#Tx, cursor: stm.Cursor[S],
                            compiler: Code.Compiler): Future[stm.Source[S#Tx, Action[S]]] = {
-    val id      = tx.newID()
-    val name    = s"Action${IDPeek(id)}"
+    val name    = mkName[S]()
     val p       = Promise[stm.Source[S#Tx, Action[S]]]()
     val system  = tx.system
     tx.afterCommit(performCompile(p, name, source, system))
@@ -78,7 +82,7 @@ object ActionImpl {
   }
 
   def execute[S <: Sys[S]](universe: Action.Universe[S], name: String, jar: Array[Byte])(implicit tx: S#Tx): Unit = {
-    implicit val itx = tx.peer
+    implicit val itx: InTxn = tx.peer
     val cl = classLoader[S]
     cl.add(name, jar)
     val fullName  = s"${Code.UserPackage}.$name"
@@ -195,7 +199,7 @@ object ActionImpl {
       new ConstBodyImpl(txOut.newID(), actionID) // .connect()
 
     def execute(universe: Action.Universe[S])(implicit tx: S#Tx): Unit = {
-      implicit val itx = tx.peer
+      implicit val itx: InTxn = tx.peer
       val fun = mapPredef.getOrElse(actionID, sys.error(s"Predefined action '$actionID' not registered"))
       fun(universe)
     }

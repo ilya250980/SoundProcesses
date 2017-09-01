@@ -1,5 +1,5 @@
 /*
- *  CompilerImplicits.scala
+ *  MacroImplicits.scala
  *  (SoundProcesses)
  *
  *  Copyright (c) 2010-2017 Hanns Holger Rutz. All rights reserved.
@@ -24,9 +24,14 @@ import scala.language.experimental.macros
   * compiling these objects correctly for storage in the workspace,
   * and preserving the corresponding source code.
   */
-object CompilerImplicits {
-  implicit final class ProcCompilerOps[S <: Sys[S]](private[proc] val `this`: Proc[S]) extends AnyVal {
-    def setGraphWithSource(body: Unit)(implicit tx: S#Tx): Unit =
-      macro Macros.procGraphWithSource
+object MacroImplicits {
+  implicit final class ProcMacroOps[S <: Sys[S]](private[proc] val `this`: Proc[S]) extends AnyVal {
+    def setGraph(body: Unit)(implicit tx: S#Tx): Unit =
+      macro Macros.procGraphWithSource[S]
+  }
+
+  implicit final class ActionMacroOps(private val a: Action.type) extends AnyVal {
+    def apply[S <: Sys[S]](body: Action.Universe[S] => Unit)(implicit tx: S#Tx): Action[S] =
+      macro Macros.actionWithSource[S]
   }
 }

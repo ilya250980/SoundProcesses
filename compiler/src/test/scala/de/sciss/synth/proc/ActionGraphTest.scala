@@ -51,7 +51,7 @@ class ActionGraphTest[S <: Sys[S]]()(implicit cursor: stm.Cursor[S]) {
 //    }
 
     print("Compiling...")
-    implicit val compiler = Compiler()
+    implicit val compiler: Code.Compiler = Compiler()
 
     val actionFut = cursor.step { implicit tx =>
       val code = Code.Action(

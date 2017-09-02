@@ -98,7 +98,7 @@ object AuralProcImpl {
 
     private[this] object PlayingNone extends PlayingRef {
       def dispose()(implicit tx: S#Tx): Unit = ()
-      def nodeOption = None
+      def nodeOption: Option[AuralNode[S]] = None
     }
     private final class PlayingNode(val node: AuralNode[S]) extends PlayingRef {
       def dispose()(implicit tx: S#Tx): Unit = {
@@ -115,7 +115,7 @@ object AuralProcImpl {
     }
     private final class PlayingPrepare(val resources: List[AsyncResource[S]]) extends PlayingRef {
       def dispose()(implicit tx: S#Tx): Unit = resources.foreach(_.dispose())
-      def nodeOption = None
+      def nodeOption: Option[AuralNode[S]] = None
     }
 
     // XXX TODO - perhaps `currentStateRef` and `playingRef` could be one thing?

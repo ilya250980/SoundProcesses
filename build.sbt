@@ -33,7 +33,7 @@ lazy val scalaTestVersion          = "3.0.4"
 lazy val loggingEnabled            = true
 lazy val bdb                       = "bdb"  // either "bdb" or "bdb6"
 lazy val subminVersion             = "0.2.1"
-lazy val scoptVersion              = "3.6.0"
+lazy val scoptVersion              = "3.7.0"
 
 scalacOptions in ThisBuild ++= {
   // "-Xfatal-warnings" -- breaks for cross-scala-build and deprecations

@@ -46,13 +46,13 @@ object AuralObj {
     def completed: AuralView.State
   }
   case object TargetStop extends TargetState {
-    def completed = AuralView.Stopped
+    def completed: AuralView.State = AuralView.Stopped
   }
   case object TargetPrepared extends TargetState {
-    def completed = AuralView.Prepared
+    def completed: AuralView.State = AuralView.Prepared
   }
   final case class TargetPlaying(wallClock: Long, timeRef: TimeRef) extends TargetState {
-    def completed = AuralView.Playing
+    def completed: AuralView.State = AuralView.Playing
 
     def shiftTo(newWallClock: Long): TimeRef = {
       val delta = newWallClock - wallClock
@@ -154,9 +154,9 @@ object AuralObj {
     def apply[S <: SSys[S]](obj: _Timeline[S])(implicit tx: S#Tx, context: AuralContext[S]): AuralObj.Timeline[S] =
       AuralTimelineImpl(obj)
 
-    /** Creates an empty view that can be manually populated by calling `addObject`. */
-    def empty[S <: SSys[S]](obj: _Timeline[S])(implicit tx: S#Tx, context: AuralContext[S]): Manual[S] =
-      AuralTimelineImpl.empty(obj)
+//    /** Creates an empty view that can be manually populated by calling `addObject`. */
+//    def empty[S <: SSys[S]](obj: _Timeline[S])(implicit tx: S#Tx, context: AuralContext[S]): Manual[S] =
+//      AuralTimelineImpl.empty(obj)
 
     trait Manual[S <: Sys[S]] extends Timeline[S] {
       // def addObject   (timed: _Timeline.Timed[S])(implicit tx: S#Tx): Unit

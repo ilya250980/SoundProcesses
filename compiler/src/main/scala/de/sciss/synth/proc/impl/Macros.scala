@@ -19,8 +19,7 @@ import de.sciss.synth.SynthGraph
 
 import scala.concurrent.stm.Ref
 import scala.reflect.macros.blackbox
-import scala.tools.nsc.interpreter.IMain
-import scala.tools.nsc.{ConsoleWriter, Global, NewLinePrintWriter}
+import scala.tools.nsc.Global
 
 object Macros {
   private def mkSource(c: blackbox.Context)(name: String, tree: c.Tree): String = {
@@ -71,16 +70,7 @@ object Macros {
 
   private[this] val compileCount = Ref(0)
 
-  // this is the trick to get the right class-path -- we steal it from the macro compiler
-  private final class IMainImpl(val peer: Global)
-    extends IMain({ val set = peer.settings.copy(); set.warnUnused.clear(); set },
-      new NewLinePrintWriter(new ConsoleWriter, autoFlush = true)) {
-
-//    override protected def parentClassLoader: ClassLoader =
-//      peer.classPath peer.classLoader
-  }
-
-  private[this] var iMainImpl: IMainImpl = _
+  private[this] var iMainImpl: IMainPeer = _
 
   def actionWithSource[S <: Sys[S]](c: blackbox.Context)(body: c.Expr[Action.Universe[S] => Unit])(tx: c.Expr[S#Tx])
                                    (implicit tt: c.WeakTypeTag[S]): c.Expr[Action[S]] = {
@@ -110,7 +100,7 @@ object Macros {
     val global      = c.universe
     val iMain       = if (iMainOld != null && iMainOld.peer == global) iMainOld else {
       require(global.isInstanceOf[Global], s"Universe not an instance of Global: $global")
-      val res = new IMainImpl(global.asInstanceOf[Global])
+      val res = new IMainPeer(global.asInstanceOf[Global])
       iMainImpl = res
       res
     }

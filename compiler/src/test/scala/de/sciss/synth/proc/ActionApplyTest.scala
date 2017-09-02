@@ -1,6 +1,7 @@
 package de.sciss.synth.proc
 
 import de.sciss.file._
+import de.sciss.lucre.expr.StringObj
 import de.sciss.lucre.stm.store.BerkeleyDB
 
 object ActionApplyTest {
@@ -18,8 +19,10 @@ object ActionApplyTest {
       val a = Action.apply[S] { universe =>
         // we're here!
         val self = universe.self
-        println(s"Hello world. Self = $self")
+        println(s"Hello world. Self = $self - name ${self.attr.$[StringObj]("name").map(_.value)}")
       }
+      import de.sciss.synth.proc.Implicits._
+      a.name = "my-action"
       ws.root.addLast(a)
 
       println("---- Source ----")

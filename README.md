@@ -26,7 +26,7 @@ The following dependency is necessary:
 
     "de.sciss" %% "soundprocesses" % v
 
-The current version `v` is `"3.13.0"`.
+The current version `v` is `"3.14.0"`.
 
 The following sub modules are available:
 
@@ -47,7 +47,9 @@ Please see the file [CONTRIBUTING.md](CONTRIBUTING.md)
 
 ## usage
 
-Project is still experimental, and documentation is still missing. There is a graphical front-end [Mellite](https://github.com/Sciss/Mellite) (also experimental)...
+Project is still experimental, and documentation is still sparse.
+There is a graphical front-end [Mellite](https://github.com/Sciss/Mellite) (also experimental)...
+The Mellite website contains a [tutorial on SoundProcesses](http://sciss.github.io/Mellite/tut_soundprocesses1.html).
 
 ## notes
 

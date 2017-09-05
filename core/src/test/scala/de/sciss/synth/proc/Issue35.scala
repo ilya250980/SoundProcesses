@@ -8,7 +8,18 @@ import de.sciss.synth.SynthGraph
 object Issue35 {
   type S = InMemory
   implicit val cursor: stm.Cursor[S] = InMemory()
+
+  showAuralLog = true
+
+//  type S = Durable
+//  implicit val cursor: stm.Cursor[S] = {
+//    val ds = BerkeleyDB.tmp()
+//    Durable(ds)
+//  }
+
   implicit val ws: WorkspaceHandle[S] = WorkspaceHandle.Implicits.dummy
+
+  SoundProcesses.init()
   val aural = AuralSystem()
 
   cursor.step { implicit tx =>

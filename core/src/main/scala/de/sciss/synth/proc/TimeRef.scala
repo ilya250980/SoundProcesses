@@ -58,7 +58,7 @@ object TimeRef {
     /** For convenience, an undefined time references reports a frame of zero. */
     val frame           = 0L
     /** The span is of an undefined time reference is void. */
-    val span: SpanLike  = Span.Void
+    val span /* XXX TODO: annotate in next major version : SpanLike */ = Span.Void
     val offset          = 0L
     val isDefined       = false
 

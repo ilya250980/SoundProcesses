@@ -1,7 +1,7 @@
 lazy val baseName  = "SoundProcesses"
 lazy val baseNameL = baseName.toLowerCase
 
-lazy val projectVersion = "3.14.1-SNAPSHOT"
+lazy val projectVersion = "3.14.1"
 lazy val mimaVersion    = "3.14.0" // used for migration-manager
 
 lazy val commonSettings = Seq(
@@ -18,6 +18,7 @@ lazy val commonSettings = Seq(
 
 lazy val lucreVersion               = "3.4.1"
 lazy val scalaColliderVersion       = "1.22.4"
+lazy val ugensVersion               = "1.16.6"
 lazy val scalaColliderIfVersion     = "0.3.1"
 lazy val spanVersion                = "1.3.1"
 lazy val lucreSwingVersion          = "1.6.0"
@@ -70,9 +71,10 @@ lazy val synth = Project(id = "lucresynth", base = file("synth"))
   .settings(
     description := "Transactional extension for ScalaCollider",
     libraryDependencies ++= Seq(
-      "de.sciss" %% "topology"        % topologyVersion,
-      "de.sciss" %% "lucre-core"      % lucreVersion,
-      "de.sciss" %% "scalacollider"   % scalaColliderVersion
+      "de.sciss" %% "topology"                % topologyVersion,
+      "de.sciss" %% "lucre-core"              % lucreVersion,
+      "de.sciss" %% "scalacollider"           % scalaColliderVersion,
+      "de.sciss" %% "scalacolliderugens-core" % ugensVersion
     ),
     mimaPreviousArtifacts := Set("de.sciss" %% "lucresynth" % mimaVersion)
   )

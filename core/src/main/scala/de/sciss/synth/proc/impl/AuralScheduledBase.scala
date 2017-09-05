@@ -104,6 +104,11 @@ trait AuralScheduledBase[S <: Sys[S], Target, Elem <: AuralView[S, Target]]
 
   protected def elemFromHandle(h: ElemHandle): Elem
 
+  /** Should create a new view for the given object
+    * and return a handle to it. As a side effect should
+    * also memorize the view in a view-tree, if such structure is maintained,
+    * for later retrieval in `viewEventAfter`
+    */
   protected def mkView(vid: ViewID, span: SpanLike, obj: Obj[S])(implicit tx: S#Tx): ElemHandle
 
   protected def checkReschedule(h: ElemHandle, currentOffset: Long, oldTarget: Long, elemPlays: Boolean)
@@ -295,12 +300,17 @@ trait AuralScheduledBase[S <: Sys[S], Target, Elem <: AuralView[S, Target]]
       import TimeRef.{framesAndSecs => fas}
       logA(s"scheduled - scheduleNextEvent(${fas(currentOffset)}) -> ${fas(targetOffset)}")
       val targetTime = sched.time + (targetOffset - currentOffset)
-      sched.schedule(targetTime) { implicit tx =>
+      val _token = sched.schedule(targetTime) { implicit tx =>
         eventReached(offset = targetOffset)
       }
+      // logA(s"scheduled - scheduleNextEvent; token ${_token}")
+      _token
     }
     val oldSched = schedEvtToken.swap(new Scheduled(token, targetOffset))
-    if (oldSched.token != -1) sched.cancel(oldSched.token)
+    if (oldSched.token != -1) {
+      // logA(s"scheduled - scheduleNextEvent; cancel token ${oldSched.token}")
+      sched.cancel(oldSched.token)
+    }
   }
 
   /* Processes next interesting event that has been reached. If the internal
@@ -332,12 +342,17 @@ trait AuralScheduledBase[S <: Sys[S], Target, Elem <: AuralView[S, Target]]
       val targetTime = sched.time + (targetOffset - currentOffset)
       import TimeRef.{framesAndSecs => fas}
       logA(s"scheduled - scheduleGrid(${fas(currentOffset)}, ${fas(modelOffset)}) -> ${fas(targetOffset)}")
-      sched.schedule(targetTime) { implicit tx =>
+      val _token = sched.schedule(targetTime) { implicit tx =>
         gridReached(offset = targetOffset)
       }
+      // logA(s"scheduled - scheduleGrid; token ${_token}")
+      _token
     }
     val oldSched = schedGridToken.swap(new Scheduled(token, targetOffset))
-    if (oldSched.token != -1) sched.cancel(oldSched.token)
+    if (oldSched.token != -1) {
+      // logA(s"scheduled - scheduleGrid; cancel token ${oldSched.token}")
+      sched.cancel(oldSched.token)
+    }
   }
 
   /* If internal state is playing, calls `processPrepare` with the new prepare-span.
@@ -366,8 +381,18 @@ trait AuralScheduledBase[S <: Sys[S], Target, Elem <: AuralView[S, Target]]
         // `elemAdded` and `elemRemoved`...
         scheduleNextGrid(offset)
         if (reschedule) {
-          logA("...reschedule")
-          scheduleNextEvent(offset)
+          val oldEvt = schedEvtToken()
+          // this check addresses issue #9: when an event and grid
+          // fall on the same offset, we might kill the event if it
+          // wasn't executed yet. The following check ensures that
+          // if there is still an event for the current offset,
+          // we don't call `scheduleNextEvent`. Instead, the event
+          // will be properly executed and thus issues a `scheduleNextEvent` itself
+          // after running through `eventReached`
+          if (oldEvt.isEmpty || oldEvt.offset != offset) {
+            logA("...reschedule")
+            scheduleNextEvent(offset)
+          }
         }
 
       case _ =>

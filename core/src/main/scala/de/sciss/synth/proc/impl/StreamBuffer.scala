@@ -96,12 +96,12 @@ final class StreamBuffer(key: String, idx: Int, protected val synth: Node,
   }
 
   protected val body: Body = {
-    case m @ osc.Message(`replyName`, `nodeID`, `idx`, trigValF: Float) =>
+    case osc.Message(`replyName`, `nodeID`, `idx`, trigValF: Float) =>
       // println(s"RECEIVED TR $trigValF...")
       // logAural(m.toString)
       val trigVal = trigValF.toInt + 1
       scala.concurrent.stm.atomic { itx =>
-        implicit val tx = Txn.wrap(itx)
+        implicit val tx: Txn = Txn.wrap(itx)
         val frame = updateBuffer(trigVal)
         if (frame >= fileFrames + bufSizeH) {
           synth.free()

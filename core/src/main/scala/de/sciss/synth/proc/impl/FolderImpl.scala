@@ -45,7 +45,7 @@ object FolderImpl {
   }
 
   private class Ser[S <: Sys[S]] extends ObjSerializer[S, Folder[S]] {
-    def tpe = Folder
+    def tpe: Obj.Type = Folder
   }
 
   def readIdentifiedObj[S <: Sys[S]](in: DataInput, access: S#Acc)(implicit tx: S#Tx): Obj[S] = {

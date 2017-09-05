@@ -166,7 +166,7 @@ trait AuralScheduledBase[S <: Sys[S], Target, Elem <: AuralView[S, Target]]
 
     def dispose()(implicit tx: S#Tx): Unit = ()
 
-    def external = Playing
+    def external: AuralView.State = Playing
   }
 
   import context.{scheduler => sched}

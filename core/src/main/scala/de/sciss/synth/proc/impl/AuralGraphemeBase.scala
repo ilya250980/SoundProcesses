@@ -66,7 +66,7 @@ trait AuralGraphemeBase[S <: Sys[S], I <: stm.Sys[I], Target, Elem <: AuralView[
     obj().eventAfter(offset).getOrElse(Long.MaxValue)
 
   protected final def processPlay(timeRef: TimeRef, target: Target)(implicit tx: S#Tx): Unit = {
-    implicit val itx = iSys(tx)
+    implicit val itx: I#Tx = iSys(tx)
     tree.floor(timeRef.offset).foreach { case (start, entries) =>
       playEntry(entries, start = start, timeRef = timeRef, target = target)
     }
@@ -190,7 +190,7 @@ trait AuralGraphemeBase[S <: Sys[S], I <: stm.Sys[I], Target, Elem <: AuralView[
     }
 
   private def removeView(h: ElemHandle)(implicit tx: S#Tx): Unit = {
-    implicit val itx = iSys(tx)
+    implicit val itx: I#Tx = iSys(tx)
     val start = h.start
     val seq0  = tree.get(start).get
     val idx   = seq0.indexOf(h.view)
@@ -202,7 +202,7 @@ trait AuralGraphemeBase[S <: Sys[S], I <: stm.Sys[I], Target, Elem <: AuralView[
   protected def elemFromHandle(h: ElemHandle): Elem = h.view
 
   protected def mkView(vid: Unit, span: SpanLike, obj: Obj[S])(implicit tx: S#Tx): ElemHandle = {
-    implicit val itx = iSys(tx)
+    implicit val itx: I#Tx = iSys(tx)
     val view  = makeViewElem(obj)
     val Span.HasStart(start) = span
     val seq0  = tree.get(start).getOrElse(Vector.empty)

@@ -59,7 +59,7 @@ object AuralFolderAttribute extends Factory {
 
     def dispose()(implicit tx: S#Tx): Unit = ()
 
-    def external = Playing
+    def external: AuralView.State = Playing
   }
 }
 final class AuralFolderAttribute[S <: Sys[S]](val key: String, val obj: stm.Source[S#Tx, Folder[S]],

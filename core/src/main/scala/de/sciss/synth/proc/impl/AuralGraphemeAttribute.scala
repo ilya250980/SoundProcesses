@@ -18,6 +18,7 @@ import de.sciss.lucre.data.SkipList
 import de.sciss.lucre.stm
 import de.sciss.lucre.stm.{Obj, TxnLike}
 import de.sciss.lucre.synth.Sys
+import de.sciss.serial.Serializer
 import de.sciss.synth.proc.AuralAttribute.{Factory, Observer}
 
 import scala.annotation.tailrec
@@ -39,15 +40,13 @@ object AuralGraphemeAttribute extends Factory {
   private def prepare[S <: Sys[S], I1 <: stm.Sys[I1]](key: String, value: Grapheme[S],
                                                       observer: Observer[S], system: S { type I = I1 })
                                                      (implicit tx: S#Tx, context: AuralContext[S]): AuralGraphemeAttribute[S, I1] = {
-    implicit val iSys     = system.inMemoryTx _
-    implicit val itx      = iSys(tx)
-//    implicit val pointView = (l: Leaf[S], tx: I1#Tx) => spanToPoint(l._1)
-//    implicit val dummyKeySer = DummySerializerFactory[system.I].dummySerializer[Leaf[S]]
-//    val tree = SkipOctree.empty[I1, LongSpace.TwoDim, Leaf[S]](BiGroup.MaxSquare)
-    implicit val dummyKeySer = DummySerializerFactory[system.I].dummySerializer[Vec[AuralAttribute[S]]]
+    implicit val iSys: S#Tx => I1#Tx = system.inMemoryTx _
+    implicit val itx: I1#Tx = iSys(tx)
+    implicit val dummyKeySer: Serializer[I1#Tx, I1#Acc, Vec[AuralAttribute[S]]] =
+        DummySerializerFactory[I1].dummySerializer
+
     val tree = SkipList.Map.empty[I1, Long, Vec[AuralAttribute[S]]]
 
-    // val viewMap = tx.newInMemoryIDMap[AuralAttribute[S]]
     new AuralGraphemeAttribute(key, tx.newHandle(value), observer, tree /* , viewMap */)
   }
 }
@@ -55,7 +54,6 @@ final class AuralGraphemeAttribute[S <: Sys[S], I <: stm.Sys[I]](val key: String
                                                                  val obj: stm.Source[S#Tx, Grapheme[S]],
                                                                  observer: Observer[S],
                                                                  protected val tree: SkipList.Map[I, Long, Vec[AuralAttribute[S]]])
-//                                                                 protected val viewMap: IdentifierMap[S#ID, S#Tx, AuralAttribute[S]])
                                                                 (implicit protected val context: AuralContext[S], protected val iSys: S#Tx => I#Tx)
   extends AuralGraphemeBase[S, I, AuralAttribute.Target[S], AuralAttribute[S]]
   with AuralAttribute[S]

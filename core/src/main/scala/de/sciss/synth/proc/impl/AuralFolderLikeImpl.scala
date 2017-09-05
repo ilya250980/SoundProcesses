@@ -43,16 +43,16 @@ trait AuralFolderLikeImpl[S <: Sys[S], Repr <: Obj[S], View <: AuralObj.FolderLi
 
   final protected def processFolderUpdate(fUpd: expr.List.Update[S, Obj[S]])(implicit tx: S#Tx): Unit =
     fUpd.changes.foreach {
-      case Folder.Added  (idx, elem) => transport.addObject   (elem)
-      case Folder.Removed(idx, elem) => transport.removeObject(elem)
+      case Folder.Added  (_, elem) => transport.addObject   (elem)
+      case Folder.Removed(_, elem) => transport.removeObject(elem)
       case _ =>
     }
 
   final def init(obj: Repr)(implicit tx: S#Tx): this.type = {
     observer      = mkObserver(obj)
     transportObs  = transport.react { implicit tx => {
-      case Transport.ViewAdded  (t, view) => contents(Container.ViewAdded  [S, View](impl, view.obj().id, view))
-      case Transport.ViewRemoved(t, view) => contents(Container.ViewRemoved[S, View](impl, view.obj().id, view))
+      case Transport.ViewAdded  (_, view) => contents(Container.ViewAdded  [S, View](impl, view.obj().id, view))
+      case Transport.ViewRemoved(_, view) => contents(Container.ViewRemoved[S, View](impl, view.obj().id, view))
       case _ =>
     }}
 

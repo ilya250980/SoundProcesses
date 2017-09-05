@@ -69,7 +69,7 @@ final class AuralOutputAttribute[S <: Sys[S]](val key: String, val obj: stm.Sour
   private def auralSeen(auralOutput: AuralOutput[S])(implicit tx: S#Tx): Unit = {
     auralRef() = Some(auralOutput)
     val aObs = auralOutput.react { implicit tx => {
-      case AuralOutput.Play(n) =>
+      case AuralOutput.Play(_) =>
         playRef().foreach(update(_, auralOutput))
       case AuralOutput.Stop =>
         // println(s"Aural stopped + ${playRef().isDefined}")

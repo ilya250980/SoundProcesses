@@ -124,7 +124,7 @@ object SensorSystemImpl {
           case osc.Message(`command`, valuesU @ _*) =>
             val values = valuesU.asInstanceOf[Seq[Float]].toIndexedSeq
             atomic { implicit itx =>
-              implicit val tx = TxnLike.wrap(itx)
+              implicit val tx: TxnLike = TxnLike.wrap(itx)
               clients.get(tx.peer).foreach(_.sensorsUpdate(values))
             }
           case _ =>
@@ -171,7 +171,7 @@ object SensorSystemImpl {
 
     private def clientStarted(rich: Server, command: String): Unit =
       atomic { implicit itx =>
-        implicit val tx = TxnLike.wrap(itx)
+        implicit val tx: TxnLike = TxnLike.wrap(itx)
         clientStartedTx(rich, command)
       }
 

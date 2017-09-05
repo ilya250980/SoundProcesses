@@ -16,10 +16,11 @@ package impl
 
 import de.sciss.lucre.bitemp.BiGroup
 import de.sciss.lucre.data.SkipOctree
-import de.sciss.lucre.geom.LongSpace
+import de.sciss.lucre.geom.{LongPoint2D, LongSpace}
 import de.sciss.lucre.stm
 import de.sciss.lucre.stm.{Obj, TxnLike}
 import de.sciss.lucre.synth.Sys
+import de.sciss.serial.Serializer
 import de.sciss.synth.proc.AuralAttribute.{Factory, Observer}
 
 import scala.annotation.tailrec
@@ -45,10 +46,12 @@ object AuralTimelineAttribute extends Factory {
   private def prepare[S <: Sys[S], I1 <: stm.Sys[I1]](key: String, value: Timeline[S],
                                                       observer: Observer[S], system: S { type I = I1 })
                    (implicit tx: S#Tx, context: AuralContext[S]): AuralTimelineAttribute[S, I1] = {
-    implicit val iSys     = system.inMemoryTx _
-    implicit val itx      = iSys(tx)
-    implicit val pointView = (l: Leaf[S], tx: I1#Tx) => spanToPoint(l._1)
-    implicit val dummyKeySer = DummySerializerFactory[system.I].dummySerializer[Leaf[S]]
+    implicit val iSys: S#Tx => I1#Tx  = system.inMemoryTx _
+    implicit val itx: I1#Tx = iSys(tx)
+    implicit val pointView: (Leaf[S], I1#Tx) => LongPoint2D = (l, _) => spanToPoint(l._1)
+    implicit val dummyKeySer: Serializer[I1#Tx, I1#Acc, Leaf[S]] =
+      DummySerializerFactory[I1].dummySerializer
+
     val tree = SkipOctree.empty[I1, LongSpace.TwoDim, Leaf[S]](BiGroup.MaxSquare)
 
     new AuralTimelineAttribute(key, tx.newHandle(value), observer, tree)

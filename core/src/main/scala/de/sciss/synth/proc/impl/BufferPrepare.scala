@@ -72,7 +72,7 @@ object BufferPrepare {
           val stop = offset + chunk
           if (chunk > 0) {
             offsetRef() = stop
-            implicit val ptx = Txn.wrap(tx)
+            implicit val ptx: Txn = Txn.wrap(tx)
             // buf might be offline if dispose was called
             if (buf.isOnline) {
               buf.read(path, fileStartFrame = offset + off0, numFrames = chunk, bufStartFrame = offset)

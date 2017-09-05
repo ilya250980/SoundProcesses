@@ -14,7 +14,7 @@
 package de.sciss.synth.proc
 package impl
 
-import java.io.{FileInputStream, FileNotFoundException, FileOutputStream, IOException}
+import java.io.{File, FileInputStream, FileNotFoundException, FileOutputStream, IOException}
 import java.util.Properties
 
 import de.sciss.file._
@@ -297,7 +297,7 @@ object WorkspaceImpl {
 
     def cursor: stm.Cursor[S] = system
 
-    def folder = None
+    def folder: Option[File] = None
     def name = "in-memory"
   }
 }

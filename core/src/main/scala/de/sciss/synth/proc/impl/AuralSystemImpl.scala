@@ -122,7 +122,7 @@ object AuralSystemImpl {
         val list = server.peer.addListener {
           case SServer.Offline =>
             atomic { implicit itx =>
-              implicit val tx = Txn.wrap(itx)
+              implicit val tx: Txn = Txn.wrap(itx)
               state.swap(StateStopped).dispose()
             }
         }
@@ -148,7 +148,7 @@ object AuralSystemImpl {
 
     private def serverStarted(rich: Server): Unit =
       atomic { implicit itx =>
-        implicit val tx = Txn.wrap(itx)
+        implicit val tx: Txn = Txn.wrap(itx)
         serverStartedTx(rich)
       }
 

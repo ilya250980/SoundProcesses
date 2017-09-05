@@ -17,10 +17,11 @@ package impl
 import de.sciss.lucre.bitemp.BiGroup
 import de.sciss.lucre.data.SkipOctree
 import de.sciss.lucre.event.impl.ObservableImpl
-import de.sciss.lucre.geom.LongSpace
+import de.sciss.lucre.geom.{LongPoint2D, LongSpace}
 import de.sciss.lucre.stm
 import de.sciss.lucre.stm.Obj
 import de.sciss.lucre.synth.Sys
+import de.sciss.serial.Serializer
 import de.sciss.synth.proc.AuralObj.Container
 
 object AuralTimelineImpl {
@@ -47,8 +48,10 @@ object AuralTimelineImpl {
                                                      (implicit tx: S#Tx, context: AuralContext[S]): Impl[S, I1] = {
     implicit val iSys: S#Tx => I1#Tx = system.inMemoryTx _
     implicit val itx: I1#Tx = iSys(tx)
-    implicit val pointView    = (l: Leaf[S], _: I1#Tx) => spanToPoint(l._1)
-    implicit val dummyKeySer  = DummySerializerFactory[system.I].dummySerializer[Leaf[S]]
+    implicit val pointView: (Leaf[S], I1#Tx) => LongPoint2D = (l, _) => spanToPoint(l._1)
+    implicit val dummyKeySer: Serializer[I1#Tx, I1#Acc, Leaf[S]] =
+      DummySerializerFactory[I1].dummySerializer
+
     val tree = SkipOctree.empty[I1, LongSpace.TwoDim, Leaf[S]](BiGroup.MaxSquare)
 
     val res = new Impl[S, I1](tx.newHandle(timeline), tree)

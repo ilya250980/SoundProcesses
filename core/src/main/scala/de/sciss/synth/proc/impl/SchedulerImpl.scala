@@ -24,31 +24,31 @@ import de.sciss.synth.proc
 import de.sciss.synth.proc.Scheduler.Entry
 import proc.{logTransport => logT}
 
-import scala.concurrent.stm.{Ref, TMap, TxnLocal}
+import scala.concurrent.stm.{InTxn, Ref, TMap, TxnLocal}
 import scala.util.control.NonFatal
 
 object SchedulerImpl {
   def apply[S <: Sys[S]](implicit tx: S#Tx, cursor: stm.Cursor[S]): Scheduler[S] = {
     val system  = tx.system
     val prio    = mkPrio[S, system.I](system)
-    implicit val iSys = system.inMemoryTx _
+    implicit val iSys: S#Tx => system.I#Tx = system.inMemoryTx
     new RealtimeImpl[S, system.I](prio)
   }
 
   def offline[S <: Sys[S]](implicit tx: S#Tx, cursor: stm.Cursor[S]): Scheduler.Offline[S] = {
     val system  = tx.system
     val prio    = mkPrio[S, system.I](system)
-    implicit val iSys = system.inMemoryTx _
+    implicit val iSys: S#Tx => system.I#Tx = system.inMemoryTx
     new OfflineImpl[S, system.I](prio)
   }
 
   // what a mess, Scala
   private def mkPrio[S <: Sys[S], I1 <: Sys[I1]](system: S { type I = I1 })
                                                 (implicit tx: S#Tx): SkipList.Map[I1, Long, Set[Int]] = {
-    implicit val iSys   = system.inMemoryTx _
-    implicit val itx    = iSys(tx)
-    implicit val setSer = ImmutableSerializer.set[Int]
-    SkipList.Map.empty[system.I, Long, Set[Int]]()
+    implicit val iSys   : S#Tx => I1#Tx = system.inMemoryTx _
+    implicit val itx    : I1#Tx         = iSys(tx)
+    implicit val setSer: ImmutableSerializer[Set[Int]] = ImmutableSerializer.set
+    SkipList.Map.empty[I1, Long, Set[Int]]()
   }
 
   /* Information about the current situation of the scheduler.
@@ -86,7 +86,7 @@ object SchedulerImpl {
     }
 
     def stepTarget(implicit tx: S#Tx): Option[Long] = {
-      implicit val ptx = tx.peer
+      implicit val ptx: InTxn = tx.peer
       val info = infoVar()
       if (info.isInf) None else Some(info.targetTime)
     }
@@ -110,7 +110,7 @@ object SchedulerImpl {
     }
 
     protected def submit(info: Info)(implicit tx: S#Tx): Unit = {
-      implicit val ptx  = tx.peer
+      implicit val ptx: InTxn = tx.peer
       infoVar()         = info
       val jitter        = calcFrame() - info.issueTime
       val actualDelayN  = math.max(0L, ((info.delay - jitter) / sampleRateN).toLong)
@@ -160,7 +160,7 @@ object SchedulerImpl {
     // ---- scheduling ----
 
     final def schedule(targetTime: Long)(fun: S#Tx => Unit)(implicit tx: S#Tx): Token = {
-      implicit val ptx  = tx.peer
+      implicit val ptx: InTxn = tx.peer
       implicit val itx: I#Tx = iSys(tx)
       val t             = time
       if (targetTime < t) throw new IllegalArgumentException(s"Cannot schedule in the past ($targetTime < $time)")
@@ -191,7 +191,7 @@ object SchedulerImpl {
     }
 
     final def cancel(token: Token)(implicit tx: S#Tx): Unit = {
-      implicit val ptx = tx.peer
+      implicit val ptx: InTxn = tx.peer
       implicit val itx: I#Tx = iSys(tx)
       //      tokenMap.remove(token).fold {
       //        Console.err.println(s"Trying to cancel an unregistered token $token")
@@ -231,7 +231,7 @@ object SchedulerImpl {
     /** Invoked from the `submit` body after the scheduled event is reached. */
     final protected def eventReached(info: Info)(implicit tx: S#Tx): Unit = {
       implicit val itx: I#Tx  = iSys(tx)
-      implicit val ptx = tx.peer
+      implicit val ptx: InTxn = tx.peer
       if (info != infoVar()) return // the scheduled task was invalidated by an intermediate stop or seek command
 
       // this is crucial to eliminate drift: since we reached the scheduled event, do not

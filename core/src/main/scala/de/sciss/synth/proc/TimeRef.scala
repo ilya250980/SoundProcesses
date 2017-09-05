@@ -56,15 +56,15 @@ object TimeRef {
 
   case object Undefined extends Option {
     /** For convenience, an undefined time references reports a frame of zero. */
-    val frame         = 0L
+    val frame           = 0L
     /** The span is of an undefined time reference is void. */
-    val span          = Span.Void
-    val offset        = 0L
-    val isDefined     = false
+    val span: SpanLike  = Span.Void
+    val offset          = 0L
+    val isDefined       = false
 
-    def hasEnded      = true
+    def hasEnded        = true
 
-    def force         = new TimeRef(Span.From(0L), offset = 0L)
+    def force           = new TimeRef(Span.From(0L), offset = 0L)
   }
 
   /** A time reference specifies the temporal context

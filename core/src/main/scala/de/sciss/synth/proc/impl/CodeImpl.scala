@@ -170,7 +170,7 @@ object CodeImpl {
 
       def id: Int = Code.SynthGraph.id
 
-      def binding = None
+      def binding: Option[String] = None
 
       def wrap(in: Unit)(fun: => Any): synth.SynthGraph = synth.SynthGraph(fun)
 

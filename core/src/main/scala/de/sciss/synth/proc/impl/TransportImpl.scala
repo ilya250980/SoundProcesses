@@ -31,7 +31,7 @@ object TransportImpl {
     val res = mkTransport(Some(auralSystem), scheduler)
     auralSystem.addClient(res)
     auralSystem.serverOption.foreach { server =>
-      implicit val auralContext = AuralContext(server, scheduler)
+      implicit val auralContext: AuralContext[S] = AuralContext(server, scheduler)
       res.auralStartedTx(server)
     }
     res
@@ -213,7 +213,7 @@ object TransportImpl {
       // (perhaps the discrepancy between Txn and S#Tx ?)
       tx.afterCommit {
         SoundProcesses.atomic { implicit tx: S#Tx =>
-          implicit val auralContext = AuralContext(server, scheduler)
+          implicit val auralContext: AuralContext[S] = AuralContext(server, scheduler)
           auralStartedTx(server)
         }
       }

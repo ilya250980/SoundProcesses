@@ -1,6 +1,5 @@
 # SoundProcesses
 
-[![Flattr this](http://api.flattr.com/button/flattr-badge-large.png)](https://flattr.com/submit/auto?user_id=sciss&url=https%3A%2F%2Fgithub.com%2FSciss%2FSoundProcesses&title=SoundProcesses&language=Scala&tags=github&category=software)
 [![Gitter](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/Sciss/Mellite?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 [![Build Status](https://travis-ci.org/Sciss/SoundProcesses.svg?branch=master)](https://travis-ci.org/Sciss/SoundProcesses)
 [![Maven Central](https://maven-badges.herokuapp.com/maven-central/de.sciss/soundprocesses_2.11/badge.svg)](https://maven-badges.herokuapp.com/maven-central/de.sciss/soundprocesses_2.11)

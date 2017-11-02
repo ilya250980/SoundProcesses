@@ -1,7 +1,7 @@
 lazy val baseName  = "SoundProcesses"
 lazy val baseNameL = baseName.toLowerCase
 
-lazy val projectVersion = "3.15.0-SNAPSHOT"
+lazy val projectVersion = "3.15.0"
 lazy val mimaVersion    = "3.15.0" // used for migration-manager
 
 lazy val commonSettings = Seq(
@@ -16,12 +16,12 @@ lazy val commonSettings = Seq(
   parallelExecution in Test := false
 ) ++ publishSettings
 
-lazy val lucreVersion               = "3.5.0-SNAPSHOT"
+lazy val lucreVersion               = "3.5.0"
 lazy val scalaColliderVersion       = "1.22.4"
-lazy val ugensVersion               = "1.16.6"
+lazy val ugensVersion               = "1.16.7"
 lazy val scalaColliderIfVersion     = "0.3.1"
 lazy val spanVersion                = "1.3.1"
-lazy val lucreSwingVersion          = "1.7.0-SNAPSHOT"
+lazy val lucreSwingVersion          = "1.7.0"
 lazy val swingPlusVersion           = "0.2.4"
 lazy val audioWidgetsVersion        = "1.11.1"
 lazy val fileUtilVersion            = "1.1.3"

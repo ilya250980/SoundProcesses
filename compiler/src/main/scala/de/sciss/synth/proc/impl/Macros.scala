@@ -22,7 +22,7 @@ import scala.reflect.macros.blackbox
 import scala.tools.nsc.Global
 
 object Macros {
-  private def mkSource(c: blackbox.Context)(name: String, tree: c.Tree): String = {
+  def mkSource(c: blackbox.Context)(name: String, tree: c.Tree): String = {
     val pos = tree.pos
     val fullSource = pos.source.content
     val res = if (pos.isRange) new String(fullSource.slice(pos.start, pos.start + pos.end - pos.start)) else {
@@ -33,7 +33,7 @@ object Macros {
     indentSource(res)
   }
 
-  private def indentSource(in: String): String = {
+  def indentSource(in: String): String = {
     val inT     = in.trim
     val source0 = if (inT.startsWith("{") && inT.endsWith("}")) inT.substring(1, inT.length - 1) else in
     val res = {

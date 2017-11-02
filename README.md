@@ -17,7 +17,7 @@ Further reading:
 
 ## building
 
-SoundProcesses builds with sbt 0.13 and Scala 2.12, 2.11. The last version to support Scala 2.10 is 3.12.2. The dependencies should be downloaded automatically from maven central repository.
+SoundProcesses builds with sbt and Scala 2.12, 2.11. The dependencies should be downloaded automatically from maven central repository.
 
 ## linking
 
@@ -25,7 +25,7 @@ The following dependency is necessary:
 
     "de.sciss" %% "soundprocesses" % v
 
-The current version `v` is `"3.14.1"`.
+The current version `v` is `"3.15.0"`.
 
 The following sub modules are available:
 

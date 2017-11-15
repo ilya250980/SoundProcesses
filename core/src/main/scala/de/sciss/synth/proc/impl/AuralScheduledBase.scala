@@ -40,6 +40,7 @@ object AuralScheduledBase {
   @inline
   def spanToPoint(span: SpanLike): LongPoint2D = BiGroupImpl.spanToPoint(span)
 }
+/** Common base for `AuralGraphemeBase` and `AuralTimelineBase`. */
 trait AuralScheduledBase[S <: Sys[S], Target, Elem <: AuralView[S, Target]]
   extends ObservableImpl[S, AuralView.State] { impl =>
 
@@ -337,7 +338,7 @@ trait AuralScheduledBase[S <: Sys[S], Target, Elem <: AuralView[S, Target]]
 
   /* `modelFrame` may be `Long.MaxValue` in which case the old schedule is simply cancelled. */
   private def scheduleGrid(currentOffset: Long, modelOffset: Long)(implicit tx: S#Tx): Unit = {
-    val targetOffset  = if (modelOffset == Long.MaxValue) Long.MaxValue else modelOffset - LOOK_AHEAD
+    val targetOffset  = if (modelOffset  == Long.MaxValue) Long.MaxValue else modelOffset - LOOK_AHEAD
     val token         = if (targetOffset == Long.MaxValue) -1 else {
       val targetTime = sched.time + (targetOffset - currentOffset)
       import TimeRef.{framesAndSecs => fas}

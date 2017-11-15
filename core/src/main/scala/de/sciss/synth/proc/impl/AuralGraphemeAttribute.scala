@@ -30,11 +30,11 @@ object AuralGraphemeAttribute extends Factory {
 
   def typeID: Int = Grapheme.typeID
 
-  def apply[S <: Sys[S]](key: String, timeline: Grapheme[S], observer: Observer[S])
+  def apply[S <: Sys[S]](key: String, grapheme: Grapheme[S], observer: Observer[S])
                         (implicit tx: S#Tx, context: AuralContext[S]): AuralAttribute[S] = {
     val system  = tx.system
-    val res     = prepare[S, system.I](key, timeline, observer, system)
-    res.init(timeline)
+    val res     = prepare[S, system.I](key, grapheme, observer, system)
+    res.init(grapheme)
   }
 
   private def prepare[S <: Sys[S], I1 <: stm.Sys[I1]](key: String, value: Grapheme[S],

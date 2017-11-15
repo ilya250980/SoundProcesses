@@ -90,6 +90,7 @@ object SoundProcesses {
     SynthGraphObj .init()
     Timeline      .init()
     Markdown      .init()
+    EnvSegment    .init()
   }
 
   /** Registers all known types. */

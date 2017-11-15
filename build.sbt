@@ -1,8 +1,8 @@
 lazy val baseName  = "SoundProcesses"
 lazy val baseNameL = baseName.toLowerCase
 
-lazy val projectVersion = "3.15.0"
-lazy val mimaVersion    = "3.15.0" // used for migration-manager
+lazy val projectVersion = "3.16.0-SNAPSHOT"
+lazy val mimaVersion    = "3.16.0" // used for migration-manager
 
 lazy val commonSettings = Seq(
   version            := projectVersion,
@@ -11,15 +11,16 @@ lazy val commonSettings = Seq(
   description        := "A framework for creating and managing ScalaCollider based sound processes",
   licenses           := Seq("LGPL v2.1+" -> url("http://www.gnu.org/licenses/lgpl-2.1.txt")),
   scalaVersion       := "2.12.4",
-  crossScalaVersions := Seq("2.12.4", "2.11.11"),
+  crossScalaVersions := Seq("2.12.4", "2.11.12"),
+  scalacOptions     ++= Seq("-deprecation", "-unchecked", "-feature", "-encoding", "utf8", "-Xfuture", "-Xlint"),
   resolvers          += "Oracle Repository" at "http://download.oracle.com/maven",  // required for sleepycat
   parallelExecution in Test := false
 ) ++ publishSettings
 
 lazy val lucreVersion               = "3.5.0"
-lazy val scalaColliderVersion       = "1.22.4"
-lazy val ugensVersion               = "1.16.7"
-lazy val scalaColliderIfVersion     = "0.3.1"
+lazy val scalaColliderVersion       = "1.23.0"
+lazy val ugensVersion               = "1.17.1"
+lazy val scalaColliderIfVersion     = "0.4.0"
 lazy val spanVersion                = "1.3.1"
 lazy val lucreSwingVersion          = "1.7.0"
 lazy val swingPlusVersion           = "0.2.4"
@@ -29,7 +30,7 @@ lazy val topologyVersion            = "1.0.1"
 
 // ---- test-only ----
 
-lazy val scalaColliderSwingVersion = "1.34.1"
+lazy val scalaColliderSwingVersion = "1.35.0"
 lazy val scalaTestVersion          = "3.0.4"
 lazy val loggingEnabled            = true
 lazy val bdb                       = "bdb"  // either "bdb" or "bdb6"

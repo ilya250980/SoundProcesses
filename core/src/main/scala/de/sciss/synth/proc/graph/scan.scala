@@ -85,7 +85,7 @@ final case class ScanOut(key: String, in: GE)
   }
 
   // first arg: bus control, remaining args: signal to write; thus numChannels = _args.size - 1
-  private[synth] def makeUGen(_args: Vec[UGenIn]): Unit = {
+  protected def makeUGen(_args: Vec[UGenIn]): Unit = {
     val busArg      = _args.head
     val sigArg      = _args.tail
     val numChannels = sigArg.size

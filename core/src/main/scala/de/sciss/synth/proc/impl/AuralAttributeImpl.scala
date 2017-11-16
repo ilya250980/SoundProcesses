@@ -17,10 +17,10 @@ package impl
 import de.sciss.lucre.event.impl.{DummyObservableImpl, ObservableImpl}
 import de.sciss.lucre.expr.{BooleanObj, DoubleObj, DoubleVector, Expr, IntObj}
 import de.sciss.lucre.stm
-import de.sciss.lucre.stm.{Disposable, Obj, TxnLike}
+import de.sciss.lucre.stm.{Disposable, NoSys, Obj, TxnLike}
 import de.sciss.lucre.synth.Sys
 import de.sciss.synth.Curve
-import de.sciss.synth.proc.AuralAttribute.{Factory, Observer, Scalar, ScalarOptionView, Target}
+import de.sciss.synth.proc.AuralAttribute.{Factory, Observer, Scalar, ScalarOptionView, StartLevelViewFactory, Target}
 import de.sciss.synth.proc.AuralView.{Playing, Prepared, State, Stopped}
 
 import scala.collection.immutable.{IndexedSeq => Vec}
@@ -30,6 +30,8 @@ object AuralAttributeImpl {
   private[this] val sync = new AnyRef
 
   import TxnLike.peer
+
+  // ---- Factory ----
 
   def addFactory(f: Factory): Unit = sync.synchronized {
     val tid = f.typeID
@@ -63,6 +65,39 @@ object AuralAttributeImpl {
     Timeline    .typeID -> AuralTimelineAttribute,
     EnvSegment  .typeID -> AuralEnvSegmentAttribute
   )
+
+  // ---- StartLevel ----
+
+  private[this] var startLevelMap = Map[Int, StartLevelViewFactory](
+    IntObj      .typeID -> IntAttribute,
+    DoubleObj   .typeID -> DoubleAttribute,
+    BooleanObj  .typeID -> BooleanAttribute,
+    DoubleVector.typeID -> DoubleVectorAttribute,
+//    Grapheme    .typeID -> AuralGraphemeAttribute,
+    EnvSegment  .typeID -> AuralEnvSegmentAttribute
+  )
+
+  def addStartLevelViewFactory(f: StartLevelViewFactory): Unit = sync.synchronized {
+    val tid = f.typeID
+    if (startLevelMap.contains(tid)) throw new IllegalArgumentException(s"View factory for type $tid already installed")
+    startLevelMap += tid -> f
+  }
+
+  def startLevelView[S <: Sys[S]](obj: Obj[S])(implicit tx: S#Tx): ScalarOptionView[S] = {
+    val tid = obj.tpe.typeID
+    startLevelMap.get(tid) match {
+      case Some(factory) =>
+        factory.mkStartLevelView(obj.asInstanceOf[factory.Repr[S]])
+      case None =>
+        DummyScalarOptionView.asInstanceOf[ScalarOptionView[S]]
+    }
+  }
+
+  private object DummyScalarOptionView extends ScalarOptionView[NoSys] with DummyObservableImpl[NoSys] {
+    def apply()(implicit tx: NoSys#Tx): Option[Scalar] = None
+  }
+
+  // ---- ----
 
   private final class Playing[S <: Sys[S]](val timeRef: TimeRef, val wallClock: Long, val target: Target[S]) {
     def shiftTo(newWallClock: Long): TimeRef = {
@@ -137,23 +172,23 @@ object AuralAttributeImpl {
     final def preferredNumChannels(implicit tx: S#Tx): Int = 1
   }
 
-  private final class NumericExprObserver[S <: Sys[S], A](expr: NumericExprImpl[S, A])
-    extends ObservableImpl[S, Option[Scalar]] with ScalarOptionView[S] {
-
-    def apply()(implicit tx: S#Tx): Option[Scalar] = Some(expr.mkValue(expr.obj().value))
-  }
-
-  private trait NumericExprImpl[S <: Sys[S], A] extends ExprImpl[S, A] with AuralAttribute.StartLevelSource[S] {
+//  private final class NumericExprObserver[S <: Sys[S], A](expr: NumericExprImpl[S, A])
+//    extends ObservableImpl[S, Option[Scalar]] with ScalarOptionView[S] {
+//
+//    def apply()(implicit tx: S#Tx): Option[Scalar] = Some(expr.mkValue(expr.obj().value))
+//  }
+//
+  private trait NumericExprImpl[S <: Sys[S], A] extends ExprImpl[S, A] /* with AuralAttribute.StartLevelSource[S] */ {
     def mkValue(in: A)(implicit tx: S#Tx): AuralAttribute.Scalar
 
     final def mkValue(timeRef: TimeRef, value: A)(implicit tx: S#Tx): AuralAttribute.Value = mkValue(value)
 
-    def startLevel(implicit tx: S#Tx): ScalarOptionView[S] = new NumericExprObserver(this)
+//    def startLevel(implicit tx: S#Tx): ScalarOptionView[S] = new NumericExprObserver(this)
   }
 
   // ------------------- IntObj -------------------
 
-  private[this] object IntAttribute extends Factory {
+  private[this] object IntAttribute extends Factory with StartLevelViewFactory {
     type Repr[S <: stm.Sys[S]] = IntObj[S]
 
     def typeID: Int = IntObj.typeID
@@ -161,6 +196,8 @@ object AuralAttributeImpl {
     def apply[S <: Sys[S]](key: String, value: IntObj[S], observer: Observer[S])
                           (implicit tx: S#Tx, context: AuralContext[S]): AuralAttribute[S] =
       new IntAttribute(key, tx.newHandle(value)).init(value)
+
+    def mkStartLevelView[S <: Sys[S]](value: Repr[S])(implicit tx: S#Tx): ScalarOptionView[S] = ???
   }
   private final class IntAttribute[S <: Sys[S]](val key: String, val obj: stm.Source[S#Tx, IntObj[S]])
                                                (implicit val context: AuralContext[S])
@@ -175,7 +212,7 @@ object AuralAttributeImpl {
 
   // ------------------- DoubleObj ------------------- 
 
-  private[this] object DoubleAttribute extends Factory {
+  private[this] object DoubleAttribute extends Factory with StartLevelViewFactory  {
     type Repr[S <: stm.Sys[S]] = DoubleObj[S]
 
     def typeID: Int = DoubleObj.typeID
@@ -183,6 +220,8 @@ object AuralAttributeImpl {
     def apply[S <: Sys[S]](key: String, value: DoubleObj[S], observer: Observer[S])
                           (implicit tx: S#Tx, context: AuralContext[S]): AuralAttribute[S] =
       new DoubleAttribute(key, tx.newHandle(value)).init(value)
+
+    def mkStartLevelView[S <: Sys[S]](value: Repr[S])(implicit tx: S#Tx): ScalarOptionView[S] = ???
   }
   private final class DoubleAttribute[S <: Sys[S]](val key: String, val obj: stm.Source[S#Tx, DoubleObj[S]])
                                                   (implicit val context: AuralContext[S])
@@ -197,7 +236,7 @@ object AuralAttributeImpl {
 
   // ------------------- BooleanObj ------------------- 
 
-  private[this] object BooleanAttribute extends Factory {
+  private[this] object BooleanAttribute extends Factory with StartLevelViewFactory {
     type Repr[S <: stm.Sys[S]] = BooleanObj[S]
 
     def typeID: Int = BooleanObj.typeID
@@ -205,6 +244,8 @@ object AuralAttributeImpl {
     def apply[S <: Sys[S]](key: String, value: BooleanObj[S], observer: Observer[S])
                           (implicit tx: S#Tx, context: AuralContext[S]): AuralAttribute[S] =
       new BooleanAttribute(key, tx.newHandle(value)).init(value)
+
+    def mkStartLevelView[S <: Sys[S]](value: Repr[S])(implicit tx: S#Tx): ScalarOptionView[S] = ???
   }
   private final class BooleanAttribute[S <: Sys[S]](val key: String, val obj: stm.Source[S#Tx, BooleanObj[S]])
                                                    (implicit val context: AuralContext[S])
@@ -251,7 +292,7 @@ object AuralAttributeImpl {
 
   // ------------------- DoubleVector ------------------- 
 
-  private[this] object DoubleVectorAttribute extends Factory {
+  private[this] object DoubleVectorAttribute extends Factory with StartLevelViewFactory {
     type Repr[S <: stm.Sys[S]] = DoubleVector[S]
 
     def typeID: Int = DoubleVector.typeID
@@ -259,6 +300,8 @@ object AuralAttributeImpl {
     def apply[S <: Sys[S]](key: String, value: DoubleVector[S], observer: Observer[S])
                           (implicit tx: S#Tx, context: AuralContext[S]): AuralAttribute[S] =
       new DoubleVectorAttribute(key, tx.newHandle(value)).init(value)
+
+    def mkStartLevelView[S <: Sys[S]](value: Repr[S])(implicit tx: S#Tx): ScalarOptionView[S] = ???
   }
   private final class DoubleVectorAttribute[S <: Sys[S]](val key: String, val obj: stm.Source[S#Tx, DoubleVector[S]])
                                                         (implicit val context: AuralContext[S])
@@ -274,6 +317,7 @@ object AuralAttributeImpl {
   }
 
   // ------------------- generic (dummy) -------------------
+
   private final class DummyAttribute[S <: Sys[S]](val key: String, val obj: stm.Source[S#Tx, Obj[S]])
     extends AuralAttribute[S] {
 

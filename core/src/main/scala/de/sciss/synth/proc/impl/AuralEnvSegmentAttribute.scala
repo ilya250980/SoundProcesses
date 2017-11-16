@@ -7,21 +7,23 @@ import de.sciss.lucre.stm
 import de.sciss.lucre.stm.Disposable
 import de.sciss.lucre.stm.TxnLike.peer
 import de.sciss.lucre.synth.{Bus, Synth, Sys}
-import de.sciss.synth.proc.AuralAttribute.{Factory, Observer, Scalar, ScalarOptionView, SegmentEndSink, StartLevelSource}
+import de.sciss.synth.proc.AuralAttribute.{Factory, Observer, Scalar, ScalarOptionView, SegmentEndSink, StartLevelViewFactory}
 import de.sciss.synth.proc.graph.{Duration, Offset}
 import de.sciss.synth.proc.impl.AuralAttributeImpl.ExprImpl
 import de.sciss.synth.{Curve, SynthGraph, addToHead, ugen, ControlSet => CS}
 
 import scala.concurrent.stm.Ref
 
-object AuralEnvSegmentAttribute extends Factory {
+object AuralEnvSegmentAttribute extends Factory with StartLevelViewFactory {
   type Repr[S <: stm.Sys[S]] = EnvSegment.Obj[S]
 
   def typeID: Int = EnvSegment.typeID
 
-  def apply[S <: Sys[S]](key: String, value: EnvSegment.Obj[S], observer: Observer[S])
+  def apply[S <: Sys[S]](key: String, value: Repr[S], observer: Observer[S])
                         (implicit tx: S#Tx, context: AuralContext[S]): AuralAttribute[S] =
     new Impl(key, tx.newHandle(value)).init(value)
+
+  def mkStartLevelView[S <: Sys[S]](value: Repr[S])(implicit tx: S#Tx): ScalarOptionView[S] = ???
 
   private def mkEnvSegGraph(numChannels: Int): SynthGraph =
     if      (numChannels == 1) envSegGraph1
@@ -67,10 +69,9 @@ object AuralEnvSegmentAttribute extends Factory {
 
   private final class Impl[S <: Sys[S]](val key: String, val obj: stm.Source[S#Tx, Repr[S]])
                                        (implicit val context: AuralContext[S])
-    extends ExprImpl[S, EnvSegment] with SegmentEndSink[S] with StartLevelSource[S] {
+    extends ExprImpl[S, EnvSegment] with SegmentEndSink[S] /* with StartLevelSource[S] */ {
 
     private[this] val _endLevel     = Ref(Option.empty[SegmentEnd[S]])
-    private[this] val _endLevelObs  = Ref(Disposable.empty[S#Tx])
 
     def typeID: Int = EnvSegment.typeID
 
@@ -79,7 +80,7 @@ object AuralEnvSegmentAttribute extends Factory {
     private def valueChanged()(implicit tx: S#Tx): Unit = valueChanged(obj().value)
 
     override def dispose()(implicit tx: S#Tx): Unit = {
-      _endLevelObs().dispose()
+      _endLevel.swap(None).foreach(_.dispose())
       super.dispose()
     }
 

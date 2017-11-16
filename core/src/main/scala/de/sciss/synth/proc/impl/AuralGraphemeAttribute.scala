@@ -19,7 +19,7 @@ import de.sciss.lucre.stm
 import de.sciss.lucre.stm.{Obj, TxnLike}
 import de.sciss.lucre.synth.Sys
 import de.sciss.serial.Serializer
-import de.sciss.synth.proc.AuralAttribute.{SegmentEndSink, Factory, Observer, StartLevelSource}
+import de.sciss.synth.proc.AuralAttribute.{Factory, Observer, SegmentEndSink}
 
 import scala.annotation.tailrec
 import scala.collection.immutable.{IndexedSeq => Vec}
@@ -71,38 +71,44 @@ final class AuralGraphemeAttribute[S <: Sys[S], I <: stm.Sys[I]](val key: String
   private[this] val prefChansElemRef  = Ref[Vec[Elem]](Vector.empty)
   private[this] val prefChansNumRef   = Ref(-2)   // -2 = cache invalid. across contents of `prefChansElemRef`
 
-  protected def makeViewElem(start: Long, obj: Obj[S])(implicit tx: S#Tx): Elem = {
-    val view = AuralAttribute(key, obj, attr)
+  protected def makeViewElem(start: Long, child: Obj[S])(implicit tx: S#Tx): Elem = {
+    val view = AuralAttribute(key, child, attr)
     view match {
       case ses: SegmentEndSink[S] if start < Long.MaxValue =>
-        implicit val itx: I#Tx = iSys(tx)
-        tree.ceil(start + 1).foreach {
-          case (_, (sls: StartLevelSource[S]) +: _) =>
-            val sl = sls.startLevel
-            ses.segmentEnd_=(start, sl)
-          case _ =>
+        obj().ceil(start + 1).foreach { entry =>
+          val stopTime  = entry.key.value
+          val stopChild = entry.value
+          AuralAttribute.factories
         }
+        ???
+//        implicit val itx: I#Tx = iSys(tx)
+//        tree.ceil(start + 1).foreach {
+//          case (_, (sls: StartLevelSource[S]) +: _) =>
+//            val sl = sls.startLevel
+//            ses.segmentEnd_=(start, sl)
+//          case _ =>
+//        }
       case _ =>
     }
     view
   }
 
-  protected def viewAdded(elem: ElemHandle)(implicit tx: S#Tx): Unit =
-    elem.view match {
-      // if the added element has a start-level, and the predecessor
-      // and end level sink, associate the two
-      case sls: StartLevelSource[S] if elem.start > Long.MinValue =>
-        implicit val itx: I#Tx = iSys(tx)
-        tree.floor(elem.start - 1).foreach {
-          case (_, xs) =>
-            val sl = sls.startLevel
-            xs.foreach {
-              case ses: SegmentEndSink[S] => ses.segmentEnd_=(elem.start, sl)
-              case _ =>
-            }
-        }
-      case _ =>
-    }
+//  protected def viewAdded(elem: ElemHandle)(implicit tx: S#Tx): Unit =
+//    elem.view match {
+//      // if the added element has a start-level, and the predecessor
+//      // and end level sink, associate the two
+//      case sls: StartLevelSource[S] if elem.start > Long.MinValue =>
+//        implicit val itx: I#Tx = iSys(tx)
+//        tree.floor(elem.start - 1).foreach {
+//          case (_, xs) =>
+//            val sl = sls.startLevel
+//            xs.foreach {
+//              case ses: SegmentEndSink[S] => ses.segmentEnd_=(elem.start, sl)
+//              case _ =>
+//            }
+//        }
+//      case _ =>
+//    }
 
   def preferredNumChannels(implicit tx: S#Tx): Int = {
     val cache = prefChansNumRef()

@@ -50,10 +50,10 @@ trait AuralGraphemeBase[S <: Sys[S], I <: stm.Sys[I], Target, Elem <: AuralView[
 
   protected def makeViewElem(start: Long, obj: Obj[S])(implicit tx: S#Tx): Elem
 
-  /** Called from `mkView` with the resulting view before returning.
-    * Subclasses can use this to communicate the view to interested neighbouring views (for example).
-    */
-  protected def viewAdded(elem: ElemHandle)(implicit tx: S#Tx): Unit
+//  /** Called from `mkView` with the resulting view before returning.
+//    * Subclasses can use this to communicate the view to interested neighbouring views (for example).
+//    */
+//  protected def viewAdded(elem: ElemHandle)(implicit tx: S#Tx): Unit
 
   // ---- impl ----
 
@@ -195,7 +195,7 @@ trait AuralGraphemeBase[S <: Sys[S], I <: stm.Sys[I], Target, Elem <: AuralView[
     val seq1  = seq0 :+ view
     tree.add(start -> seq1)
     val h     = ElemHandle(start, view)
-    viewAdded(h)
+//    viewAdded(h)
     h
   }
 

@@ -124,16 +124,23 @@ object AuralAttribute {
 
   // ---- StartLevel / EndLevel ----
 
-  /** It has to be optional so that containers such as Folder or Grapheme could be supported. */
+  /** A trait that provides a view onto a numeric start level. Single channel views can
+    * use this by putting their value into a single-element vector.
+    * It has to be optional so that containers such as Folder or Grapheme could be supported.
+    */
   trait ScalarOptionView[S <: Sys[S]] extends Observable[S#Tx, Option[Scalar]] with stm.Source[S#Tx, Option[Scalar]]
 
-  /** A trait that can be mixed into an `AuralView` to indicate that it
-    * has a view onto a numeric start level. Single channel views can
-    * use this by putting their value into a single-element vector.
-    */
-  trait StartLevelSource[S <: Sys[S]] {
-    def startLevel(implicit tx: S#Tx): ScalarOptionView[S]
+  trait StartLevelViewFactory {
+    def typeID: Int
+
+    type Repr[~ <: Sys[~]] <: Obj[~]
+
+    def mkStartLevelView[S <: SSys[S]](value: Repr[S])(implicit tx: S#Tx): ScalarOptionView[S]
   }
+
+  def addStartLevelViewFactory(f: StartLevelViewFactory): Unit = Impl.addStartLevelViewFactory(f)
+
+  def startLevelView[S <: SSys[S]](obj: Obj[S])(implicit tx: S#Tx): ScalarOptionView[S] = Impl.startLevelView[S](obj)
 
   trait SegmentEndSink[S <: Sys[S]] {
     def segmentEnd_=(stopFrame: Long, levelView: ScalarOptionView[S])(implicit tx: S#Tx): Unit

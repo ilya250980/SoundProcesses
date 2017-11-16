@@ -42,7 +42,7 @@ object EnvSegment {
         case 0 =>
           val startLevel    = in.readDouble()
           val curve         = Curve.serializer.read(in)
-          EnvSegment.Single(startLevelLevel = startLevel, curve = curve)
+          EnvSegment.Single(startLevel = startLevel, curve = curve)
         case 1 =>
           val startLevels   = DoubleVector.valueSerializer.read(in)
           val curve         = Curve.serializer.read(in)
@@ -262,17 +262,21 @@ object EnvSegment {
   }
   trait Obj[S <: Sys[S]] extends Expr[S, EnvSegment]
 
-  final case class Single(startLevelLevel: Double, curve: Curve) extends EnvSegment {
-    def startLevels: Vec[Double] = Vector(startLevelLevel)
+  final case class Single(startLevel: Double, curve: Curve) extends EnvSegment {
+    def numChannels: Int = 1
+
+    def startLevels: Vec[Double] = Vector(startLevel)
 
     def write(out: DataOutput): Unit = {
       out.writeShort(COOKIE)
       out.writeByte(0)
-      out.writeDouble(startLevelLevel)
+      out.writeDouble(startLevel)
       Curve.serializer.write(curve, out)
     }
   }
   final case class Multi (startLevels: Vec[Double], curve: Curve) extends EnvSegment {
+    def numChannels: Int = startLevels.size
+
     def write(out: DataOutput): Unit = {
       out.writeShort(COOKIE)
       out.writeByte(1)
@@ -285,4 +289,5 @@ object EnvSegment {
 sealed abstract class EnvSegment extends Writable {
   def curve: Curve
   def startLevels: Vec[Double]
+  def numChannels: Int
 }

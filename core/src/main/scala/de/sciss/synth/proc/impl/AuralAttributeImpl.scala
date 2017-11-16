@@ -71,7 +71,7 @@ object AuralAttributeImpl {
 
     /* override */ def obj: stm.Source[S#Tx, Expr[S, A]]
 
-    def mkValue(in: A): AuralAttribute.Value
+    protected def mkValue(in: A)(implicit tx: S#Tx): AuralAttribute.Value
 
     // ---- impl ----
 
@@ -86,7 +86,7 @@ object AuralAttributeImpl {
       require(playRef.swap(Some(target))(tx.peer).isEmpty)
       // target.add(this)
       state = Playing
-      update(target, obj().value)
+      updateTarget(target, obj().value)
     }
 
     final def stop()(implicit tx: S#Tx): Unit = {
@@ -94,15 +94,18 @@ object AuralAttributeImpl {
       state = Stopped
     }
 
-    private def update(target: Target[S], value: A)(implicit tx: S#Tx): Unit = {
+    private def updateTarget(target: Target[S], value: A)(implicit tx: S#Tx): Unit = {
       // import p.target
       val ctlVal = mkValue(value)
       target.put(this, ctlVal)
     }
 
+    final protected def valueChanged(value: A)(implicit tx: S#Tx): Unit =
+      playRef().foreach(updateTarget(_, value))
+
     def init(expr: Expr[S, A])(implicit tx: S#Tx): this.type = {
       obs = expr.changed.react { implicit tx => change =>
-        playRef().foreach(update(_, change.now))
+        valueChanged(change.now)
       }
       this
     }
@@ -127,7 +130,7 @@ object AuralAttributeImpl {
   }
 
   private trait NumericExprImpl[S <: Sys[S], A] extends ExprImpl[S, A] with AuralAttribute.StartLevelSource[S] {
-    override def mkValue(in: A): AuralAttribute.Scalar
+    override def mkValue(in: A)(implicit tx: S#Tx): AuralAttribute.Scalar
 
     def startLevel(implicit tx: S#Tx): ScalarOptionView[S] = new NumericExprObserver(this)
   }
@@ -148,7 +151,7 @@ object AuralAttributeImpl {
 
     def typeID: Int = IntObj.typeID
 
-    def mkValue(value: Int): AuralAttribute.Scalar = value.toFloat
+    def mkValue(value: Int)(implicit tx: S#Tx): AuralAttribute.Scalar = value.toFloat
 
     override def toString = s"IntAttribute($key)@${hashCode.toHexString}"
   }
@@ -169,7 +172,7 @@ object AuralAttributeImpl {
 
     def typeID: Int = DoubleObj.typeID
 
-    def mkValue(value: Double): AuralAttribute.Scalar = value.toFloat
+    def mkValue(value: Double)(implicit tx: S#Tx): AuralAttribute.Scalar = value.toFloat
 
     override def toString = s"DoubleAttribute($key)@${hashCode.toHexString}"
   }
@@ -190,7 +193,7 @@ object AuralAttributeImpl {
 
     def typeID: Int = BooleanObj.typeID
 
-    def mkValue(value: Boolean): AuralAttribute.Scalar = if (value) 1f else 0f
+    def mkValue(value: Boolean)(implicit tx: S#Tx): AuralAttribute.Scalar = if (value) 1f else 0f
 
     override def toString = s"BooleanAttribute($key)@${hashCode.toHexString}"
   }
@@ -213,7 +216,7 @@ object AuralAttributeImpl {
 
     def preferredNumChannels(implicit tx: S#Tx): Int = 4
 
-    def mkValue(spec: FadeSpec): AuralAttribute.Scalar = {
+    def mkValue(spec: FadeSpec)(implicit tx: S#Tx): AuralAttribute.Scalar = {
       val v = Vector[Float](
         (spec.numFrames / TimeRef.SampleRate).toFloat, spec.curve.id.toFloat, spec.curve match {
           case Curve.parametric(c)  => c
@@ -244,7 +247,7 @@ object AuralAttributeImpl {
 
     def preferredNumChannels(implicit tx: S#Tx): Int = obj().value.size
 
-    def mkValue(vec: Vec[Double]): AuralAttribute.Scalar = vec.map(_.toFloat)
+    def mkValue(vec: Vec[Double])(implicit tx: S#Tx): AuralAttribute.Scalar = vec.map(_.toFloat)
 
     override def toString = s"DoubleVectorAttribute($key)@${hashCode.toHexString}"
   }

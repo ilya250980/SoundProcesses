@@ -27,6 +27,7 @@ lazy val swingPlusVersion           = "0.2.4"
 lazy val audioWidgetsVersion        = "1.11.1"
 lazy val fileUtilVersion            = "1.1.3"
 lazy val topologyVersion            = "1.0.1"
+lazy val equalVersion               = "0.1.2"
 
 // ---- test-only ----
 
@@ -93,15 +94,16 @@ lazy val core = Project(id = s"$baseNameL-core", base = file("core"))
     ),
     buildInfoPackage := "de.sciss.synth.proc",
     libraryDependencies ++= Seq(
-      "de.sciss"          %% "lucre-confluent"  % lucreVersion,
-      "de.sciss"          %% "lucre-expr"       % lucreVersion,
-      "at.iem"            %% "scalacollider-if" % scalaColliderIfVersion,
-      "de.sciss"          %% "fileutil"         % fileUtilVersion,
-      "org.scala-lang"    %  "scala-compiler"   % scalaVersion.value % "provided",
-      "org.scalatest"     %% "scalatest"        % scalaTestVersion  % "test",
-      "de.sciss"          %% s"lucre-$bdb"      % lucreVersion      % "test",
-      "com.github.scopt"  %% "scopt"            % scoptVersion      % "test",
-      "de.sciss"          %% "scalacolliderswing-plotting" % scalaColliderSwingVersion % "test"
+      "de.sciss"          %% "lucre-confluent"              % lucreVersion,
+      "de.sciss"          %% "lucre-expr"                   % lucreVersion,
+      "at.iem"            %% "scalacollider-if"             % scalaColliderIfVersion,
+      "de.sciss"          %% "fileutil"                     % fileUtilVersion,
+      "de.sciss"          %% "equal"                        % equalVersion,
+      "org.scala-lang"    %  "scala-compiler"               % scalaVersion.value        % "provided",
+      "org.scalatest"     %% "scalatest"                    % scalaTestVersion          % "test",
+      "de.sciss"          %% s"lucre-$bdb"                  % lucreVersion              % "test",
+      "com.github.scopt"  %% "scopt"                        % scoptVersion              % "test",
+      "de.sciss"          %% "scalacolliderswing-plotting"  % scalaColliderSwingVersion % "test"
     ),
     mimaPreviousArtifacts := Set("de.sciss" %% s"$baseNameL-core" % mimaVersion)
   )

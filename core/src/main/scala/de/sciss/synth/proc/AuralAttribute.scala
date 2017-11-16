@@ -70,6 +70,10 @@ object AuralAttribute {
     * overall signal output as sent to the node. For instance,
     * a stream input will have a bus to which is ''writes'', whereas
     * the target itself may provide a bus from which this node ''reads''.
+    *
+    * It is possible for an attribute to call `put` repeatedly, the
+    * target will then automatically dispose the previous value it
+    * had associated with that attribute.
     */
   trait Target[S <: Sys[S]] extends Observable[S#Tx, Value] {
     def key: String

@@ -2,67 +2,27 @@ package de.sciss.synth.proc
 
 import de.sciss.file._
 import de.sciss.lucre.artifact.{Artifact, ArtifactLocation}
-import de.sciss.lucre.expr.{BooleanObj, DoubleObj, DoubleVector, IntObj, SpanLikeObj}
+import de.sciss.lucre.expr.{BooleanObj, DoubleObj, IntObj, SpanLikeObj}
 import de.sciss.lucre.stm
-import de.sciss.lucre.stm.Obj
-import de.sciss.lucre.stm.store.BerkeleyDB
-import de.sciss.lucre.synth.{Server, Sys}
-import de.sciss.span.{Span, SpanLike}
-import de.sciss.{numbers, synth}
+import de.sciss.lucre.stm.Cursor
+import de.sciss.lucre.synth.Sys
+import de.sciss.span.Span
 import de.sciss.synth.Curve.{exponential, linear}
 import de.sciss.synth.io.{AudioFile, AudioFileType}
 import de.sciss.synth.proc.Action.Universe
 import de.sciss.synth.proc.Implicits._
 import de.sciss.synth.proc.WorkspaceHandle.Implicits._
+import de.sciss.{numbers, synth}
 
-import scala.concurrent.stm.Txn
 import scala.language.implicitConversions
 
-object NewAuralTest extends App {
-  val confluent = false /* true */  // currently test4 has a problem with event-variables in confluent
-
-  SoundProcesses.init()
-
-  val name = args.headOption.getOrElse("?")
-
-  if (confluent) {
-    type S  = Confluent
-//    type I  = S#I
-    val sys = Confluent(BerkeleyDB.tmp())
-    val (_, cursor) = sys.cursorRoot(_ => ())(implicit tx => _ => sys.newCursor())
-    new NewAuralTest[S](name)(cursor)
-
-  } else {
-    type S  = Durable
-//    type I  = S#I
-    val sys = Durable(BerkeleyDB.tmp())
-    val cursor: stm.Cursor[S] = sys
-    new NewAuralTest[S](name)(cursor)
-  }
+object AuralTests1 extends AuralTestLike.Factory {
+  def run[S <: Sys[S]](name: String)(implicit cursor: Cursor[S]): Unit =
+    new AuralTests1[S](name)
 }
-class NewAuralTest[S <: Sys[S]](name: String)(implicit cursor: stm.Cursor[S]) {
-  showAuralLog      = true
-  showTransportLog  = true
-  // de.sciss.lucre.synth.showLog = true
+class AuralTests1[S <: Sys[S]](name: String)(implicit cursor: stm.Cursor[S]) extends AuralTestLike[S] {
 
-  val as = AuralSystem()
-  cursor.step { implicit tx =>
-    as.whenStarted(s => initView(as, s))
-    as.start()
-  }
-
-  def initView(as: AuralSystem, s: Server): Unit = {
-    if (Txn.findCurrent.isDefined) {
-      Console.err.println("Damn! I could swear there is no transaction.")
-      throw new IllegalStateException()
-    }
-
-    s.peer.dumpOSC()
-    implicit val context = cursor.step { implicit tx =>
-      import WorkspaceHandle.Implicits._
-      AuralContext[S](s)
-    }
-    //////////////////////////////////////////////////////////////////////////////////////
+  def run()(implicit context: AuralContext[S]): Unit = {
     name match {
       case "--test1"  => test1()
       case "--test2"  => test2()
@@ -84,256 +44,16 @@ class NewAuralTest[S <: Sys[S]](name: String)(implicit cursor: stm.Cursor[S]) {
       case "--test18" => test18()
       case "--test19" => test19()
       case "--test20" => test20()
-      case "--test21" => test21()
-      case "--test22" => test22()
       case _         =>
         println("WARNING: No option given, using --test1")
         test1()
     }
   }
 
-  def after(secs: Double)(code: S#Tx => Unit): Unit = {
-    val t = new Thread {
-      override def run(): Unit = {
-        Thread.sleep((secs * 1000).toLong)
-        cursor.step { implicit tx =>
-          code(tx)
-        }
-      }
-    }
-    Txn.findCurrent.fold(t.start()) { implicit tx =>
-      Txn.afterCommit(_ => t.start())
-    }
-  }
-
-  def quit()(implicit tx: S#Tx): Unit =
-    tx.afterCommit {
-      Thread.sleep(1000)  // have to wait a bit for scsynth to quit
-      scala.sys.exit()
-    }
+  ////////////////////////////////////////////////////////////////////////////////////// 22
 
   import synth._
   import ugen._
-
-  def procV(graph: => Unit)(implicit tx: S#Tx, context: AuralContext[S]): AuralObj.Proc[S] = {
-    val pObj  = proc(graph)
-    val _view = AuralObj.Proc(pObj)
-    _view
-  }
-
-  def proc(graph: => Unit)(implicit tx: S#Tx): Proc[S] = {
-    val p = Proc[S]
-    val g = SynthGraph {
-      graph
-    }
-    p.graph() = SynthGraphObj.newConst[S](g)
-    p // Obj(Proc.Elem(p))
-  }
-
-  def timelineV()(implicit tx: S#Tx, context: AuralContext[S]): AuralObj.Timeline[S] = {
-    val tlObj = timeline()
-    val _view = AuralObj.Timeline(tlObj)
-    _view
-  }
-
-  def timeline()(implicit tx: S#Tx): Timeline[S] = {
-    val tl    = Timeline[S]
-    tl // Obj(Timeline.Elem(tl))
-  }
-
-  def frame  (secs  : Double): Long   = (secs  * TimeRef.SampleRate).toLong
-  def seconds(frames: Long  ): Double = frames / TimeRef.SampleRate
-
-  def putDouble(proc: Proc[S], key: String, value: Double)(implicit tx: S#Tx): Unit = {
-    // val imp = ExprImplicits[S]
-    // import imp._
-    proc.attr.put(key, value: DoubleObj[S])
-  }
-
-  def stopAndQuit(delay: Double = 4.0): Unit =
-    after(delay) { implicit tx =>
-      as.stop()
-      quit()
-    }
-
-  def addScanIn(proc: Proc[S], key: String = "in"): (Proc[S], String) /* Scan[S] */ = {
-    (proc, key) // proc.inputs.add(key)
-  }
-
-  def addOutput(proc: Proc[S], key: String = "out")(implicit tx: S#Tx): Output[S] = {
-    proc.outputs.add(key)
-  }
-
-  implicit class OutputOps(val `this`: Output[S]) /* extends AnyVal */ {
-    def ~> (that: (Proc[S], String))(implicit tx: S#Tx): Unit = {
-      val (sink, key) = that
-      val attr = sink.attr
-      attr.get(key).fold[Unit] {
-        attr.put(key, `this`)
-      } {
-        case f: Folder[S] => f.addLast(`this`)
-        case prev =>
-          val f = Folder[S]
-          f.addLast(prev)
-          f.addLast(`this`)
-          attr.put(key, f)
-      }
-    }
-
-    def ~/> (that: (Proc[S], String))(implicit tx: S#Tx): Unit = {
-      val (sink, key) = that
-      val attr = sink.attr
-      attr.get(key).getOrElse(sys.error(s"Attribute $key was not assigned")) match {
-        case `sink` => attr.remove(key)
-        case f: Folder[S] =>
-          val idx = f.indexOf(`this`)
-          if (idx < 0) sys.error(s"Attribute $key has a folder but does not contain ${`this`}")
-          f.removeAt(idx)
-
-        case other => sys.error(s"Cannot remove output from $other")
-      }
-    }
-  }
-
-  implicit def timeRange(in: (Double, Double)): Span = {
-    val start = (in._1 * TimeRef.SampleRate).toLong
-    val stop  = (in._2 * TimeRef.SampleRate).toLong
-    Span(start, stop)
-  }
-
-  implicit class TimelineOps(tl: Timeline[S]) /* extends AnyVal */ {
-    def += (span: SpanLike, obj: Obj[S])(implicit tx: S#Tx): Unit = {
-      val tlm = tl.modifiableOption.get  // yo
-      tlm.add(SpanLikeObj.newConst(span), obj)
-    }
-
-    def -= (span: SpanLike, obj: Obj[S])(implicit tx: S#Tx): Unit = {
-      val tlm = tl.modifiableOption.get  // yo
-      val res = tlm.remove(SpanLikeObj.newConst(span), obj)
-      if (!res) Console.err.println(s"Warning: object $obj at $span not found in timeline")
-    }
-  }
-
-  //////////////////////////////////////////////////////////////////////////////////////
-
-  ////////////////////////////////////////////////////////////////////////////////////// 22
-
-  def test22()(implicit context: AuralContext[S]): Unit = {
-    println("----test22----")
-    println(
-      """
-        |Expected behaviour:
-        |We record two seconds of sound to a `BufferOut` element,
-        |then play back.
-        |
-        |""".stripMargin)
-
-    cursor.step { implicit tx =>
-      val _view1 = procV {
-        import graph.Ops._
-        val dur       = "rec-dur".ir // (8.0)
-        dur.poll(0, "dur should be 8")
-        val indicesIn = "buses-in".ir
-        val numCh     = NumChannels(indicesIn)
-        val numFrames = dur * SampleRate.ir
-        val in        = WhiteNoise.ar(Pad(Impulse.ar(SinOsc.ar(0.25).abs.linexp(0, 1, 5, 50)), indicesIn))
-        val buf       = graph.BufferOut(artifact = "file", action = "done", numFrames = numFrames, numChannels = numCh)
-        val rec       = RecordBuf.ar(in = in, buf = buf, loop = 0)
-        val done      = Done.kr(rec)
-        graph.StopSelf(done)
-      }
-
-      val f     = File.createTemp("buffer", ".aif")
-      val loc   = ArtifactLocation.newConst[S](f.parent)
-      val art   = Artifact[S](loc, f)
-
-      val t2 = Transport[S]
-
-      val body  = new Action.Body {
-        def apply[T <: stm.Sys[T]](universe: Universe[T])(implicit tx: T#Tx): Unit = {
-          val spec = AudioFile.readSpec(f)
-          println(spec)
-          val _proc2 = Proc[T]
-          val g = SynthGraph {
-            val in = graph.DiskIn.ar("file")
-            Out.ar(0, Pan2.ar(in * 0.5))
-          }
-          _proc2.graph() = SynthGraphObj.newConst[T](g)
-          val attr2 = _proc2.attr
-          val cue = AudioCue(f, spec, offset = 0L, gain = 1.0)
-          attr2.put("file", AudioCue.Obj.newConst[T](cue))
-//          val _view2T = AuralObj.Proc(_proc2)
-//          _view2T.play()
-          val t2T = t2.asInstanceOf[Transport[T]]
-          t2T.addObject(_proc2)
-          t2T.play()
-          stopAndQuit()
-        }
-      }
-
-      Action.registerPredef("buffer-test", body)
-      val action = Action.predef[S]("buffer-test")
-
-      val attr1 = _view1.obj().attr
-      attr1.put("rec-dur" , IntObj.newConst[S](8))
-      attr1.put("buses-in", DoubleVector.newConst[S](Vector(0, 1)))
-      attr1.put("file", art)
-      attr1.put("done", action)
-
-      _view1.play()
-
-//      val t = Transport[S]
-//      t.addObject(proc1)
-//      t.play()
-    }
-  }
-
-  ////////////////////////////////////////////////////////////////////////////////////// 21
-
-  def test21()(implicit context: AuralContext[S]): Unit = {
-    println("----test21----")
-    println(
-      """
-        |Expected behaviour:
-        |We set up a source and sink and
-        |timeline connections between them.
-        |Two seconds after start, we hear pink noise.
-        |
-        |""".stripMargin)
-
-    cursor.step { implicit tx =>
-      val tl = Timeline[S]
-
-      val pGen = proc {
-        val sig = PinkNoise.ar(Seq(1, 1))
-        graph.ScanOut(sig)
-      }
-      pGen.name = "gen"
-      val genOut = pGen.outputs.add(Proc.mainOut)
-
-      val pDif = proc {
-        val sig = graph.ScanInFix(2)
-        Out.ar(0, sig * 0.2)
-      }
-      pDif.name = "dif"
-      val difIn = Timeline[S]
-      pDif.attr.put(Proc.mainIn, difIn)
-
-      difIn.add(Span.from(frame(0.0)), genOut)
-      tl.add(Span(frame(2.0), frame(9.0)), pGen)
-      tl.add(Span(frame(2.0), frame(8.0)), pDif)
-      //      tl.add(Span.from(frame(2.0)), pGen)
-      //      tl.add(Span.from(frame(2.0)), pDif)
-
-      val t = Transport[S]
-      t.addObject(tl)
-      t.play()
-
-      stopAndQuit(4.0)
-    }
-  }
-
-  ////////////////////////////////////////////////////////////////////////////////////// 20
 
   def test20()(implicit context: AuralContext[S]): Unit = {
     println("----test20----")

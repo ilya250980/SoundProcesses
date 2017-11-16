@@ -19,7 +19,7 @@ import de.sciss.lucre.stm
 import de.sciss.lucre.stm.{Obj, TxnLike}
 import de.sciss.lucre.synth.Sys
 import de.sciss.serial.Serializer
-import de.sciss.synth.proc.AuralAttribute.{Factory, Observer}
+import de.sciss.synth.proc.AuralAttribute.{EndLevelSink, Factory, Observer, StartLevelSource}
 
 import scala.annotation.tailrec
 import scala.collection.immutable.{IndexedSeq => Vec}
@@ -54,7 +54,8 @@ final class AuralGraphemeAttribute[S <: Sys[S], I <: stm.Sys[I]](val key: String
                                                                  val obj: stm.Source[S#Tx, Grapheme[S]],
                                                                  observer: Observer[S],
                                                                  protected val tree: SkipList.Map[I, Long, Vec[AuralAttribute[S]]])
-                                                                (implicit protected val context: AuralContext[S], protected val iSys: S#Tx => I#Tx)
+                                                                (implicit protected val context: AuralContext[S],
+                                                                 protected val iSys: S#Tx => I#Tx)
   extends AuralGraphemeBase[S, I, AuralAttribute.Target[S], AuralAttribute[S]]
   with AuralAttribute[S]
   with Observer[S] {
@@ -72,8 +73,22 @@ final class AuralGraphemeAttribute[S <: Sys[S], I <: stm.Sys[I]](val key: String
 
   protected def makeViewElem(obj: Obj[S])(implicit tx: S#Tx): Elem = AuralAttribute(key, obj, attr)
 
-//  protected def viewAdded  (timed: S#ID, view: Elem)(implicit tx: S#Tx): Unit = ()
-//  protected def viewRemoved(             view: Elem)(implicit tx: S#Tx): Unit = ()
+  protected def viewAdded(elem: ElemHandle)(implicit tx: S#Tx): Unit =
+    elem.view match {
+      // if the added element has a start-level, and the predecessor
+      // and end level sink, associate the two
+      case sls: StartLevelSource[S] if elem.start > Long.MinValue =>
+        implicit val itx: I#Tx = iSys(tx)
+        tree.floor(elem.start - 1).foreach {
+          case (_, xs) =>
+            val sl = sls.startLevel
+            xs.foreach {
+              case els: EndLevelSink[S] => els.endLevel_=(sl)
+              case _ =>
+            }
+        }
+      case _ =>
+    }
 
   def preferredNumChannels(implicit tx: S#Tx): Int = {
     val cache = prefChansNumRef()

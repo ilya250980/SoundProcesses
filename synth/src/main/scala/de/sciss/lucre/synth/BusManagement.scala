@@ -13,11 +13,12 @@
 
 package de.sciss.lucre.synth
 
+import de.sciss.lucre.stm.TxnLike.{peer => itx}
 import de.sciss.numbers
+import de.sciss.synth.{AudioRated, ControlRated, Rate, AudioBus => SAudioBus, Bus => SBus, ControlBus => SControlBus}
 
-import collection.immutable.{SortedMap => ISortedMap}
-import de.sciss.synth.{AudioBus => SAudioBus, AudioRated, Bus => SBus, ControlBus => SControlBus, ControlRated, Rate}
-import scala.concurrent.stm.{Ref, TSet, TMap}
+import scala.collection.immutable.{SortedMap => ISortedMap}
+import scala.concurrent.stm.{Ref, TMap, TSet}
 
 sealed trait Bus {
   def server: Server
@@ -193,18 +194,15 @@ object Bus {
 
     // increments use count
     final def alloc()(implicit tx: Txn): Unit = {
-      implicit val itx = tx.peer
       useCount += 1
-      // if (verbose) println(s"$peer.alloc -> ${useCount.get}")
     }
 
     // decrements use count and calls `remove` if that count reaches zero
     final def free()(implicit tx: Txn): Unit = {
-      implicit val itx = tx.peer
-      val cnt = useCount.get - 1
+      val cnt = useCount() - 1
       // if (verbose) println(s"$peer.free -> $cnt")
       require(cnt >= 0)
-      useCount.set(cnt)
+      useCount() = cnt
       if (cnt == 0) remove()
     }
 
@@ -249,14 +247,12 @@ object Bus {
                                             useCount = useCount)
 
     def add()(implicit tx: Txn): Unit = {
-      implicit val itx = tx.peer
       val m0 = mapRef.getOrElse(server, emptySortedMap)
       val m1 = m0 + ((full.numChannels, this))
       mapRef.put(server, m1)
     }
 
     protected def remove()(implicit tx: Txn): Unit = {
-      implicit val itx = tx.peer
       // println(s"---------FREE (${full.numChannels}) -> ${full.index}")
       server.freeAudioBus(full.index, full.numChannels)
       val m = mapRef(server) - full.numChannels
@@ -275,7 +271,6 @@ object Bus {
 
   // XXX TODO - would be better if `Server` had a model that dispatches disposal
   private[synth] def serverRemoved(server: Server)(implicit tx: Txn): Unit = {
-    implicit val itx = tx.peer
     readOnlyBuses .remove(server)
     writeOnlyBuses.remove(server)
   }
@@ -288,7 +283,6 @@ object Bus {
 
   private def createOneWayAudioBus(server: Server, numChannels: Int, mapRef: ABusHolderMap)
                                 (implicit tx: Txn): AudioBusHolder = {
-    implicit val itx = tx.peer
     val chanMap = mapRef.getOrElse(server, emptySortedMap)
     import numbers.Implicits._
     val n       = numChannels.nextPowerOfTwo
@@ -335,7 +329,7 @@ object Bus {
     def addWriter(u: AU)(implicit tx: Txn): Unit = add(writers, u)
 
     private def add(users: TSet[AU], u: AU)(implicit tx: Txn): Unit = {
-      users.add(u)(tx.peer)
+      users.add(u)
       u.busChanged(bus, isDummy = false)
     }
 
@@ -343,7 +337,7 @@ object Bus {
     def removeWriter(u: AU)(implicit tx: Txn): Unit = remove(writers, u)
 
     private def remove(users: TSet[AU], u: AU)(implicit tx: Txn): Unit =
-      users.remove(u)(tx.peer) // users.transform(_ - u)(tx.peer)
+      users.remove(u)
 
     override def toString = s"h-abus($bus)"
   }
@@ -352,7 +346,7 @@ object Bus {
     final protected val bus: Ref[AudioBusHolder] = Ref.make[AudioBusHolder]
 
     final def busOption(implicit tx: Txn): Option[SAudioBus] = {
-      val bh = bus.get(tx.peer)
+      val bh = bus()
       if (bh != null) Some(bh.peer) else None
     }
   }
@@ -363,14 +357,13 @@ object Bus {
     override def toString = s"sh-abus_$numChannels@${hashCode().toHexString}"
 
     def addReader(u: AU)(implicit tx: Txn): Unit = {
-      implicit val itx = tx.peer
       val rIsEmpty  = readers.isEmpty
       val wIsEmpty  = writers.isEmpty
       val bh = if (rIsEmpty) {
         if (wIsEmpty) {
           // no bus yet, create an empty shared one
           val res = createReadOnlyBus(server, numChannels)
-          bus.set(res)
+          bus() = res
           res
         } else {
           // dispose old dummy bus, create new bus
@@ -391,7 +384,7 @@ object Bus {
         }
       } else {
         // re-use existing bus
-        bus.get
+        bus()
       }
       val isNew  = readers.add(u)
       if (!isNew) throw new IllegalArgumentException(s"Reading user $u was already added to $this")
@@ -403,14 +396,13 @@ object Bus {
     }
 
     def addWriter(u: AU)(implicit tx: Txn): Unit = {
-      implicit val itx = tx.peer
       val rIsEmpty  = readers.isEmpty
       val wIsEmpty  = writers.isEmpty
       val bh = if (wIsEmpty) {
         if (rIsEmpty) {
           // no bus yet, create an empty shared one
           val res = createWriteOnlyBus(server, numChannels)
-          bus.set(res)
+          bus() = res
           res
         } else {
           // dispose old dummy bus, create new bus
@@ -431,7 +423,7 @@ object Bus {
         }
       } else {
         // re-use existing bus
-        bus.get
+        bus()
       }
       val isNew  = writers.add(u)
       if (!isNew) throw new IllegalArgumentException(s"Writing user $u was already added to $this")
@@ -443,18 +435,17 @@ object Bus {
     }
 
     def removeReader(u: AU)(implicit tx: Txn): Unit = {
-      implicit val itx = tx.peer
       if (!readers.remove(u)) return
 
       val oldHolder = bus()
       oldHolder.free()
       if (readers.isEmpty) {
         if (writers.isEmpty) {
-          bus.set(null)
+          bus() = null
         } else {
           // they can all go to write only
           val bh = createWriteOnlyBus(server, numChannels)
-          bus.set(bh)
+          bus() = bh
           val newBus = bh.peer // new AudioBus( server, bh.index, numChannels )
           writers.foreach { w =>
             oldHolder.free()
@@ -466,17 +457,16 @@ object Bus {
     }
 
     def removeWriter(u: AU)(implicit tx: Txn): Unit = {
-      implicit val itx = tx.peer
       if (!writers.remove(u)) return
-      val oldHolder = bus.get
+      val oldHolder = bus()
       oldHolder.free()
       if (writers.isEmpty) {
         if (readers.isEmpty) {
-          bus.set(null)
+          bus() = null
         } else {
           // they can all go to write only
           val bh = createReadOnlyBus(server, numChannels)
-          bus.set(bh)
+          bus() = bh
           val newBus = bh.peer // new AudioBus( server, bh.index, numChannels )
           readers.foreach { r =>
             oldHolder.free()
@@ -497,7 +487,6 @@ object Bus {
     def addWriter(u: AU)(implicit tx: Txn): Unit = add(writers, readers, u)
 
     private def add(users: TSet[AU], others: TSet[AU], u: AU)(implicit tx: Txn): Unit = {
-      implicit val itx = tx.peer
       // do _not_ check for null
       // because we might have a disposed
       // bus there, so we must make sure to
@@ -508,11 +497,11 @@ object Bus {
 
       val bh = if (uIsEmpty && oIsEmpty) {
         val res = createAudioBus(server, numChannels)
-        bus.set(res)
+        bus() = res
         res
       } else {
         // re-use existing bus
-        bus.get
+        bus()
       }
 
       val isNew = users.add(u)
@@ -529,9 +518,8 @@ object Bus {
     def removeWriter(u: AU)(implicit tx: Txn): Unit = remove(writers, readers, u)
 
     private def remove(users: TSet[AU], others: TSet[AU], u: AU)(implicit tx: Txn): Unit = {
-      implicit val itx = tx.peer
       if (!users.remove(u)) return
-      val bh = bus.get
+      val bh = bus()
       if (users.isEmpty) {
         others.foreach { u1 =>
           u1.busChanged(bh.peer, isDummy = true)
@@ -551,7 +539,7 @@ object Bus {
     override def toString = s"cbus_$numChannels@${hashCode().toHexString}"
 
     def busOption(implicit tx: Txn): Option[SControlBus] = {
-      val bh = bus.get(tx.peer)
+      val bh = bus()
       if (bh != null) Some(bh.peer) else None
     }
 
@@ -559,23 +547,22 @@ object Bus {
     def addWriter(u: CU)(implicit tx: Txn): Unit = add(writers, readers, u)
 
     private def add(users: Ref[Set[CU]], others: Ref[Set[CU]], u: CU)(implicit tx: Txn): Unit = {
-      implicit val itx = tx.peer
-      val us = users.get
+      val us = users()
       require(!us.contains(u))
       // do _not_ check for null
       // because we might have a disposed
       // bus there, so we must make sure to
       // re-allocate a new bus each time
       // the users count goes to 1!
-      val bh = if (us.isEmpty && others.get.isEmpty) {
+      val bh = if (us.isEmpty && others().isEmpty) {
         val res = createControlBus(server, numChannels)
-        bus.set(res)
+        bus() = res
         res
       } else {
         // re-use existing bus
-        bus.get
+        bus()
       }
-      users.set(us + u)
+      users() = us + u
       // always perform this on the newly added
       // reader no matter if the bus is new:
       bh.alloc()
@@ -587,11 +574,10 @@ object Bus {
     def removeWriter(u: CU)(implicit tx: Txn): Unit = remove(writers, u)
 
     private def remove(users: Ref[Set[CU]], u: CU)(implicit tx: Txn): Unit = {
-      implicit val itx = tx.peer
-      val rw = users.get
+      val rw = users()
       if (!rw.contains(u)) return
-      users.set(rw - u)
-      bus.get.free()
+      users() = rw - u
+      bus().free()
     }
   }
 }

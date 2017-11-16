@@ -39,7 +39,7 @@ class AuralTests2[S <: Sys[S]](name: String)(implicit cursor: stm.Cursor[S]) ext
       """
         |Expected behaviour:
         |We construct a grapheme with envelope segments, audible
-        |as an oscillator frequency going up for 4 seconds, then down for 4 seconds,
+        |as an oscillator frequency going exponentially up for 3 seconds, then down linearly for 3 seconds,
         |then staying there.
         |
         |""".stripMargin)
@@ -54,13 +54,13 @@ class AuralTests2[S <: Sys[S]](name: String)(implicit cursor: stm.Cursor[S]) ext
 
       val gr = Grapheme[S]
       gr.add(frame(0.0), EnvSegment.Obj.newConst(EnvSegment.Single( 400, Curve.exp)))
-      gr.add(frame(4.0), EnvSegment.Obj.newConst(EnvSegment.Single(1000, Curve.exp)))
-      gr.add(frame(8.0), IntObj.newConst(400))
+      gr.add(frame(3.0), EnvSegment.Obj.newConst(EnvSegment.Single(1000, Curve.lin)))
+      gr.add(frame(6.0), IntObj.newConst(400))
 
       val attr = _view.obj().attr
       attr.put("freq", gr)
       _view.play()
-      stopAndQuit(12)
+      stopAndQuit(9.0)
     }
   }
 

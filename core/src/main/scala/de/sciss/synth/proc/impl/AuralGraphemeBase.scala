@@ -50,6 +50,11 @@ trait AuralGraphemeBase[S <: Sys[S], I <: stm.Sys[I], Target, Elem <: AuralView[
 
   protected def makeViewElem(obj: Obj[S])(implicit tx: S#Tx): Elem
 
+  /** Called from `mkView` with the resulting view before returning.
+    * Subclasses can use this to communicate the view to interested neighbouring views (for example).
+    */
+  protected def viewAdded(elem: ElemHandle)(implicit tx: S#Tx): Unit
+
   // ---- impl ----
 
   private[this] val playingRef = Ref(Option.empty[ElemHandle])
@@ -57,8 +62,8 @@ trait AuralGraphemeBase[S <: Sys[S], I <: stm.Sys[I], Target, Elem <: AuralView[
   private[this] var grObserver: Disposable[S#Tx] = _
 
   final def typeID: Int = Grapheme.typeID
-  protected type ViewID     = Unit
 
+  protected type ViewID     = Unit
   protected type ElemHandle = AuralGraphemeBase.ElemHandle[S, Elem]
 
   protected final def viewEventAfter(offset: Long)(implicit tx: S#Tx): Long =
@@ -189,7 +194,9 @@ trait AuralGraphemeBase[S <: Sys[S], I <: stm.Sys[I], Target, Elem <: AuralView[
     val seq0  = tree.get(start).getOrElse(Vector.empty)
     val seq1  = seq0 :+ view
     tree.add(start -> seq1)
-    ElemHandle(start, view)
+    val h     = ElemHandle(start, view)
+    viewAdded(h)
+    h
   }
 
   protected def checkReschedule(h: ElemHandle, currentOffset: Long, oldTarget: Long, elemPlays: Boolean)

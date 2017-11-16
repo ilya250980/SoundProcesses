@@ -14,6 +14,7 @@
 package de.sciss.synth.proc
 
 import de.sciss.lucre.event.Observable
+import de.sciss.lucre.stm
 import de.sciss.lucre.stm.{Obj, Sys}
 import de.sciss.lucre.synth.{AudioBus, NodeRef, Sys => SSys}
 import de.sciss.synth.ControlSet
@@ -115,6 +116,23 @@ object AuralAttribute {
     */
   final case class Stream(source: NodeRef, bus: AudioBus) extends Value {
     def isScalar = false
+  }
+
+  // ---- StartLevel / EndLevel ----
+
+  /** It has to be optional so that containers such as Folder or Grapheme could be supported. */
+  trait ScalarOptionView[S <: Sys[S]] extends Observable[S#Tx, Option[Scalar]] with stm.Source[S#Tx, Option[Scalar]]
+
+  /** A trait that can be mixed into an `AuralView` to indicate that it
+    * has a view onto a numeric start level. Single channel views can
+    * use this by putting their value into a single-element vector.
+    */
+  trait StartLevelSource[S <: Sys[S]] {
+    def startLevel(implicit tx: S#Tx): ScalarOptionView[S]
+  }
+
+  trait EndLevelSink[S <: Sys[S]] {
+    def endLevel_=(levelView: ScalarOptionView[S])(implicit tx: S#Tx): Unit
   }
 }
 trait AuralAttribute[S <: Sys[S]] extends AuralView[S, AuralAttribute.Target[S]] {

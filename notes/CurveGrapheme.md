@@ -49,3 +49,17 @@ The place would be `processPrepare` in `AuralGraphemeBase`.
 Note the asymmetry in the process imagined above: For a scalar start level predecessor we would replace the view,
 but for another env-segment predecessor we obviously would not do that. That makes me think we should _keep_ the
 scalar view as well. (Does it do any harm?)
+
+------------------
+
+## Rethinking start-level
+
+Just because `Env` organises as `(startLevel, segments*)` does not mean that's the best choice here.
+The general notion of grapheme - so far - seems to be that something becomes important _after_ a particular
+point in time. From that perspective, but the aural and graphical views would be simpler to conceive if
+the type was `EnvSegment(startLevel, curve)`.
+
+That way, we don't need to "consume" and predecessor; we don't have to think about whether we want to
+remove or replace the predecessor aural view. Only if a successor is removed, we need to update the
+segment aural view, and perhaps even without any involvement of `AuralScheduledBase` other than it changing
+it's next scheduler grid.

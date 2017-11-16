@@ -15,7 +15,7 @@ package de.sciss.synth.proc
 
 import de.sciss.lucre.event.Observable
 import de.sciss.lucre.stm
-import de.sciss.lucre.stm.{Obj, Disposable, Sys}
+import de.sciss.lucre.stm.{Disposable, Obj, Sys}
 
 object AuralView {
   /* The current state a view is in. */

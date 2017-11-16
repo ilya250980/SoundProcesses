@@ -48,7 +48,7 @@ trait AuralGraphemeBase[S <: Sys[S], I <: stm.Sys[I], Target, Elem <: AuralView[
 
   protected def iSys: S#Tx => I#Tx
 
-  protected def makeViewElem(obj: Obj[S])(implicit tx: S#Tx): Elem
+  protected def makeViewElem(start: Long, obj: Obj[S])(implicit tx: S#Tx): Elem
 
   /** Called from `mkView` with the resulting view before returning.
     * Subclasses can use this to communicate the view to interested neighbouring views (for example).
@@ -152,7 +152,7 @@ trait AuralGraphemeBase[S <: Sys[S], I <: stm.Sys[I], Target, Elem <: AuralView[
         case Grapheme.Moved(timeCh, entry)  =>
           // for simplicity just remove and re-add
           // ; in the future this could be optimized
-          // (e.g., not deleting and re-creating the AuralObj)
+          // (e.g., not deleting and re-creating the AuralView)
           val wasPlaying = elemRemoved(         timeCh.before, entry.value)
           val isPlaying  = elemAdded  (upd.pin, timeCh.now   , entry.value)
           if (wasPlaying && !isPlaying) {
@@ -189,8 +189,8 @@ trait AuralGraphemeBase[S <: Sys[S], I <: stm.Sys[I], Target, Elem <: AuralView[
 
   protected def mkView(vid: Unit, span: SpanLike, obj: Obj[S])(implicit tx: S#Tx): ElemHandle = {
     implicit val itx: I#Tx = iSys(tx)
-    val view  = makeViewElem(obj)
     val Span.HasStart(start) = span
+    val view  = makeViewElem(start, obj)
     val seq0  = tree.get(start).getOrElse(Vector.empty)
     val seq1  = seq0 :+ view
     tree.add(start -> seq1)
@@ -214,7 +214,7 @@ trait AuralGraphemeBase[S <: Sys[S], I <: stm.Sys[I], Target, Elem <: AuralView[
 
   // ---- private ----
 
-  private final def ElemHandle(start: Long, view: Elem): ElemHandle =
+  protected final def ElemHandle(start: Long, view: Elem): ElemHandle =
     AuralGraphemeBase.ElemHandle(start, view)
 
   private def playEntry(entries: Vec[Elem], start: Long, timeRef: TimeRef, target: Target)

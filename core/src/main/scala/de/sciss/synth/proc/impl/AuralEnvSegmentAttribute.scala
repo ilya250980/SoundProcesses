@@ -2,11 +2,13 @@ package de.sciss.synth.proc
 package impl
 
 import de.sciss.equal.Implicits._
+import de.sciss.lucre.event.impl.ObservableImpl
 import de.sciss.lucre.stm
 import de.sciss.lucre.stm.Disposable
 import de.sciss.lucre.stm.TxnLike.peer
 import de.sciss.lucre.synth.{Bus, Synth, Sys}
-import de.sciss.synth.proc.AuralAttribute.{Factory, Observer, ScalarOptionView}
+import de.sciss.synth.proc.AuralAttribute.{Factory, Observer, Scalar, ScalarOptionView, SegmentEndSink, StartLevelSource}
+import de.sciss.synth.proc.graph.{Duration, Offset}
 import de.sciss.synth.proc.impl.AuralAttributeImpl.ExprImpl
 import de.sciss.synth.{Curve, SynthGraph, addToHead, ugen, ControlSet => CS}
 
@@ -32,24 +34,42 @@ object AuralEnvSegmentAttribute extends Factory {
   private def mkEnvSegGraphF(numChannels: Int): SynthGraph = SynthGraph {
     import de.sciss.synth.Ops.stringToControl
     import ugen._
-    val startLevel  = "start".ir
-    val endLevel    = "end"  .ir
-    val dur         = "dur"  .ir
-    val out         = "out"  .kr
-    val cid         = "cid"  .ir
-    val cvt         = "cvt"  .ir
+    val zeroes      = Vector.fill(numChannels)(0.0f): ControlValues
+    val startLevel  = "start" .ir(zeroes)
+    val endLevel    = "end"   .ir(zeroes)
+    val off         = Offset  .ir
+    val dur         = Duration.ir
+    val out         = "out"   .kr
+    val curveCtl    = "curve" .ir(Vector.fill(2)(0.0f))
+    val cid         = curveCtl \ 0 // "cid"   .ir
+    val cvt         = curveCtl \ 1 // "cvt"   .ir
+    val phase       = Line.ar(off, dur, dur - off)
     val curve       = Env.Curve(id = cid, curvature = cvt)
-    val env         = Env(startLevel = startLevel,
-      segments = Env.Segment(dur = dur, targetLevel = endLevel, curve = curve) :: Nil)
-    val sig         = EnvGen.ar(env)
+    val env         = IEnv(startLevel, Env.Segment(dur = dur, targetLevel = endLevel, curve = curve) :: Nil)
+    val sig         = IEnvGen.ar(env, phase)
+    //    val env         = Env(startLevel = startLevel,
+//      segments = Env.Segment(dur = dur, targetLevel = endLevel, curve = curve) :: Nil)
+//    val sig         = EnvGen.ar(env)
     Out.ar(out, sig)
   }
 
-  private final class Impl[S <: Sys[S]](val key: String, val obj: stm.Source[S#Tx, Repr[S]])
-                                       (implicit context: AuralContext[S])
-    extends ExprImpl[S, EnvSegment] with AuralAttribute.EndLevelSink[S] {
+  private final class SegmentEnd[S <: Sys[S]](val frame: Long, val view: ScalarOptionView[S], obs: Disposable[S#Tx])
+    extends Disposable[S#Tx] {
 
-    private[this] val _endLevel     = Ref(Option.empty[ScalarOptionView[S]])
+    def dispose()(implicit tx: S#Tx): Unit = obs.dispose()
+  }
+
+  private final class StartObserver[S <: Sys[S], A](view: Impl[S])
+    extends ObservableImpl[S, Option[Scalar]] with ScalarOptionView[S] {
+
+    def apply()(implicit tx: S#Tx): Option[Scalar] = Some(view.obj().value.startLevelsAsAttrScalar)
+  }
+
+  private final class Impl[S <: Sys[S]](val key: String, val obj: stm.Source[S#Tx, Repr[S]])
+                                       (implicit val context: AuralContext[S])
+    extends ExprImpl[S, EnvSegment] with SegmentEndSink[S] with StartLevelSource[S] {
+
+    private[this] val _endLevel     = Ref(Option.empty[SegmentEnd[S]])
     private[this] val _endLevelObs  = Ref(Disposable.empty[S#Tx])
 
     def typeID: Int = EnvSegment.typeID
@@ -63,44 +83,51 @@ object AuralEnvSegmentAttribute extends Factory {
       super.dispose()
     }
 
-    def endLevel_=(levelView: ScalarOptionView[S])(implicit tx: S#Tx): Unit = {
+    def startLevel(implicit tx: S#Tx): ScalarOptionView[S] = new StartObserver(this)
+
+    def segmentEnd_=(stopFrame: Long, levelView: ScalarOptionView[S])(implicit tx: S#Tx): Unit = {
       val obs = levelView.react { implicit tx => _ => valueChanged() }
-      _endLevel() = Some(levelView)
-      _endLevelObs.swap(obs).dispose()
+      val se  = new SegmentEnd[S](stopFrame, levelView, obs)
+      _endLevel.swap(Some(se)).foreach(_.dispose())
       valueChanged()
     }
 
-    protected def mkValue(seg: EnvSegment)(implicit tx: S#Tx): AuralAttribute.Value = {
+    protected def mkValue(timeRef: TimeRef, seg: EnvSegment)(implicit tx: S#Tx): AuralAttribute.Value = {
       _endLevel() match {
-        case Some(view) if seg.curve !== Curve.step => view() match {
-          case Some(scalar) => mkValueWithEnd   (seg, scalar)
+        case Some(se) if seg.curve !== Curve.step => se.view() match {
+          case Some(scalar) => mkValueWithEnd   (seg, timeRef, endFrame = se.frame, endLevel = scalar)
           case _            => mkValueWithoutEnd(seg)
         }
         case _              => mkValueWithoutEnd(seg)
       }
     }
 
-    private def mkValueWithEnd(seg: EnvSegment, end: AuralAttribute.Scalar)
+    private def mkValueWithEnd(seg: EnvSegment, timeRef: TimeRef, endFrame: Long, endLevel: AuralAttribute.Scalar)
                               (implicit tx: S#Tx): AuralAttribute.Value = {
       import context.server
 
       def proceed(args0: List[CS], numChannels: Int): AuralAttribute.Value = {
         val bus   = Bus.tmpAudio(server, numChannels)
-        val dur   = ??? : Float
-        val args  = ("dur" -> dur: CS) :: args0
+        val dur   = (endFrame - timeRef.span.start) / TimeRef.SampleRate
+        val off   = timeRef.offset / TimeRef.SampleRate
+        val curvature = seg.curve match {
+          case Curve.parametric(f) => f
+          case _ => 0f
+        }
+        val args  = (Duration.key -> dur: CS) :: (Offset.key -> off: CS) ::
+          ("curve" -> Vector(seg.curve.id.toFloat, curvature): CS) :: args0
         val syn   = Synth.play(mkEnvSegGraph(numChannels), nameHint = Some("env"))(
           target = server, addAction = addToHead, args = args)
         syn.write(bus -> "out")
         AuralAttribute.Stream(syn, bus)
-        mkValueWithoutEnd(seg)
       }
 
-      (seg, end) match {
+      (seg, endLevel) match {
         case (EnvSegment.Single(startLevel, _), AuralAttribute.ScalarValue(targetLevel)) =>
           proceed(("start" -> startLevel: CS) :: ("end" -> targetLevel: CS) :: Nil, 1)
         case _ =>
           val startLevels0  = seg.startLevels
-          val targetLevels0 = end.values
+          val targetLevels0 = endLevel.values
           val numChannels   = math.max(startLevels0.size, targetLevels0.size)
           val startLevels   = Vector.tabulate(numChannels)(ch => startLevels0 (ch % startLevels0 .size).toFloat)
           val targetLevels  = if (targetLevels0.size == numChannels) targetLevels0 else

@@ -19,7 +19,7 @@ import de.sciss.lucre.stm
 import de.sciss.lucre.stm.{Obj, TxnLike}
 import de.sciss.lucre.synth.Sys
 import de.sciss.serial.Serializer
-import de.sciss.synth.proc.AuralAttribute.{EndLevelSink, Factory, Observer, StartLevelSource}
+import de.sciss.synth.proc.AuralAttribute.{SegmentEndSink, Factory, Observer, StartLevelSource}
 
 import scala.annotation.tailrec
 import scala.collection.immutable.{IndexedSeq => Vec}
@@ -71,7 +71,21 @@ final class AuralGraphemeAttribute[S <: Sys[S], I <: stm.Sys[I]](val key: String
   private[this] val prefChansElemRef  = Ref[Vec[Elem]](Vector.empty)
   private[this] val prefChansNumRef   = Ref(-2)   // -2 = cache invalid. across contents of `prefChansElemRef`
 
-  protected def makeViewElem(obj: Obj[S])(implicit tx: S#Tx): Elem = AuralAttribute(key, obj, attr)
+  protected def makeViewElem(start: Long, obj: Obj[S])(implicit tx: S#Tx): Elem = {
+    val view = AuralAttribute(key, obj, attr)
+    view match {
+      case ses: SegmentEndSink[S] if start < Long.MaxValue =>
+        implicit val itx: I#Tx = iSys(tx)
+        tree.ceil(start + 1).foreach {
+          case (_, (sls: StartLevelSource[S]) +: _) =>
+            val sl = sls.startLevel
+            ses.segmentEnd_=(start, sl)
+          case _ =>
+        }
+      case _ =>
+    }
+    view
+  }
 
   protected def viewAdded(elem: ElemHandle)(implicit tx: S#Tx): Unit =
     elem.view match {
@@ -83,7 +97,7 @@ final class AuralGraphemeAttribute[S <: Sys[S], I <: stm.Sys[I]](val key: String
           case (_, xs) =>
             val sl = sls.startLevel
             xs.foreach {
-              case els: EndLevelSink[S] => els.endLevel_=(sl)
+              case ses: SegmentEndSink[S] => ses.segmentEnd_=(elem.start, sl)
               case _ =>
             }
         }
@@ -110,8 +124,7 @@ final class AuralGraphemeAttribute[S <: Sys[S], I <: stm.Sys[I]](val key: String
       return -1
     }
 
-    val elems = entries.map(_.value)  // _2.map(_.value)).toVector
-    val views = elems.map(makeViewElem)
+    val views = entries.map(e => makeViewElem(e.key.value, e.value))
     prefChansElemRef.swap(views).foreach(_.dispose())
 
     @tailrec

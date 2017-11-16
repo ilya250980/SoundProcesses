@@ -135,8 +135,8 @@ object AuralAttribute {
     def startLevel(implicit tx: S#Tx): ScalarOptionView[S]
   }
 
-  trait EndLevelSink[S <: Sys[S]] {
-    def endLevel_=(levelView: ScalarOptionView[S])(implicit tx: S#Tx): Unit
+  trait SegmentEndSink[S <: Sys[S]] {
+    def segmentEnd_=(stopFrame: Long, levelView: ScalarOptionView[S])(implicit tx: S#Tx): Unit
   }
 }
 trait AuralAttribute[S <: Sys[S]] extends AuralView[S, AuralAttribute.Target[S]] {

@@ -267,6 +267,8 @@ object EnvSegment {
 
     def startLevels: Vec[Double] = Vector(startLevel)
 
+    private[proc] def startLevelsAsAttrScalar: AuralAttribute.Scalar = startLevel.toFloat
+
     def write(out: DataOutput): Unit = {
       out.writeShort(COOKIE)
       out.writeByte(0)
@@ -276,6 +278,8 @@ object EnvSegment {
   }
   final case class Multi (startLevels: Vec[Double], curve: Curve) extends EnvSegment {
     def numChannels: Int = startLevels.size
+
+    private[proc] def startLevelsAsAttrScalar: AuralAttribute.Scalar = startLevels.map(_.toFloat)
 
     def write(out: DataOutput): Unit = {
       out.writeShort(COOKIE)
@@ -290,4 +294,6 @@ sealed abstract class EnvSegment extends Writable {
   def curve: Curve
   def startLevels: Vec[Double]
   def numChannels: Int
+
+  private[proc] def startLevelsAsAttrScalar: AuralAttribute.Scalar
 }

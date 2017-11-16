@@ -64,29 +64,40 @@ object AuralAttributeImpl {
     EnvSegment  .typeID -> AuralEnvSegmentAttribute
   )
 
+  private final class Playing[S <: Sys[S]](val timeRef: TimeRef, val wallClock: Long, val target: Target[S]) {
+    def shiftTo(newWallClock: Long): TimeRef = {
+      val delta = newWallClock - wallClock
+      timeRef.shift(delta)
+    }
+  }
+
   trait ExprImpl[S <: Sys[S], A]
     extends AuralAttributeImpl[S] { attr =>
 
     // ---- abstract ----
 
+    protected val context: AuralContext[S]
+
     /* override */ def obj: stm.Source[S#Tx, Expr[S, A]]
 
-    protected def mkValue(in: A)(implicit tx: S#Tx): AuralAttribute.Value
+    protected def mkValue(timeRef: TimeRef, in: A)(implicit tx: S#Tx): AuralAttribute.Value
 
     // ---- impl ----
 
-    private[this] var obs: Disposable[S#Tx] = _
-    private[this] val playRef = Ref[Option[Target[S]]](None)
+    import context.{scheduler => sched}
 
-    final def targetOption(implicit tx: S#Tx): Option[Target[S]] = playRef()
+    private[this] var obs: Disposable[S#Tx] = _
+    private[this] val playRef = Ref(Option.empty[Playing[S]])
+
+    final def targetOption(implicit tx: S#Tx): Option[Target[S]] = playRef().map(_.target)
 
     final def prepare(timeRef: TimeRef.Option)(implicit tx: S#Tx): Unit = state = Prepared
 
     final def play(timeRef: TimeRef.Option, target: Target[S])(implicit tx: S#Tx): Unit /* Instance */ = {
-      require(playRef.swap(Some(target))(tx.peer).isEmpty)
-      // target.add(this)
+      val playing = new Playing(timeRef.force, sched.time, target)
+      require(playRef.swap(Some(playing))(tx.peer).isEmpty)
       state = Playing
-      updateTarget(target, obj().value)
+      updateTarget(playing.timeRef, playing.target, obj().value)
     }
 
     final def stop()(implicit tx: S#Tx): Unit = {
@@ -94,14 +105,17 @@ object AuralAttributeImpl {
       state = Stopped
     }
 
-    private def updateTarget(target: Target[S], value: A)(implicit tx: S#Tx): Unit = {
-      // import p.target
-      val ctlVal = mkValue(value)
+    private def updateTarget(timeRef: TimeRef, target: Target[S], value: A)(implicit tx: S#Tx): Unit = {
+      val ctlVal = mkValue(timeRef, value)
       target.put(this, ctlVal)
     }
 
-    final protected def valueChanged(value: A)(implicit tx: S#Tx): Unit =
-      playRef().foreach(updateTarget(_, value))
+    final protected def valueChanged(value: A)(implicit tx: S#Tx): Unit = {
+      playRef().foreach { p =>
+        val trNew = p.shiftTo(sched.time)
+        updateTarget(trNew, p.target, value)
+      }
+    }
 
     def init(expr: Expr[S, A])(implicit tx: S#Tx): this.type = {
       obs = expr.changed.react { implicit tx => change =>
@@ -111,7 +125,7 @@ object AuralAttributeImpl {
     }
 
     private def stopNoFire()(implicit tx: S#Tx): Unit =
-      playRef.swap(None).foreach(_.remove(this))
+      playRef.swap(None).foreach(p => p.target.remove(this))
 
     def dispose()(implicit tx: S#Tx): Unit = {
       obs.dispose()
@@ -130,7 +144,9 @@ object AuralAttributeImpl {
   }
 
   private trait NumericExprImpl[S <: Sys[S], A] extends ExprImpl[S, A] with AuralAttribute.StartLevelSource[S] {
-    override def mkValue(in: A)(implicit tx: S#Tx): AuralAttribute.Scalar
+    def mkValue(in: A)(implicit tx: S#Tx): AuralAttribute.Scalar
+
+    final def mkValue(timeRef: TimeRef, value: A)(implicit tx: S#Tx): AuralAttribute.Value = mkValue(value)
 
     def startLevel(implicit tx: S#Tx): ScalarOptionView[S] = new NumericExprObserver(this)
   }
@@ -147,6 +163,7 @@ object AuralAttributeImpl {
       new IntAttribute(key, tx.newHandle(value)).init(value)
   }
   private final class IntAttribute[S <: Sys[S]](val key: String, val obj: stm.Source[S#Tx, IntObj[S]])
+                                               (implicit val context: AuralContext[S])
     extends SingleChannelImpl[S, Int] with NumericExprImpl[S, Int] {
 
     def typeID: Int = IntObj.typeID
@@ -168,6 +185,7 @@ object AuralAttributeImpl {
       new DoubleAttribute(key, tx.newHandle(value)).init(value)
   }
   private final class DoubleAttribute[S <: Sys[S]](val key: String, val obj: stm.Source[S#Tx, DoubleObj[S]])
+                                                  (implicit val context: AuralContext[S])
     extends SingleChannelImpl[S, Double] with NumericExprImpl[S, Double] {
 
     def typeID: Int = DoubleObj.typeID
@@ -189,6 +207,7 @@ object AuralAttributeImpl {
       new BooleanAttribute(key, tx.newHandle(value)).init(value)
   }
   private final class BooleanAttribute[S <: Sys[S]](val key: String, val obj: stm.Source[S#Tx, BooleanObj[S]])
+                                                   (implicit val context: AuralContext[S])
     extends SingleChannelImpl[S, Boolean] with NumericExprImpl[S, Boolean] {
 
     def typeID: Int = BooleanObj.typeID
@@ -210,13 +229,14 @@ object AuralAttributeImpl {
       new FadeSpecAttribute(key, tx.newHandle(value)).init(value)
   }
   private final class FadeSpecAttribute[S <: Sys[S]](val key: String, val obj: stm.Source[S#Tx, FadeSpec.Obj[S]])
+                                                    (implicit val context: AuralContext[S])
     extends ExprImpl[S, FadeSpec] {
 
     def typeID: Int = FadeSpec.Obj.typeID
 
     def preferredNumChannels(implicit tx: S#Tx): Int = 4
 
-    def mkValue(spec: FadeSpec)(implicit tx: S#Tx): AuralAttribute.Scalar = {
+    def mkValue(timeRef: TimeRef, spec: FadeSpec)(implicit tx: S#Tx): AuralAttribute.Scalar = {
       val v = Vector[Float](
         (spec.numFrames / TimeRef.SampleRate).toFloat, spec.curve.id.toFloat, spec.curve match {
           case Curve.parametric(c)  => c
@@ -241,6 +261,7 @@ object AuralAttributeImpl {
       new DoubleVectorAttribute(key, tx.newHandle(value)).init(value)
   }
   private final class DoubleVectorAttribute[S <: Sys[S]](val key: String, val obj: stm.Source[S#Tx, DoubleVector[S]])
+                                                        (implicit val context: AuralContext[S])
     extends ExprImpl[S, Vec[Double]] with NumericExprImpl[S, Vec[Double]] {
 
     def typeID: Int = DoubleVector.typeID

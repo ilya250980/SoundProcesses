@@ -54,17 +54,19 @@ object TimeRef {
 
   def spanAndSecs(span: SpanLike): String = s"$span / ${spanToSecs(span)}"
 
+  private val FromZero = new TimeRef(Span.From(0L), offset = 0L)
+
   case object Undefined extends Option {
     /** For convenience, an undefined time references reports a frame of zero. */
     val frame           = 0L
     /** The span is of an undefined time reference is void. */
-    val span /* XXX TODO: annotate in next major version : SpanLike */ = Span.Void
+    val span: SpanLike  = Span.Void
     val offset          = 0L
     val isDefined       = false
 
     def hasEnded        = true
 
-    def force           = new TimeRef(Span.From(0L), offset = 0L)
+    def force: TimeRef  = FromZero
   }
 
   /** A time reference specifies the temporal context
@@ -105,10 +107,8 @@ final case class TimeRef(span: Span.HasStart, offset: Long) extends TimeRef.Opti
   def isDefined       = true
   def force: TimeRef  = this
 
-  def shift(deltaFrames: Long): TimeRef =
-    new TimeRef(span, offset = offset + deltaFrames)
-
-  def updateOffset(newOffset: Long): TimeRef = new TimeRef(span, offset = newOffset)
+  def shift       (deltaFrames: Long): TimeRef = if (deltaFrames == 0   ) this else copy(offset = offset + deltaFrames)
+  def updateOffset(newOffset  : Long): TimeRef = if (offset == newOffset) this else copy(offset = newOffset           )
 
   def child(that: SpanLike): TimeRef.Option =
     that match {

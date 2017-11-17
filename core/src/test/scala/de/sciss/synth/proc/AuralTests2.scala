@@ -2,7 +2,7 @@ package de.sciss.synth.proc
 
 import de.sciss.file._
 import de.sciss.lucre.artifact.{Artifact, ArtifactLocation}
-import de.sciss.lucre.expr.{DoubleVector, IntObj}
+import de.sciss.lucre.expr.{DoubleObj, DoubleVector, IntObj, LongObj}
 import de.sciss.lucre.stm
 import de.sciss.lucre.synth.Sys
 import de.sciss.span.Span
@@ -23,18 +23,126 @@ class AuralTests2[S <: Sys[S]](name: String)(implicit cursor: stm.Cursor[S]) ext
       case "--test1" => test1()
       case "--test2" => test2()
       case "--test3" => test3()
+      case "--test4" => test4()
+      case "--test5" => test5()
       case _         =>
-        println("WARNING: No option given, using --test1")
+        println("WARNING: No valid option given, using --test1")
         test1()
     }
-
-  ////////////////////////////////////////////////////////////////////////////////////// 22
 
   import synth._
   import ugen._
 
-  def test3()(implicit context: AuralContext[S]): Unit = {
+
+  ////////////////////////////////////////////////////////////////////////////////////// 5
+
+  def test5()(implicit context: AuralContext[S]): Unit = {
     println("----test3----")
+    println(
+      """
+        |Expected behaviour:
+        |A steady sine of 400 Hz is heard for one second, then raises
+        |for six seconds; the original target at 10 seconds is replaced
+        |by an interpolated level at 7 seconds. At 7 seconds tone is
+        |steady 800 Hz.
+        |
+        |""".stripMargin)
+
+    cursor.step { implicit tx =>
+      val _view = procV {
+        import graph.Ops._
+        val freq  = "freq".ar
+        val osc   = SinOsc.ar(freq) * 0.2
+        Out.ar(0, Pan2.ar(osc))
+      }
+
+      val gr = Grapheme[S]
+      val f1 =  400
+      val f2 = 1000
+      val t0 =  1.0
+      val t1 =  7.0
+      val t2 = 10.0
+      gr.add(frame(0.0), IntObj.newConst(400))
+      gr.add(frame(t0) , EnvSegment.Obj.newConst(EnvSegment.Single( 400, Curve.lin)))
+      val t2Obj = frame(t2): LongObj[S]
+      val t2H   = tx.newHandle(t2Obj)
+      val ev    = EnvSegment.Single(1000, Curve.lin): EnvSegment.Obj[S]
+      val evH   = tx.newHandle(ev)
+      gr.add(t2Obj, ev)
+
+      val attr = _view.obj().attr
+      attr.put("freq", gr)
+      _view.play()
+
+      val grH = tx.newHandle(gr)
+
+      after(4.0) { implicit tx =>
+        val gr  = grH()
+        val lvl = t1.linlin(t0, t2, f1, f2)  // = 800
+        println(f"Insert static $lvl%g")
+        gr.add(frame(t1), DoubleObj.newConst(lvl))
+//        gr.remove()
+        after(3.0) { implicit tx =>
+          println("Now static")
+          after(1.0) { implicit tx =>
+            println("Removing last point")
+            val gr = grH()
+            gr.remove(t2H(), evH())
+          }
+        }
+      }
+
+      stopAndQuit(12.0)
+    }
+  }
+
+  ////////////////////////////////////////////////////////////////////////////////////// 4
+
+  def test4()(implicit context: AuralContext[S]): Unit = {
+    println("----test3----")
+    println(
+      """
+        |Expected behaviour:
+        |We construct a grapheme with envelope segments, audible
+        |as an oscillator frequency going exponentially up for 3 seconds,
+        |then, as the ceil node changes, jumping down and descending to 200 Hz, for 3 seconds,
+        |then going up to 400 Hz for 3 seconds.
+        |
+        |""".stripMargin)
+
+    cursor.step { implicit tx =>
+      val _view = procV {
+        import graph.Ops._
+        val freq  = "freq".ar
+        val osc   = SinOsc.ar(freq) * 0.2
+        Out.ar(0, Pan2.ar(osc))
+      }
+
+      val gr = Grapheme[S]
+      gr.add(frame(0.0), EnvSegment.Obj.newConst(EnvSegment.Single( 600, Curve.exp)))
+      val ev = EnvSegment.Obj.newVar(EnvSegment.Single(1000, Curve.lin))
+      val evH = tx.newHandle(ev)
+      gr.add(frame(6.0), ev)
+      gr.add(frame(9.0), IntObj.newConst(400))
+
+      val attr = _view.obj().attr
+      attr.put("freq", gr)
+      _view.play()
+
+      after(3.0) { implicit tx =>
+        println("Start from low")
+        val ev = evH()
+        ev() = EnvSegment.Single(200, Curve.lin)
+      }
+
+      stopAndQuit(12.0)
+    }
+  }
+
+  ////////////////////////////////////////////////////////////////////////////////////// 3
+
+  def test3()(implicit context: AuralContext[S]): Unit = {
+    println("----test4----")
     println(
       """
         |Expected behaviour:
@@ -64,7 +172,7 @@ class AuralTests2[S <: Sys[S]](name: String)(implicit cursor: stm.Cursor[S]) ext
     }
   }
 
-  ////////////////////////////////////////////////////////////////////////////////////// 22
+  ////////////////////////////////////////////////////////////////////////////////////// 2
 
   import synth._
   import ugen._
@@ -139,7 +247,7 @@ class AuralTests2[S <: Sys[S]](name: String)(implicit cursor: stm.Cursor[S]) ext
     }
   }
 
-  ////////////////////////////////////////////////////////////////////////////////////// 21
+  ////////////////////////////////////////////////////////////////////////////////////// 1
 
   def test1()(implicit context: AuralContext[S]): Unit = {
     println("----test1----")

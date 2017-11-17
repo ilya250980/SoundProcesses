@@ -2,11 +2,12 @@ package de.sciss.synth.proc
 package impl
 
 import de.sciss.equal.Implicits._
+import de.sciss.lucre.bitemp.BiPin
 import de.sciss.lucre.stm
-import de.sciss.lucre.stm.Disposable
 import de.sciss.lucre.stm.TxnLike.peer
+import de.sciss.lucre.stm.{Disposable, Obj}
 import de.sciss.lucre.synth.{Bus, Synth, Sys}
-import de.sciss.synth.proc.AuralAttribute.{Factory, Observer, Scalar, ScalarOptionView, SegmentEndSink, StartLevelViewFactory}
+import de.sciss.synth.proc.AuralAttribute.{Factory, GraphemeAware, Observer, Scalar, ScalarOptionView, StartLevelViewFactory}
 import de.sciss.synth.proc.graph.{Duration, Offset}
 import de.sciss.synth.proc.impl.AuralAttributeImpl.ExprImpl
 import de.sciss.synth.{Curve, SynthGraph, addToHead, ugen, ControlSet => CS}
@@ -43,15 +44,12 @@ object AuralEnvSegmentAttribute extends Factory with StartLevelViewFactory {
     val dur         = Duration.ir
     val out         = "out"   .kr
     val curveCtl    = "curve" .ir(Vector.fill(2)(0.0f))
-    val cid         = curveCtl \ 0 // "cid"   .ir
-    val cvt         = curveCtl \ 1 // "cvt"   .ir
+    val cid         = curveCtl \ 0
+    val cvt         = curveCtl \ 1
     val phase       = Line.ar(off, dur, dur - off)
     val curve       = Env.Curve(id = cid, curvature = cvt)
     val env         = IEnv(startLevel, Env.Segment(dur = dur, targetLevel = endLevel, curve = curve) :: Nil)
     val sig         = IEnvGen.ar(env, phase)
-    //    val env         = Env(startLevel = startLevel,
-//      segments = Env.Segment(dur = dur, targetLevel = endLevel, curve = curve) :: Nil)
-//    val sig         = EnvGen.ar(env)
     Out.ar(out, sig)
   }
 
@@ -77,9 +75,10 @@ object AuralEnvSegmentAttribute extends Factory with StartLevelViewFactory {
 
   private final class Impl[S <: Sys[S]](val key: String, val obj: stm.Source[S#Tx, Repr[S]])
                                        (implicit val context: AuralContext[S])
-    extends ExprImpl[S, EnvSegment] with SegmentEndSink[S] /* with StartLevelSource[S] */ {
+    extends ExprImpl[S, EnvSegment] with GraphemeAware[S] {
 
     private[this] val _endLevel = Ref(Option.empty[SegmentEnd[S]])
+    private[this] val _grObs    = Ref(Disposable.empty[S#Tx])
 
     def typeID: Int = EnvSegment.typeID
 
@@ -89,14 +88,43 @@ object AuralEnvSegmentAttribute extends Factory with StartLevelViewFactory {
 
     override def dispose()(implicit tx: S#Tx): Unit = {
       _endLevel.swap(None).foreach(_.dispose())
+      _grObs().dispose()
       super.dispose()
     }
 
-    def segmentEnd_=(stopFrame: Long, levelView: ScalarOptionView[S])(implicit tx: S#Tx): Unit = {
-      val obs = levelView.react { implicit tx => _ => valueChanged() }
-      val se  = new SegmentEnd[S](stopFrame, levelView, obs)
-      _endLevel.swap(Some(se)).foreach(_.dispose())
-      valueChanged()
+    private def setCeil(stopFrame: Long, ceilObj: Obj[S], fire: Boolean)(implicit tx: S#Tx): Unit = {
+      val levelView = AuralAttribute.startLevelView(ceilObj)
+      val obsLvl    = levelView.react { implicit tx => _ => valueChanged() }
+      val se        = new SegmentEnd[S](stopFrame, levelView, obsLvl)
+      val oldOpt    = _endLevel.swap(Some(se))
+      oldOpt.foreach(_.dispose())
+      if (fire) {
+        val lvlNow    = levelView()
+        val lvlBefore = oldOpt.flatMap(_.view())
+        if (lvlNow !== lvlBefore) valueChanged()
+      }
+    }
+
+    def setGrapheme(pos: Long, g: Grapheme[S])(implicit tx: S#Tx): Unit =
+      if (pos < Long.MaxValue) setGrapheme(pos = pos, g = g, fire = false)
+
+    private def setGrapheme(pos: Long, g: BiPin[S, Obj[S]], fire: Boolean)(implicit tx: S#Tx): Unit = {
+      val stopFrame = g.ceil(pos + 1L).fold(Long.MinValue) { entry =>
+        val _stopFrame = entry.key.value
+        setCeil(_stopFrame, entry.value, fire = fire)
+        _stopFrame
+      }
+      val obsG = g.changed.react { implicit tx => upd =>
+        @inline def reset(): Unit = setGrapheme(pos, upd.pin, fire = fire)
+        upd.changes.foreach {
+          case Grapheme.Added   (time, _) if time       > pos && time      <= stopFrame  => reset()
+          case Grapheme.Removed (time, _) if time       > pos && time      == stopFrame  => reset()
+          case Grapheme.Moved   (ch  , _) if (ch.before > pos && ch.before == stopFrame) ||
+                                             (ch.now    > pos && ch.now    <= stopFrame) => reset()
+          case _ =>
+        }
+      }
+      _grObs.swap(obsG).dispose()
     }
 
     protected def mkValue(timeRef: TimeRef, seg: EnvSegment)(implicit tx: S#Tx): AuralAttribute.Value = {

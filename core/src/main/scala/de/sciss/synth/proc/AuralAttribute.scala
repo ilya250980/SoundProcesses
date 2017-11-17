@@ -143,8 +143,8 @@ object AuralAttribute {
 
   def startLevelView[S <: SSys[S]](obj: Obj[S])(implicit tx: S#Tx): ScalarOptionView[S] = Impl.startLevelView[S](obj)
 
-  trait SegmentEndSink[S <: Sys[S]] {
-    def segmentEnd_=(stopFrame: Long, levelView: ScalarOptionView[S])(implicit tx: S#Tx): Unit
+  trait GraphemeAware[S <: Sys[S]] {
+    def setGrapheme(pos: Long, g: Grapheme[S])(implicit tx: S#Tx): Unit
   }
 }
 trait AuralAttribute[S <: Sys[S]] extends AuralView[S, AuralAttribute.Target[S]] {

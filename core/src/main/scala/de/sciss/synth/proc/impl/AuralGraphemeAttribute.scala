@@ -19,7 +19,7 @@ import de.sciss.lucre.stm
 import de.sciss.lucre.stm.{Obj, TxnLike}
 import de.sciss.lucre.synth.Sys
 import de.sciss.serial.Serializer
-import de.sciss.synth.proc.AuralAttribute.{Factory, Observer, ScalarOptionView, SegmentEndSink}
+import de.sciss.synth.proc.AuralAttribute.{Factory, GraphemeAware, Observer}
 
 import scala.annotation.tailrec
 import scala.collection.immutable.{IndexedSeq => Vec}
@@ -74,44 +74,11 @@ final class AuralGraphemeAttribute[S <: Sys[S], I <: stm.Sys[I]](val key: String
   protected def makeViewElem(start: Long, child: Obj[S])(implicit tx: S#Tx): Elem = {
     val view = AuralAttribute(key, child, attr)
     view match {
-      case ses: SegmentEndSink[S] if start < Long.MaxValue =>
-        obj().ceil(start + 1).foreach { entry =>
-          val endTime   = entry.key.value
-          val endChild  = entry.value
-          val slv       = AuralAttribute.startLevelView(endChild)
-          ses.segmentEnd_=(endTime, slv)
-        }
+      case ga: GraphemeAware[S] => ga.setGrapheme(start, obj())
       case _ =>
     }
     view
   }
-
-//  private def mkStartLevelView(frame: Long)(implicit tx: S#Tx): Option[(Long, ScalarOptionView[S])] =
-//    obj().ceil(frame).map { entry =>
-//      val endTime   = entry.key.value
-//      val endChild  = entry.value
-//      endTime -> AuralAttribute.startLevelView(endChild)
-//    }
-//
-//  protected def unmakeViewElem(start: Long, view: Elem)(implicit tx: S#Tx): Unit = {
-//    if (start > Long.MinValue) {
-//      val opt: Option[(Long, Vec[AuralAttribute[S]])] = viewTree.floor(start - 1)
-//      opt.foreach { case (startTime, xs) =>
-//        lazy val sesOpt: Option[SegmentEndSink[S]] = viewTree.ceil(start).flatMap
-//      }
-//    }
-//    view match {
-//      case ses: SegmentEndSink[S] if start < Long.MaxValue =>
-//        obj().ceil(start + 1).foreach { entry =>
-//          val endTime   = entry.key.value
-//          val endChild  = entry.value
-//          val slv       = AuralAttribute.startLevelView(endChild)
-//          ses.segmentEnd_=(endTime, slv)
-//        }
-//      case _ =>
-//    }
-//    view
-//  }
 
   def preferredNumChannels(implicit tx: S#Tx): Int = {
     val cache = prefChansNumRef()

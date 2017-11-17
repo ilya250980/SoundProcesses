@@ -45,12 +45,12 @@ class AuralTests1[S <: Sys[S]](name: String)(implicit cursor: stm.Cursor[S]) ext
       case "--test19" => test19()
       case "--test20" => test20()
       case _         =>
-        println("WARNING: No option given, using --test1")
+        println("WARNING: No valid option given, using --test1")
         test1()
     }
   }
 
-  ////////////////////////////////////////////////////////////////////////////////////// 22
+  ////////////////////////////////////////////////////////////////////////////////////// 20
 
   import synth._
   import ugen._

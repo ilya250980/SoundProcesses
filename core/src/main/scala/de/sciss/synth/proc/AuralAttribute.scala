@@ -128,7 +128,8 @@ object AuralAttribute {
     * use this by putting their value into a single-element vector.
     * It has to be optional so that containers such as Folder or Grapheme could be supported.
     */
-  trait ScalarOptionView[S <: Sys[S]] extends Observable[S#Tx, Option[Scalar]] with stm.Source[S#Tx, Option[Scalar]]
+  trait ScalarOptionView[S <: Sys[S]]
+    extends Observable[S#Tx, Option[Scalar]] with stm.Source[S#Tx, Option[Scalar]]
 
   trait StartLevelViewFactory {
     def typeID: Int

@@ -76,18 +76,11 @@ final class AuralGraphemeAttribute[S <: Sys[S], I <: stm.Sys[I]](val key: String
     view match {
       case ses: SegmentEndSink[S] if start < Long.MaxValue =>
         obj().ceil(start + 1).foreach { entry =>
-          val stopTime  = entry.key.value
-          val stopChild = entry.value
-          AuralAttribute.factories
+          val endTime   = entry.key.value
+          val endChild  = entry.value
+          val slv       = AuralAttribute.startLevelView(endChild)
+          ses.segmentEnd_=(endTime, slv)
         }
-        ???
-//        implicit val itx: I#Tx = iSys(tx)
-//        tree.ceil(start + 1).foreach {
-//          case (_, (sls: StartLevelSource[S]) +: _) =>
-//            val sl = sls.startLevel
-//            ses.segmentEnd_=(start, sl)
-//          case _ =>
-//        }
       case _ =>
     }
     view

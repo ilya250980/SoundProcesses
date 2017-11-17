@@ -113,7 +113,7 @@ object AuralAttributeImpl {
 
     protected val context: AuralContext[S]
 
-    /* override */ def obj: stm.Source[S#Tx, Expr[S, A]]
+    def obj: stm.Source[S#Tx, Expr[S, A]]
 
     protected def mkValue(timeRef: TimeRef, in: A)(implicit tx: S#Tx): AuralAttribute.Value
 
@@ -172,18 +172,24 @@ object AuralAttributeImpl {
     final def preferredNumChannels(implicit tx: S#Tx): Int = 1
   }
 
-//  private final class NumericExprObserver[S <: Sys[S], A](expr: NumericExprImpl[S, A])
-//    extends ObservableImpl[S, Option[Scalar]] with ScalarOptionView[S] {
-//
-//    def apply()(implicit tx: S#Tx): Option[Scalar] = Some(expr.mkValue(expr.obj().value))
-//  }
-//
-  private trait NumericExprImpl[S <: Sys[S], A] extends ExprImpl[S, A] /* with AuralAttribute.StartLevelSource[S] */ {
-    def mkValue(in: A)(implicit tx: S#Tx): AuralAttribute.Scalar
+  private abstract class NumericExprStartLevel[S <: Sys[S], A](obj: stm.Source[S#Tx, Expr[S, A]])
+    extends ScalarOptionView[S] {
+
+    def mkValue(in: A): Scalar
+
+    def apply()(implicit tx: S#Tx): Option[Scalar] = Some(mkValue(obj().value))
+
+    def react(fun: S#Tx => Option[Scalar] => Unit)(implicit tx: S#Tx): Disposable[S#Tx] =
+      obj().changed.react { implicit tx => ch =>
+        val lvlCh = ch.map(mkValue)
+        if (lvlCh.isSignificant) fun(tx)(Some(lvlCh.now))
+      }
+  }
+
+  private trait NumericExprImpl[S <: Sys[S], A] extends ExprImpl[S, A] {
+    def mkValue(in: A): AuralAttribute.Scalar
 
     final def mkValue(timeRef: TimeRef, value: A)(implicit tx: S#Tx): AuralAttribute.Value = mkValue(value)
-
-//    def startLevel(implicit tx: S#Tx): ScalarOptionView[S] = new NumericExprObserver(this)
   }
 
   // ------------------- IntObj -------------------
@@ -197,15 +203,23 @@ object AuralAttributeImpl {
                           (implicit tx: S#Tx, context: AuralContext[S]): AuralAttribute[S] =
       new IntAttribute(key, tx.newHandle(value)).init(value)
 
-    def mkStartLevelView[S <: Sys[S]](value: Repr[S])(implicit tx: S#Tx): ScalarOptionView[S] = ???
+    def mkStartLevelView[S <: Sys[S]](value: Repr[S])(implicit tx: S#Tx): ScalarOptionView[S] =
+      new IntStartLevel(tx.newHandle(value))
   }
+
+  private final class IntStartLevel[S <: Sys[S]](obj: stm.Source[S#Tx, IntObj[S]])
+    extends NumericExprStartLevel(obj) {
+
+    def mkValue(in: Int): Scalar = in.toFloat
+  }
+  
   private final class IntAttribute[S <: Sys[S]](val key: String, val obj: stm.Source[S#Tx, IntObj[S]])
                                                (implicit val context: AuralContext[S])
     extends SingleChannelImpl[S, Int] with NumericExprImpl[S, Int] {
 
     def typeID: Int = IntObj.typeID
 
-    def mkValue(value: Int)(implicit tx: S#Tx): AuralAttribute.Scalar = value.toFloat
+    def mkValue(in: Int): Scalar = in.toFloat
 
     override def toString = s"IntAttribute($key)@${hashCode.toHexString}"
   }
@@ -221,15 +235,23 @@ object AuralAttributeImpl {
                           (implicit tx: S#Tx, context: AuralContext[S]): AuralAttribute[S] =
       new DoubleAttribute(key, tx.newHandle(value)).init(value)
 
-    def mkStartLevelView[S <: Sys[S]](value: Repr[S])(implicit tx: S#Tx): ScalarOptionView[S] = ???
+    def mkStartLevelView[S <: Sys[S]](value: Repr[S])(implicit tx: S#Tx): ScalarOptionView[S] =
+      new DoubleStartLevel(tx.newHandle(value))
   }
+
+  private final class DoubleStartLevel[S <: Sys[S]](obj: stm.Source[S#Tx, DoubleObj[S]])
+    extends NumericExprStartLevel(obj) {
+
+    def mkValue(in: Double): Scalar = in.toFloat
+  }
+  
   private final class DoubleAttribute[S <: Sys[S]](val key: String, val obj: stm.Source[S#Tx, DoubleObj[S]])
                                                   (implicit val context: AuralContext[S])
     extends SingleChannelImpl[S, Double] with NumericExprImpl[S, Double] {
 
     def typeID: Int = DoubleObj.typeID
 
-    def mkValue(value: Double)(implicit tx: S#Tx): AuralAttribute.Scalar = value.toFloat
+    def mkValue(value: Double): Scalar = value.toFloat
 
     override def toString = s"DoubleAttribute($key)@${hashCode.toHexString}"
   }
@@ -245,15 +267,23 @@ object AuralAttributeImpl {
                           (implicit tx: S#Tx, context: AuralContext[S]): AuralAttribute[S] =
       new BooleanAttribute(key, tx.newHandle(value)).init(value)
 
-    def mkStartLevelView[S <: Sys[S]](value: Repr[S])(implicit tx: S#Tx): ScalarOptionView[S] = ???
+    def mkStartLevelView[S <: Sys[S]](value: Repr[S])(implicit tx: S#Tx): ScalarOptionView[S] =
+      new BooleanStartLevel(tx.newHandle(value))
   }
+
+  private final class BooleanStartLevel[S <: Sys[S]](obj: stm.Source[S#Tx, BooleanObj[S]])
+    extends NumericExprStartLevel(obj) {
+
+    def mkValue(in: Boolean): Scalar = if (in) 1f else 0f
+  }
+  
   private final class BooleanAttribute[S <: Sys[S]](val key: String, val obj: stm.Source[S#Tx, BooleanObj[S]])
                                                    (implicit val context: AuralContext[S])
     extends SingleChannelImpl[S, Boolean] with NumericExprImpl[S, Boolean] {
 
     def typeID: Int = BooleanObj.typeID
 
-    def mkValue(value: Boolean)(implicit tx: S#Tx): AuralAttribute.Scalar = if (value) 1f else 0f
+    def mkValue(in: Boolean): Scalar = if (in) 1f else 0f
 
     override def toString = s"BooleanAttribute($key)@${hashCode.toHexString}"
   }
@@ -277,7 +307,7 @@ object AuralAttributeImpl {
 
     def preferredNumChannels(implicit tx: S#Tx): Int = 4
 
-    def mkValue(timeRef: TimeRef, spec: FadeSpec)(implicit tx: S#Tx): AuralAttribute.Scalar = {
+    def mkValue(timeRef: TimeRef, spec: FadeSpec)(implicit tx: S#Tx): Scalar = {
       val v = Vector[Float](
         (spec.numFrames / TimeRef.SampleRate).toFloat, spec.curve.id.toFloat, spec.curve match {
           case Curve.parametric(c)  => c
@@ -301,8 +331,16 @@ object AuralAttributeImpl {
                           (implicit tx: S#Tx, context: AuralContext[S]): AuralAttribute[S] =
       new DoubleVectorAttribute(key, tx.newHandle(value)).init(value)
 
-    def mkStartLevelView[S <: Sys[S]](value: Repr[S])(implicit tx: S#Tx): ScalarOptionView[S] = ???
+    def mkStartLevelView[S <: Sys[S]](value: Repr[S])(implicit tx: S#Tx): ScalarOptionView[S] =
+      new DoubleVectorStartLevel(tx.newHandle(value))
   }
+
+  private final class DoubleVectorStartLevel[S <: Sys[S]](obj: stm.Source[S#Tx, DoubleVector[S]])
+    extends NumericExprStartLevel(obj) {
+    
+    def mkValue(in: Vec[Double]): Scalar = in.map(_.toFloat)
+  }
+  
   private final class DoubleVectorAttribute[S <: Sys[S]](val key: String, val obj: stm.Source[S#Tx, DoubleVector[S]])
                                                         (implicit val context: AuralContext[S])
     extends ExprImpl[S, Vec[Double]] with NumericExprImpl[S, Vec[Double]] {
@@ -311,7 +349,7 @@ object AuralAttributeImpl {
 
     def preferredNumChannels(implicit tx: S#Tx): Int = obj().value.size
 
-    def mkValue(vec: Vec[Double])(implicit tx: S#Tx): AuralAttribute.Scalar = vec.map(_.toFloat)
+    def mkValue(in: Vec[Double]): Scalar = in.map(_.toFloat)
 
     override def toString = s"DoubleVectorAttribute($key)@${hashCode.toHexString}"
   }

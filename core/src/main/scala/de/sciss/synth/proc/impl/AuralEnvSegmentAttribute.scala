@@ -2,7 +2,6 @@ package de.sciss.synth.proc
 package impl
 
 import de.sciss.equal.Implicits._
-import de.sciss.lucre.event.impl.ObservableImpl
 import de.sciss.lucre.stm
 import de.sciss.lucre.stm.Disposable
 import de.sciss.lucre.stm.TxnLike.peer
@@ -23,7 +22,8 @@ object AuralEnvSegmentAttribute extends Factory with StartLevelViewFactory {
                         (implicit tx: S#Tx, context: AuralContext[S]): AuralAttribute[S] =
     new Impl(key, tx.newHandle(value)).init(value)
 
-  def mkStartLevelView[S <: Sys[S]](value: Repr[S])(implicit tx: S#Tx): ScalarOptionView[S] = ???
+  def mkStartLevelView[S <: Sys[S]](value: Repr[S])(implicit tx: S#Tx): ScalarOptionView[S] =
+    new StartLevelView(tx.newHandle(value))
 
   private def mkEnvSegGraph(numChannels: Int): SynthGraph =
     if      (numChannels == 1) envSegGraph1
@@ -55,23 +55,31 @@ object AuralEnvSegmentAttribute extends Factory with StartLevelViewFactory {
     Out.ar(out, sig)
   }
 
+  private final class StartLevelView[S <: Sys[S], A](obj: stm.Source[S#Tx, Repr[S]])
+    extends ScalarOptionView[S] {
+
+    private def levelOf(e: EnvSegment): Scalar = e.startLevelsAsAttrScalar
+
+    def apply()(implicit tx: S#Tx): Option[Scalar] = Some(levelOf(obj().value))
+
+    def react(fun: S#Tx => Option[Scalar] => Unit)(implicit tx: S#Tx): Disposable[S#Tx] =
+      obj().changed.react { implicit tx => ch =>
+        val lvlCh = ch.map(levelOf)
+        if (lvlCh.isSignificant) fun(tx)(Some(lvlCh.now))
+      }
+  }
+
   private final class SegmentEnd[S <: Sys[S]](val frame: Long, val view: ScalarOptionView[S], obs: Disposable[S#Tx])
     extends Disposable[S#Tx] {
 
     def dispose()(implicit tx: S#Tx): Unit = obs.dispose()
   }
 
-  private final class StartObserver[S <: Sys[S], A](view: Impl[S])
-    extends ObservableImpl[S, Option[Scalar]] with ScalarOptionView[S] {
-
-    def apply()(implicit tx: S#Tx): Option[Scalar] = Some(view.obj().value.startLevelsAsAttrScalar)
-  }
-
   private final class Impl[S <: Sys[S]](val key: String, val obj: stm.Source[S#Tx, Repr[S]])
                                        (implicit val context: AuralContext[S])
     extends ExprImpl[S, EnvSegment] with SegmentEndSink[S] /* with StartLevelSource[S] */ {
 
-    private[this] val _endLevel     = Ref(Option.empty[SegmentEnd[S]])
+    private[this] val _endLevel = Ref(Option.empty[SegmentEnd[S]])
 
     def typeID: Int = EnvSegment.typeID
 
@@ -83,8 +91,6 @@ object AuralEnvSegmentAttribute extends Factory with StartLevelViewFactory {
       _endLevel.swap(None).foreach(_.dispose())
       super.dispose()
     }
-
-    def startLevel(implicit tx: S#Tx): ScalarOptionView[S] = new StartObserver(this)
 
     def segmentEnd_=(stopFrame: Long, levelView: ScalarOptionView[S])(implicit tx: S#Tx): Unit = {
       val obs = levelView.react { implicit tx => _ => valueChanged() }

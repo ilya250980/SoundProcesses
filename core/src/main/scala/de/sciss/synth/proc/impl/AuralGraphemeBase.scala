@@ -43,17 +43,11 @@ trait AuralGraphemeBase[S <: Sys[S], I <: stm.Sys[I], Target, Elem <: AuralView[
 
   def obj: stm.Source[S#Tx, Grapheme[S]]
 
-  // protected def tree: SkipOctree[I, LongSpace.TwoDim, (SpanLike, Vec[(stm.Source[S#Tx, S#ID], Elem)])]
-  protected def tree: SkipList.Map[I, Long, Vec[Elem]]
+  protected def viewTree: SkipList.Map[I, Long, Vec[Elem]]
 
   protected def iSys: S#Tx => I#Tx
 
   protected def makeViewElem(start: Long, obj: Obj[S])(implicit tx: S#Tx): Elem
-
-//  /** Called from `mkView` with the resulting view before returning.
-//    * Subclasses can use this to communicate the view to interested neighbouring views (for example).
-//    */
-//  protected def viewAdded(elem: ElemHandle)(implicit tx: S#Tx): Unit
 
   // ---- impl ----
 
@@ -67,21 +61,21 @@ trait AuralGraphemeBase[S <: Sys[S], I <: stm.Sys[I], Target, Elem <: AuralView[
   protected type ElemHandle = AuralGraphemeBase.ElemHandle[S, Elem]
 
   protected final def viewEventAfter(offset: Long)(implicit tx: S#Tx): Long =
-    tree.ceil(offset + 1)(iSys(tx)).fold(Long.MaxValue)(_._1)
+    viewTree.ceil(offset + 1)(iSys(tx)).fold(Long.MaxValue)(_._1)
 
   protected final def modelEventAfter(offset: Long)(implicit tx: S#Tx): Long =
     obj().eventAfter(offset).getOrElse(Long.MaxValue)
 
   protected final def processPlay(timeRef: TimeRef, target: Target)(implicit tx: S#Tx): Unit = {
     implicit val itx: I#Tx = iSys(tx)
-    tree.floor(timeRef.offset).foreach { case (start, entries) =>
+    viewTree.floor(timeRef.offset).foreach { case (start, entries) =>
       playEntry(entries, start = start, timeRef = timeRef, target = target)
     }
   }
 
   protected final def processEvent(play: IPlaying, timeRef: TimeRef)(implicit tx: S#Tx): Unit = {
     val start   = timeRef.offset
-    val entries = tree.get(start)(iSys(tx))
+    val entries = viewTree.get(start)(iSys(tx))
       .getOrElse(throw new IllegalStateException(s"No element at event ${timeRef.offset}"))
     playEntry(entries, start = start, timeRef = timeRef, target = play.target)
   }
@@ -172,7 +166,7 @@ trait AuralGraphemeBase[S <: Sys[S], I <: stm.Sys[I], Target, Elem <: AuralView[
   }
 
   protected def stopView(h: ElemHandle)(implicit tx: S#Tx): Unit = {
-    require(playingRef() == Some(h))
+    require(playingRef().contains(h))
     stopViews()
   }
 
@@ -191,11 +185,10 @@ trait AuralGraphemeBase[S <: Sys[S], I <: stm.Sys[I], Target, Elem <: AuralView[
     implicit val itx: I#Tx = iSys(tx)
     val Span.HasStart(start) = span
     val view  = makeViewElem(start, obj)
-    val seq0  = tree.get(start).getOrElse(Vector.empty)
+    val seq0  = viewTree.get(start).getOrElse(Vector.empty)
     val seq1  = seq0 :+ view
-    tree.add(start -> seq1)
+    viewTree.add(start -> seq1)
     val h     = ElemHandle(start, view)
-//    viewAdded(h)
     h
   }
 
@@ -231,11 +224,11 @@ trait AuralGraphemeBase[S <: Sys[S], I <: stm.Sys[I], Target, Elem <: AuralView[
   private def removeView(h: ElemHandle)(implicit tx: S#Tx): Unit = {
     implicit val itx: I#Tx = iSys(tx)
     val start = h.start
-    val seq0  = tree.get(start).get
+    val seq0  = viewTree.get(start).get
     val idx   = seq0.indexOf(h.view)
     if (idx < 0) throw new IllegalStateException(s"View ${h.view} not found.")
     val seq1  = seq0.patch(idx, Nil, 1)
-    if (seq1.isEmpty) tree.remove(start) else tree.add(start -> seq1)
+    if (seq1.isEmpty) viewTree.remove(start) else viewTree.add(start -> seq1)
   }
 
   private def elemAdded(pin: BiPin[S, Obj[S]], start: Long, child: Obj[S])(implicit tx: S#Tx): Boolean = {
@@ -248,16 +241,16 @@ trait AuralGraphemeBase[S <: Sys[S], I <: stm.Sys[I], Target, Elem <: AuralView[
   private def elemRemoved(start: Long, child: Obj[S])(implicit tx: S#Tx): Boolean = {
     // implicit val itx = iSys(tx)
     val opt = for {
-      seq  <- tree.get(start)(iSys(tx))
+      seq  <- viewTree.get(start)(iSys(tx))
       view <- seq.find(_.obj() == child)
     } yield {
       logA(s"timeline - elemRemoved($start, $child)")
       val h         = ElemHandle(start, view)
-      val elemPlays = playingRef() == Some(h)
+      val elemPlays = playingRef().contains(h)
       elemRemoved(h, elemPlays = elemPlays)
       elemPlays
     }
-    opt == Some(true)
+    opt.contains(true)
   }
 
   // If a playing element has been removed, check if there is another one

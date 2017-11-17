@@ -19,7 +19,7 @@ import de.sciss.lucre.stm
 import de.sciss.lucre.stm.{Obj, TxnLike}
 import de.sciss.lucre.synth.Sys
 import de.sciss.serial.Serializer
-import de.sciss.synth.proc.AuralAttribute.{Factory, Observer, SegmentEndSink}
+import de.sciss.synth.proc.AuralAttribute.{Factory, Observer, ScalarOptionView, SegmentEndSink}
 
 import scala.annotation.tailrec
 import scala.collection.immutable.{IndexedSeq => Vec}
@@ -53,7 +53,7 @@ object AuralGraphemeAttribute extends Factory {
 final class AuralGraphemeAttribute[S <: Sys[S], I <: stm.Sys[I]](val key: String,
                                                                  val obj: stm.Source[S#Tx, Grapheme[S]],
                                                                  observer: Observer[S],
-                                                                 protected val tree: SkipList.Map[I, Long, Vec[AuralAttribute[S]]])
+                                                                 protected val viewTree: SkipList.Map[I, Long, Vec[AuralAttribute[S]]])
                                                                 (implicit protected val context: AuralContext[S],
                                                                  protected val iSys: S#Tx => I#Tx)
   extends AuralGraphemeBase[S, I, AuralAttribute.Target[S], AuralAttribute[S]]
@@ -86,22 +86,32 @@ final class AuralGraphemeAttribute[S <: Sys[S], I <: stm.Sys[I]](val key: String
     view
   }
 
-//  protected def viewAdded(elem: ElemHandle)(implicit tx: S#Tx): Unit =
-//    elem.view match {
-//      // if the added element has a start-level, and the predecessor
-//      // and end level sink, associate the two
-//      case sls: StartLevelSource[S] if elem.start > Long.MinValue =>
-//        implicit val itx: I#Tx = iSys(tx)
-//        tree.floor(elem.start - 1).foreach {
-//          case (_, xs) =>
-//            val sl = sls.startLevel
-//            xs.foreach {
-//              case ses: SegmentEndSink[S] => ses.segmentEnd_=(elem.start, sl)
-//              case _ =>
-//            }
+//  private def mkStartLevelView(frame: Long)(implicit tx: S#Tx): Option[(Long, ScalarOptionView[S])] =
+//    obj().ceil(frame).map { entry =>
+//      val endTime   = entry.key.value
+//      val endChild  = entry.value
+//      endTime -> AuralAttribute.startLevelView(endChild)
+//    }
+//
+//  protected def unmakeViewElem(start: Long, view: Elem)(implicit tx: S#Tx): Unit = {
+//    if (start > Long.MinValue) {
+//      val opt: Option[(Long, Vec[AuralAttribute[S]])] = viewTree.floor(start - 1)
+//      opt.foreach { case (startTime, xs) =>
+//        lazy val sesOpt: Option[SegmentEndSink[S]] = viewTree.ceil(start).flatMap
+//      }
+//    }
+//    view match {
+//      case ses: SegmentEndSink[S] if start < Long.MaxValue =>
+//        obj().ceil(start + 1).foreach { entry =>
+//          val endTime   = entry.key.value
+//          val endChild  = entry.value
+//          val slv       = AuralAttribute.startLevelView(endChild)
+//          ses.segmentEnd_=(endTime, slv)
 //        }
 //      case _ =>
 //    }
+//    view
+//  }
 
   def preferredNumChannels(implicit tx: S#Tx): Int = {
     val cache = prefChansNumRef()

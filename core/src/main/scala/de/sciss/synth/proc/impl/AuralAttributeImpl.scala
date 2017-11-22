@@ -99,11 +99,15 @@ object AuralAttributeImpl {
 
   // ---- ----
 
-  private final class Playing[S <: Sys[S]](val timeRef: TimeRef, val wallClock: Long, val target: Target[S]) {
+  private final class Playing[S <: Sys[S]](val timeRef: TimeRef, val wallClock: Long,
+                                           val target: Target[S], val value: AuralAttribute.Value) {
     def shiftTo(newWallClock: Long): TimeRef = {
       val delta = newWallClock - wallClock
       timeRef.shift(delta)
     }
+
+    def updateValue(newValue: AuralAttribute.Value): Playing[S] =
+      new Playing(timeRef, wallClock, target, newValue)
   }
 
   trait ExprImpl[S <: Sys[S], A]
@@ -115,6 +119,9 @@ object AuralAttributeImpl {
 
     def obj: stm.Source[S#Tx, Expr[S, A]]
 
+    /** Creates a value representation of this input. If the value is a `Stream`,
+      * that stream's node reference will be disposed when the input stops (is replaced by other input).
+      */
     protected def mkValue(timeRef: TimeRef, in: A)(implicit tx: S#Tx): AuralAttribute.Value
 
     // ---- impl ----
@@ -129,10 +136,11 @@ object AuralAttributeImpl {
     final def prepare(timeRef: TimeRef.Option)(implicit tx: S#Tx): Unit = state = Prepared
 
     final def play(timeRef: TimeRef.Option, target: Target[S])(implicit tx: S#Tx): Unit /* Instance */ = {
-      val playing = new Playing(timeRef.force, sched.time, target)
-      require(playRef.swap(Some(playing))(tx.peer).isEmpty)
       state = Playing
-      updateTarget(playing.timeRef, playing.target, obj().value)
+      val timeF   = timeRef.force
+      val value   = updateTarget(timeF, target, obj().value)
+      val playing = new Playing(timeF, sched.time, target, value)
+      require(playRef.swap(Some(playing))(tx.peer).isEmpty)
     }
 
     final def stop()(implicit tx: S#Tx): Unit = {
@@ -140,15 +148,22 @@ object AuralAttributeImpl {
       state = Stopped
     }
 
-    private def updateTarget(timeRef: TimeRef, target: Target[S], value: A)(implicit tx: S#Tx): Unit = {
+    private def updateTarget(timeRef: TimeRef, target: Target[S], value: A)
+                            (implicit tx: S#Tx): AuralAttribute.Value = {
       val ctlVal = mkValue(timeRef, value)
       target.put(this, ctlVal)
+      ctlVal
     }
 
     final protected def valueChanged(value: A)(implicit tx: S#Tx): Unit = {
       playRef().foreach { p =>
-        val trNew = p.shiftTo(sched.time)
-        updateTarget(trNew, p.target, value)
+        val trNew     = p.shiftTo(sched.time)
+        val newValue  = updateTarget(trNew, p.target, value)
+        if (!p.value.isScalar || !newValue.isScalar) {
+          freeValue(p)
+          val newP = p.updateValue(newValue)
+          playRef() = Some(newP)
+        }
       }
     }
 
@@ -159,8 +174,17 @@ object AuralAttributeImpl {
       this
     }
 
+    @inline
+    private def freeValue(p: Playing[S])(implicit tx: S#Tx): Unit = p.value match {
+      case AuralAttribute.Stream(nodeRef, _) => nodeRef.node.dispose()
+      case _ =>
+    }
+
     private def stopNoFire()(implicit tx: S#Tx): Unit =
-      playRef.swap(None).foreach(p => p.target.remove(this))
+      playRef.swap(None).foreach { p =>
+        p.target.remove(this)
+        freeValue(p)
+      }
 
     def dispose()(implicit tx: S#Tx): Unit = {
       obs.dispose()

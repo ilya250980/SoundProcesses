@@ -92,6 +92,10 @@ class AuralTests2[S <: Sys[S]](name: String)(implicit cursor: stm.Cursor[S]) ext
         }
       }
 
+      after(11.0) { implicit tx =>
+        context.server.peer.dumpTree()
+      }
+
       stopAndQuit(12.0)
     }
   }
@@ -107,6 +111,7 @@ class AuralTests2[S <: Sys[S]](name: String)(implicit cursor: stm.Cursor[S]) ext
         |as an oscillator frequency going exponentially up for 3 seconds,
         |then, as the ceil node changes, jumping down and descending to 200 Hz, for 3 seconds,
         |then going up to 400 Hz for 3 seconds.
+        |Final node dump should not contain any 'env' named synth.
         |
         |""".stripMargin)
 
@@ -133,6 +138,10 @@ class AuralTests2[S <: Sys[S]](name: String)(implicit cursor: stm.Cursor[S]) ext
         println("Start from low")
         val ev = evH()
         ev() = EnvSegment.Single(200, Curve.lin)
+      }
+
+      after(11.0) { implicit tx =>
+        context.server.peer.dumpTree()
       }
 
       stopAndQuit(12.0)

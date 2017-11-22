@@ -1,7 +1,7 @@
 lazy val baseName  = "SoundProcesses"
 lazy val baseNameL = baseName.toLowerCase
 
-lazy val projectVersion = "3.16.0"
+lazy val projectVersion = "3.16.1-SNAPSHOT"
 lazy val mimaVersion    = "3.16.0" // used for migration-manager
 
 lazy val commonSettings = Seq(
@@ -28,6 +28,7 @@ lazy val audioWidgetsVersion        = "1.11.1"
 lazy val fileUtilVersion            = "1.1.3"
 lazy val topologyVersion            = "1.0.1"
 lazy val equalVersion               = "0.1.2"
+lazy val modelVersion               = "0.3.4"
 
 // ---- test-only ----
 
@@ -99,6 +100,7 @@ lazy val core = Project(id = s"$baseNameL-core", base = file("core"))
       "at.iem"            %% "scalacollider-if"             % scalaColliderIfVersion,
       "de.sciss"          %% "fileutil"                     % fileUtilVersion,
       "de.sciss"          %% "equal"                        % equalVersion,
+      "de.sciss"          %% "model"                        % modelVersion, // sbt bug
       "org.scala-lang"    %  "scala-compiler"               % scalaVersion.value        % "provided",
       "org.scalatest"     %% "scalatest"                    % scalaTestVersion          % "test",
       "de.sciss"          %% s"lucre-$bdb"                  % lucreVersion              % "test",

@@ -191,7 +191,7 @@ final class AuralAttributeTargetImpl[S <: Sys[S]](target: NodeRef.Full[S], val k
     }
 
     def remove(attr: AuralAttribute[S])(implicit tx: S#Tx): State = {
-      val opt = map.remove(attr) // .fold(throw new NoSuchElementException(attr.toString))(_.dispose())
+      val opt: Option[Connected] = map.remove(attr)
       opt.fold[State](this) { value =>
         value.dispose()
         map.size match {

@@ -159,7 +159,7 @@ object AuralAttributeImpl {
       playRef().foreach { p =>
         val trNew     = p.shiftTo(sched.time)
         val newValue  = updateTarget(trNew, p.target, value)
-        if (!p.value.isScalar || !newValue.isScalar) {
+        if (!(p.value.isScalar && newValue.isScalar)) {
           freeValue(p)
           val newP = p.updateValue(newValue)
           playRef() = Some(newP)

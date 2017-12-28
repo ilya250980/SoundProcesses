@@ -19,7 +19,7 @@ class SynthGraphSerializationSpec extends FunSpec {
 
   dfs += "AnalogBubbles" -> SynthGraph {
     val f1  = "freq1".kr(0.4)
-    val f2  = "freq2".kr(8)
+    val f2  = "freq2".kr(8.0)
     val d   = "detune".kr(0.90375)
     val f   = LFSaw.ar(f1).madd(24, LFSaw.ar(Seq(f2, f2 * d)).madd(3, 80)).midicps // glissando function
     val res = CombN.ar(SinOsc.ar(f) * 0.04, 0.2, 0.2, 4) // echoing sine wave
@@ -89,7 +89,7 @@ class SynthGraphSerializationSpec extends FunSpec {
     val p   = 15 // number of partials per channel per 'cymbal'.
     val f1  = Rand(500, 2500)
     val f2  = Rand(0, 8000)
-    val res = for (i <- 1 to 2) yield {
+    val res = for (_ <- 1 to 2) yield {
       val z = KlangSpec.fill(p) {
         // sine oscil bank specification :
         (f1 + Rand(0, f2), // frequencies
@@ -121,7 +121,7 @@ class SynthGraphSerializationSpec extends FunSpec {
     val y = Mix(CombL.ar(z, 0.1, LFNoise1.kr(Seq.fill(c)(Rand(0, 0.1))).madd(0.04, 0.05), 15))
 
     // chain of 'a' allpass delays on each of two channels (2 times 'a' total) :
-    val x = (0 until a).foldLeft[GE](y)((y, i) => AllpassN.ar(y, 0.050, Seq(Rand(0, 0.050), Rand(0, 0.050)), 1))
+    val x = (0 until a).foldLeft[GE](y)((y, _) => AllpassN.ar(y, 0.050, Seq(Rand(0, 0.050), Rand(0, 0.050)), 1))
 
     // add original sound to reverb and play it :
     val res = s + (0.2 * x)
@@ -177,7 +177,7 @@ class SynthGraphSerializationSpec extends FunSpec {
   dfs += "Trig" -> SynthGraph {
     val trig  = "trig".tr // trigger control
     //   val freq = "freq".kr(440 -> 4.0) // lag control (lag time 4 seconds)
-    val freq  = "freq".kr(440) // lag control not yet implemented :-(
+    val freq  = "freq".kr(440.0) // lag control not yet implemented :-(
     val res   = SinOsc.ar(freq + Seq(0, 1)) * Decay2.kr(trig, 0.005, 1.0)
     WrapOut(res)
   }
@@ -201,7 +201,7 @@ class SynthGraphSerializationSpec extends FunSpec {
     val fft   = FFT("buf".kr, in)
     val flt   = PV_MagAbove(fft, MouseX.kr(0, 10))
     val ifft  = IFFT.ar(flt) * Seq(0.5, 0.5)
-    Out.ar("out".kr(0), ifft)
+    Out.ar("out".kr(0.0), ifft)
   }
 
   //////////////////////////////////////////////////////////////////////////
@@ -239,8 +239,8 @@ class SynthGraphSerializationSpec extends FunSpec {
     val harm  = "harm"  ir Seq(1,    2,    3,    4   )  // harmonics
     val amp   = "amp"   ir Seq(0.05, 0.05, 0.05, 0.05)  // amplitudes
     val ring  = "ring"  ir Seq(1,    1,    1,    1   )  // ring times
-    val klank = Klank.ar(Zip(harm, amp, ring), ClipNoise.ar(Seq(0.01, 0.01)), "freq".ir(300))
-    Out.ar("out".kr(0), klank)
+    val klank = Klank.ar(Zip(harm, amp, ring), ClipNoise.ar(Seq(0.01, 0.01)), "freq".ir(300.0))
+    Out.ar("out".kr(0.0), klank)
   }
 
   //////////////////////////////////////////////////////////////////////////
@@ -265,7 +265,7 @@ class SynthGraphSerializationSpec extends FunSpec {
     val v = LFDNoise3.ar(0.1).linexp(-1, 1, 1e-5, 1)
     val n = 32
     var mix: GE = 0
-    for (i <- 0 until n) {
+    for (_ <- 0 until n) {
       val freq = LFDNoise3.ar(LFDNoise3.ar(v).linexp(-1, 1, 1e-4, 0.01)).linexp(-1, 1, 64, 16000)
       val sin = SinOsc.ar(freq)
       val mul = LFDNoise3.ar(LFDNoise3.ar(v).linexp(-1, 1, 1e-4, 1)).linexp(-1, 1, 0.001, 1)

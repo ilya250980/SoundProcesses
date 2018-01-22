@@ -27,7 +27,7 @@ import scala.collection.immutable.{IndexedSeq => Vec}
 import scala.concurrent.stm.Ref
 
 object AuralGraphemeBase {
-  protected final case class ElemHandle[S <: Sys[S], Elem](start: Long, view: Elem)
+  final case class ElemHandle[S <: Sys[S], Elem](start: Long, view: Elem)
 }
 
 /** Base for `AuralGraphemeAttribute`

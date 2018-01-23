@@ -2,7 +2,7 @@
  *  AuralScheduledBase.scala
  *  (SoundProcesses)
  *
- *  Copyright (c) 2010-2017 Hanns Holger Rutz. All rights reserved.
+ *  Copyright (c) 2010-2018 Hanns Holger Rutz. All rights reserved.
  *
  *	This software is published under the GNU Lesser General Public License v2.1+
  *
@@ -41,7 +41,7 @@ object AuralScheduledBase {
   def spanToPoint(span: SpanLike): LongPoint2D = BiGroupImpl.spanToPoint(span)
 }
 /** Common base for `AuralGraphemeBase` and `AuralTimelineBase`. */
-trait AuralScheduledBase[S <: Sys[S], Target, Elem <: AuralView[S, Target]]
+trait AuralScheduledBase[S <: Sys[S], Target, Elem <: AuralViewBase[S, Target]]
   extends ObservableImpl[S, AuralView.State] { impl =>
 
   import TxnLike.peer

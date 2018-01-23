@@ -2,7 +2,7 @@
  *  ServerImpl.scala
  *  (SoundProcesses)
  *
- *  Copyright (c) 2010-2017 Hanns Holger Rutz. All rights reserved.
+ *  Copyright (c) 2010-2018 Hanns Holger Rutz. All rights reserved.
  *
  *	This software is published under the GNU Lesser General Public License v2.1+
  *
@@ -16,9 +16,10 @@ package impl
 
 import java.io.{ByteArrayOutputStream, DataOutputStream}
 
+import de.sciss.lucre.stm.TxnLike.{peer => txPeer}
 import de.sciss.osc
 import de.sciss.osc.Timetag
-import de.sciss.synth.{AllocatorExhausted, Client => SClient, ControlABusMap, ControlSet, Server => SServer, UGenGraph, addToHead, message}
+import de.sciss.synth.{AllocatorExhausted, ControlABusMap, ControlSet, UGenGraph, addToHead, message, Client => SClient, Server => SServer}
 import de.sciss.topology.Topology
 
 import scala.annotation.tailrec
@@ -412,33 +413,33 @@ object ServerImpl {
     final def counts    : message.StatusReply = peer.counts
 
     final def allocControlBus(numChannels: Int)(implicit tx: Txn): Int = {
-      val res = controlBusAllocator.alloc(numChannels)(tx.peer)
-      if (res < 0) throw AllocatorExhausted("Control buses exhausted for " + this)
+      val res = controlBusAllocator.alloc(numChannels)
+      if (res < 0) throw AllocatorExhausted(s"Control buses exhausted for $this")
       res
     }
 
     final def allocAudioBus(numChannels: Int)(implicit tx: Txn): Int = {
-      val res = audioBusAllocator.alloc(numChannels)(tx.peer)
-      if (res < 0) throw AllocatorExhausted("Audio buses exhausted for " + this)
+      val res = audioBusAllocator.alloc(numChannels)
+      if (res < 0) throw AllocatorExhausted(s"Audio buses exhausted for $this")
       res
     }
 
     final def freeControlBus(index: Int, numChannels: Int)(implicit tx: Txn): Unit =
-      controlBusAllocator.free(index, numChannels)(tx.peer)
+      controlBusAllocator.free(index, numChannels)
 
     final def freeAudioBus(index: Int, numChannels: Int)(implicit tx: Txn): Unit =
-      audioBusAllocator.free(index, numChannels)(tx.peer)
+      audioBusAllocator.free(index, numChannels)
 
     final def allocBuffer(numConsecutive: Int)(implicit tx: Txn): Int = {
-      val res = bufferAllocator.alloc(numConsecutive)(tx.peer)
-      if (res < 0) throw AllocatorExhausted("Buffers exhausted for " + this)
+      val res = bufferAllocator.alloc(numConsecutive)
+      if (res < 0) throw AllocatorExhausted(s"Buffers exhausted for $this")
       res
     }
 
     final def freeBuffer(index: Int, numConsecutive: Int)(implicit tx: Txn): Unit =
-      bufferAllocator.free(index, numConsecutive)(tx.peer)
+      bufferAllocator.free(index, numConsecutive)
 
-    final def nextNodeID()(implicit tx: Txn): Int = nodeAllocator.alloc()(tx.peer)
+    final def nextNodeID()(implicit tx: Txn): Int = nodeAllocator.alloc()
 
     // ---- former Server ----
 
@@ -450,13 +451,11 @@ object ServerImpl {
     // limit on number of online defs XXX TODO -- head room rather arbitrary
     final private[this] val maxDefs       = math.max(128, server.config.maxSynthDefs - 128)
 
-    final private[this] val topologyRef = Ref[T](Topology.empty)
+    final private[this] val topologyRef = Ref[T](Topology.empty[NodeRef, NodeRef.Edge])
 
-    final def topology(implicit tx: Txn): T = topologyRef.get(tx.peer)
+    final def topology(implicit tx: Txn): T = topologyRef()
 
     final def acquireSynthDef(graph: UGenGraph, nameHint: Option[String])(implicit tx: Txn): SynthDef = {
-      implicit val itx = tx.peer
-
       val bos   = new ByteArrayOutputStream
       val dos   = new DataOutputStream(bos)
       graph.write(dos, version = 1) // Escape.write(graph, dos)
@@ -503,19 +502,19 @@ object ServerImpl {
 
     final def addVertex(node: NodeRef)(implicit tx: Txn): Unit = {
       log(s"Server.addVertex($node)")
-      topologyRef.transform(_.addVertex(node))(tx.peer)
+      topologyRef.transform(_.addVertex(node))
     }
 
     final def removeVertex(node: NodeRef)(implicit tx: Txn): Unit = {
       log(s"Server.removeVertex($node)")
-      topologyRef.transform(_.removeVertex(node))(tx.peer)
+      topologyRef.transform(_.removeVertex(node))
     }
 
     final def addEdge(edge: NodeRef.Edge)(implicit tx: Txn): Boolean = {
       log(s"Server.addEdge($edge)")
-      val res = topologyRef.get(tx.peer).addEdge(edge)
+      val res = topologyRef().addEdge(edge)
       res.foreach { case (topNew, moveOpt) =>
-        topologyRef.set(topNew)(tx.peer)
+        topologyRef() = topNew
         moveOpt.foreach {
           case Topology.MoveAfter (ref, aff) =>
             val refNode = ref.node
@@ -536,7 +535,7 @@ object ServerImpl {
 
     final def removeEdge(edge: NodeRef.Edge)(implicit tx: Txn): Unit = {
       log(s"Server.removeEdge($edge)")
-      topologyRef.transform(_.removeEdge(edge))(tx.peer)
+      topologyRef.transform(_.removeEdge(edge))
     }
 
     final private[this] val uniqueDefID = Ref(0)
@@ -578,7 +577,7 @@ object ServerImpl {
     }
 
     final private[this] def nextDefID()(implicit tx: Txn): Int =
-      uniqueDefID.getAndTransform(_ + 1)(tx.peer)
+      uniqueDefID.getAndTransform(_ + 1)
 
     // ---- sending ----
 

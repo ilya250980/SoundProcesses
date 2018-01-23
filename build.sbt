@@ -1,8 +1,8 @@
 lazy val baseName  = "SoundProcesses"
 lazy val baseNameL = baseName.toLowerCase
 
-lazy val projectVersion = "3.16.2-SNAPSHOT"
-lazy val mimaVersion    = "3.16.0" // used for migration-manager
+lazy val projectVersion = "3.17.0-SNAPSHOT"
+lazy val mimaVersion    = "3.17.0" // used for migration-manager
 
 lazy val commonSettings = Seq(
   version            := projectVersion,
@@ -17,27 +17,33 @@ lazy val commonSettings = Seq(
   parallelExecution in Test := false
 ) ++ publishSettings
 
-lazy val lucreVersion               = "3.5.0"
-lazy val scalaColliderVersion       = "1.23.0"
-lazy val ugensVersion               = "1.17.1"
-lazy val scalaColliderIfVersion     = "0.4.0"
-lazy val spanVersion                = "1.3.1"
-lazy val lucreSwingVersion          = "1.7.0"
-lazy val swingPlusVersion           = "0.2.4"
-lazy val audioWidgetsVersion        = "1.11.1"
-lazy val fileUtilVersion            = "1.1.3"
-lazy val topologyVersion            = "1.0.1"
-lazy val equalVersion               = "0.1.2"
-lazy val modelVersion               = "0.3.4"
+lazy val deps = new {
+  val main = new {
+    val lucre               = "3.5.0"
+    val scalaCollider       = "1.23.0"
+    val ugens               = "1.17.1"
+    val scalaColliderIf     = "0.4.0"
+    val span                = "1.3.1"
+    val lucreSwing          = "1.7.0"
+    val swingPlus           = "0.2.4"
+    val audioWidgets        = "1.11.2"
+    val fileUtil            = "1.1.3"
+    val topology            = "1.1.0"
+    val equal               = "0.1.2"
+    val model               = "0.3.4"
+  }
+  
+  val test = new {
+    val scalaColliderSwing = "1.35.0"
+    val scalaTest          = "3.0.4"
+    val bdb                = "bdb"  // either "bdb" or "bdb6"
+    val submin             = "0.2.2"
+    val scopt              = "3.7.0"
+  }
+}
 
-// ---- test-only ----
+lazy val loggingEnabled = true
 
-lazy val scalaColliderSwingVersion = "1.35.0"
-lazy val scalaTestVersion          = "3.0.4"
-lazy val loggingEnabled            = true
-lazy val bdb                       = "bdb"  // either "bdb" or "bdb6"
-lazy val subminVersion             = "0.2.2"
-lazy val scoptVersion              = "3.7.0"
 
 scalacOptions in ThisBuild ++= {
   // "-Xfatal-warnings" -- breaks for cross-scala-build and deprecations
@@ -74,10 +80,10 @@ lazy val synth = Project(id = "lucresynth", base = file("synth"))
   .settings(
     description := "Transactional extension for ScalaCollider",
     libraryDependencies ++= Seq(
-      "de.sciss" %% "topology"                % topologyVersion,
-      "de.sciss" %% "lucre-core"              % lucreVersion,
-      "de.sciss" %% "scalacollider"           % scalaColliderVersion,
-      "de.sciss" %% "scalacolliderugens-core" % ugensVersion
+      "de.sciss" %% "topology"                % deps.main.topology,
+      "de.sciss" %% "lucre-core"              % deps.main.lucre,
+      "de.sciss" %% "scalacollider"           % deps.main.scalaCollider,
+      "de.sciss" %% "scalacolliderugens-core" % deps.main.ugens
     ),
     mimaPreviousArtifacts := Set("de.sciss" %% "lucresynth" % mimaVersion)
   )
@@ -95,17 +101,17 @@ lazy val core = Project(id = s"$baseNameL-core", base = file("core"))
     ),
     buildInfoPackage := "de.sciss.synth.proc",
     libraryDependencies ++= Seq(
-      "de.sciss"          %% "lucre-confluent"              % lucreVersion,
-      "de.sciss"          %% "lucre-expr"                   % lucreVersion,
-      "at.iem"            %% "scalacollider-if"             % scalaColliderIfVersion,
-      "de.sciss"          %% "fileutil"                     % fileUtilVersion,
-      "de.sciss"          %% "equal"                        % equalVersion,
-      "de.sciss"          %% "model"                        % modelVersion, // sbt bug
+      "de.sciss"          %% "lucre-confluent"              % deps.main.lucre,
+      "de.sciss"          %% "lucre-expr"                   % deps.main.lucre,
+      "at.iem"            %% "scalacollider-if"             % deps.main.scalaColliderIf,
+      "de.sciss"          %% "fileutil"                     % deps.main.fileUtil,
+      "de.sciss"          %% "equal"                        % deps.main.equal,
+//      "de.sciss"          %% "model"                        % deps.main.model, // sbt bug
       "org.scala-lang"    %  "scala-compiler"               % scalaVersion.value        % "provided",
-      "org.scalatest"     %% "scalatest"                    % scalaTestVersion          % "test",
-      "de.sciss"          %% s"lucre-$bdb"                  % lucreVersion              % "test",
-      "com.github.scopt"  %% "scopt"                        % scoptVersion              % "test",
-      "de.sciss"          %% "scalacolliderswing-plotting"  % scalaColliderSwingVersion % "test"
+      "org.scalatest"     %% "scalatest"                    % deps.test.scalaTest          % "test",
+      "de.sciss"          %% s"lucre-${deps.test.bdb}"      % deps.main.lucre              % "test",
+      "com.github.scopt"  %% "scopt"                        % deps.test.scopt              % "test",
+      "de.sciss"          %% "scalacolliderswing-plotting"  % deps.test.scalaColliderSwing % "test"
     ),
     mimaPreviousArtifacts := Set("de.sciss" %% s"$baseNameL-core" % mimaVersion)
   )
@@ -116,11 +122,11 @@ lazy val views = Project(id = s"$baseNameL-views", base = file("views"))
   .settings(
     description := "Views for Sound Processes",
     libraryDependencies ++= Seq(
-      "de.sciss" %% "lucreswing"         % lucreSwingVersion,
-      "de.sciss" %% "swingplus"          % swingPlusVersion,
-      "de.sciss" %% "audiowidgets-swing" % audioWidgetsVersion,
-      "de.sciss" %% "audiowidgets-app"   % audioWidgetsVersion,
-      "de.sciss" %  "submin"             % subminVersion % "test"
+      "de.sciss" %% "lucreswing"         % deps.main.lucreSwing,
+      "de.sciss" %% "swingplus"          % deps.main.swingPlus,
+      "de.sciss" %% "audiowidgets-swing" % deps.main.audioWidgets,
+      "de.sciss" %% "audiowidgets-app"   % deps.main.audioWidgets,
+      "de.sciss" %  "submin"             % deps.test.submin % "test"
     ),
     mimaPreviousArtifacts := Set("de.sciss" %% s"$baseNameL-views" % mimaVersion)
   )
@@ -133,10 +139,10 @@ lazy val compiler = Project(id = s"$baseNameL-compiler", base = file("compiler")
     scalacOptions += "-Yrangepos",  // this is needed to extract source code
     libraryDependencies ++= Seq(
       "org.scala-lang" %  "scala-compiler"          % scalaVersion.value,
-      "de.sciss"       %% s"lucre-$bdb"             % lucreVersion              % "test",
-      "de.sciss"       %% "fileutil"                % fileUtilVersion           % "test",
-      "de.sciss"       %% "lucreswing"              % lucreSwingVersion         % "test",
-      "de.sciss"       %% "scalacolliderswing-core" % scalaColliderSwingVersion % "test"
+      "de.sciss"       %% s"lucre-${deps.test.bdb}" % deps.main.lucre               % "test",
+//      "de.sciss"       %% "fileutil"                % deps.main.fileUtil            % "test",
+      "de.sciss"       %% "lucreswing"              % deps.main.lucreSwing          % "test",
+      "de.sciss"       %% "scalacolliderswing-core" % deps.test.scalaColliderSwing  % "test"
     ),
     mimaPreviousArtifacts := Set("de.sciss" %% s"$baseNameL-compiler" % mimaVersion)
   )

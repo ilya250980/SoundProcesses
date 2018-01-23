@@ -2,7 +2,7 @@
  *  AuralView.scala
  *  (SoundProcesses)
  *
- *  Copyright (c) 2010-2017 Hanns Holger Rutz. All rights reserved.
+ *  Copyright (c) 2010-2018 Hanns Holger Rutz. All rights reserved.
  *
  *	This software is published under the GNU Lesser General Public License v2.1+
  *
@@ -25,14 +25,9 @@ object AuralView {
   case object Prepared  extends State
   case object Playing   extends State
 }
-/** A trait that provides a shared structure for `AuralObj` and `AuralAttribute`,
-  * the only difference being the `Target` context type needed for issuing a play.
-  */
-trait AuralView[S <: Sys[S], -Target] extends Observable[S#Tx, AuralView.State] with Disposable[S#Tx] {
-  def typeID: Int
 
-  /** The view must store a handle to its underlying model. */
-  def obj: stm.Source[S#Tx, Obj[S]]
+trait AuralViewBase[S <: Sys[S], -Target] extends Observable[S#Tx, AuralView.State] with Disposable[S#Tx] {
+  def typeID: Int
 
   def state(implicit tx: S#Tx): AuralView.State
 
@@ -40,4 +35,12 @@ trait AuralView[S <: Sys[S], -Target] extends Observable[S#Tx, AuralView.State] 
   def play   (timeRef: TimeRef.Option, target: Target)(implicit tx: S#Tx): Unit
 
   def stop()(implicit tx: S#Tx): Unit
+}
+
+/** A trait that provides a shared structure for `AuralObj` and `AuralAttribute`,
+  * the only difference being the `Target` context type needed for issuing a play.
+  */
+trait AuralView[S <: Sys[S], -Target] extends AuralViewBase[S, Target] {
+  /** The view must store a handle to its underlying model. */
+  def obj: stm.Source[S#Tx, Obj[S]]
 }

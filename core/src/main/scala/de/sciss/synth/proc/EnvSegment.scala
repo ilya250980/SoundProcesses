@@ -20,6 +20,7 @@ import de.sciss.lucre.{expr, stm}
 import de.sciss.serial.{DataInput, DataOutput, ImmutableSerializer, Writable}
 import de.sciss.synth.Curve
 import de.sciss.synth.UGenSource.Vec
+import de.sciss.synth.ugen.ControlValues
 import de.sciss.{lucre, model => m}
 
 import scala.annotation.switch
@@ -267,7 +268,7 @@ object EnvSegment {
 
     def startLevels: Vec[Double] = Vector(startLevel)
 
-    private[proc] def startLevelsAsAttrScalar: AuralAttribute.Scalar = startLevel.toFloat
+    private[proc] def startLevelsAsControl: ControlValues = startLevel
 
     def write(out: DataOutput): Unit = {
       out.writeShort(COOKIE)
@@ -279,7 +280,7 @@ object EnvSegment {
   final case class Multi (startLevels: Vec[Double], curve: Curve) extends EnvSegment {
     def numChannels: Int = startLevels.size
 
-    private[proc] def startLevelsAsAttrScalar: AuralAttribute.Scalar = startLevels.map(_.toFloat)
+    private[proc] def startLevelsAsControl: ControlValues = startLevels.map(_.toFloat)
 
     def write(out: DataOutput): Unit = {
       out.writeShort(COOKIE)
@@ -295,5 +296,5 @@ sealed abstract class EnvSegment extends Writable {
   def startLevels: Vec[Double]
   def numChannels: Int
 
-  private[proc] def startLevelsAsAttrScalar: AuralAttribute.Scalar
+  private[proc] def startLevelsAsControl: ControlValues
 }

@@ -14,7 +14,6 @@
 package de.sciss.synth.proc
 
 import de.sciss.lucre.event.Observable
-import de.sciss.lucre.stm
 import de.sciss.lucre.stm.{Obj, Sys}
 import de.sciss.lucre.synth.{AudioBus, NodeRef, Sys => SSys}
 import de.sciss.synth.ControlSet
@@ -129,24 +128,9 @@ object AuralAttribute {
 
   // ---- StartLevel / EndLevel ----
 
-  /** A trait that provides a view onto a numeric start level. Single channel views can
-    * use this by putting their value into a single-element vector.
-    * It has to be optional so that containers such as Folder or Grapheme could be supported.
-    */
-  trait ScalarOptionView[S <: Sys[S]]
-    extends Observable[S#Tx, Option[Scalar]] with stm.Source[S#Tx, Option[Scalar]]
-
-  trait StartLevelViewFactory {
-    def typeID: Int
-
-    type Repr[~ <: Sys[~]] <: Obj[~]
-
-    def mkStartLevelView[S <: SSys[S]](value: Repr[S])(implicit tx: S#Tx): ScalarOptionView[S]
-  }
-
   def addStartLevelViewFactory(f: StartLevelViewFactory): Unit = Impl.addStartLevelViewFactory(f)
 
-  def startLevelView[S <: SSys[S]](obj: Obj[S])(implicit tx: S#Tx): ScalarOptionView[S] = Impl.startLevelView[S](obj)
+  def startLevelView[S <: SSys[S]](obj: Obj[S])(implicit tx: S#Tx): ControlValuesView[S] = Impl.startLevelView[S](obj)
 
   trait GraphemeAware[S <: Sys[S]] {
     def setGrapheme(pos: Long, g: Grapheme[S])(implicit tx: S#Tx): Unit

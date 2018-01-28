@@ -20,8 +20,9 @@ import de.sciss.lucre.stm
 import de.sciss.lucre.stm.{Disposable, NoSys, Obj, TxnLike}
 import de.sciss.lucre.synth.Sys
 import de.sciss.synth.Curve
-import de.sciss.synth.proc.AuralAttribute.{Factory, Observer, Scalar, ScalarOptionView, StartLevelViewFactory, Target}
+import de.sciss.synth.proc.AuralAttribute.{Factory, Observer, Scalar, Target}
 import de.sciss.synth.proc.AuralView.{Playing, Prepared, State, Stopped}
+import de.sciss.synth.ugen.ControlValues
 
 import scala.collection.immutable.{IndexedSeq => Vec}
 import scala.concurrent.stm.Ref
@@ -83,18 +84,18 @@ object AuralAttributeImpl {
     startLevelMap += tid -> f
   }
 
-  def startLevelView[S <: Sys[S]](obj: Obj[S])(implicit tx: S#Tx): ScalarOptionView[S] = {
+  def startLevelView[S <: Sys[S]](obj: Obj[S])(implicit tx: S#Tx): ControlValuesView[S] = {
     val tid = obj.tpe.typeID
     startLevelMap.get(tid) match {
       case Some(factory) =>
         factory.mkStartLevelView(obj.asInstanceOf[factory.Repr[S]])
       case None =>
-        DummyScalarOptionView.asInstanceOf[ScalarOptionView[S]]
+        DummyScalarOptionView.asInstanceOf[ControlValuesView[S]]
     }
   }
 
-  private object DummyScalarOptionView extends ScalarOptionView[NoSys] with DummyObservableImpl[NoSys] {
-    def apply()(implicit tx: NoSys#Tx): Option[Scalar] = None
+  private object DummyScalarOptionView extends ControlValuesView[NoSys] with DummyObservableImpl[NoSys] {
+    def apply()(implicit tx: NoSys#Tx): Option[ControlValues] = None
   }
 
   // ---- ----
@@ -197,13 +198,13 @@ object AuralAttributeImpl {
   }
 
   private abstract class NumericExprStartLevel[S <: Sys[S], A](obj: stm.Source[S#Tx, Expr[S, A]])
-    extends ScalarOptionView[S] {
+    extends ControlValuesView[S] {
 
-    def mkValue(in: A): Scalar
+    def mkValue(in: A): ControlValues
 
-    def apply()(implicit tx: S#Tx): Option[Scalar] = Some(mkValue(obj().value))
+    def apply()(implicit tx: S#Tx): Option[ControlValues] = Some(mkValue(obj().value))
 
-    def react(fun: S#Tx => Option[Scalar] => Unit)(implicit tx: S#Tx): Disposable[S#Tx] =
+    def react(fun: S#Tx => Option[ControlValues] => Unit)(implicit tx: S#Tx): Disposable[S#Tx] =
       obj().changed.react { implicit tx => ch =>
         val lvlCh = ch.map(mkValue)
         if (lvlCh.isSignificant) fun(tx)(Some(lvlCh.now))
@@ -227,14 +228,14 @@ object AuralAttributeImpl {
                           (implicit tx: S#Tx, context: AuralContext[S]): AuralAttribute[S] =
       new IntAttribute(key, tx.newHandle(value)).init(value)
 
-    def mkStartLevelView[S <: Sys[S]](value: Repr[S])(implicit tx: S#Tx): ScalarOptionView[S] =
+    def mkStartLevelView[S <: Sys[S]](value: Repr[S])(implicit tx: S#Tx): ControlValuesView[S] =
       new IntStartLevel(tx.newHandle(value))
   }
 
   private final class IntStartLevel[S <: Sys[S]](obj: stm.Source[S#Tx, IntObj[S]])
     extends NumericExprStartLevel(obj) {
 
-    def mkValue(in: Int): Scalar = in.toFloat
+    def mkValue(in: Int): ControlValues = in.toFloat
   }
   
   private final class IntAttribute[S <: Sys[S]](val key: String, val obj: stm.Source[S#Tx, IntObj[S]])
@@ -259,14 +260,14 @@ object AuralAttributeImpl {
                           (implicit tx: S#Tx, context: AuralContext[S]): AuralAttribute[S] =
       new DoubleAttribute(key, tx.newHandle(value)).init(value)
 
-    def mkStartLevelView[S <: Sys[S]](value: Repr[S])(implicit tx: S#Tx): ScalarOptionView[S] =
+    def mkStartLevelView[S <: Sys[S]](value: Repr[S])(implicit tx: S#Tx): ControlValuesView[S] =
       new DoubleStartLevel(tx.newHandle(value))
   }
 
   private final class DoubleStartLevel[S <: Sys[S]](obj: stm.Source[S#Tx, DoubleObj[S]])
     extends NumericExprStartLevel(obj) {
 
-    def mkValue(in: Double): Scalar = in.toFloat
+    def mkValue(in: Double): ControlValues = in
   }
   
   private final class DoubleAttribute[S <: Sys[S]](val key: String, val obj: stm.Source[S#Tx, DoubleObj[S]])
@@ -291,14 +292,14 @@ object AuralAttributeImpl {
                           (implicit tx: S#Tx, context: AuralContext[S]): AuralAttribute[S] =
       new BooleanAttribute(key, tx.newHandle(value)).init(value)
 
-    def mkStartLevelView[S <: Sys[S]](value: Repr[S])(implicit tx: S#Tx): ScalarOptionView[S] =
+    def mkStartLevelView[S <: Sys[S]](value: Repr[S])(implicit tx: S#Tx): ControlValuesView[S] =
       new BooleanStartLevel(tx.newHandle(value))
   }
 
   private final class BooleanStartLevel[S <: Sys[S]](obj: stm.Source[S#Tx, BooleanObj[S]])
     extends NumericExprStartLevel(obj) {
 
-    def mkValue(in: Boolean): Scalar = if (in) 1f else 0f
+    def mkValue(in: Boolean): ControlValues = if (in) 1f else 0f
   }
   
   private final class BooleanAttribute[S <: Sys[S]](val key: String, val obj: stm.Source[S#Tx, BooleanObj[S]])
@@ -355,14 +356,14 @@ object AuralAttributeImpl {
                           (implicit tx: S#Tx, context: AuralContext[S]): AuralAttribute[S] =
       new DoubleVectorAttribute(key, tx.newHandle(value)).init(value)
 
-    def mkStartLevelView[S <: Sys[S]](value: Repr[S])(implicit tx: S#Tx): ScalarOptionView[S] =
+    def mkStartLevelView[S <: Sys[S]](value: Repr[S])(implicit tx: S#Tx): ControlValuesView[S] =
       new DoubleVectorStartLevel(tx.newHandle(value))
   }
 
   private final class DoubleVectorStartLevel[S <: Sys[S]](obj: stm.Source[S#Tx, DoubleVector[S]])
     extends NumericExprStartLevel(obj) {
     
-    def mkValue(in: Vec[Double]): Scalar = in.map(_.toFloat)
+    def mkValue(in: Vec[Double]): ControlValues = in.map(_.toFloat)
   }
   
   private final class DoubleVectorAttribute[S <: Sys[S]](val key: String, val obj: stm.Source[S#Tx, DoubleVector[S]])

@@ -20,9 +20,10 @@ import de.sciss.lucre.stm
 import de.sciss.lucre.stm.TxnLike.peer
 import de.sciss.lucre.stm.{Disposable, Obj}
 import de.sciss.lucre.synth.{Bus, Synth, Sys}
-import de.sciss.synth.proc.AuralAttribute.{Factory, GraphemeAware, Observer, Scalar, ScalarOptionView, StartLevelViewFactory}
+import de.sciss.synth.proc.AuralAttribute.{Factory, GraphemeAware, Observer}
 import de.sciss.synth.proc.graph.{Duration, Offset}
 import de.sciss.synth.proc.impl.AuralAttributeImpl.ExprImpl
+import de.sciss.synth.ugen.ControlValues
 import de.sciss.synth.{Curve, SynthGraph, addToHead, ugen, ControlSet => CS}
 
 import scala.concurrent.stm.Ref
@@ -36,7 +37,7 @@ object AuralEnvSegmentAttribute extends Factory with StartLevelViewFactory {
                         (implicit tx: S#Tx, context: AuralContext[S]): AuralAttribute[S] =
     new Impl(key, tx.newHandle(value)).init(value)
 
-  def mkStartLevelView[S <: Sys[S]](value: Repr[S])(implicit tx: S#Tx): ScalarOptionView[S] =
+  def mkStartLevelView[S <: Sys[S]](value: Repr[S])(implicit tx: S#Tx): ControlValuesView[S] =
     new StartLevelView(tx.newHandle(value))
 
   private def mkEnvSegGraph(numChannels: Int): SynthGraph =
@@ -67,20 +68,20 @@ object AuralEnvSegmentAttribute extends Factory with StartLevelViewFactory {
   }
 
   private final class StartLevelView[S <: Sys[S], A](obj: stm.Source[S#Tx, Repr[S]])
-    extends ScalarOptionView[S] {
+    extends ControlValuesView[S] {
 
-    private def levelOf(e: EnvSegment): Scalar = e.startLevelsAsAttrScalar
+    private def levelOf(e: EnvSegment): ControlValues = e.startLevelsAsControl
 
-    def apply()(implicit tx: S#Tx): Option[Scalar] = Some(levelOf(obj().value))
+    def apply()(implicit tx: S#Tx): Option[ControlValues] = Some(levelOf(obj().value))
 
-    def react(fun: S#Tx => Option[Scalar] => Unit)(implicit tx: S#Tx): Disposable[S#Tx] =
+    def react(fun: S#Tx => Option[ControlValues] => Unit)(implicit tx: S#Tx): Disposable[S#Tx] =
       obj().changed.react { implicit tx => ch =>
         val lvlCh = ch.map(levelOf)
         if (lvlCh.isSignificant) fun(tx)(Some(lvlCh.now))
       }
   }
 
-  private final class SegmentEnd[S <: Sys[S]](val frame: Long, val view: ScalarOptionView[S], obs: Disposable[S#Tx])
+  private final class SegmentEnd[S <: Sys[S]](val frame: Long, val view: ControlValuesView[S], obs: Disposable[S#Tx])
     extends Disposable[S#Tx] {
 
     def dispose()(implicit tx: S#Tx): Unit = obs.dispose()
@@ -150,7 +151,7 @@ object AuralEnvSegmentAttribute extends Factory with StartLevelViewFactory {
       }
     }
 
-    private def mkValueWithEnd(seg: EnvSegment, timeRef: TimeRef, endFrame: Long, endLevel: AuralAttribute.Scalar)
+    private def mkValueWithEnd(seg: EnvSegment, timeRef: TimeRef, endFrame: Long, endLevel: ControlValues)
                               (implicit tx: S#Tx): AuralAttribute.Value = {
       import context.server
 
@@ -171,11 +172,11 @@ object AuralEnvSegmentAttribute extends Factory with StartLevelViewFactory {
       }
 
       (seg, endLevel) match {
-        case (EnvSegment.Single(startLevel, _), AuralAttribute.ScalarValue(targetLevel)) =>
+        case (EnvSegment.Single(startLevel, _), ControlValues(Seq(targetLevel))) =>
           proceed(("start" -> startLevel: CS) :: ("end" -> targetLevel: CS) :: Nil, 1)
         case _ =>
           val startLevels0  = seg.startLevels
-          val targetLevels0 = endLevel.values
+          val targetLevels0 = endLevel.seq //.values
           val numChannels   = math.max(startLevels0.size, targetLevels0.size)
           val startLevels   = Vector.tabulate(numChannels)(ch => startLevels0 (ch % startLevels0 .size).toFloat)
           val targetLevels  = if (targetLevels0.size == numChannels) targetLevels0 else

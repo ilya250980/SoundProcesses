@@ -59,6 +59,7 @@ trait AuralGraphemeBase[S <: Sys[S], I <: stm.Sys[I], Target, Elem <: AuralView[
 
   protected type ViewID     = Unit
   protected type ElemHandle = AuralGraphemeBase.ElemHandle[S, Elem]
+  protected type Model      = Obj[S]
 
   protected final def viewEventAfter(offset: Long)(implicit tx: S#Tx): Long =
     viewTree.ceil(offset + 1)(iSys(tx)).fold(Long.MaxValue)(_._1)
@@ -165,10 +166,9 @@ trait AuralGraphemeBase[S <: Sys[S], I <: stm.Sys[I], Target, Elem <: AuralView[
     playingRef() = Some(h)
   }
 
-  protected def stopView(h: ElemHandle)(implicit tx: S#Tx): Unit = {
-    require(playingRef().contains(h))
-    stopViews()
-  }
+  protected def stopView(h: ElemHandle)(implicit tx: S#Tx): Unit =
+    if (playingRef().contains(h))
+      stopViews()
 
   protected def stopViews()(implicit tx: S#Tx): Unit =
     playingRef.swap(None).foreach { h =>
@@ -238,7 +238,7 @@ trait AuralGraphemeBase[S <: Sys[S], I <: stm.Sys[I], Target, Elem <: AuralView[
     elemPlays
   }
 
-  private def elemRemoved(start: Long, child: Obj[S])(implicit tx: S#Tx): Boolean = {
+  private def elemRemoved(start: Long, child: Model)(implicit tx: S#Tx): Boolean = {
     // implicit val itx = iSys(tx)
     val opt = for {
       seq  <- viewTree.get(start)(iSys(tx))

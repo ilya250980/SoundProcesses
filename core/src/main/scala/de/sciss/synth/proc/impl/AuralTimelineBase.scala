@@ -71,6 +71,8 @@ trait AuralTimelineBase[S <: Sys[S], I <: stm.Sys[I], Target, Elem <: AuralView[
   private[this] var tlObserver: Disposable[S#Tx] = _
 
   protected type ElemHandle = AuralTimelineBase.ElemHandle[S, Elem]
+  protected type ViewID     = S#ID
+  protected type Model      = Obj[S]
 
   private def ElemHandle(idH: stm.Source[S#Tx, S#ID], span: SpanLike, view: Elem): ElemHandle =
     AuralTimelineBase.ElemHandle(idH, span, view)
@@ -80,8 +82,6 @@ trait AuralTimelineBase[S <: Sys[S], I <: stm.Sys[I], Target, Elem <: AuralView[
   final def views(implicit tx: S#Tx): ISet[Elem] = playingRef.map(elemFromHandle)(breakOut) // toSet
 
   final def typeID: Int = Timeline.typeID
-
-  protected type ViewID = S#ID
 
   private type Leaf = (SpanLike, Vec[(stm.Source[S#Tx, S#ID], Elem)])
 

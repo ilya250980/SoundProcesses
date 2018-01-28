@@ -17,7 +17,7 @@ package impl
 import de.sciss.lucre.bitemp.impl.BiGroupImpl
 import de.sciss.lucre.event.impl.ObservableImpl
 import de.sciss.lucre.geom.LongPoint2D
-import de.sciss.lucre.stm.{Disposable, Obj, TxnLike}
+import de.sciss.lucre.stm.{Disposable, TxnLike}
 import de.sciss.lucre.synth.Sys
 import de.sciss.span.{Span, SpanLike}
 import de.sciss.synth.proc.AuralView.{Playing, Prepared, Preparing, Stopped}
@@ -71,7 +71,7 @@ trait AuralScheduledBase[S <: Sys[S], Target, Elem <: AuralViewBase[S, Target]]
   protected def processPrepare(prepareSpan: Span, timeRef: TimeRef, initial: Boolean)
                               (implicit tx: S#Tx): Iterator[PrepareResult]
 
-  protected type PrepareResult = (ViewID, SpanLike, Obj[S])
+  protected type PrepareResult = (ViewID, SpanLike, Model)
 
   /** Called during `play`. Sub-classes should intersect
     * the current elements and for each of them call `playView`.
@@ -101,6 +101,10 @@ trait AuralScheduledBase[S <: Sys[S], Target, Elem <: AuralViewBase[S, Target]]
     */
   protected type ViewID
 
+  /** An opaque type coming out of `processPrepare` and ending up
+    * in `mkView` and `elemAdded`. Typically `Obj[S]`. */
+  protected type Model
+
   protected type ElemHandle
 
   protected def elemFromHandle(h: ElemHandle): Elem
@@ -110,7 +114,7 @@ trait AuralScheduledBase[S <: Sys[S], Target, Elem <: AuralViewBase[S, Target]]
     * also memorize the view in a view-tree, if such structure is maintained,
     * for later retrieval in `viewEventAfter`
     */
-  protected def mkView(vid: ViewID, span: SpanLike, obj: Obj[S])(implicit tx: S#Tx): ElemHandle
+  protected def mkView(vid: ViewID, span: SpanLike, obj: Model)(implicit tx: S#Tx): ElemHandle
 
   protected def checkReschedule(h: ElemHandle, currentOffset: Long, oldTarget: Long, elemPlays: Boolean)
                                (implicit tx: S#Tx): Boolean
@@ -424,7 +428,7 @@ trait AuralScheduledBase[S <: Sys[S], Target, Elem <: AuralViewBase[S, Target]]
 
   // ---- helper methods for elemAdded ----
 
-  protected final def elemAdded(vid: ViewID, span: SpanLike, obj: Obj[S])
+  protected final def elemAdded(vid: ViewID, span: SpanLike, obj: Model)
                                (implicit tx: S#Tx): Unit = internalState match {
       case prep: IPreparing => elemAddedPrepare(prep, vid, span, obj)
       case play: IPlaying   => elemAddedPlay   (play, vid, span, obj)
@@ -459,7 +463,7 @@ trait AuralScheduledBase[S <: Sys[S], Target, Elem <: AuralViewBase[S, Target]]
     }
   }
 
-  private def elemAddedPrepare(prep: IPreparing, vid: ViewID, span: SpanLike, obj: Obj[S])
+  private def elemAddedPrepare(prep: IPreparing, vid: ViewID, span: SpanLike, obj: Model)
                               (implicit tx: S#Tx): Unit = {
     val prepS     = prepareSpan()
     if (!span.overlaps(prepS)) return
@@ -474,7 +478,7 @@ trait AuralScheduledBase[S <: Sys[S], Target, Elem <: AuralViewBase[S, Target]]
     }
   }
 
-  private final def mkViewAndPrepare(timeRef: TimeRef, vid: ViewID, span: SpanLike, obj: Obj[S], observer: Boolean)
+  private final def mkViewAndPrepare(timeRef: TimeRef, vid: ViewID, span: SpanLike, obj: Model, observer: Boolean)
                                     (implicit tx: S#Tx): (Elem, Option[(Elem, Disposable[S#Tx])]) = {
     val childTime = timeRef.child(span)
     val h         = mkView(vid, span, obj)
@@ -483,7 +487,7 @@ trait AuralScheduledBase[S <: Sys[S], Target, Elem <: AuralViewBase[S, Target]]
     (view, prep)
   }
 
-  private final def elemAddedPlay(play: IPlaying, vid: ViewID, span: SpanLike, obj: Obj[S])
+  private final def elemAddedPlay(play: IPlaying, vid: ViewID, span: SpanLike, obj: Model)
                                  (implicit tx: S#Tx): Unit = {
     import Implicits.SpanComparisons
 

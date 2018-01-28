@@ -17,6 +17,8 @@ import de.sciss.{numbers, synth}
 import scala.language.implicitConversions
 
 object AuralTests1 extends AuralTestLike.Factory {
+  def main(args: Array[String]): Unit = init(args)
+
   def run[S <: Sys[S]](name: String)(implicit cursor: Cursor[S]): Unit =
     new AuralTests1[S](name)
 }

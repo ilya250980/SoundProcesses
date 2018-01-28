@@ -27,8 +27,6 @@ object AuralView {
 }
 
 trait AuralViewBase[S <: Sys[S], -Target] extends Observable[S#Tx, AuralView.State] with Disposable[S#Tx] {
-  def typeID: Int
-
   def state(implicit tx: S#Tx): AuralView.State
 
   def prepare(timeRef: TimeRef.Option                )(implicit tx: S#Tx): Unit
@@ -41,6 +39,8 @@ trait AuralViewBase[S <: Sys[S], -Target] extends Observable[S#Tx, AuralView.Sta
   * the only difference being the `Target` context type needed for issuing a play.
   */
 trait AuralView[S <: Sys[S], -Target] extends AuralViewBase[S, Target] {
+  def typeID: Int
+
   /** The view must store a handle to its underlying model. */
   def obj: stm.Source[S#Tx, Obj[S]]
 }

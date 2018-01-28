@@ -98,6 +98,7 @@ object AuralAttribute {
     def toControl(key: String, numChannels: Int): ControlSet
     def values: Vec[Float]
     final def isScalar = true
+    def numChannels: Int
   }
 
   final case class ScalarValue(value: Float) extends Scalar {
@@ -106,6 +107,8 @@ object AuralAttribute {
       else                  ControlSet.Vector(key, Vector.fill(numChannels)(value))
 
     def values: Vec[Float] = Vector(value)
+
+    def numChannels = 1
   }
   final case class ScalarVector(values: Vec[Float]) extends Scalar {
     def toControl(key: String, numChannels: Int): ControlSet = {
@@ -113,6 +116,8 @@ object AuralAttribute {
       val xs = if (numChannels == sz) values else Vector.tabulate(numChannels)(i => values(i % sz))
       ControlSet.Vector(key, xs)
     }
+
+    def numChannels: Int = values.size
   }
 
   /** Value for which a `Synth` is required that writes its signal to a bus,
@@ -150,6 +155,7 @@ object AuralAttribute {
 trait AuralAttribute[S <: Sys[S]] extends AuralView[S, AuralAttribute.Target[S]] {
   def key: String
 
+  /** Or `-1` if the number of channels cannot be determined. */
   def preferredNumChannels(implicit tx: S#Tx): Int
 
   def targetOption(implicit tx: S#Tx): Option[AuralAttribute.Target[S]]

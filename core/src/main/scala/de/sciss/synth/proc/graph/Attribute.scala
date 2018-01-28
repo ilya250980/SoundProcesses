@@ -16,7 +16,7 @@ package proc
 package graph
 
 import de.sciss.synth.proc.UGenGraphBuilder.Input
-import de.sciss.synth.ugen.{AudioControlProxy, ControlProxy, ControlValues, TrigControlProxy}
+import de.sciss.synth.ugen.{AudioControlProxy, ControlProxy, ControlValues}
 
 import scala.collection.immutable.{IndexedSeq => Vec}
 
@@ -34,10 +34,10 @@ object Attribute {
     /** Creates an attribute with defaults (attribute may be absent). */
     def kr(values: ControlValues): Attribute = Attribute.kr(key = name, default = values)
 
-    /** Creates a trigger attribute without defaults (attribute must be present). */
-    def tr: TrigAttribute = Attribute.tr(key = name)
-    /** Creates an attribute with defaults (attribute may be absent). */
-    def tr(values: ControlValues): TrigAttribute = Attribute.tr(key = name, default = values)
+//    /** Creates a trigger attribute without defaults (attribute must be present). */
+//    def tr: TrigAttribute = Attribute.tr(key = name)
+//    /** Creates an attribute with defaults (attribute may be absent). */
+//    def tr(values: ControlValues): TrigAttribute = Attribute.tr(key = name, default = values)
 
     /** Creates a trigger attribute without defaults (attribute must be present). */
     def ar: Attribute = Attribute.ar(key = name)
@@ -83,23 +83,23 @@ object Attribute {
   def ar(key: String, default: ControlValues, fixed: Boolean): Attribute =
     mk(audio, key, default, fixed = fixed)
 
-  def tr(key: String): TrigAttribute =
-    TrigAttribute(key, None, fixed = -1)
-
-  def tr(key: String, fixed: Int): TrigAttribute =
-    TrigAttribute(key, None, fixed = fixed)
-
-  def tr(key: String, default: ControlValues): TrigAttribute =
-    mkTr(key, default, fixed = false)
-
-  def tr(key: String, default: ControlValues, fixed: Boolean): TrigAttribute =
-    mkTr(key, default, fixed = fixed)
+//  def tr(key: String): TrigAttribute =
+//    TrigAttribute(key, None, fixed = -1)
+//
+//  def tr(key: String, fixed: Int): TrigAttribute =
+//    TrigAttribute(key, None, fixed = fixed)
+//
+//  def tr(key: String, default: ControlValues): TrigAttribute =
+//    mkTr(key, default, fixed = false)
+//
+//  def tr(key: String, default: ControlValues, fixed: Boolean): TrigAttribute =
+//    mkTr(key, default, fixed = fixed)
 
   private def mk(rate: Rate, key: String, default: ControlValues, fixed: Boolean): Attribute =
     Attribute(rate, key, Some(default.seq), fixed = if (fixed) default.seq.size else -1)
 
-  private def mkTr(key: String, default: ControlValues, fixed: Boolean): TrigAttribute =
-    TrigAttribute(key, Some(default.seq), fixed = if (fixed) default.seq.size else -1)
+//  private def mkTr(key: String, default: ControlValues, fixed: Boolean): TrigAttribute =
+//    TrigAttribute(key, Some(default.seq), fixed = if (fixed) default.seq.size else -1)
 
   private[graph] def mkValues(key: String, default: Option[Vec[Float]], fixed: Int): Vec[Float] = {
     val b           = UGenGraphBuilder.get
@@ -127,13 +127,13 @@ final case class Attribute(rate: Rate, key: String, default: Option[Vec[Float]],
   }
 }
 
-final case class TrigAttribute(key: String, default: Option[Vec[Float]], fixed: Int)
-  extends GE.Lazy with ControlRated {
-
-  def makeUGens: UGenInLike = {
-    val values  = Attribute.mkValues(key = key, default = default, fixed = fixed)
-    val nameOpt = Some(Attribute.controlName(key))
-    val ctl     = TrigControlProxy(values, nameOpt)
-    ctl.expand
-  }
-}
+//final case class TrigAttribute(key: String, default: Option[Vec[Float]], fixed: Int)
+//  extends GE.Lazy with ControlRated {
+//
+//  def makeUGens: UGenInLike = {
+//    val values  = Attribute.mkValues(key = key, default = default, fixed = fixed)
+//    val nameOpt = Some(Attribute.controlName(key))
+//    val ctl     = TrigControlProxy(values, nameOpt)
+//    ctl.expand
+//  }
+//}

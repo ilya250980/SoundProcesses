@@ -10,7 +10,7 @@ lazy val commonSettings = Seq(
   homepage           := Some(url(s"https://github.com/Sciss/$baseName")),
   description        := "A framework for creating and managing ScalaCollider based sound processes",
   licenses           := Seq("LGPL v2.1+" -> url("http://www.gnu.org/licenses/lgpl-2.1.txt")),
-  scalaVersion       := "2.12.4",
+  scalaVersion       := "2.13.0-M3", // "2.12.4",
   crossScalaVersions := Seq("2.12.4", "2.11.12"),
   scalacOptions     ++= Seq("-deprecation", "-unchecked", "-feature", "-encoding", "utf8", "-Xfuture", "-Xlint"),
   resolvers          += "Oracle Repository" at "http://download.oracle.com/maven",  // required for sleepycat
@@ -35,7 +35,7 @@ lazy val deps = new {
   
   val test = new {
     val scalaColliderSwing = "1.35.0"
-    val scalaTest          = "3.0.4"
+    val scalaTest          = "3.0.5"
     val bdb                = "bdb"  // either "bdb" or "bdb6"
     val submin             = "0.2.2"
     val scopt              = "3.7.0"

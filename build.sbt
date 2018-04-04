@@ -1,8 +1,8 @@
 lazy val baseName  = "SoundProcesses"
 lazy val baseNameL = baseName.toLowerCase
 
-lazy val projectVersion = "3.17.0"
-lazy val mimaVersion    = "3.17.0" // used for migration-manager
+lazy val projectVersion = "3.18.0-SNAPSHOT"
+lazy val mimaVersion    = "3.18.0" // used for migration-manager
 
 lazy val commonSettings = Seq(
   version            := projectVersion,
@@ -10,8 +10,8 @@ lazy val commonSettings = Seq(
   homepage           := Some(url(s"https://github.com/Sciss/$baseName")),
   description        := "A framework for creating and managing ScalaCollider based sound processes",
   licenses           := Seq("LGPL v2.1+" -> url("http://www.gnu.org/licenses/lgpl-2.1.txt")),
-  scalaVersion       := "2.12.4",
-  crossScalaVersions := Seq("2.12.4", "2.11.12"),
+  scalaVersion       := "2.12.5",
+  crossScalaVersions := Seq("2.12.5", "2.11.12"),
   scalacOptions     ++= Seq("-deprecation", "-unchecked", "-feature", "-encoding", "utf8", "-Xfuture", "-Xlint"),
   resolvers          += "Oracle Repository" at "http://download.oracle.com/maven",  // required for sleepycat
   parallelExecution in Test := false
@@ -19,26 +19,27 @@ lazy val commonSettings = Seq(
 
 lazy val deps = new {
   val main = new {
-    val lucre               = "3.5.0"
-    val scalaCollider       = "1.23.0"
-    val ugens               = "1.17.1"
-    val scalaColliderIf     = "0.4.0"
-    val span                = "1.3.1"
-    val lucreSwing          = "1.7.0"
-    val swingPlus           = "0.2.4"
     val audioWidgets        = "1.11.2"
-    val fileUtil            = "1.1.3"
-    val topology            = "1.1.0"
     val equal               = "0.1.2"
+    val fileUtil            = "1.1.3"
+    val lucre               = "3.6.0-SNAPSHOT"
+    val lucreSwing          = "1.8.0-SNAPSHOT"
     val model               = "0.3.4"
+    val numbers             = "0.1.5"
+    val scalaCollider       = "1.24.0"
+    val scalaColliderIf     = "0.5.0"
+    val span                = "1.3.1"
+    val swingPlus           = "0.2.4"
+    val topology            = "1.1.0"
+    val ugens               = "1.18.0"
   }
   
   val test = new {
-    val scalaColliderSwing = "1.35.0"
-    val scalaTest          = "3.0.4"
     val bdb                = "bdb"  // either "bdb" or "bdb6"
-    val submin             = "0.2.2"
+    val scalaColliderSwing = "1.36.0"
+    val scalaTest          = "3.0.5"
     val scopt              = "3.7.0"
+    val submin             = "0.2.2"
   }
 }
 
@@ -62,7 +63,7 @@ fork in run := true  // required for shutdown hook, and also the scheduled threa
 
 // ---- sub-projects ----
 
-lazy val root = Project(id = baseNameL, base = file("."))
+lazy val root = project.withId(baseNameL).in(file("."))
   .aggregate(synth, core, views, compiler)
   .dependsOn(synth, core, views, compiler)
   .settings(commonSettings)
@@ -75,20 +76,21 @@ lazy val root = Project(id = baseNameL, base = file("."))
     autoScalaLibrary := false
   )
 
-lazy val synth = Project(id = "lucresynth", base = file("synth"))
+lazy val synth = project.withId("lucresynth").in(file("synth"))
   .settings(commonSettings)
   .settings(
     description := "Transactional extension for ScalaCollider",
     libraryDependencies ++= Seq(
       "de.sciss" %% "topology"                % deps.main.topology,
       "de.sciss" %% "lucre-core"              % deps.main.lucre,
+      "de.sciss" %% "numbers"                 % deps.main.numbers, // sbt bug
       "de.sciss" %% "scalacollider"           % deps.main.scalaCollider,
       "de.sciss" %% "scalacolliderugens-core" % deps.main.ugens
     ),
     mimaPreviousArtifacts := Set("de.sciss" %% "lucresynth" % mimaVersion)
   )
 
-lazy val core = Project(id = s"$baseNameL-core", base = file("core"))
+lazy val core = project.withId(s"$baseNameL-core").in(file("core"))
   .dependsOn(synth)
   .enablePlugins(BuildInfoPlugin)
   .settings(commonSettings)
@@ -116,7 +118,7 @@ lazy val core = Project(id = s"$baseNameL-core", base = file("core"))
     mimaPreviousArtifacts := Set("de.sciss" %% s"$baseNameL-core" % mimaVersion)
   )
 
-lazy val views = Project(id = s"$baseNameL-views", base = file("views"))
+lazy val views = project.withId(s"$baseNameL-views").in(file("views"))
   .dependsOn(core)
   .settings(commonSettings)
   .settings(
@@ -131,7 +133,7 @@ lazy val views = Project(id = s"$baseNameL-views", base = file("views"))
     mimaPreviousArtifacts := Set("de.sciss" %% s"$baseNameL-views" % mimaVersion)
   )
 
-lazy val compiler = Project(id = s"$baseNameL-compiler", base = file("compiler"))
+lazy val compiler = project.withId(s"$baseNameL-compiler").in(file("compiler"))
   .dependsOn(core)
   .settings(commonSettings)
   .settings(

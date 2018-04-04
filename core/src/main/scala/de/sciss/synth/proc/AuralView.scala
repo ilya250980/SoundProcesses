@@ -39,7 +39,7 @@ trait AuralViewBase[S <: Sys[S], -Target] extends Observable[S#Tx, AuralView.Sta
   * the only difference being the `Target` context type needed for issuing a play.
   */
 trait AuralView[S <: Sys[S], -Target] extends AuralViewBase[S, Target] {
-  def typeID: Int
+  def typeId: Int
 
   /** The view must store a handle to its underlying model. */
   def obj: stm.Source[S#Tx, Obj[S]]

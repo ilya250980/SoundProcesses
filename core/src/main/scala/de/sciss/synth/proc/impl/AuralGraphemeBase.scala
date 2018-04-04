@@ -55,7 +55,7 @@ trait AuralGraphemeBase[S <: Sys[S], I <: stm.Sys[I], Target, Elem <: AuralView[
 
   private[this] var grObserver: Disposable[S#Tx] = _
 
-  final def typeID: Int = Grapheme.typeID
+  final def typeId: Int = Grapheme.typeId
 
   protected type ViewID     = Unit
   protected type ElemHandle = AuralGraphemeBase.ElemHandle[S, Elem]

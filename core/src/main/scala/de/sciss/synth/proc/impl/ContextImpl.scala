@@ -24,7 +24,7 @@ final class ContextEntry[S <: Sys[S]](val data: Disposable[S#Tx]) {
 
 trait ContextImpl[S <: Sys[S]] {
 
-  protected def objMap: IdentifierMap[S#ID, S#Tx, ContextEntry[S]]
+  protected def objMap: IdentifierMap[S#Id, S#Tx, ContextEntry[S]]
 
   final def acquire[A <: Disposable[S#Tx]](obj: Obj[S])(init: => A)(implicit tx: S#Tx): A = {
     val id = obj.id

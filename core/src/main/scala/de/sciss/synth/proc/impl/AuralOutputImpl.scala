@@ -32,11 +32,11 @@ object AuralOutputImpl {
 
   // ----------------------------------
 
-  // note: it is crucial that we use `stm.Source[S#Tx, S#ID]` instead of just `S#ID`, because if
+  // note: it is crucial that we use `stm.Source[S#Tx, S#Id]` instead of just `S#Id`, because if
   // the view is created in the same transaction as the scan, the id's path will be empty, causing
   // an error in `dispose()` when trying to remove the entry from the ID map!
   private final class Impl[S <: Sys[S]](val view: AuralObj.Proc[S], val key: String, val bus: AudioBus,
-                                        idH: stm.Source[S#Tx, S#ID])
+                                        idH: stm.Source[S#Tx, S#Id])
     extends AuralOutput.Owned[S] with ObservableImpl[S, AuralOutput.Update] {
 
     override def toString: String = s"AuralOutput($bus)"

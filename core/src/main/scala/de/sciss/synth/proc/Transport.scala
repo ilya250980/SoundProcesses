@@ -85,7 +85,7 @@ trait Transport[S <: Sys[S]]
   def views(implicit tx: S#Tx): Set[AuralObj[S]]
 
   def getView    (obj: Obj[S])(implicit tx: S#Tx): Option[AuralObj[S]]
-  def getViewById(id : S#ID  )(implicit tx: S#Tx): Option[AuralObj[S]]
+  def getViewById(id : S#Id  )(implicit tx: S#Tx): Option[AuralObj[S]]
 
   def addObject   (obj: Obj[S])(implicit tx: S#Tx): Unit
   def removeObject(obj: Obj[S])(implicit tx: S#Tx): Unit

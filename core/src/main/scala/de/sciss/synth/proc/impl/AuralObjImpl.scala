@@ -24,7 +24,7 @@ object AuralObjImpl {
   private val sync = new AnyRef
 
   def addFactory(f: Factory): Unit = sync.synchronized {
-    val tid = f.typeID
+    val tid = f.typeId
     if (map.contains(tid)) throw new IllegalArgumentException(s"View factory for type $tid already installed")
     map += tid -> f
   }
@@ -32,7 +32,7 @@ object AuralObjImpl {
   def factories: Iterable[Factory] = map.values
 
   def apply[S <: Sys[S]](obj: Obj[S])(implicit tx: S#Tx, context: AuralContext[S]): AuralObj[S] = {
-    val tid = obj.tpe.typeID
+    val tid = obj.tpe.typeId
     val opt: Option[Factory] = map.get(tid)
     opt.fold[AuralObj[S]](Generic(obj)) { f =>
       f.apply[S](obj.asInstanceOf[f.Repr[S]])
@@ -40,13 +40,13 @@ object AuralObjImpl {
   }
 
   private var map = scala.Predef.Map[Int, Factory](
-    // AudioGrapheme   .typeID -> AudioGrapheme,
-    Folder          .typeID -> AuralObj.Folder,
-    Proc            .typeID -> AuralObj.Proc, // AuralProcImpl
-    Timeline        .typeID -> AuralObj.Timeline,
-    Ensemble        .typeID -> AuralObj.Ensemble,
-    Action          .typeID -> AuralObj.Action
-    // Code            .typeID -> Code,
+    // AudioGrapheme   .typeId -> AudioGrapheme,
+    Folder          .typeId -> AuralObj.Folder,
+    Proc            .typeId -> AuralObj.Proc, // AuralProcImpl
+    Timeline        .typeId -> AuralObj.Timeline,
+    Ensemble        .typeId -> AuralObj.Ensemble,
+    Action          .typeId -> AuralObj.Action
+    // Code            .typeId -> Code,
   )
 
   // -------- Generic --------
@@ -58,7 +58,7 @@ object AuralObjImpl {
     private final class Impl[S <: Sys[S]](val obj: stm.Source[S#Tx, Obj[S]])
       extends AuralObj[S] with DummyObservableImpl[S] {
 
-      def typeID: Int = 0
+      def typeId: Int = 0
 
       def play(timeRef: TimeRef.Option, unit: Unit)(implicit tx: S#Tx): Unit = ()
       def stop(/* time: Long */)(implicit tx: S#Tx): Unit = ()

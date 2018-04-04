@@ -25,7 +25,7 @@ import scala.concurrent.stm.Ref
 object AuralOutputAttribute extends Factory {
   type Repr[S <: stm.Sys[S]] = Output[S]
 
-  def typeID: Int = Output.typeID
+  def typeId: Int = Output.typeId
 
   def apply[S <: Sys[S]](key: String, value: Output[S], observer: Observer[S])
                         (implicit tx: S#Tx, context: AuralContext[S]): AuralAttribute[S] =
@@ -40,7 +40,7 @@ final class AuralOutputAttribute[S <: Sys[S]](val key: String, val obj: stm.Sour
 
   import TxnLike.peer
 
-  def typeID: Int = Output.typeID
+  def typeId: Int = Output.typeId
 
   private[this] val auralRef  = Ref(Option.empty[AuralOutput[S]])
   private[this] var obs: Disposable[S#Tx] = _

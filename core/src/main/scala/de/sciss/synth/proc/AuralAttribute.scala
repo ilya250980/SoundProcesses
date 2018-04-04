@@ -36,7 +36,7 @@ object AuralAttribute {
   // ---- Factory ----
 
   trait Factory {
-    def typeID: Int
+    def typeId: Int
 
     type Repr[~ <: Sys[~]] <: Obj[~]
 

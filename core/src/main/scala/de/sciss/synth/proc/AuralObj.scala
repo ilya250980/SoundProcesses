@@ -26,7 +26,7 @@ object AuralObj {
   import de.sciss.synth.proc.{Action => _Action, Ensemble => _Ensemble, Folder => _Folder, Proc => _Proc, Timeline => _Timeline}
 
   trait Factory {
-    def typeID: Int
+    def typeId: Int
 
     type Repr[~ <: Sys[~]] <: Obj[~]
 
@@ -69,7 +69,7 @@ object AuralObj {
   object Proc extends AuralObj.Factory {
     type Repr[S <: Sys[S]] = _Proc[S]
 
-    def typeID: Int = _Proc.typeID
+    def typeId: Int = _Proc.typeId
 
     def apply[S <: SSys[S]](obj: _Proc[S])(implicit tx: S#Tx, context: AuralContext[S]): AuralObj.Proc[S] =
       AuralProcImpl(obj)
@@ -124,10 +124,10 @@ object AuralObj {
     sealed trait Update[S <: Sys[S], +Repr] {
       def container: Repr
     }
-    final case class ViewAdded[S <: Sys[S], Repr](container: Repr, id: S#ID, view: AuralObj[S])
+    final case class ViewAdded[S <: Sys[S], Repr](container: Repr, id: S#Id, view: AuralObj[S])
       extends Update[S, Repr]
 
-    final case class ViewRemoved[S <: Sys[S], Repr](container: Repr, id: S#ID, view: AuralObj[S])
+    final case class ViewRemoved[S <: Sys[S], Repr](container: Repr, id: S#Id, view: AuralObj[S])
       extends Update[S, Repr]
   }
   trait Container[S <: Sys[S], +Repr <: Container[S, Repr]] extends AuralObj[S] {
@@ -141,7 +141,7 @@ object AuralObj {
       */
     def views(implicit tx: S#Tx): Set[AuralObj[S]]
 
-    def getViewById(id: S#ID)(implicit tx: S#Tx): Option[AuralObj[S]]
+    def getViewById(id: S#Id)(implicit tx: S#Tx): Option[AuralObj[S]]
   }
 
   // ---- timeline ----
@@ -149,7 +149,7 @@ object AuralObj {
   object Timeline extends AuralObj.Factory {
     type Repr[S <: Sys[S]] = _Timeline[S]
 
-    def typeID: Int = _Timeline.typeID
+    def typeId: Int = _Timeline.typeId
 
     def apply[S <: SSys[S]](obj: _Timeline[S])(implicit tx: S#Tx, context: AuralContext[S]): AuralObj.Timeline[S] =
       AuralTimelineImpl(obj)
@@ -161,8 +161,8 @@ object AuralObj {
     trait Manual[S <: Sys[S]] extends Timeline[S] {
       // def addObject   (timed: _Timeline.Timed[S])(implicit tx: S#Tx): Unit
       // def removeObject(timed: _Timeline.Timed[S])(implicit tx: S#Tx): Unit
-      def addObject   (id: S#ID, span: SpanLikeObj[S], obj: Obj[S])(implicit tx: S#Tx): Unit
-      def removeObject(id: S#ID, span: SpanLikeObj[S], obj: Obj[S])(implicit tx: S#Tx): Unit
+      def addObject   (id: S#Id, span: SpanLikeObj[S], obj: Obj[S])(implicit tx: S#Tx): Unit
+      def removeObject(id: S#Id, span: SpanLikeObj[S], obj: Obj[S])(implicit tx: S#Tx): Unit
     }
   }
   trait Timeline[S <: Sys[S]] extends Container[S, Timeline[S]] {
@@ -182,7 +182,7 @@ object AuralObj {
   object Ensemble extends AuralObj.Factory {
     type Repr[S <: Sys[S]] = _Ensemble[S]
 
-    def typeID: Int = _Ensemble.typeID
+    def typeId: Int = _Ensemble.typeId
 
     def apply[S <: SSys[S]](obj: _Ensemble[S])(implicit tx: S#Tx, context: AuralContext[S]): AuralObj.Ensemble[S] =
       AuralEnsembleImpl(obj)
@@ -196,7 +196,7 @@ object AuralObj {
   object Folder extends AuralObj.Factory {
     type Repr[S <: Sys[S]] = _Folder[S]
 
-    def typeID: Int = _Folder.typeID
+    def typeId: Int = _Folder.typeId
 
     def apply[S <: SSys[S]](obj: _Folder[S])(implicit tx: S#Tx, context: AuralContext[S]): AuralObj.Folder[S] =
       AuralFolderImpl(obj)
@@ -210,7 +210,7 @@ object AuralObj {
   object Action extends AuralObj.Factory {
     type Repr[S <: Sys[S]] = _Action[S]
 
-    def typeID: Int = _Action.typeID
+    def typeId: Int = _Action.typeId
 
     def apply[S <: SSys[S]](obj: _Action[S])(implicit tx: S#Tx, context: AuralContext[S]): AuralObj.Action[S] =
       AuralActionImpl(obj)

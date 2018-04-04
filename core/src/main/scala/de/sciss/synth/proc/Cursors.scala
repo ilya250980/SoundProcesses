@@ -24,7 +24,7 @@ import de.sciss.{serial, model => m}
 import scala.collection.immutable.{IndexedSeq => Vec}
 
 object Cursors extends Elem.Type {
-  final val typeID = 0x1000C
+  final val typeId = 0x1000C
 
   def readIdentifiedObj[S <: Sys[S]](in: DataInput, access: S#Acc)(implicit tx: S#Tx): Elem[S] =
     Impl.readIdentifiedObj(in: DataInput, access)

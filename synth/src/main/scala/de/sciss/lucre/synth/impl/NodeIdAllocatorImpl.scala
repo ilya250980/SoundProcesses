@@ -13,10 +13,10 @@
 
 package de.sciss.lucre.synth.impl
 
-import de.sciss.lucre.synth.NodeIDAllocator
+import de.sciss.lucre.synth.NodeIdAllocator
 import scala.concurrent.stm.{InTxn, Ref}
 
-final class NodeIDAllocatorImpl(user: Int, initTemp: Int) extends NodeIDAllocator {
+final class NodeIdAllocatorImpl(user: Int, initTemp: Int) extends NodeIdAllocator {
   private val temp = Ref(initTemp)
   private val mask = user << 26
 

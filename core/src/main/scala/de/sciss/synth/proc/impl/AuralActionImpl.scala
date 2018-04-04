@@ -25,7 +25,7 @@ import scala.concurrent.stm.Ref
 object AuralActionImpl extends AuralObj.Factory {
 
   type Repr[S <: Sys[S]]  = Action[S]
-  def typeID: Int         = Action.typeID
+  def typeId: Int         = Action.typeId
 
   def apply[S <: SSys[S]](obj: Action[S])(implicit tx: S#Tx, context: AuralContext[S]): AuralObj.Action[S] = {
     val objH = tx.newHandle(obj)
@@ -37,7 +37,7 @@ object AuralActionImpl extends AuralObj.Factory {
 
     override def toString = s"AuralAction@${hashCode().toHexString}"
 
-    def typeID: Int = Action.typeID
+    def typeId: Int = Action.typeId
 
     private val stateRef = Ref[AuralView.State](AuralView.Stopped)
 

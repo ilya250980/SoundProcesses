@@ -21,13 +21,13 @@ object GenViewImpl {
   private val sync = new AnyRef
 
   def addFactory(f: Factory): Unit = sync.synchronized {
-    val tid = f.typeID
+    val tid = f.typeId
     if (map.contains(tid)) throw new IllegalArgumentException(s"GenView factory for type $tid already installed")
     map += tid -> f
   }
 
   def tryAddFactory(f: Factory): Boolean = sync.synchronized {
-    val tid = f.typeID
+    val tid = f.typeId
     val res = !map.contains(tid)
     if (res) map += tid -> f
     res
@@ -36,7 +36,7 @@ object GenViewImpl {
   def factories: Iterable[Factory] = map.values
 
   def apply[S <: Sys[S]](obj: Obj[S])(implicit tx: S#Tx, context: GenContext[S]): GenView[S] = {
-    val tid = obj.tpe.typeID
+    val tid = obj.tpe.typeId
     val opt: Option[Factory] = map.get(tid)
     val f = opt.getOrElse(sys.error(s"No GenView factory for type ${obj.tpe} / $tid"))
     f.apply[S](obj.asInstanceOf[f.Repr[S]])

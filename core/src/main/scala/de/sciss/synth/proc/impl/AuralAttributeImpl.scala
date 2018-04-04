@@ -35,7 +35,7 @@ object AuralAttributeImpl {
   // ---- Factory ----
 
   def addFactory(f: Factory): Unit = sync.synchronized {
-    val tid = f.typeID
+    val tid = f.typeId
     if (map.contains(tid)) throw new IllegalArgumentException(s"View factory for type $tid already installed")
     map += tid -> f
   }
@@ -44,7 +44,7 @@ object AuralAttributeImpl {
 
   def apply[S <: Sys[S]](key: String, value: Obj[S], observer: Observer[S])
                         (implicit tx: S#Tx, context: AuralContext[S]): AuralAttribute[S] = {
-    val tid = value.tpe.typeID
+    val tid = value.tpe.typeId
     map.get(tid) match {
       case Some(factory) =>
         factory(key, value.asInstanceOf[factory.Repr[S]], observer)
@@ -55,37 +55,37 @@ object AuralAttributeImpl {
   }
 
   private[this] var map = Map[Int, Factory](
-    IntObj      .typeID -> IntAttribute,
-    DoubleObj   .typeID -> DoubleAttribute,
-    BooleanObj  .typeID -> BooleanAttribute,
-    FadeSpec    .typeID -> FadeSpecAttribute,
-    DoubleVector.typeID -> DoubleVectorAttribute,
-    Grapheme    .typeID -> AuralGraphemeAttribute,
-    Output      .typeID -> AuralOutputAttribute,
-    Folder      .typeID -> AuralFolderAttribute,
-    Timeline    .typeID -> AuralTimelineAttribute,
-    EnvSegment  .typeID -> AuralEnvSegmentAttribute
+    IntObj      .typeId -> IntAttribute,
+    DoubleObj   .typeId -> DoubleAttribute,
+    BooleanObj  .typeId -> BooleanAttribute,
+    FadeSpec    .typeId -> FadeSpecAttribute,
+    DoubleVector.typeId -> DoubleVectorAttribute,
+    Grapheme    .typeId -> AuralGraphemeAttribute,
+    Output      .typeId -> AuralOutputAttribute,
+    Folder      .typeId -> AuralFolderAttribute,
+    Timeline    .typeId -> AuralTimelineAttribute,
+    EnvSegment  .typeId -> AuralEnvSegmentAttribute
   )
 
   // ---- StartLevel ----
 
   private[this] var startLevelMap = Map[Int, StartLevelViewFactory](
-    IntObj      .typeID -> IntAttribute,
-    DoubleObj   .typeID -> DoubleAttribute,
-    BooleanObj  .typeID -> BooleanAttribute,
-    DoubleVector.typeID -> DoubleVectorAttribute,
-//    Grapheme    .typeID -> AuralGraphemeAttribute,
-    EnvSegment  .typeID -> AuralEnvSegmentAttribute
+    IntObj      .typeId -> IntAttribute,
+    DoubleObj   .typeId -> DoubleAttribute,
+    BooleanObj  .typeId -> BooleanAttribute,
+    DoubleVector.typeId -> DoubleVectorAttribute,
+//    Grapheme    .typeId -> AuralGraphemeAttribute,
+    EnvSegment  .typeId -> AuralEnvSegmentAttribute
   )
 
   def addStartLevelViewFactory(f: StartLevelViewFactory): Unit = sync.synchronized {
-    val tid = f.typeID
+    val tid = f.typeId
     if (startLevelMap.contains(tid)) throw new IllegalArgumentException(s"View factory for type $tid already installed")
     startLevelMap += tid -> f
   }
 
   def startLevelView[S <: Sys[S]](obj: Obj[S])(implicit tx: S#Tx): ControlValuesView[S] = {
-    val tid = obj.tpe.typeID
+    val tid = obj.tpe.typeId
     startLevelMap.get(tid) match {
       case Some(factory) =>
         factory.mkStartLevelView(obj.asInstanceOf[factory.Repr[S]])
@@ -222,7 +222,7 @@ object AuralAttributeImpl {
   private[this] object IntAttribute extends Factory with StartLevelViewFactory {
     type Repr[S <: stm.Sys[S]] = IntObj[S]
 
-    def typeID: Int = IntObj.typeID
+    def typeId: Int = IntObj.typeId
 
     def apply[S <: Sys[S]](key: String, value: IntObj[S], observer: Observer[S])
                           (implicit tx: S#Tx, context: AuralContext[S]): AuralAttribute[S] =
@@ -242,7 +242,7 @@ object AuralAttributeImpl {
                                                (implicit val context: AuralContext[S])
     extends SingleChannelImpl[S, Int] with NumericExprImpl[S, Int] {
 
-    def typeID: Int = IntObj.typeID
+    def typeId: Int = IntObj.typeId
 
     def mkValue(in: Int): Scalar = in.toFloat
 
@@ -254,7 +254,7 @@ object AuralAttributeImpl {
   private[this] object DoubleAttribute extends Factory with StartLevelViewFactory  {
     type Repr[S <: stm.Sys[S]] = DoubleObj[S]
 
-    def typeID: Int = DoubleObj.typeID
+    def typeId: Int = DoubleObj.typeId
 
     def apply[S <: Sys[S]](key: String, value: DoubleObj[S], observer: Observer[S])
                           (implicit tx: S#Tx, context: AuralContext[S]): AuralAttribute[S] =
@@ -274,7 +274,7 @@ object AuralAttributeImpl {
                                                   (implicit val context: AuralContext[S])
     extends SingleChannelImpl[S, Double] with NumericExprImpl[S, Double] {
 
-    def typeID: Int = DoubleObj.typeID
+    def typeId: Int = DoubleObj.typeId
 
     def mkValue(value: Double): Scalar = value.toFloat
 
@@ -286,7 +286,7 @@ object AuralAttributeImpl {
   private[this] object BooleanAttribute extends Factory with StartLevelViewFactory {
     type Repr[S <: stm.Sys[S]] = BooleanObj[S]
 
-    def typeID: Int = BooleanObj.typeID
+    def typeId: Int = BooleanObj.typeId
 
     def apply[S <: Sys[S]](key: String, value: BooleanObj[S], observer: Observer[S])
                           (implicit tx: S#Tx, context: AuralContext[S]): AuralAttribute[S] =
@@ -306,7 +306,7 @@ object AuralAttributeImpl {
                                                    (implicit val context: AuralContext[S])
     extends SingleChannelImpl[S, Boolean] with NumericExprImpl[S, Boolean] {
 
-    def typeID: Int = BooleanObj.typeID
+    def typeId: Int = BooleanObj.typeId
 
     def mkValue(in: Boolean): Scalar = if (in) 1f else 0f
 
@@ -318,7 +318,7 @@ object AuralAttributeImpl {
   private[this] object FadeSpecAttribute extends Factory {
     type Repr[S <: stm.Sys[S]] = FadeSpec.Obj[S]
 
-    def typeID: Int = FadeSpec.Obj.typeID
+    def typeId: Int = FadeSpec.Obj.typeId
 
     def apply[S <: Sys[S]](key: String, value: FadeSpec.Obj[S], observer: Observer[S])
                           (implicit tx: S#Tx, context: AuralContext[S]): AuralAttribute[S] =
@@ -328,7 +328,7 @@ object AuralAttributeImpl {
                                                     (implicit val context: AuralContext[S])
     extends ExprImpl[S, FadeSpec] {
 
-    def typeID: Int = FadeSpec.Obj.typeID
+    def typeId: Int = FadeSpec.Obj.typeId
 
     def preferredNumChannels(implicit tx: S#Tx): Int = 4
 
@@ -350,7 +350,7 @@ object AuralAttributeImpl {
   private[this] object DoubleVectorAttribute extends Factory with StartLevelViewFactory {
     type Repr[S <: stm.Sys[S]] = DoubleVector[S]
 
-    def typeID: Int = DoubleVector.typeID
+    def typeId: Int = DoubleVector.typeId
 
     def apply[S <: Sys[S]](key: String, value: DoubleVector[S], observer: Observer[S])
                           (implicit tx: S#Tx, context: AuralContext[S]): AuralAttribute[S] =
@@ -370,7 +370,7 @@ object AuralAttributeImpl {
                                                         (implicit val context: AuralContext[S])
     extends ExprImpl[S, Vec[Double]] with NumericExprImpl[S, Vec[Double]] {
 
-    def typeID: Int = DoubleVector.typeID
+    def typeId: Int = DoubleVector.typeId
 
     def preferredNumChannels(implicit tx: S#Tx): Int = obj().value.size
 
@@ -384,7 +384,7 @@ object AuralAttributeImpl {
   private final class DummyAttribute[S <: Sys[S]](val key: String, val obj: stm.Source[S#Tx, Obj[S]])
     extends AuralAttribute[S] {
 
-    def typeID: Int = throw new UnsupportedOperationException("DummyAttribute.typeID")
+    def typeId: Int = throw new UnsupportedOperationException("DummyAttribute.typeId")
 
     def preferredNumChannels(implicit tx: S#Tx): Int = 0
 

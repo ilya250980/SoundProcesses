@@ -38,7 +38,7 @@ object GenView {
   // ---- factories ----
 
   trait Factory {
-    def typeID: Int
+    def typeId: Int
 
     type Repr[~ <: Sys[~]] <: Obj[~]
 
@@ -53,7 +53,7 @@ object GenView {
   def apply[S <: Sys[S]](obj: Obj[S])(implicit tx: S#Tx, context: GenContext[S]): GenView[S] = Impl(obj)
 }
 trait GenView[S <: Sys[S]] extends Observable[S#Tx, GenView.State] with Disposable[S#Tx] {
-  def typeID: Int
+  def typeId: Int
 
   def reactNow(fun: S#Tx => GenView.State => Unit)(implicit tx: S#Tx): Disposable[S#Tx]
 

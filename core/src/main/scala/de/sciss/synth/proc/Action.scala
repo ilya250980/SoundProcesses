@@ -22,7 +22,7 @@ import scala.collection.immutable.{IndexedSeq => Vec}
 import scala.concurrent.Future
 
 object Action extends Obj.Type {
-  final val typeID = 19
+  final val typeId = 19
 
   final val attrSource = "action-source"
 

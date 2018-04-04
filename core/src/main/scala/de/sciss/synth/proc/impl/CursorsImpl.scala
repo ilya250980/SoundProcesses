@@ -46,7 +46,7 @@ object CursorsImpl {
 
     def read(in: DataInput, access: Unit)(implicit tx: D1#Tx): Cursors[S, D1] = {
       val tpe     = in.readInt()
-      if (tpe != Cursors.typeID) sys.error(s"Type mismatch, found $tpe, expected ${Cursors.typeID}")
+      if (tpe != Cursors.typeId) sys.error(s"Type mismatch, found $tpe, expected ${Cursors.typeId}")
       readIdentified1[S, D1](in, access)
     }
   }

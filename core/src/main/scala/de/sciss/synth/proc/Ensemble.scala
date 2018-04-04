@@ -23,7 +23,7 @@ import de.sciss.synth.proc
 import de.sciss.synth.proc.impl.{EnsembleImpl => Impl}
 
 object Ensemble extends Obj.Type {
-  final val typeID = 0x10007
+  final val typeId = 0x10007
 
   def apply[S <: Sys[S]](folder: proc.Folder /* Elem.Obj */[S], offset: LongObj[S], playing: BooleanObj[S])
                         (implicit tx: S#Tx): Ensemble[S] = Impl(folder, offset, playing)

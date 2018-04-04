@@ -22,7 +22,7 @@ import de.sciss.serial.{DataInput, DataOutput, ImmutableSerializer}
 import scala.collection.immutable.{IndexedSeq => Vec}
 
 object Color {
-  final val typeID = 22
+  final val typeId = 22
 
   private final val COOKIE = 0x436F // 'Co'
 
@@ -47,11 +47,11 @@ object Color {
   object Obj extends ExprTypeImpl[Color, Obj] {
     import Color.{Obj => Repr}
 
-    def typeID: Int = Color.typeID
+    def typeId: Int = Color.typeId
 
     implicit def valueSerializer: ImmutableSerializer[Color] = Color.serializer
 
-    protected def mkConst[S <: Sys[S]](id: S#ID, value: A)(implicit tx: S#Tx): Const[S] =
+    protected def mkConst[S <: Sys[S]](id: S#Id, value: A)(implicit tx: S#Tx): Const[S] =
       new _Const[S](id, value)
 
     protected def mkVar[S <: Sys[S]](targets: Targets[S], vr: S#Var[Ex[S]], connect: Boolean)
@@ -61,7 +61,7 @@ object Color {
       res
     }
 
-    private[this] final class _Const[S <: Sys[S]](val id: S#ID, val constValue: A)
+    private[this] final class _Const[S <: Sys[S]](val id: S#Id, val constValue: A)
       extends ConstImpl[S] with Repr[S]
 
     private[this] final class _Var[S <: Sys[S]](val targets: Targets[S], val ref: S#Var[Ex[S]])

@@ -26,7 +26,7 @@ object GenContextImpl {
   def apply[S <: Sys[S]](implicit tx: S#Tx, cursor: stm.Cursor[S],
                                   workspaceHandle: WorkspaceHandle[S]): GenContext[S] = {
     val res = map.get(workspaceHandle).getOrElse {
-      val objMap  = tx.newInMemoryIDMap[ContextEntry[S]]
+      val objMap  = tx.newInMemoryIdMap[ContextEntry[S]]
       val res0    = new Impl[S](objMap)
       map.put(workspaceHandle, res0)
       res0
@@ -34,7 +34,7 @@ object GenContextImpl {
     res.asInstanceOf[GenContext[S]]
   }
 
-  private final class Impl[S <: Sys[S]](protected val objMap: IdentifierMap[S#ID, S#Tx, ContextEntry[S]])
+  private final class Impl[S <: Sys[S]](protected val objMap: IdentifierMap[S#Id, S#Tx, ContextEntry[S]])
                                        (implicit val cursor: stm.Cursor[S], val workspaceHandle: WorkspaceHandle[S])
     extends ContextImpl[S] with GenContext[S] with Disposable[S#Tx] {
 

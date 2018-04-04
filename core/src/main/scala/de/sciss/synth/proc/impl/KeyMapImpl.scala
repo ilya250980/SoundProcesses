@@ -62,7 +62,7 @@ object KeyMapImpl {
 }
 
 /** Common building block for implementing reactive maps where the key is a constant element
-  * (that is, it does not require updating such as an `S#ID`).
+  * (that is, it does not require updating such as an `S#Id`).
   *
   * @tparam S         the system used
   * @tparam Key       the type of key, such as `String`

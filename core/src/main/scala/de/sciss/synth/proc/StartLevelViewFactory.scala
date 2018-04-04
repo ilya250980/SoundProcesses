@@ -19,7 +19,7 @@ import de.sciss.lucre.synth.{Sys => SSys}
 import scala.language.higherKinds
 
 trait StartLevelViewFactory {
-  def typeID: Int
+  def typeId: Int
 
   type Repr[~ <: Sys[~]] <: Obj[~]
 

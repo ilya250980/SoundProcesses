@@ -66,7 +66,7 @@ trait AuralFolderLikeImpl[S <: Sys[S], Repr <: Obj[S], View <: AuralObj.FolderLi
   final def views(implicit tx: S#Tx): Set[AuralObj[S]] = transport.views
 
   final def getView    (obj: Obj[S])(implicit tx: S#Tx): Option[AuralObj[S]] = transport.getView    (obj)
-  final def getViewById(id : S#ID  )(implicit tx: S#Tx): Option[AuralObj[S]] = transport.getViewById(id )
+  final def getViewById(id : S#Id  )(implicit tx: S#Tx): Option[AuralObj[S]] = transport.getViewById(id )
 
   final def stop()(implicit tx: S#Tx): Unit = {
     transport.stop()

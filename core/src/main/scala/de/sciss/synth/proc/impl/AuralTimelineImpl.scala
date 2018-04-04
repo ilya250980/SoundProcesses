@@ -67,10 +67,10 @@ object AuralTimelineImpl {
     protected def makeViewElem(obj: Obj[S])(implicit tx: S#Tx): AuralObj[S] = AuralObj(obj)
 
     object contents extends ObservableImpl[S, Container.Update[S, AuralObj.Timeline[S]]] {
-      def viewAdded(id: S#ID, view: AuralObj[S])(implicit tx: S#Tx): Unit =
+      def viewAdded(id: S#Id, view: AuralObj[S])(implicit tx: S#Tx): Unit =
         fire(Container.ViewAdded(impl, id, view))
 
-      def viewRemoved(id: S#ID, view: AuralObj[S])(implicit tx: S#Tx): Unit =
+      def viewRemoved(id: S#Id, view: AuralObj[S])(implicit tx: S#Tx): Unit =
         fire(Container.ViewRemoved(impl, id, view))
     }
 

@@ -28,7 +28,7 @@ import de.sciss.synth.proc
 import scala.annotation.switch
 
 object AudioCue {
-  final val typeID = 13
+  final val typeId = 13
 
   def init(): Unit = Obj.init()
 
@@ -57,7 +57,7 @@ object AudioCue {
   }
 
   object Obj extends expr.impl.ExprTypeImpl[AudioCue, AudioCue.Obj] {
-    def typeID: Int = AudioCue.typeID
+    def typeId: Int = AudioCue.typeId
 
     import AudioCue.{Obj => Repr}
 
@@ -71,7 +71,7 @@ object AudioCue {
       _init
     }
 
-    protected def mkConst[S <: Sys[S]](id: S#ID, value: A)(implicit tx: S#Tx): Const[S] =
+    protected def mkConst[S <: Sys[S]](id: S#Id, value: A)(implicit tx: S#Tx): Const[S] =
       new _Const[S](id, value)
 
     protected def mkVar[S <: Sys[S]](targets: Targets[S], vr: S#Var[Ex[S]], connect: Boolean)
@@ -81,7 +81,7 @@ object AudioCue {
       res
     }
 
-    private final class _Const[S <: Sys[S]](val id: S#ID, val constValue: A)
+    private final class _Const[S <: Sys[S]](val id: S#Id, val constValue: A)
       extends ConstImpl[S] with Repr[S] {
 
       def spec(implicit tx: S#Tx): AudioFileSpec = constValue.spec

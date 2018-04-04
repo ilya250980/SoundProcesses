@@ -19,7 +19,7 @@ import de.sciss.serial.{DataInput, Serializer}
 import de.sciss.synth.proc.impl.{TimelineImpl => Impl}
 
 object Timeline extends Obj.Type {
-  final val typeID = 0x10006
+  final val typeId = 0x10006
 
   type Update[S <: Sys[S]]  = BiGroup.Update[S, Obj[S]]
   val  Update               = BiGroup.Update

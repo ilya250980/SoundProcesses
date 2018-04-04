@@ -34,11 +34,11 @@ object CodeImpl {
   @volatile private var map = Map.empty[Int, Code.Type]
 
   def addType(tpe: Code.Type): Unit = sync.synchronized {
-    val typeID = tpe.id
-    if (map.contains(typeID))
-      throw new IllegalArgumentException(s"Code type $typeID was already registered ($tpe overrides ${map(typeID)})")
+    val typeId = tpe.id
+    if (map.contains(typeId))
+      throw new IllegalArgumentException(s"Code type $typeId was already registered ($tpe overrides ${map(typeId)})")
 
-    map += typeID -> tpe
+    map += typeId -> tpe
   }
 
   def getType(id: Int): Code.Type = map.getOrElse(id, sys.error(s"Unknown element type $id"))

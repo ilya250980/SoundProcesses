@@ -117,7 +117,7 @@ object ServerImpl {
                 case n: message.NodeSet =>
                   message.NodeSet(id, compressControlSet(n.pairs, m.pairs): _*)
                 case n: message.SynthNew =>
-                  message.SynthNew(n.defName, id, n.addAction, n.targetID,
+                  message.SynthNew(n.defName, id, n.addAction, n.targetId,
                     compressControlSet(n.controls, m.pairs): _*)
               }
             }
@@ -192,7 +192,7 @@ object ServerImpl {
 
           case m: message.GroupNew =>
             m.groups.foreach { g =>
-              val id = g.groupID
+              val id = g.groupId
               setMap   -= id
               mapanMap -= id
             }
@@ -351,7 +351,7 @@ object ServerImpl {
       _bundles  = Vector.empty
       val res1  = if (res.isEmpty || !addDefaultGroup) res else {
         val b   = osc.Bundle(res.head.timetag,
-          message.GroupNew(message.GroupNew.Data(groupID = 1, addAction = addToHead.id, targetID = 0)))
+          message.GroupNew(message.GroupNew.Data(groupId = 1, addAction = addToHead.id, targetId = 0)))
         b +: res
       }
       res1
@@ -402,7 +402,7 @@ object ServerImpl {
     final private[this] val controlBusAllocator = BlockAllocator("control", peer.config.controlBusChannels)
     final private[this] val audioBusAllocator   = BlockAllocator("audio"  , peer.config.audioBusChannels, peer.config.internalBusIndex)
     final private[this] val bufferAllocator     = BlockAllocator("buffer" , peer.config.audioBuffers)
-    final private[this] val nodeAllocator       = NodeIDAllocator(peer.clientConfig.clientID, peer.clientConfig.nodeIDOffset)
+    final private[this] val nodeAllocator       = NodeIdAllocator(peer.clientConfig.clientId, peer.clientConfig.nodeIdOffset)
 
     final val defaultGroup: Group = Group.wrap(this, peer.defaultGroup)
 

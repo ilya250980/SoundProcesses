@@ -23,10 +23,10 @@ import de.sciss.synth.{Curve, proc}
 object CurveObj extends ExprTypeImpl[Curve, CurveObj] {
   import proc.{CurveObj => Repr}
 
-  final val typeID = 15
+  final val typeId = 15
   final val valueSerializer: ImmutableSerializer[Curve] = Curve.serializer
 
-  protected def mkConst[S <: Sys[S]](id: S#ID, value: A)(implicit tx: S#Tx): Const[S] =
+  protected def mkConst[S <: Sys[S]](id: S#Id, value: A)(implicit tx: S#Tx): Const[S] =
     new _Const[S](id, value)
 
   protected def mkVar[S <: Sys[S]](targets: Targets[S], vr: S#Var[Ex[S]], connect: Boolean)
@@ -36,7 +36,7 @@ object CurveObj extends ExprTypeImpl[Curve, CurveObj] {
     res
   }
 
-  private final class _Const[S <: Sys[S]](val id: S#ID, val constValue: A)
+  private final class _Const[S <: Sys[S]](val id: S#Id, val constValue: A)
     extends ConstImpl[S] with Repr[S]
 
   private final class _Var[S <: Sys[S]](val targets: Targets[S], val ref: S#Var[Ex[S]])

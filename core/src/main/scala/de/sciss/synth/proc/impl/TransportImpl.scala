@@ -46,15 +46,15 @@ object TransportImpl {
 
   private def mkTransport[S <: Sys[S]](auralSystem: Option[AuralSystem], scheduler: Scheduler[S])
                                       (implicit tx: S#Tx, workspace: WorkspaceHandle[S]): Impl[S] = {
-    val objMap  = tx.newInMemoryIDMap[stm.Source[S#Tx, Obj[S]]]
-    val viewMap = tx.newInMemoryIDMap[AuralObj[S]]
+    val objMap  = tx.newInMemoryIdMap[stm.Source[S#Tx, Obj[S]]]
+    val viewMap = tx.newInMemoryIdMap[AuralObj[S]]
     // (new Throwable).printStackTrace()
     new Impl(auralSystem, scheduler, objMap, viewMap)
   }
 
   private final class Impl[S <: Sys[S]](auralSystem: Option[AuralSystem], val scheduler: Scheduler[S],
-                                        objMap : IdentifierMap[S#ID, S#Tx, stm.Source[S#Tx, Obj[S]]],
-                                        viewMap: IdentifierMap[S#ID, S#Tx, AuralObj[S]])
+                                        objMap : IdentifierMap[S#Id, S#Tx, stm.Source[S#Tx, Obj[S]]],
+                                        viewMap: IdentifierMap[S#Id, S#Tx, AuralObj[S]])
                                        (implicit workspace: WorkspaceHandle[S])
     extends Transport[S] with ObservableImpl[S, Transport.Update[S]] with AuralSystem.Client {
 
@@ -88,7 +88,7 @@ object TransportImpl {
     def views(implicit tx: S#Tx): Set[AuralObj[S]] = viewSet.single.toSet
 
     def getView    (obj: Obj[S])(implicit tx: S#Tx): Option[AuralObj[S]] = getViewById(obj.id)
-    def getViewById(id : S#ID  )(implicit tx: S#Tx): Option[AuralObj[S]] = viewMap.get(id)
+    def getViewById(id : S#Id  )(implicit tx: S#Tx): Option[AuralObj[S]] = viewMap.get(id)
 
     def play()(implicit tx: S#Tx): Unit = {
       val timeBase0 = timeBaseRef()

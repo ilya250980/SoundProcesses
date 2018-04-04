@@ -28,7 +28,7 @@ import scala.concurrent.stm.Ref
 object AuralFolderAttribute extends Factory {
   type Repr[S <: stm.Sys[S]] = Folder[S]
 
-  def typeID: Int = Folder.typeID
+  def typeId: Int = Folder.typeId
 
   def apply[S <: Sys[S]](key: String, value: Folder[S], observer: Observer[S])
                         (implicit tx: S#Tx, context: AuralContext[S]): AuralAttribute[S] =
@@ -72,7 +72,7 @@ final class AuralFolderAttribute[S <: Sys[S]](val key: String, val obj: stm.Sour
 
   type Elem = AuralAttribute[S]
 
-  def typeID: Int = Folder.typeID
+  def typeId: Int = Folder.typeId
 
   private[this] val childAttrRef    = Ref.make[Vector[Elem]]
 

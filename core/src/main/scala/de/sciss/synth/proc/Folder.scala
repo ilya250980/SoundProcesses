@@ -19,7 +19,7 @@ import de.sciss.serial.{DataInput, Serializer}
 import de.sciss.synth.proc.impl.{FolderImpl => Impl}
 
 object Folder extends Obj.Type {
-  final val typeID = 0x10000
+  final val typeId = 0x10000
 
   override def readIdentifiedObj[S <: Sys[S]](in: DataInput, access: S#Acc)(implicit tx: S#Tx): Obj[S] =
     Impl.readIdentifiedObj(in, access)

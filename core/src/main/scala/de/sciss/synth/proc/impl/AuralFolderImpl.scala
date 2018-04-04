@@ -30,7 +30,7 @@ object AuralFolderImpl {
     extends AuralFolderLikeImpl[S, Folder[S], AuralObj.Folder[S]]
     with AuralObj.Folder[S] { impl =>
 
-    def typeID: Int = Folder.typeID
+    def typeId: Int = Folder.typeId
 
     def folder(implicit tx: S#Tx): Folder[S] = obj()
 

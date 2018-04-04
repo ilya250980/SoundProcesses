@@ -19,7 +19,7 @@ import de.sciss.serial.{DataInput, Serializer}
 import de.sciss.synth.proc.impl.{GraphemeImpl => Impl}
 
 object Grapheme extends Obj.Type {
-  final val typeID = 0x10002
+  final val typeId = 0x10002
 
   implicit def serializer[S <: Sys[S]]: Serializer[S#Tx, S#Acc, Grapheme[S]] = Impl.serializer[S]
 

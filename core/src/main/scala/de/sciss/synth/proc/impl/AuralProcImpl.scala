@@ -123,7 +123,7 @@ object AuralProcImpl {
     private[this] val targetStateRef      = Ref[TargetState    ](TargetStop )
     private[this] val playingRef          = Ref[PlayingRef     ](PlayingNone)
 
-    final def typeID: Int = Proc.typeID
+    final def typeId: Int = Proc.typeId
 
     final def state      (implicit tx: S#Tx): AuralView.State = currentStateRef()
     final def targetState(implicit tx: S#Tx): AuralView.State = targetStateRef ().completed

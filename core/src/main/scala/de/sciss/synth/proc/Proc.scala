@@ -23,7 +23,7 @@ import de.sciss.synth.proc.impl.{ProcImpl => Impl}
 import scala.collection.immutable.{IndexedSeq => Vec}
 
 object Proc extends Obj.Type {
-  final val typeID = 0x10005
+  final val typeId = 0x10005
 
   // ---- implementation forwards ----
 

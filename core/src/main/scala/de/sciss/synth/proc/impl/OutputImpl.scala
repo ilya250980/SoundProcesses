@@ -26,7 +26,7 @@ object OutputImpl {
   sealed trait Update[S]
 
   def apply[S <: Sys[S]](proc: Proc[S], key: String)(implicit tx: S#Tx): Output[S] = {
-    val id = tx.newID()
+    val id = tx.newId()
     new Impl(id, proc, key)
   }
 
@@ -44,7 +44,7 @@ object OutputImpl {
   def readIdentifiedObj[S <: Sys[S]](in: DataInput, access: S#Acc)(implicit tx: S#Tx): Output[S] = {
     val cookie  = in.readByte()
     if (cookie != 3) sys.error(s"Unexpected cookie, expected 3 found $cookie")
-    val id      = tx.readID(in, access)
+    val id      = tx.readId(in, access)
     val serVer  = in.readShort()
     if (serVer != SER_VERSION)
       sys.error(s"Incompatible serialized version (found ${serVer.toInt.toHexString}, required ${SER_VERSION.toHexString})")
@@ -56,7 +56,7 @@ object OutputImpl {
 
   // private final val filterAll: Any => Boolean = _ => true
 
-  private final class Impl[S <: Sys[S]](val id: S#ID, val proc: Proc[S], val key: String)
+  private final class Impl[S <: Sys[S]](val id: S#Id, val proc: Proc[S], val key: String)
     extends Output[S] with ConstObjImpl[S, Any] {
 
     def tpe: Obj.Type = Output
@@ -64,7 +64,7 @@ object OutputImpl {
     override def toString: String = s"Output($id, $proc, $key)"
 
     def copy[Out <: Sys[Out]]()(implicit tx: S#Tx, txOut: Out#Tx, context: Copy[S, Out]): Elem[Out] = {
-      val out = new Impl(txOut.newID(), context(proc), key)
+      val out = new Impl(txOut.newId(), context(proc), key)
       out // .connect()
     }
 

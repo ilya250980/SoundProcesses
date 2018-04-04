@@ -22,13 +22,13 @@ trait AuxContextImpl[S <: stm.Sys[S]] {
   // ---- abstract ----
 
   /** Objects */
-  protected def auxMap      : IdentifierMap[S#ID, S#Tx, Any]
+  protected def auxMap      : IdentifierMap[S#Id, S#Tx, Any]
   /** Observers */
-  protected def auxObservers: IdentifierMap[S#ID, S#Tx, List[AuxObserver]]
+  protected def auxObservers: IdentifierMap[S#Id, S#Tx, List[AuxObserver]]
 
   // ---- impl ----
 
-  protected final class AuxObserver(idH: stm.Source[S#Tx, S#ID],
+  protected final class AuxObserver(idH: stm.Source[S#Tx, S#Id],
                                     val fun: S#Tx => AuxContext.Update[S, Any] => Unit)
     extends Disposable[S#Tx] {
 
@@ -40,7 +40,7 @@ trait AuxContextImpl[S <: stm.Sys[S]] {
     }
   }
 
-  final def observeAux[A](id: S#ID)(fun: S#Tx => AuxContext.Update[S, A] => Unit)(implicit tx: S#Tx): Disposable[S#Tx] = {
+  final def observeAux[A](id: S#Id)(fun: S#Tx => AuxContext.Update[S, A] => Unit)(implicit tx: S#Tx): Disposable[S#Tx] = {
     val list0 = auxObservers.getOrElse(id, Nil)
     val obs   = new AuxObserver(tx.newHandle(id), fun.asInstanceOf[S#Tx => AuxContext.Update[S, Any] => Unit])
     val list1 = obs :: list0
@@ -48,7 +48,7 @@ trait AuxContextImpl[S <: stm.Sys[S]] {
     obs
   }
 
-  final def putAux[A](id: S#ID, value: A)(implicit tx: S#Tx): Unit = {
+  final def putAux[A](id: S#Id, value: A)(implicit tx: S#Tx): Unit = {
     auxMap.put(id, value)
 //    implicit val itx = tx.peer
     val list = auxObservers.getOrElse(id, Nil)
@@ -60,9 +60,9 @@ trait AuxContextImpl[S <: stm.Sys[S]] {
     }
   }
 
-  final def getAux[A](id: S#ID)(implicit tx: S#Tx): Option[A] = auxMap.get(id).asInstanceOf[Option[A]]
+  final def getAux[A](id: S#Id)(implicit tx: S#Tx): Option[A] = auxMap.get(id).asInstanceOf[Option[A]]
 
-  final def removeAux(id: S#ID)(implicit tx: S#Tx): Unit = {
+  final def removeAux(id: S#Id)(implicit tx: S#Tx): Unit = {
     val list      = auxObservers.getOrElse(id, Nil)
     val hasObs    = list.nonEmpty
     val contained = hasObs && auxMap.contains(id)

@@ -34,7 +34,7 @@ object AuralTimelineAttribute extends Factory {
 
   private type Leaf[S <: Sys[S]] = AuralTimelineBase.Leaf[S, AuralAttribute[S]]
 
-  def typeID: Int = Timeline.typeID
+  def typeId: Int = Timeline.typeId
 
   def apply[S <: Sys[S]](key: String, timeline: Timeline[S], observer: Observer[S])
                         (implicit tx: S#Tx, context: AuralContext[S]): AuralAttribute[S] = {

@@ -30,12 +30,12 @@ import scala.collection.immutable.{IndexedSeq => Vec, Set => ISet}
 import scala.concurrent.stm.TSet
 
 object AuralTimelineBase {
-  type Leaf[S <: Sys[S], Elem] = (SpanLike, Vec[(stm.Source[S#Tx, S#ID], Elem)])
+  type Leaf[S <: Sys[S], Elem] = (SpanLike, Vec[(stm.Source[S#Tx, S#Id], Elem)])
 
   @inline
   def spanToPoint(span: SpanLike): LongPoint2D = BiGroupImpl.spanToPoint(span)
 
-  protected final case class ElemHandle[S <: Sys[S], Elem](idH: stm.Source[S#Tx, S#ID], span: SpanLike, view: Elem)
+  protected final case class ElemHandle[S <: Sys[S], Elem](idH: stm.Source[S#Tx, S#Id], span: SpanLike, view: Elem)
 }
 trait AuralTimelineBase[S <: Sys[S], I <: stm.Sys[I], Target, Elem <: AuralView[S, Target]]
   extends AuralScheduledBase[S, Target, Elem] with ObservableImpl[S, AuralView.State] { impl =>
@@ -47,7 +47,7 @@ trait AuralTimelineBase[S <: Sys[S], I <: stm.Sys[I], Target, Elem <: AuralView[
 
   def obj: stm.Source[S#Tx, Timeline[S]]
 
-  protected def tree: SkipOctree[I, LongSpace.TwoDim, (SpanLike, Vec[(stm.Source[S#Tx, S#ID], Elem)])]
+  protected def tree: SkipOctree[I, LongSpace.TwoDim, (SpanLike, Vec[(stm.Source[S#Tx, S#Id], Elem)])]
 
   protected def iSys: S#Tx => I#Tx
 
@@ -67,23 +67,23 @@ trait AuralTimelineBase[S <: Sys[S], I <: stm.Sys[I], Target, Elem <: AuralView[
 
   private[this] val playingRef        = TSet.empty[ElemHandle]
 
-  private[this] var viewMap   : IdentifierMap[S#ID, S#Tx, ElemHandle] = _
+  private[this] var viewMap   : IdentifierMap[S#Id, S#Tx, ElemHandle] = _
   private[this] var tlObserver: Disposable[S#Tx] = _
 
   protected type ElemHandle = AuralTimelineBase.ElemHandle[S, Elem]
-  protected type ViewID     = S#ID
+  protected type ViewID     = S#Id
   protected type Model      = Obj[S]
 
-  private def ElemHandle(idH: stm.Source[S#Tx, S#ID], span: SpanLike, view: Elem): ElemHandle =
+  private def ElemHandle(idH: stm.Source[S#Tx, S#Id], span: SpanLike, view: Elem): ElemHandle =
     AuralTimelineBase.ElemHandle(idH, span, view)
 
   protected def elemFromHandle(h: ElemHandle): Elem = h.view
 
   final def views(implicit tx: S#Tx): ISet[Elem] = playingRef.map(elemFromHandle)(breakOut) // toSet
 
-  final def typeID: Int = Timeline.typeID
+  final def typeId: Int = Timeline.typeId
 
-  private type Leaf = (SpanLike, Vec[(stm.Source[S#Tx, S#ID], Elem)])
+  private type Leaf = (SpanLike, Vec[(stm.Source[S#Tx, S#Id], Elem)])
 
   protected final def viewEventAfter(offset: Long)(implicit tx: S#Tx): Long =
     BiGroupImpl.eventAfter(tree)(offset)(iSys(tx)).getOrElse(Long.MaxValue)
@@ -196,7 +196,7 @@ trait AuralTimelineBase[S <: Sys[S], I <: stm.Sys[I], Target, Elem <: AuralView[
     *           manual additional of views
     */
   def init(tl: Timeline[S])(implicit tx: S#Tx): this.type = {
-    viewMap = tx.newInMemoryIDMap[ElemHandle]
+    viewMap = tx.newInMemoryIdMap[ElemHandle]
     if (tl != null) tlObserver = tl.changed.react { implicit tx => upd =>
       upd.changes.foreach {
         case Timeline.Added  (span, timed)    => elemAdded  (timed.id, span, timed.value)
@@ -215,16 +215,16 @@ trait AuralTimelineBase[S <: Sys[S], I <: stm.Sys[I], Target, Elem <: AuralView[
   final def getView(timed: Timeline.Timed[S])(implicit tx: S#Tx): Option[Elem] =
     getViewById(timed.id)
 
-  final def getViewById(id: S#ID)(implicit tx: S#Tx): Option[Elem] =
+  final def getViewById(id: S#Id)(implicit tx: S#Tx): Option[Elem] =
     viewMap.get(id).map(_.view)
 
-  final def addObject(id: S#ID, span: SpanLikeObj[S], obj: Obj[S])(implicit tx: S#Tx): Unit =
+  final def addObject(id: S#Id, span: SpanLikeObj[S], obj: Obj[S])(implicit tx: S#Tx): Unit =
     elemAdded(id, span.value, obj)
 
-  final def removeObject(id: S#ID, span: SpanLikeObj[S], obj: Obj[S])(implicit tx: S#Tx): Unit =
+  final def removeObject(id: S#Id, span: SpanLikeObj[S], obj: Obj[S])(implicit tx: S#Tx): Unit =
     elemRemoved(id, span.value, obj)
 
-  protected final def mkView(tid: S#ID, span: SpanLike, obj: Obj[S])(implicit tx: S#Tx): ElemHandle = {
+  protected final def mkView(tid: S#Id, span: SpanLike, obj: Obj[S])(implicit tx: S#Tx): ElemHandle = {
     logA(s"timeline - elemAdded($span, $obj)")
 
     // create a view for the element and add it to the tree and map
@@ -243,7 +243,7 @@ trait AuralTimelineBase[S <: Sys[S], I <: stm.Sys[I], Target, Elem <: AuralView[
     h
   }
 
-  private def elemRemoved(tid: S#ID, span: SpanLike, obj: Obj[S])(implicit tx: S#Tx): Unit =
+  private def elemRemoved(tid: S#Id, span: SpanLike, obj: Obj[S])(implicit tx: S#Tx): Unit =
     viewMap.get(tid).foreach { h =>
       // finding the object in the view-map implies that it
       // is currently preparing or playing

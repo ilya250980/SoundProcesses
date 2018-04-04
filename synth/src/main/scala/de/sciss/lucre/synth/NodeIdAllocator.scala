@@ -13,12 +13,12 @@
 
 package de.sciss.lucre.synth
 
-import impl.{NodeIDAllocatorImpl => Impl}
+import impl.{NodeIdAllocatorImpl => Impl}
 import scala.concurrent.stm.InTxn
 
-object NodeIDAllocator {
-  def apply(user: Int, initTemp: Int): NodeIDAllocator = new Impl(user = user, initTemp = initTemp)
+object NodeIdAllocator {
+  def apply(user: Int, initTemp: Int): NodeIdAllocator = new Impl(user = user, initTemp = initTemp)
 }
-trait NodeIDAllocator{
+trait NodeIdAllocator{
   def alloc()(implicit tx: InTxn): Int
 }

@@ -36,7 +36,7 @@ object ActionImpl {
   // ---- creation ----
 
   def mkName[S <: Sys[S]]()(implicit tx: S#Tx): String = {
-    val id = tx.newID()
+    val id = tx.newId()
     s"Action${IDPeek(id)}"
   }
 
@@ -50,7 +50,7 @@ object ActionImpl {
     p.future
   }
 
-  def empty[S <: Sys[S]](implicit tx: S#Tx): Action[S] = new ConstEmptyImpl[S](tx.newID)
+  def empty[S <: Sys[S]](implicit tx: S#Tx): Action[S] = new ConstEmptyImpl[S](tx.newId())
 
   def newVar[S <: Sys[S]](init: Action[S])(implicit tx: S#Tx): Action.Var[S] = {
     val targets = evt.Targets[S]
@@ -59,7 +59,7 @@ object ActionImpl {
   }
 
   def newConst[S <: Sys[S]](name: String, jar: Array[Byte])(implicit tx: S#Tx): Action[S] =
-    new ConstFunImpl(tx.newID(), name, jar)
+    new ConstFunImpl(tx.newId(), name, jar)
 
   private val mapPredef = TMap.empty[String, Action.Body]
 
@@ -67,7 +67,7 @@ object ActionImpl {
     if (!mapPredef.contains(actionID)(tx.peer))
       throw new IllegalArgumentException(s"Predefined action '$actionID' is not registered")
 
-    new ConstBodyImpl[S](tx.newID(), actionID)
+    new ConstBodyImpl[S](tx.newId(), actionID)
   }
 
   def registerPredef(actionID: String, body: Action.Body)(implicit tx: TxnLike): Unit =
@@ -110,7 +110,7 @@ object ActionImpl {
       cursor.step { implicit tx =>
         val a = newConst(name, jar)
         // Is this affected by https://github.com/Sciss/LucreConfluent/issues/6 ?
-        // No, as it doesn't contain any mutable state or S#ID instances
+        // No, as it doesn't contain any mutable state or S#Id instances
         tx.newHandle(a)
       }
     }
@@ -151,7 +151,7 @@ object ActionImpl {
         }
 
       case 3 =>
-        val id = tx.readID(in, access)
+        val id = tx.readId(in, access)
         (in.readByte(): @switch) match {
           case CONST_JAR    =>
             val name    = in.readUTF()
@@ -192,11 +192,11 @@ object ActionImpl {
     final def tpe: Obj.Type = Action
   }
 
-  private final class ConstBodyImpl[S <: Sys[S]](val id: S#ID, val actionID: String)
+  private final class ConstBodyImpl[S <: Sys[S]](val id: S#Id, val actionID: String)
     extends ConstImpl[S] {
 
     def copy[Out <: Sys[Out]]()(implicit tx: S#Tx, txOut: Out#Tx, context: Copy[S, Out]): Elem[Out] =
-      new ConstBodyImpl(txOut.newID(), actionID) // .connect()
+      new ConstBodyImpl(txOut.newId(), actionID) // .connect()
 
     def execute(universe: Action.Universe[S])(implicit tx: S#Tx): Unit = {
       implicit val itx: InTxn = tx.peer
@@ -211,7 +211,7 @@ object ActionImpl {
   }
 
   // XXX TODO - should be called ConstJarImpl in next major version
-  private final class ConstFunImpl[S <: Sys[S]](val id: S#ID, val name: String, jar: Array[Byte])
+  private final class ConstFunImpl[S <: Sys[S]](val id: S#Id, val name: String, jar: Array[Byte])
     extends ConstImpl[S] {
 
     def execute(universe: Action.Universe[S])(implicit tx: S#Tx): Unit = {
@@ -219,7 +219,7 @@ object ActionImpl {
     }
 
     def copy[Out <: Sys[Out]]()(implicit tx: S#Tx, txOut: Out#Tx, context: Copy[S, Out]): Elem[Out] =
-      new ConstFunImpl(txOut.newID(), name, jar) // .connect()
+      new ConstFunImpl(txOut.newId(), name, jar) // .connect()
 
     protected def writeData(out: DataOutput): Unit = {
       out.writeByte(CONST_JAR)
@@ -236,11 +236,11 @@ object ActionImpl {
     }
   }
 
-  private final class ConstEmptyImpl[S <: Sys[S]](val id: S#ID) extends ConstImpl[S] {
+  private final class ConstEmptyImpl[S <: Sys[S]](val id: S#Id) extends ConstImpl[S] {
     def execute(universe: Action.Universe[S])(implicit tx: S#Tx): Unit = ()
 
     def copy[Out <: Sys[Out]]()(implicit tx: S#Tx, txOut: Out#Tx, context: Copy[S, Out]): Elem[Out] =
-      new ConstEmptyImpl(txOut.newID()) // .connect()
+      new ConstEmptyImpl(txOut.newId()) // .connect()
 
     protected def writeData(out: DataOutput): Unit =
       out.writeByte(CONST_EMPTY)

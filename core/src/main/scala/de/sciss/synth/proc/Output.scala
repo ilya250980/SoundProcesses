@@ -18,7 +18,7 @@ import de.sciss.serial.{Serializer, DataInput}
 import impl.{OutputImpl => Impl}
 
 object Output extends Obj.Type {
-  final val typeID = 0x10009
+  final val typeId = 0x10009
 
   @deprecated("Impl should use quasi-private OutputImpl.apply", "3.4.1")
   def apply[S <: Sys[S]](proc: Proc[S], key: String)(implicit tx: S#Tx): Output[S] = {

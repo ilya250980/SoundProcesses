@@ -527,7 +527,7 @@ object AuralProcImpl {
       case    UGB.Input.StopSelf  => UGB.Unit
       case i: UGB.Input.Action    => UGB.Input.Action .Value
       case i: UGB.Input.DiskOut   => UGB.Input.DiskOut.Value(i.numChannels)
-      case i: UGB.Input.BufferGen => UGB.Input.BufferGen.Value(st.allocUniqueID())
+      case i: UGB.Input.BufferGen => UGB.Input.BufferGen.Value(st.allocUniqueId())
 
       case _ => throw new IllegalStateException(s"Unsupported input request $in")
     }

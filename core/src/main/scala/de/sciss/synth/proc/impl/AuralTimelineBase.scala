@@ -71,7 +71,7 @@ trait AuralTimelineBase[S <: Sys[S], I <: stm.Sys[I], Target, Elem <: AuralView[
   private[this] var tlObserver: Disposable[S#Tx] = _
 
   protected type ElemHandle = AuralTimelineBase.ElemHandle[S, Elem]
-  protected type ViewID     = S#Id
+  protected type ViewId     = S#Id
   protected type Model      = Obj[S]
 
   private def ElemHandle(idH: stm.Source[S#Tx, S#Id], span: SpanLike, view: Elem): ElemHandle =
@@ -109,7 +109,7 @@ trait AuralTimelineBase[S <: Sys[S], I <: stm.Sys[I], Target, Elem <: AuralView[
     val it          = tl.rangeSearch(start = startSpan, stop = stopSpan)
     it.flatMap { case (childSpan, elems) =>
       val childTime = timeRef.child(childSpan)
-      val sub: Vec[(ViewID, SpanLike, Obj[S])] = if (childTime.hasEnded /* span.isEmpty */) Vector.empty else {
+      val sub: Vec[(ViewId, SpanLike, Obj[S])] = if (childTime.hasEnded /* span.isEmpty */) Vector.empty else {
         elems.map { timed =>
           (timed.id, childSpan, timed.value)
         }

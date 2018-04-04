@@ -90,7 +90,7 @@ object EnvSegment {
                           (implicit tx: S#Tx): Obj[S] = ApplySingle(startLevel, curve)
 
     object ApplySingle extends Type.Extension1[Obj] {
-      final val opID = 0
+      final val opId = 0
 
       def apply[S <: Sys[S]](startLevel: DoubleObj[S], curve: CurveObj[S])
                             (implicit tx: S#Tx): Obj[S] = {
@@ -104,7 +104,7 @@ object EnvSegment {
           case _ => None
         }
 
-      def readExtension[S <: Sys[S]](opID: Int, in: DataInput, access: S#Acc, targets: Targets[S])
+      def readExtension[S <: Sys[S]](opId: Int, in: DataInput, access: S#Acc, targets: Targets[S])
                                     (implicit tx: S#Tx): Obj[S] = {
         val startLevel  = DoubleObj .read(in, access)
         val curve       = CurveObj  .read(in, access)
@@ -113,8 +113,8 @@ object EnvSegment {
 
       def name: String = "ApplySingle"
 
-      val opHi: Int = opID
-      val opLo: Int = opID
+      val opHi: Int = opId
+      val opLo: Int = opId
     }
     private final class ApplySingle[S <: Sys[S]](protected val  targets     : Targets   [S],
                                                  val            startLevel  : DoubleObj [S],
@@ -158,7 +158,7 @@ object EnvSegment {
 
       protected def writeData(out: DataOutput): Unit = {
         out.writeByte(1)  // 'node' not 'var'
-        out.writeInt(ApplySingle.opID)
+        out.writeInt(ApplySingle.opId)
         startLevel .write(out)
         curve       .write(out)
       }
@@ -176,7 +176,7 @@ object EnvSegment {
     }
 
     object ApplyMulti extends Type.Extension1[Obj] {
-      final val opID = 1
+      final val opId = 1
 
       def apply[S <: Sys[S]](startLevels: DoubleVector[S], curve: CurveObj[S])
                             (implicit tx: S#Tx): Obj[S] = {
@@ -190,7 +190,7 @@ object EnvSegment {
           case _ => None
         }
 
-      def readExtension[S <: Sys[S]](opID: Int, in: DataInput, access: S#Acc, targets: Targets[S])
+      def readExtension[S <: Sys[S]](opId: Int, in: DataInput, access: S#Acc, targets: Targets[S])
                                     (implicit tx: S#Tx): Obj[S] = {
         val startLevels = DoubleVector.read(in, access)
         val curve       = CurveObj    .read(in, access)
@@ -199,8 +199,8 @@ object EnvSegment {
 
       def name: String = "ApplyMulti"
 
-      val opHi: Int = opID
-      val opLo: Int = opID
+      val opHi: Int = opId
+      val opLo: Int = opId
     }
     private final class ApplyMulti[S <: Sys[S]](protected val targets     : Targets      [S],
                                                 val           startLevels : DoubleVector [S],
@@ -244,7 +244,7 @@ object EnvSegment {
 
       protected def writeData(out: DataOutput): Unit = {
         out.writeByte(1)  // 'node' not 'var'
-        out.writeInt(ApplyMulti.opID)
+        out.writeInt(ApplyMulti.opId)
         startLevels.write(out)
         curve      .write(out)
       }

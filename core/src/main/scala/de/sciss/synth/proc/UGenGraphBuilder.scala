@@ -63,7 +63,7 @@ object UGenGraphBuilder {
     /** Asks for a unique (monotonously increasing) number that can be used
       * to created a unique control name, for example.
       */
-    def allocUniqueID(): Int
+    def allocUniqueId(): Int
   }
 
   sealed trait State[S <: Sys[S]] extends IO[S] {

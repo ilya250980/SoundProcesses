@@ -94,9 +94,9 @@ object FadeSpec {
       }
 
     private object Apply extends Type.Extension1[Obj] {
-      final val opID = 0
+      final val opId = 0
 
-      def readExtension[S <: Sys[S]](opID: Int, in: DataInput, access: S#Acc, targets: Targets[S])
+      def readExtension[S <: Sys[S]](opId: Int, in: DataInput, access: S#Acc, targets: Targets[S])
                                     (implicit tx: S#Tx): Obj[S] = {
         val numFrames = LongObj  .read(in, access)
         val shape     = CurveObj .read(in, access)
@@ -106,8 +106,8 @@ object FadeSpec {
 
       def name: String = "Apply"
 
-      val opHi: Int = opID
-      val opLo: Int = opID
+      val opHi: Int = opId
+      val opLo: Int = opId
     }
     private final class Apply[S <: Sys[S]](protected val targets: Targets[S],
                                            val numFrames: LongObj[S],
@@ -159,7 +159,7 @@ object FadeSpec {
 
       protected def writeData(out: DataOutput): Unit = {
         out.writeByte(1)  // 'node' not 'var'
-        out.writeInt(Apply.opID)
+        out.writeInt(Apply.opId)
         numFrames.write(out)
         shape    .write(out)
         floor    .write(out)

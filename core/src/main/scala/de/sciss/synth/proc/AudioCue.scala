@@ -108,24 +108,24 @@ object AudioCue {
       }
 
     private object Ext extends Type.Extension1[Obj] {
-      final val applyOpID         = 0
-      final val replaceOffsetOpID = 1
-      final val shiftOpID         = 2
+      final val applyOpId         = 0
+      final val replaceOffsetOpId = 1
+      final val shiftOpId         = 2
 
-      def readExtension[S <: Sys[S]](opID: Int, in: DataInput, access: S#Acc, targets: Targets[S])
+      def readExtension[S <: Sys[S]](opId: Int, in: DataInput, access: S#Acc, targets: Targets[S])
                                     (implicit tx: S#Tx): Obj[S] = {
-        (opID: @switch) match {
-          case `applyOpID` =>
+        (opId: @switch) match {
+          case `applyOpId` =>
             val artifact  = Artifact .read(in, access)
             val spec      = AudioFileSpec.Serializer.read(in)
             val offset    = LongObj  .read(in, access)
             val gain      = DoubleObj.read(in, access)
             new Apply(targets, artifact = artifact, specValue = spec, offset = offset, gain = gain)
-          case `replaceOffsetOpID` =>
+          case `replaceOffsetOpId` =>
             val peer      = Obj      .read(in, access)
             val offset    = LongObj  .read(in, access)
             new ReplaceOffset(targets, peer = peer, offset = offset)
-          case `shiftOpID` =>
+          case `shiftOpId` =>
             val peer      = Obj      .read(in, access)
             val amount    = LongObj  .read(in, access)
             new Shift(targets, peer = peer, amount = amount)
@@ -136,8 +136,8 @@ object AudioCue {
 
       def name: String = "AudioCue Ops"
 
-      val opLo: Int = applyOpID
-      val opHi: Int = shiftOpID
+      val opLo: Int = applyOpId
+      val opHi: Int = shiftOpId
     }
     final class Apply[S <: Sys[S]](protected val targets: Targets[S],
                                    val artifact: Artifact[S],
@@ -194,7 +194,7 @@ object AudioCue {
 
       protected def writeData(out: DataOutput): Unit = {
         out.writeByte(1)  // 'node' not 'var'
-        out.writeInt(Ext.applyOpID)
+        out.writeInt(Ext.applyOpId)
         artifact .write(out)
         AudioFileSpec.Serializer.write(specValue, out)
         offset   .write(out)
@@ -224,7 +224,7 @@ object AudioCue {
 
       protected def num: LongObj[S]
 
-      protected def opID: Int
+      protected def opId: Int
 
       protected def mapNum(peerValue: AudioCue, numValue: Long): AudioCue
 
@@ -279,7 +279,7 @@ object AudioCue {
 
       protected final def writeData(out: DataOutput): Unit = {
         out.writeByte(1)  // 'node' not 'var'
-        out.writeInt(opID)
+        out.writeInt(opId)
         peer.write(out)
         num .write(out)
       }
@@ -303,7 +303,7 @@ object AudioCue {
 
       protected def num: LongObj[S] = offset
 
-      protected def opID: Int = Ext.replaceOffsetOpID
+      protected def opId: Int = Ext.replaceOffsetOpId
 
       protected def mapNum(peerValue: AudioCue, numValue: Long): AudioCue =
         peerValue.copy(offset = numValue)
@@ -328,7 +328,7 @@ object AudioCue {
 
       protected def num: LongObj[S] = amount
 
-      protected def opID: Int = Ext.shiftOpID
+      protected def opId: Int = Ext.shiftOpId
 
       protected def mapNum(peerValue: AudioCue, numValue: Long): AudioCue =
         if (numValue == 0L) peerValue else peerValue.copy(offset = peerValue.offset + numValue)
@@ -376,9 +376,9 @@ object AudioCue {
 
       val name = "AudioCue-Long Ops"
 
-      def readExtension[S <: Sys[S]](opID: Int, in: DataInput, access: S#Acc, targets: Targets[S])
+      def readExtension[S <: Sys[S]](opId: Int, in: DataInput, access: S#Acc, targets: Targets[S])
                                     (implicit tx: S#Tx): LongObj[S] = {
-        val op: LongOp = opID match {
+        val op: LongOp = opId match {
           case Offset.id => Offset
         }
         op.read(in, access, targets)

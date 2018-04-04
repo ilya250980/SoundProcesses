@@ -45,11 +45,11 @@ final class ActionResponder[S <: Sys[S]](objH: stm.Source[S#Tx, Obj[S]], key: St
   import ActionResponder._
 
   private[this] val Name    = replyName(key)
-  private[this] val NodeID  = synth.peer.id
+  private[this] val NodeId  = synth.peer.id
 
   protected val body: Body = {
-    case osc.Message(Name, NodeID, 0, raw @ _*) =>
-      if (DEBUG) println(s"ActionResponder($key, $NodeID) - received trigger")
+    case osc.Message(Name, NodeId, 0, raw @ _*) =>
+      if (DEBUG) println(s"ActionResponder($key, $NodeId) - received trigger")
       // logAural(m.toString)
       val values: Vec[Float] = raw.collect {
         case f: Float => f

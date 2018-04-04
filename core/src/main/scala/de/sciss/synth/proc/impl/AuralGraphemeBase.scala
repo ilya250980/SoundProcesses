@@ -57,7 +57,7 @@ trait AuralGraphemeBase[S <: Sys[S], I <: stm.Sys[I], Target, Elem <: AuralView[
 
   final def typeId: Int = Grapheme.typeId
 
-  protected type ViewID     = Unit
+  protected type ViewId     = Unit
   protected type ElemHandle = AuralGraphemeBase.ElemHandle[S, Elem]
   protected type Model      = Obj[S]
 
@@ -120,7 +120,7 @@ trait AuralGraphemeBase[S <: Sys[S], I <: stm.Sys[I], Target, Elem <: AuralView[
 
         advance(e0.value, e0.key.value)
 
-        def next(): (ViewID, SpanLike, Obj[S]) = {
+        def next(): (ViewId, SpanLike, Obj[S]) = {
           if (_ended) throw new NoSuchElementException("next on empty iterator")
 
           val res = ((), _childSpan, _child)

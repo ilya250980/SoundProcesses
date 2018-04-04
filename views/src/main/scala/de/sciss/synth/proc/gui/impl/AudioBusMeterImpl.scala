@@ -77,9 +77,9 @@ final class AudioBusMeterImpl(val strips: ISeq[AudioBusMeter.Strip])
       val syn = Synth.play(graph, nameHint = Some("meter"))(target = target, addAction = addAction)
       syn.read(bus -> "in")
 
-      val SynID = syn.peer.id
+      val SynId = syn.peer.id
       val resp = message.Responder.add(syn.server.peer) {
-        case Message("/$meter", SynID, _, vals @ _*) =>
+        case Message("/$meter", SynId, _, vals @ _*) =>
           val pairs = vals.asInstanceOf[Seq[Float]].toIndexedSeq
           val time  = System.currentTimeMillis()
           defer {

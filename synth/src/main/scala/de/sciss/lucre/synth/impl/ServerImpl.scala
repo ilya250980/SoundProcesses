@@ -84,7 +84,7 @@ object ServerImpl {
       // most frequently found in sound processes:
       // `/n_set`, `/n_mapan`, `/n_after`.
       // `/n_set` and `/n_mapan` can be collapsed
-      // per node-ID; `/n_after` can be all collapsed.
+      // per node-id; `/n_after` can be all collapsed.
       // To ensure correctness, we must not collapse
       // across `/s_new` and `/g_new` boundaries.
       // For simplicity, we also restrict collapse
@@ -313,10 +313,10 @@ object ServerImpl {
 
     private def perform_!!(tt: Timetag, packets: Seq[osc.Packet]): Future[Unit] = {
       val syncMsg = peer.syncMsg()
-      val syncID  = syncMsg.id
+      val syncId  = syncMsg.id
       val bndlS   = osc.Bundle(tt, packets :+ syncMsg: _*)
       peer.!!(bndlS) {
-        case message.Synced(`syncID`) =>
+        case message.Synced(`syncId`) =>
       }
     }
 
@@ -439,7 +439,7 @@ object ServerImpl {
     final def freeBuffer(index: Int, numConsecutive: Int)(implicit tx: Txn): Unit =
       bufferAllocator.free(index, numConsecutive)
 
-    final def nextNodeID()(implicit tx: Txn): Int = nodeAllocator.alloc()
+    final def nextNodeId()(implicit tx: Txn): Int = nodeAllocator.alloc()
 
     // ---- former Server ----
 
@@ -538,7 +538,7 @@ object ServerImpl {
       topologyRef.transform(_.removeEdge(edge))
     }
 
-    final private[this] val uniqueDefID = Ref(0)
+    final private[this] val uniqueDefId = Ref(0)
 
     final private[this] def allCharsOk(name: String): Boolean = {
       val len = name.length
@@ -553,7 +553,7 @@ object ServerImpl {
     }
 
     final def mkSynthDefName(nameHint: Option[String])(implicit tx: Txn): String = {
-      val id = nextDefID()
+      val id = nextDefId()
       abbreviate(nameHint.getOrElse("proc"), s"_$id")
     }
 
@@ -576,8 +576,8 @@ object ServerImpl {
       sb.toString
     }
 
-    final private[this] def nextDefID()(implicit tx: Txn): Int =
-      uniqueDefID.getAndTransform(_ + 1)
+    final private[this] def nextDefId()(implicit tx: Txn): Int =
+      uniqueDefId.getAndTransform(_ + 1)
 
     // ---- sending ----
 

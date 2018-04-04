@@ -1,5 +1,5 @@
 /*
- *  NodeIDAllocator.scala
+ *  NodeIdAllocator.scala
  *  (SoundProcesses)
  *
  *  Copyright (c) 2010-2018 Hanns Holger Rutz. All rights reserved.

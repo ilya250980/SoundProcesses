@@ -24,10 +24,10 @@ final class StopSelfResponder[S <: Sys[S]](view: AuralView[S, Nothing], protecte
                                           (implicit cursor: stm.Cursor[S])
   extends SendReplyResponder {
 
-  private[this] val NodeID = synth.peer.id
+  private[this] val NodeId = synth.peer.id
 
   protected val body: Body = {
-    case osc.Message(StopSelf.replyName, NodeID, 0, _) =>
+    case osc.Message(StopSelf.replyName, NodeId, 0, _) =>
       SoundProcesses.atomic { implicit tx: S#Tx =>
         view.stop()
       }

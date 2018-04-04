@@ -22,7 +22,7 @@ class Issue15 extends ConfluentEventSpec {
     if (DEBUG) de.sciss.lucre.event.showLog = true
 
     // ---- we create the "workspace" ----
-    val (fH, pObjH, tlH, timedIDH, spanH) = system.step { implicit tx =>
+    val (fH, pObjH, tlH, timedIdH, spanH) = system.step { implicit tx =>
       val p         = Proc[S]
       val pObj      = p // Obj(Proc.Elem(p))
       // pObj.attr // initialize for debugger
@@ -32,7 +32,7 @@ class Issue15 extends ConfluentEventSpec {
       val _pObjH    = tx.newHandle(pObj)
       val _tlH      = tx.newHandle(tl)
       // import de.sciss.lucre.synth.expr.IdentifierSerializer
-      val _timedIDH = tx.newHandle(timed.id)(Identifier.serializer[S])
+      val _timedIdH = tx.newHandle(timed.id)(Identifier.serializer[S])
       // import SpanLikeObj.serializer
       val _spanH    = tx.newHandle(span)
       val f         = Folder[S]
@@ -40,7 +40,7 @@ class Issue15 extends ConfluentEventSpec {
       f.addLast(tlObj)
       implicit val fSer = Folder.serializer[S]
       val _fH       = tx.newHandle(f)
-      (_fH, _pObjH, _tlH, _timedIDH, _spanH)
+      (_fH, _pObjH, _tlH, _timedIdH, _spanH)
     }
 
     def assertChildren(header: String, size: Int)(implicit tx: S#Tx): Unit = {
@@ -80,7 +80,7 @@ class Issue15 extends ConfluentEventSpec {
         val pObj    = pObjH()
 //        val tl      = tlH()
         val muteObj = BooleanObj.newConst[S](true) : BooleanObj[S]
-        // val timed   = BiGroup.Entry(timedIDH(), spanH(), pObj)
+        // val timed   = BiGroup.Entry(timedIdH(), spanH(), pObj)
         pObj.attr.put(ObjKeys.attrMute, muteObj)
         obs.assertEquals()
 //        BiGroup.Update(tl, Vec(
@@ -101,7 +101,7 @@ class Issue15 extends ConfluentEventSpec {
         val pObj    = pObjH()
 //        val tl      = tlH()
 //        val muteObj = muteH()
-        // val timed   = BiGroup.Entry(timedIDH(), spanH(), pObj)
+        // val timed   = BiGroup.Entry(timedIdH(), spanH(), pObj)
         pObj.attr.remove(ObjKeys.attrMute)
         obs.assertEquals()
 //        BiGroup.Update(tl, Vec(

@@ -16,7 +16,7 @@ package impl
 
 import de.sciss.lucre.event.Targets
 import de.sciss.lucre.stm.impl.ObjSerializer
-import de.sciss.lucre.stm.{Copy, Elem, IDPeek, NoSys, Obj, Sys, TxnLike}
+import de.sciss.lucre.stm.{Copy, Elem, IdPeek, NoSys, Obj, Sys, TxnLike}
 import de.sciss.lucre.{stm, event => evt}
 import de.sciss.serial.{DataInput, DataOutput, Serializer}
 
@@ -37,7 +37,7 @@ object ActionImpl {
 
   def mkName[S <: Sys[S]]()(implicit tx: S#Tx): String = {
     val id = tx.newId()
-    s"Action${IDPeek(id)}"
+    s"Action${IdPeek(id)}"
   }
 
   def compile[S <: Sys[S]](source: Code.Action)
@@ -63,16 +63,16 @@ object ActionImpl {
 
   private val mapPredef = TMap.empty[String, Action.Body]
 
-  def predef[S <: Sys[S]](actionID: String)(implicit tx: S#Tx): Action[S] = {
-    if (!mapPredef.contains(actionID)(tx.peer))
-      throw new IllegalArgumentException(s"Predefined action '$actionID' is not registered")
+  def predef[S <: Sys[S]](actionId: String)(implicit tx: S#Tx): Action[S] = {
+    if (!mapPredef.contains(actionId)(tx.peer))
+      throw new IllegalArgumentException(s"Predefined action '$actionId' is not registered")
 
-    new ConstBodyImpl[S](tx.newId(), actionID)
+    new ConstBodyImpl[S](tx.newId(), actionId)
   }
 
-  def registerPredef(actionID: String, body: Action.Body)(implicit tx: TxnLike): Unit =
-    if (mapPredef.put(actionID, body)(tx.peer).nonEmpty)
-      throw new IllegalArgumentException(s"Predefined action '$actionID' was already registered")
+  def registerPredef(actionId: String, body: Action.Body)(implicit tx: TxnLike): Unit =
+    if (mapPredef.put(actionId, body)(tx.peer).nonEmpty)
+      throw new IllegalArgumentException(s"Predefined action '$actionId' was already registered")
 
   private def classLoader[S <: Sys[S]](implicit tx: S#Tx): MemoryClassLoader = sync.synchronized {
     clMap.getOrElseUpdate(tx.system, {
@@ -162,8 +162,8 @@ object ActionImpl {
             new ConstFunImpl[S](id, name, jar)
 
           case CONST_BODY   =>
-            val actionID = in.readUTF()
-            new ConstBodyImpl[S](id, actionID)
+            val actionId = in.readUTF()
+            new ConstBodyImpl[S](id, actionId)
 
           case CONST_EMPTY  => new ConstEmptyImpl[S](id)
 
@@ -192,21 +192,21 @@ object ActionImpl {
     final def tpe: Obj.Type = Action
   }
 
-  private final class ConstBodyImpl[S <: Sys[S]](val id: S#Id, val actionID: String)
+  private final class ConstBodyImpl[S <: Sys[S]](val id: S#Id, val actionId: String)
     extends ConstImpl[S] {
 
     def copy[Out <: Sys[Out]]()(implicit tx: S#Tx, txOut: Out#Tx, context: Copy[S, Out]): Elem[Out] =
-      new ConstBodyImpl(txOut.newId(), actionID) // .connect()
+      new ConstBodyImpl(txOut.newId(), actionId) // .connect()
 
     def execute(universe: Action.Universe[S])(implicit tx: S#Tx): Unit = {
       implicit val itx: InTxn = tx.peer
-      val fun = mapPredef.getOrElse(actionID, sys.error(s"Predefined action '$actionID' not registered"))
+      val fun = mapPredef.getOrElse(actionId, sys.error(s"Predefined action '$actionId' not registered"))
       fun(universe)
     }
 
     protected def writeData(out: DataOutput): Unit = {
       out.writeByte(CONST_BODY)
-      out.writeUTF(actionID)
+      out.writeUTF(actionId)
     }
   }
 

@@ -76,7 +76,7 @@ trait Server {
 
   // ---- transactional methods ----
 
-  def nextNodeID()(implicit tx: Txn): Int
+  def nextNodeId()(implicit tx: Txn): Int
 
   def allocControlBus(numChannels   : Int    )(implicit tx: Txn): Int
   def allocAudioBus  (numChannels   : Int    )(implicit tx: Txn): Int

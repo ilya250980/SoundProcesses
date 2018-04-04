@@ -18,8 +18,8 @@ import de.sciss.synth.{AddAction, addToHead, Group => SGroup}
 
 object Group {
   def apply(server: Server)(implicit tx: Txn): Group = {
-    val nodeID = server.nextNodeID()
-    Impl(server, SGroup(server.peer, nodeID))(online0 = false)
+    val nodeId = server.nextNodeId()
+    Impl(server, SGroup(server.peer, nodeId))(online0 = false)
   }
 
   def play(target: Node, addAction: AddAction = addToHead)(implicit tx: Txn): Group = {

@@ -93,7 +93,7 @@ object UGenGraphBuilderImpl {
 
     final var acceptedInputs  = Map.empty[UGB.Key, Map[UGB.Input, UGB.Input#Value]]
     final var outputs         = Map.empty[String, Int]
-    private[this] var uniqueID = 0
+    private[this] var uniqueId = 0
 
     final def server: Server = context.server
 
@@ -112,9 +112,9 @@ object UGenGraphBuilderImpl {
       res
     }
 
-    final def allocUniqueID(): Int = {
-      val res = uniqueID
-      uniqueID += 1
+    final def allocUniqueId(): Int = {
+      val res = uniqueId
+      uniqueId += 1
       res
     }
 

@@ -87,7 +87,7 @@ final class StreamBuffer(key: String, idx: Int, protected val synth: Node,
   private[this] val diskPad   = StreamBuffer.padSize(interp)
   private[this] val bufSizeHM = bufSizeH - diskPad
   private[this] val replyName = StreamBuffer.replyName(key)
-  private[this] val nodeID    = synth.peer.id
+  private[this] val nodeId    = synth.peer.id
 
   protected def added()(implicit tx: Txn): Unit = {
     // initial buffer fills. XXX TODO: fuse both reads into one
@@ -96,7 +96,7 @@ final class StreamBuffer(key: String, idx: Int, protected val synth: Node,
   }
 
   protected val body: Body = {
-    case osc.Message(`replyName`, `nodeID`, `idx`, trigValF: Float) =>
+    case osc.Message(`replyName`, `nodeId`, `idx`, trigValF: Float) =>
       // println(s"RECEIVED TR $trigValF...")
       // logAural(m.toString)
       val trigVal = trigValF.toInt + 1

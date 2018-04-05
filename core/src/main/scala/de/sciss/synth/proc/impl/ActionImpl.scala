@@ -266,6 +266,12 @@ object ActionImpl {
       if (old != value) changed.fire(())
     }
 
+    def swap(value: Action[S])(implicit tx: S#Tx): Action[S] = {
+      val res = apply()
+      update(value)
+      res
+    }
+
     object changed extends Changed with evt.impl.RootGenerator[S, Unit]
 
     def execute(universe: Action.Universe[S])(implicit tx: S#Tx): Unit = peer().execute(universe)

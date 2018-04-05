@@ -16,7 +16,7 @@ package impl
 
 import de.sciss.lucre.data.SkipList
 import de.sciss.lucre.stm
-import de.sciss.lucre.stm.{Obj, TxnLike}
+import de.sciss.lucre.stm.{DummySerializerFactory, Obj, TxnLike}
 import de.sciss.lucre.synth.Sys
 import de.sciss.serial.Serializer
 import de.sciss.synth.proc.AuralAttribute.{Factory, GraphemeAware, Observer}

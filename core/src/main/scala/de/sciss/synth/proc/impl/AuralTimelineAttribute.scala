@@ -18,7 +18,7 @@ import de.sciss.lucre.bitemp.BiGroup
 import de.sciss.lucre.data.SkipOctree
 import de.sciss.lucre.geom.{LongPoint2D, LongSpace}
 import de.sciss.lucre.stm
-import de.sciss.lucre.stm.{Obj, TxnLike}
+import de.sciss.lucre.stm.{DummySerializerFactory, Obj, TxnLike}
 import de.sciss.lucre.synth.Sys
 import de.sciss.serial.Serializer
 import de.sciss.synth.proc.AuralAttribute.{Factory, Observer}

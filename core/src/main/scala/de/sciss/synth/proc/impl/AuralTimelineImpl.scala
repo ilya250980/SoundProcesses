@@ -19,7 +19,7 @@ import de.sciss.lucre.data.SkipOctree
 import de.sciss.lucre.event.impl.ObservableImpl
 import de.sciss.lucre.geom.{LongPoint2D, LongSpace}
 import de.sciss.lucre.stm
-import de.sciss.lucre.stm.Obj
+import de.sciss.lucre.stm.{DummySerializerFactory, Obj}
 import de.sciss.lucre.synth.Sys
 import de.sciss.serial.Serializer
 import de.sciss.synth.proc.AuralObj.Container

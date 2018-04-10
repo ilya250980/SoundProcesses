@@ -17,14 +17,14 @@ import de.sciss.lucre.event.Targets
 import de.sciss.lucre.expr.Expr
 import de.sciss.lucre.expr.impl.ExprTypeImpl
 import de.sciss.lucre.stm.Sys
-import de.sciss.serial.ImmutableSerializer
+import de.sciss.serial.Serializer
 import de.sciss.synth.proc
 
 object Markdown extends ExprTypeImpl[String, Markdown] {
   import proc.{Markdown => Repr}
 
   final val typeId          = 29
-  final val valueSerializer = ImmutableSerializer.String
+  final val valueSerializer = Serializer.String
 
   protected def mkConst[S <: Sys[S]](id: S#Id, value: A)(implicit tx: S#Tx): Const[S] =
     new _Const[S](id, value)

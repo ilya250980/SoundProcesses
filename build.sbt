@@ -19,17 +19,17 @@ lazy val commonSettings = Seq(
 
 lazy val deps = new {
   val main = new {
-    val audioWidgets        = "1.11.2"
+    val audioFile           = "1.5.0-SNAPSHOT"
+    val audioWidgets        = "1.12.0-SNAPSHOT"
     val equal               = "0.1.2"
     val fileUtil            = "1.1.3"
     val lucre               = "3.6.0-SNAPSHOT"
     val lucreSwing          = "1.8.0-SNAPSHOT"
     val model               = "0.3.4"
     val numbers             = "0.1.5"
-    val scalaCollider       = "1.24.0"
-    val scalaColliderIf     = "0.5.0"
-    val span                = "1.3.1"
-    val swingPlus           = "0.2.4"
+    val scalaCollider       = "1.25.0-SNAPSHOT"
+    val scalaColliderIf     = "0.6.0-SNAPSHOT"
+    val swingPlus           = "0.3.0-SNAPSHOT"
     val topology            = "1.1.0"
     val ugens               = "1.18.0"
   }
@@ -84,6 +84,7 @@ lazy val synth = project.withId("lucresynth").in(file("synth"))
       "de.sciss" %% "topology"                % deps.main.topology,
       "de.sciss" %% "lucre-core"              % deps.main.lucre,
       "de.sciss" %% "numbers"                 % deps.main.numbers, // sbt bug
+      "de.sciss" %% "scalaaudiofile"          % deps.main.audioFile,
       "de.sciss" %% "scalacollider"           % deps.main.scalaCollider,
       "de.sciss" %% "scalacolliderugens-core" % deps.main.ugens
     ),

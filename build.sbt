@@ -19,24 +19,24 @@ lazy val commonSettings = Seq(
 
 lazy val deps = new {
   val main = new {
-    val audioFile           = "1.5.0-SNAPSHOT"
-    val audioWidgets        = "1.12.0-SNAPSHOT"
+    val audioFile           = "1.5.0"
+    val audioWidgets        = "1.12.0"
     val equal               = "0.1.2"
     val fileUtil            = "1.1.3"
     val lucre               = "3.6.0-SNAPSHOT"
     val lucreSwing          = "1.8.0-SNAPSHOT"
     val model               = "0.3.4"
     val numbers             = "0.1.5"
-    val scalaCollider       = "1.25.0-SNAPSHOT"
-    val scalaColliderIf     = "0.6.0-SNAPSHOT"
-    val swingPlus           = "0.3.0-SNAPSHOT"
+    val scalaCollider       = "1.25.0"
+    val scalaColliderIf     = "0.6.0"
+    val swingPlus           = "0.3.0"
     val topology            = "1.1.0"
     val ugens               = "1.18.0"
   }
   
   val test = new {
     val bdb                = "bdb"  // either "bdb" or "bdb6"
-    val scalaColliderSwing = "1.36.0"
+    val scalaColliderSwing = "1.37.0"
     val scalaTest          = "3.0.5"
     val scopt              = "3.7.0"
     val submin             = "0.2.2"
@@ -84,7 +84,7 @@ lazy val synth = project.withId("lucresynth").in(file("synth"))
       "de.sciss" %% "topology"                % deps.main.topology,
       "de.sciss" %% "lucre-core"              % deps.main.lucre,
       "de.sciss" %% "numbers"                 % deps.main.numbers, // sbt bug
-      "de.sciss" %% "scalaaudiofile"          % deps.main.audioFile,
+      "de.sciss" %% "audiofile"               % deps.main.audioFile,
       "de.sciss" %% "scalacollider"           % deps.main.scalaCollider,
       "de.sciss" %% "scalacolliderugens-core" % deps.main.ugens
     ),
@@ -106,7 +106,7 @@ lazy val core = project.withId(s"$baseNameL-core").in(file("core"))
     libraryDependencies ++= Seq(
       "de.sciss"          %% "lucre-confluent"              % deps.main.lucre,
       "de.sciss"          %% "lucre-expr"                   % deps.main.lucre,
-      "at.iem"            %% "scalacollider-if"             % deps.main.scalaColliderIf,
+      "de.sciss"          %% "scalacollider-if"             % deps.main.scalaColliderIf,
       "de.sciss"          %% "fileutil"                     % deps.main.fileUtil,
       "de.sciss"          %% "equal"                        % deps.main.equal,
 //      "de.sciss"          %% "model"                        % deps.main.model, // sbt bug

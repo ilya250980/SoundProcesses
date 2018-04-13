@@ -97,7 +97,7 @@ trait KeyMapImpl[S <: Sys[S], Key, Value] {
 
   final def add(key: Key, value: Value)(implicit tx: S#Tx): Unit = {
     val n = new KeyMapImpl.Entry[S, Key, Value](key, value)
-    val optRemoved: Option[(Key, Value)] = map.add(key -> n).map { oldNode =>
+    val optRemoved: Option[(Key, Value)] = map.put(key, n).map { oldNode =>
       // this -= oldNode
       key -> oldNode.value
     }

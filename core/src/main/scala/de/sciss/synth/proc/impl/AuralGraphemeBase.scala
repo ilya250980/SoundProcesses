@@ -187,7 +187,7 @@ trait AuralGraphemeBase[S <: Sys[S], I <: stm.Sys[I], Target, Elem <: AuralView[
     val view  = makeViewElem(start, obj)
     val seq0  = viewTree.get(start).getOrElse(Vector.empty)
     val seq1  = seq0 :+ view
-    viewTree.add(start -> seq1)
+    viewTree.put(start, seq1)
     val h     = ElemHandle(start, view)
     h
   }
@@ -228,7 +228,7 @@ trait AuralGraphemeBase[S <: Sys[S], I <: stm.Sys[I], Target, Elem <: AuralView[
     val idx   = seq0.indexOf(h.view)
     if (idx < 0) throw new IllegalStateException(s"View ${h.view} not found.")
     val seq1  = seq0.patch(idx, Nil, 1)
-    if (seq1.isEmpty) viewTree.remove(start) else viewTree.add(start -> seq1)
+    if (seq1.isEmpty) viewTree.remove(start) else viewTree.put(start, seq1)
   }
 
   private def elemAdded(pin: BiPin[S, Obj[S]], start: Long, child: Obj[S])(implicit tx: S#Tx): Boolean = {

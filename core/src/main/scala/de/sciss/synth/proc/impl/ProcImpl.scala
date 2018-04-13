@@ -71,7 +71,7 @@ object ProcImpl {
     }
 
     private def add(key: String, value: Output[S])(implicit tx: S#Tx): Unit = {
-      val optRemoved = outputsMap.add(key -> value)
+      val optRemoved = outputsMap.put(key, value)
       fire(added = Some(value), removed = optRemoved)
     }
 
@@ -112,7 +112,7 @@ object ProcImpl {
                       out: SkipList.Map[Out, String, Output[Out]]): Unit =
           in.iterator.foreach { case (key, eIn) =>
             val eOut = context(eIn)
-            out.add(key -> eOut)
+            out.put(key, eOut)
           }
 
           // copyMap(proc.scanInMap , out.scanInMap)

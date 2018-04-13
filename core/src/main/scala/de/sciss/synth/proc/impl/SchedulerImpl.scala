@@ -172,11 +172,11 @@ object SchedulerImpl {
       if (reschedule) {   // implies that prio does not have an entry at `timeClip` yet
         // println(s"............... SCHEDULE t = $targetTime; token = $token - REPLACE")
         assert(!prio.contains(targetTime))
-        prio.add(targetTime -> Set(token))
+        prio.put(targetTime, Set(token))
       } else {
         val newSet = prio.get(targetTime).fold(Set(token))(_ + token)
         // println(s"............... SCHEDULE t = $targetTime; token = $token - ADD > $newSet")
-        prio.add(targetTime -> newSet)
+        prio.put(targetTime, newSet)
       }
 
       import TimeRef.{framesAndSecs => fas}
@@ -222,7 +222,7 @@ object SchedulerImpl {
 
           } else {
             // println(s"............... .... > $set1")
-            prio.add(t -> set1)
+            prio.put(t, set1)
           }
         }
       }

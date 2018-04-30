@@ -28,7 +28,7 @@ import scala.concurrent.stm.{InTxn, Ref, TMap, TxnLocal}
 import scala.util.control.NonFatal
 
 object SchedulerImpl {
-  def apply[S <: Sys[S]](implicit tx: S#Tx, cursor: stm.Cursor[S]): Scheduler.Realtime[S] = {
+  def apply[S <: Sys[S]](implicit tx: S#Tx, cursor: stm.Cursor[S]): Scheduler[S] = {
     val system  = tx.system
     val prio    = mkPrio[S, system.I](system)
     implicit val iSys: S#Tx => system.I#Tx = system.inMemoryTx
@@ -77,6 +77,15 @@ object SchedulerImpl {
     def           time               (implicit tx: S#Tx): Long = timeRef.get(tx.peer)
     protected def time_=(value: Long)(implicit tx: S#Tx): Unit = timeRef.set(value)(tx.peer)
 
+//    def systemTimeNanos(implicit tx: S#Tx): Long = calcTimeNanos(time)
+
+//    private def calcTimeNanos(frames: Long): Long = {
+//      val framesNanos = (frames / sampleRateN).toLong
+//      framesNanos
+//    }
+
+    def stepTag[A](fun: S#Tx => A): A = cursor.step(fun)
+
     protected def submit(info: Info)(implicit tx: S#Tx): Unit =
       infoVar.set(info)(tx.peer)
 
@@ -95,7 +104,7 @@ object SchedulerImpl {
   private final class RealtimeImpl[S <: Sys[S], I <: stm.Sys[I]](protected val prio: SkipList.Map [I , Long, Set[Int]])
                                                                 (implicit val cursor: stm.Cursor[S],
                                                                  protected val iSys: S#Tx => I#Tx)
-    extends Impl[S, I] with Scheduler.Realtime[S] {
+    extends Impl[S, I] {
 
     /*
       Timing information:
@@ -109,14 +118,14 @@ object SchedulerImpl {
 
      */
 
-    private[this] val timeAbsNanos    = System.currentTimeMillis() * 1000000000L
+    private[this] val timeAbsNanos    = System.currentTimeMillis() * 1000000L
     private[this] val timeRelNanos    = System.nanoTime()
     private[this] val timeRef         = TxnLocal(calcFrame())
 
     def           time               (implicit tx: S#Tx): Long = timeRef.get(tx.peer)
     protected def time_=(value: Long)(implicit tx: S#Tx): Unit = timeRef.set(value)(tx.peer)
 
-    def systemTimeNanos(implicit tx: S#Tx): Long = calcTimeNanos(time)
+//    private def systemTimeNanos(implicit tx: S#Tx): Long = calcTimeNanos(time)
 
     private def calcTimeNanos(frames: Long): Long = {
       val framesNanos = (frames / sampleRateN).toLong
@@ -127,6 +136,15 @@ object SchedulerImpl {
       // 1 ns = 10^-9 s
       val delta = System.nanoTime() - timeRelNanos
       (delta * sampleRateN).toLong
+    }
+
+    def stepTag[A](fun: S#Tx => A): A = {
+      val nowFrames = calcFrame()
+      val nowNanos  = calcTimeNanos(nowFrames)
+      cursor.stepTag(nowNanos) { implicit tx =>
+        time = nowFrames
+        fun(tx)
+      }
     }
 
     protected def submit(info: Info)(implicit tx: S#Tx): Unit = {

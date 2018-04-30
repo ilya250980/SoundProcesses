@@ -30,8 +30,13 @@ object Txn {
   final class Bundle(val stamp: Int, val messages: Vec[Message]) {
     def append(msg: Message): Bundle = new Bundle(stamp, messages :+ msg)
 
+    def isEmpty : Boolean = messages.isEmpty
+    def nonEmpty: Boolean = messages.nonEmpty
+
     /** A bundle depends on messages with any smaller time stamp (this stamp minus one). */
     def depStamp: Int = stamp - 1
+
+    override def toString = s"Bundle($stamp, $messages)"
   }
 
   type Bundles = Vec[Bundle]

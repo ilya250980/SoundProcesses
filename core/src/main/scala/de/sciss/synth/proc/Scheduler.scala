@@ -19,14 +19,14 @@ import impl.{SchedulerImpl => Impl}
 
 object Scheduler {
   /** Creates a real-time scheduler. */
-  def apply  [S <: Sys[S]](implicit tx: S#Tx, cursor: stm.Cursor[S]): Realtime[S] = Impl[S]
+  def apply  [S <: Sys[S]](implicit tx: S#Tx, cursor: stm.Cursor[S]): Scheduler[S] = Impl[S]
 
   /** Creates a non-real-time scheduler. */
   def offline[S <: Sys[S]](implicit tx: S#Tx, cursor: stm.Cursor[S]): Offline[S] = Impl.offline[S]
 
-  trait Realtime[S <: Sys[S]] extends Scheduler[S] {
-    def systemTimeNanos(implicit tx: S#Tx): Long
-  }
+//  trait Realtime[S <: Sys[S]] extends Scheduler[S] {
+//    def systemTimeNanos(implicit tx: S#Tx): Long
+//  }
 
   trait Offline[S <: Sys[S]] extends Scheduler[S] {
     def step()    (implicit tx: S#Tx): Unit
@@ -47,6 +47,14 @@ trait Scheduler[S <: Sys[S]] {
     * but are stable within a transaction.
     */
   def time(implicit tx: S#Tx): Long
+
+//  /** Current logical time in nano-systems since 1 January 1970.
+//    * For an offline scheduler, this may report an arbitrary value or zero.
+//    */
+//  def systemTimeNanos(implicit tx: S#Tx): Long
+
+  /** Performs a tagged transaction step. */
+  def stepTag[A](fun: S#Tx => A): A
 
   /** Schedules the execution of a function at a given time. Time is given
     * as an "absolute" frame in the sense of `AuralContext.time`.

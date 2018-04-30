@@ -621,20 +621,25 @@ object ServerImpl {
 
     final private[this] def sendNow(bundle: Txn.Bundle, timetag: Timetag): Future[Unit] = {
       import bundle.{messages, stamp}
-      if (messages.isEmpty) return sendAdvance(stamp) // Future.successful(())
+      if (messages.isEmpty) return sendAdvance(stamp)
 
-      val allSync = (stamp & 1) == 1
+      // for simplicity, if a timetag is used (`&& timetag`), we require acknowledgement
+      // of completion through `/synced`. a more performative variant for the
+      // case of `allSync` might be to store the timetag somewhere so that if
+      // a dependent message comes later with timetag now, it would have to
+      // be adapted to a timetag no smaller than this.
+      // the disadvantage of the forced sync will be that high frequency
+      // parameter changes might be jammed, even though correctness is preserved.
+      val allSync = (stamp & 1) == 1 && timetag == Timetag.now
       if (DEBUG) println(s"SEND NOW $messages - allSync? $allSync; stamp = $stamp")
       if (allSync) {
-        val p = messages match {
-          case Vec(msg) /* if allSync */ => msg
-          case _ => osc.Bundle.now(messages: _*)
-        }
+        val p = if (messages.size == 1 && timetag == Timetag.now) messages.head
+        else osc.Bundle(timetag, messages: _*)
         server ! p
         sendAdvance(stamp)
 
       } else {
-        val bndl  = osc.Bundle.now(messages: _*)
+        val bndl  = osc.Bundle(timetag, messages: _*)
         val fut   = server.!!(bndl)
         val futR  = fut.recover {
           case message.Timeout() =>
@@ -645,58 +650,40 @@ object ServerImpl {
     }
 
     final def send(bundles: Txn.Bundles, systemTimeNanos: Long): Future[Unit] = {
-      println(s"---- send, num = ${bundles.size}, time = $systemTimeNanos")
+      // this time-tag is used for the first synchronous bundle (index 1 in bundles)
+      val ttLatency = if (systemTimeNanos == 0L /* || tail.nonEmpty */) Timetag.now else {
+        // ttLatency
+        val latencyNanos    = (clientConfig.latency * 1000000000L).toLong
+        val targetNanos     = systemTimeNanos + latencyNanos
+        val secsSince1900   =  targetNanos / 1000000000L + SECONDS_FROM_1900_TO_1970
+        val secsFractional = ((targetNanos % 1000000000L) << 32) / 1000000000L
+        Timetag((secsSince1900 << 32) | secsFractional)
+      }
 
       val res = sync.synchronized {
-        val head  = bundles.head
-        val tail  = bundles.tail
-
-        lazy val ttLatency: Timetag = {
-          val latencyNanos    = (clientConfig.latency * 1000000000L).toLong
-          val targetNanos     = systemTimeNanos + latencyNanos
-          val secsSince1900   =  targetNanos / 1000000000L + SECONDS_FROM_1900_TO_1970
-          val secsFractional = ((targetNanos % 1000000000L) << 32) / 1000000000L
-          Timetag((secsSince1900 << 32) | secsFractional)
-        }
-
-        val ttLast = if (systemTimeNanos == 0L || tail.nonEmpty) Timetag.now else ttLatency
-
-        // val (now, later) = bundles.partition(bundleReplySeen >= _.depStamp)
+        val (now, later) = bundles.partition(bundleReplySeen >= _.depStamp)
 
         // it is important to process the 'later' bundles first,
         // because now they might rely on some `bundleReplySeen` that is
         // increased by processing the `now` bundles.
-        val headNow = bundleReplySeen >= head.depStamp
 
-        def sendScheduled(b: Txn.Bundles): Vec[Future[Unit]] = {
-          val sz  = b.size
-          var i   = 0
-          val res = Vector.newBuilder[Future[Unit]]
-          while (i < sz) {
-            val m   = b(i)
-            val p   = Promise[Unit]()
-            val tt  = if (i == sz - 1) ttLast else Timetag.now
-            val sch = new Scheduled(m, tt, p)
-            bundleWaiting += m.depStamp -> (bundleWaiting.getOrElse(m.depStamp, Vector.empty) :+ sch)
-            res += p.future
-            i   += 1
-          }
-          res.result()
+        var i = now.size
+        val futuresLater = later.map { m =>
+          val p   = Promise[Unit]()
+          val tt  = if (i == 1) ttLatency else Timetag.now
+          val sch = new Scheduled(m, tt, p)
+          bundleWaiting += m.depStamp -> (bundleWaiting.getOrElse(m.depStamp, Vector.empty) :+ sch)
+          i += 1
+          p.future
         }
-
-        if (headNow) {
-          val futNow = sendNow(head, ttLast)
-          if (tail.isEmpty) futNow else {
-            val futLater = sendScheduled(tail)
-            reduceFutures(futNow +: futLater)
-          }
-
-        } else {
-          val futLater = sendScheduled(bundles)
-          reduceFutures(futLater)
+        i = 0
+        val futuresNow = now.map { m =>
+          val tt  = if (i == 1) ttLatency else Timetag.now
+          i += 1
+          sendNow(m, tt)
         }
+        reduceFutures(futuresNow ++ futuresLater)
       }
-
       server.commit(res)
       res
     }

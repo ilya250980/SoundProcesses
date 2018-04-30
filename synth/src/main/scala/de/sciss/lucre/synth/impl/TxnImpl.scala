@@ -83,8 +83,8 @@ sealed trait TxnImpl extends Txn { tx =>
     val bNew = if (szOld == 0) {
       markBundlesDirty()
       txnStampRef += 2
-      val vm    = Vector.empty :+ m
-      val msgs  = if (msgAsync) {
+      val vm        = Vector.empty :+ m
+      val messages  = if (msgAsync) {
         val b1 = new Txn.Bundle(txnStartStamp     , vm)
         val b2 = new Txn.Bundle(txnStartStamp + 1 , Vector.empty)
         Vector.empty :+ b1 :+ b2
@@ -93,7 +93,7 @@ sealed trait TxnImpl extends Txn { tx =>
         val b2 = new Txn.Bundle(txnStartStamp + 1 , vm)
         Vector.empty :+ b1 :+ b2
       }
-      msgs: Txn.Bundles
+      messages: Txn.Bundles
 
     } else {
       if (resourceStampNew == txnStamp) {

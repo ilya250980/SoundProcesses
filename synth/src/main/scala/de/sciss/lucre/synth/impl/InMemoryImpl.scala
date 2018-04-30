@@ -22,7 +22,7 @@ import scala.concurrent.stm.InTxn
 object InMemoryImpl {
   def apply(): InMemory = new System
 
-  private final class TxnImpl(val system: InMemory, val peer: InTxn)
+  private final class TxnImpl(val system: InMemory, val systemTimeNanos: Long, val peer: InTxn)
     extends stm.impl.InMemoryImpl.TxnMixin[InMemory]
     with TxnFullImpl[InMemory] with InMemory.Txn {
 
@@ -40,7 +40,8 @@ object InMemoryImpl {
     def inMemory: I = this
     def inMemoryTx(tx: Tx): Tx = tx
 
-    def wrap(peer: InTxn): S#Tx = new TxnImpl(this, peer)
+    def wrap(peer: InTxn, systemTimeNanos: Long): S#Tx =
+      new TxnImpl(this, systemTimeNanos, peer)
 
     override def toString = s"proc.InMemory@${hashCode.toHexString}"
   }

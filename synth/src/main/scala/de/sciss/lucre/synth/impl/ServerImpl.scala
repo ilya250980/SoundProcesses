@@ -44,6 +44,9 @@ object ServerImpl {
   private final val MaxOnlinePacketSize   = 0x8000 // 0x10000 // 64K
   private final val MaxOfflinePacketSize  = 0x2000 // 8192
 
+  // this is package private in ScalaOSC
+  private final val SECONDS_FROM_1900_TO_1970 = 2208988800L
+
   def reduceFutures(futures: Vec[Future[Unit]])(implicit executionContext: ExecutionContext): Future[Unit] =
     futures match {
       case Vec()        => Future.successful(())
@@ -589,9 +592,9 @@ object ServerImpl {
     final private[this] var bundleWaiting   = Map.empty[Int, Vec[Scheduled]]
     final private[this] var bundleReplySeen = -1
 
-    final private[this] class Scheduled(val bundle: Txn.Bundle, promise: Promise[Unit]) {
+    final private[this] class Scheduled(bundle: Txn.Bundle, timetag: Timetag, promise: Promise[Unit]) {
       def apply(): Future[Unit] = {
-        val fut = sendNow(bundle)
+        val fut = sendNow(bundle, timetag)
         promise.completeWith(fut)
         fut
       }
@@ -616,22 +619,22 @@ object ServerImpl {
       reduceFutures(futures)
     }
 
-    final private[this] def sendNow(bundle: Txn.Bundle): Future[Unit] = {
-      import bundle.{msgs, stamp}
-      if (msgs.isEmpty) return sendAdvance(stamp) // Future.successful(())
+    final private[this] def sendNow(bundle: Txn.Bundle, timetag: Timetag): Future[Unit] = {
+      import bundle.{messages, stamp}
+      if (messages.isEmpty) return sendAdvance(stamp) // Future.successful(())
 
       val allSync = (stamp & 1) == 1
-      if (DEBUG) println(s"SEND NOW $msgs - allSync? $allSync; stamp = $stamp")
+      if (DEBUG) println(s"SEND NOW $messages - allSync? $allSync; stamp = $stamp")
       if (allSync) {
-        val p = msgs match {
+        val p = messages match {
           case Vec(msg) /* if allSync */ => msg
-          case _ => osc.Bundle.now(msgs: _*)
+          case _ => osc.Bundle.now(messages: _*)
         }
         server ! p
         sendAdvance(stamp)
 
       } else {
-        val bndl  = osc.Bundle.now(msgs: _*)
+        val bndl  = osc.Bundle.now(messages: _*)
         val fut   = server.!!(bndl)
         val futR  = fut.recover {
           case message.Timeout() =>
@@ -641,20 +644,57 @@ object ServerImpl {
       }
     }
 
-    final def send(bundles: Txn.Bundles): Future[Unit] = {
+    final def send(bundles: Txn.Bundles, systemTimeNanos: Long): Future[Unit] = {
+      println(s"---- send, num = ${bundles.size}, time = $systemTimeNanos")
+
       val res = sync.synchronized {
-        val (now, later) = bundles.partition(bundleReplySeen >= _.depStamp)
+        val head  = bundles.head
+        val tail  = bundles.tail
+
+        lazy val ttLatency: Timetag = {
+          val latencyNanos    = (clientConfig.latency * 1000000000L).toLong
+          val targetNanos     = systemTimeNanos + latencyNanos
+          val secsSince1900   =  targetNanos / 1000000000L + SECONDS_FROM_1900_TO_1970
+          val secsFractional = ((targetNanos % 1000000000L) << 32) / 1000000000L
+          Timetag((secsSince1900 << 32) | secsFractional)
+        }
+
+        val ttLast = if (systemTimeNanos == 0L || tail.nonEmpty) Timetag.now else ttLatency
+
+        // val (now, later) = bundles.partition(bundleReplySeen >= _.depStamp)
+
         // it is important to process the 'later' bundles first,
         // because now they might rely on some `bundleReplySeen` that is
         // increased by processing the `now` bundles.
-        val futuresLater  = later.map { m =>
-          val p   = Promise[Unit]()
-          val sch = new Scheduled(m, p)
-          bundleWaiting += m.depStamp -> (bundleWaiting.getOrElse(m.depStamp, Vector.empty) :+ sch)
-          p.future
+        val headNow = bundleReplySeen >= head.depStamp
+
+        def sendScheduled(b: Txn.Bundles): Vec[Future[Unit]] = {
+          val sz  = b.size
+          var i   = 0
+          val res = Vector.newBuilder[Future[Unit]]
+          while (i < sz) {
+            val m   = b(i)
+            val p   = Promise[Unit]()
+            val tt  = if (i == sz - 1) ttLast else Timetag.now
+            val sch = new Scheduled(m, tt, p)
+            bundleWaiting += m.depStamp -> (bundleWaiting.getOrElse(m.depStamp, Vector.empty) :+ sch)
+            res += p.future
+            i   += 1
+          }
+          res.result()
         }
-        val futuresNow    = now.map(sendNow)
-        reduceFutures(futuresNow ++ futuresLater)
+
+        if (headNow) {
+          val futNow = sendNow(head, ttLast)
+          if (tail.isEmpty) futNow else {
+            val futLater = sendScheduled(tail)
+            reduceFutures(futNow +: futLater)
+          }
+
+        } else {
+          val futLater = sendScheduled(bundles)
+          reduceFutures(futLater)
+        }
       }
 
       server.commit(res)

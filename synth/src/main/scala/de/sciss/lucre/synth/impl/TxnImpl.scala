@@ -14,6 +14,8 @@
 package de.sciss.lucre.synth
 package impl
 
+import de.sciss.synth.UGenSource.Vec
+
 import scala.concurrent.stm.{InTxn, Txn => ScalaTxn}
 
 object TxnImpl {
@@ -30,7 +32,7 @@ sealed trait TxnImpl extends Txn { tx =>
   final protected def flush(): Unit =
     bundlesMap.foreach { case (server, bundles) =>
       log(s"flush $server -> ${bundles.size} bundles")
-      server.send(bundles)
+      server.send(bundles, systemTimeNanos: Long)
     }
 
   protected def markBundlesDirty(): Unit
@@ -42,12 +44,12 @@ sealed trait TxnImpl extends Txn { tx =>
     val resourceStampOld = resource.timeStamp(tx)
     if (resourceStampOld < 0) sys.error(s"Already disposed : $resource")
 
-    implicit val itx  = peer
-    val txnStampRef   = server.messageTimeStamp // .get(tx.peer)
-    val txnStamp      = txnStampRef.get
-    val payOld        = bundlesMap.getOrElse(server, noBundles)
-    val szOld         = payOld.size
-    val txnStartStamp = txnStamp - szOld
+    implicit val itx: InTxn     = peer
+    val txnStampRef             = server.messageTimeStamp
+    val txnStamp                = txnStampRef.get
+    val payOld: Vec[Txn.Bundle] = bundlesMap.getOrElse(server, noBundles)
+    val szOld                   = payOld.size
+    val txnStartStamp           = txnStamp - szOld
 
     // calculate the maximum time stamp from the dependencies. this includes
     // the resource as its own dependency (since we should send out messages
@@ -68,6 +70,7 @@ sealed trait TxnImpl extends Txn { tx =>
     // (from bit 1, i.e. `+ 2`); this second case is efficiently produced through 'rounding up' (`(_ + 1) & ~1`).
     // val resourceStampNew = if (msgAsync) depStampMax | 1 else (depStampMax + 1) & ~1
 
+    // Actually, we do it reverse; even indices for asynchronous and odd indices for synchronous messages; thus:
     // (A sync  1, B sync  1) --> A | 1
     // (A async 0, B sync  1) --> A | 1
     // (A sync  1, B async 0) --> (A + 1) & ~1 == A + 2
@@ -80,24 +83,33 @@ sealed trait TxnImpl extends Txn { tx =>
     val bNew = if (szOld == 0) {
       markBundlesDirty()
       txnStampRef += 2
-      val vm    = Vector(m)
-      val msgs  = if (msgAsync)
-        Vector(new Txn.Bundle(txnStartStamp, vm), new Txn.Bundle(txnStartStamp + 1, Vector.empty))
-      else
-        Vector(new Txn.Bundle(txnStartStamp, Vector.empty), new Txn.Bundle(txnStartStamp + 1, vm))
+      val vm    = Vector.empty :+ m
+      val msgs  = if (msgAsync) {
+        val b1 = new Txn.Bundle(txnStartStamp     , vm)
+        val b2 = new Txn.Bundle(txnStartStamp + 1 , Vector.empty)
+        Vector.empty :+ b1 :+ b2
+      } else {
+        val b1 = new Txn.Bundle(txnStartStamp     , Vector.empty)
+        val b2 = new Txn.Bundle(txnStartStamp + 1 , vm)
+        Vector.empty :+ b1 :+ b2
+      }
       msgs: Txn.Bundles
 
     } else {
       if (resourceStampNew == txnStamp) {
         // append to back
         val vm      = Vector(m)
-        val payNew  = if (msgAsync)
-          payOld :+ new Txn.Bundle(txnStartStamp, vm) :+ new Txn.Bundle(txnStartStamp + 1, Vector.empty)
-        else
-          payOld :+ new Txn.Bundle(txnStartStamp, Vector.empty) :+ new Txn.Bundle(txnStartStamp + 1, vm)
+        val payNew  = if (msgAsync) {
+          val b1 = new Txn.Bundle(txnStartStamp     , vm)
+          val b2 = new Txn.Bundle(txnStartStamp + 1 , Vector.empty)
+          payOld :+ b1 :+ b2
+        } else {
+          val b1 = new Txn.Bundle(txnStartStamp     , Vector.empty)
+          val b2 = new Txn.Bundle(txnStartStamp + 1 , vm)
+          payOld :+ b1 :+ b2
+        }
         txnStampRef += 2
         payNew: Txn.Bundles
-        // bOld.copy(payload = payNew)
 
       } else {
         // we don't need the assertion, since we are going to call payload.apply which would
@@ -106,7 +118,6 @@ sealed trait TxnImpl extends Txn { tx =>
         val payIdx = resourceStampNew - txnStartStamp
         val payNew = payOld.updated(payIdx, payOld(payIdx).append(m))
         payNew: Txn.Bundles
-        // bOld.copy(payload = payNew)
       }
     }
 
@@ -121,7 +132,7 @@ trait TxnFullImpl[S <: Sys[S]] extends TxnImpl with Sys.Txn[S] {
   }
 }
 
-final class TxnPlainImpl(val peer: InTxn) extends TxnImpl {
+final class TxnPlainImpl(val peer: InTxn, val systemTimeNanos: Long) extends TxnImpl {
   override def toString = s"proc.Txn<plain>@${hashCode().toHexString}"
 
   def afterCommit(code: => Unit): Unit = ScalaTxn.afterCommit(_ => code)(peer)

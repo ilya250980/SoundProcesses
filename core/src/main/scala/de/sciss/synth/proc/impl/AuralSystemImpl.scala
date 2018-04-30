@@ -15,9 +15,11 @@ package de.sciss.synth.proc
 package impl
 
 import de.sciss.osc.Dump
-import scala.concurrent.stm.{TxnExecutor, Ref}
+
+import scala.concurrent.stm.{Ref, TxnExecutor}
 import collection.immutable.{IndexedSeq => Vec}
-import de.sciss.synth.{Server => SServer, ServerConnection}
+import de.sciss.synth.{Client, ServerConnection, Server => SServer}
+
 import TxnExecutor.{defaultAtomic => atomic}
 import de.sciss.lucre.synth.{Server, Txn}
 import de.sciss.lucre.stm.Disposable
@@ -60,12 +62,12 @@ object AuralSystemImpl {
       def shutdown(): Unit = ()
     }
 
-    private case class StateBooting(config: Server.Config, connect: Boolean) extends State {
+    private case class StateBooting(config: Server.Config, client: Client.Config, connect: Boolean) extends State {
       private lazy val con: ServerConnection = {
         val launch: ServerConnection.Listener => ServerConnection = if (connect) {
-          SServer.connect("SoundProcesses", config)
+          SServer.connect("SoundProcesses", config, client)
         } else {
-          SServer.boot("SoundProcesses", config)
+          SServer.boot   ("SoundProcesses", config, client)
         }
 
         logA(s"Booting (connect = $connect)")
@@ -158,15 +160,16 @@ object AuralSystemImpl {
       running.init()
     }
 
-    def start(config: Server.Config, connect: Boolean)(implicit tx: Txn): Unit = state.get(tx.peer) match {
-      case StateStopped =>
-        installShutdown
-        val booting = StateBooting(config, connect = connect)
-        state.swap(booting)(tx.peer) // .dispose()
-        booting.init()
+    def start(config: Server.Config, client: Client.Config, connect: Boolean)(implicit tx: Txn): Unit =
+      state.get(tx.peer) match {
+        case StateStopped =>
+          installShutdown
+          val booting = StateBooting(config, client, connect = connect)
+          state.swap(booting)(tx.peer) // .dispose()
+          booting.init()
 
-      case _ =>
-    }
+        case _ =>
+      }
 
     private lazy val installShutdown: Unit = Runtime.getRuntime.addShutdownHook(new Thread(new Runnable {
       def run(): Unit = impl.shutdown()

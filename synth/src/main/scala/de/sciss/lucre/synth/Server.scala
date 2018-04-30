@@ -115,7 +115,8 @@ trait Server {
   def addEdge   (edge: NodeRef.Edge)(implicit tx: Txn): Boolean // Try[(Topology[NodeRef, NodeRef.Edge], Option[Topology.Move[NodeRef]])]
   def removeEdge(edge: NodeRef.Edge)(implicit tx: Txn): Unit
 
-  private[synth] def send(bundles: Txn.Bundles): Future[Unit]
+  /** Requires that `bundles` is non-empty. */
+  private[synth] def send(bundles: Txn.Bundles, systemTimeNanos: Long): Future[Unit]
 
   private[synth] def messageTimeStamp: Ref[Int]
 

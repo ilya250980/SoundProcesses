@@ -46,7 +46,8 @@ private[proc] object ConfluentImpl {
 
   private final class RegularTxn(val system: S, val durable: /* evt. */ Durable#Tx,
                                  val inputAccess: S#Acc, val isRetroactive: Boolean,
-                                 val cursorCache: confluent.Cache[S#Tx])
+                                 val cursorCache: confluent.Cache[S#Tx],
+                                 val systemTimeNanos: Long)
     extends confluent.impl.RegularTxnMixin[S, stm.Durable] with TxnImpl {
 
     lazy val peer: InTxn = durable.peer
@@ -54,6 +55,8 @@ private[proc] object ConfluentImpl {
 
   private final class RootTxn(val system: S, val peer: InTxn)
     extends confluent.impl.RootTxnMixin[S, stm.Durable] with TxnImpl {
+
+    def systemTimeNanos: Long = 0L
 
     lazy val durable: /* evt. */ Durable#Tx = {
       log("txn durable")
@@ -71,8 +74,9 @@ private[proc] object ConfluentImpl {
     def inMemoryTx(tx: S#Tx): I#Tx  = tx.inMemory
 
     protected def wrapRegular(dtx: /* evt. */ Durable#Tx, inputAccess: S#Acc, retroactive: Boolean,
-                              cursorCache: confluent.Cache[S#Tx]) =
-      new RegularTxn(this, dtx, inputAccess, retroactive, cursorCache)
+                              cursorCache: confluent.Cache[S#Tx], systemTimeNanos: Long) =
+      new RegularTxn(system = this, durable = dtx, inputAccess = inputAccess, isRetroactive = retroactive,
+        cursorCache = cursorCache, systemTimeNanos = systemTimeNanos)
 
     protected def wrapRoot(peer: InTxn) = new RootTxn(this, peer)
   }

@@ -29,7 +29,7 @@ private[proc] object DurableImpl {
 
   def apply(mainStore: DataStore): Durable = new System(mainStore)
 
-  private final class TxnImpl(val system: System, val peer: InTxn)
+  private final class TxnImpl(val system: System, val systemTimeNanos: Long, val peer: InTxn)
     extends stm.impl.DurableImpl.TxnMixin[Durable]
     with TxnFullImpl[Durable] with Durable.Txn {
 
@@ -48,7 +48,7 @@ private[proc] object DurableImpl {
     val inMemory: /* evt. */ InMemory = /* evt. */ InMemory()
     def inMemoryTx(tx: Tx): I#Tx = tx.inMemory
 
-    def wrap(peer: InTxn): S#Tx = new TxnImpl(this, peer)
+    def wrap(peer: InTxn, systemTimeNanos: Long): S#Tx = new TxnImpl(this, systemTimeNanos, peer)
 
     override def toString = s"proc.Durable@${hashCode.toHexString}"
   }

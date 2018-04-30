@@ -19,10 +19,14 @@ import impl.{SchedulerImpl => Impl}
 
 object Scheduler {
   /** Creates a real-time scheduler. */
-  def apply  [S <: Sys[S]](implicit tx: S#Tx, cursor: stm.Cursor[S]): Scheduler[S] = Impl[S]
+  def apply  [S <: Sys[S]](implicit tx: S#Tx, cursor: stm.Cursor[S]): Realtime[S] = Impl[S]
 
   /** Creates a non-real-time scheduler. */
   def offline[S <: Sys[S]](implicit tx: S#Tx, cursor: stm.Cursor[S]): Offline[S] = Impl.offline[S]
+
+  trait Realtime[S <: Sys[S]] extends Scheduler[S] {
+    def systemTimeNanos(implicit tx: S#Tx): Long
+  }
 
   trait Offline[S <: Sys[S]] extends Scheduler[S] {
     def step()    (implicit tx: S#Tx): Unit
@@ -38,7 +42,7 @@ object Scheduler {
   * with `stm.Source`. It can be safely stored in a regular value.
   */
 trait Scheduler[S <: Sys[S]] {
-  /** Logical time frame based on `Timeline.SampleRate` and with zero
+  /** Logical time frame based on `TimeRef.SampleRate` and with zero
     * corresponding to creation time. Frames elapsed with wall-clock
     * but are stable within a transaction.
     */

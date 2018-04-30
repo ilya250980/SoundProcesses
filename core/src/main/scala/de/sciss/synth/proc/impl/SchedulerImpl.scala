@@ -28,7 +28,7 @@ import scala.concurrent.stm.{InTxn, Ref, TMap, TxnLocal}
 import scala.util.control.NonFatal
 
 object SchedulerImpl {
-  def apply[S <: Sys[S]](implicit tx: S#Tx, cursor: stm.Cursor[S]): Scheduler[S] = {
+  def apply[S <: Sys[S]](implicit tx: S#Tx, cursor: stm.Cursor[S]): Scheduler.Realtime[S] = {
     val system  = tx.system
     val prio    = mkPrio[S, system.I](system)
     implicit val iSys: S#Tx => system.I#Tx = system.inMemoryTx
@@ -95,17 +95,37 @@ object SchedulerImpl {
   private final class RealtimeImpl[S <: Sys[S], I <: stm.Sys[I]](protected val prio: SkipList.Map [I , Long, Set[Int]])
                                                                 (implicit val cursor: stm.Cursor[S],
                                                                  protected val iSys: S#Tx => I#Tx)
-    extends Impl[S, I] {
+    extends Impl[S, I] with Scheduler.Realtime[S] {
 
-    private val timeZero    = System.nanoTime()
-    private val timeRef     = TxnLocal(calcFrame())
+    /*
+      Timing information:
+
+      - we can't get nanos and milliseconds atomically at the same time (can we?), therefore
+        set nanos to zero for the absolute system time reference `timeAbsNanos`
+      - the relative nanos are used to calculate frames in `calcFrame`
+      - the `timeRef` freezes the advanced frames since creation time in sample frames
+      - to convert this to system time, divide `timeRef` by the sample rate, multiply by 1.0e9,
+        and add the absolute time reference.
+
+     */
+
+    private[this] val timeAbsNanos    = System.currentTimeMillis() * 1000000000L
+    private[this] val timeRelNanos    = System.nanoTime()
+    private[this] val timeRef         = TxnLocal(calcFrame())
 
     def           time               (implicit tx: S#Tx): Long = timeRef.get(tx.peer)
     protected def time_=(value: Long)(implicit tx: S#Tx): Unit = timeRef.set(value)(tx.peer)
 
+    def systemTimeNanos(implicit tx: S#Tx): Long = calcTimeNanos(time)
+
+    private def calcTimeNanos(frames: Long): Long = {
+      val framesNanos = (frames / sampleRateN).toLong
+      timeAbsNanos + framesNanos
+    }
+
     private def calcFrame(): Long = {
       // 1 ns = 10^-9 s
-      val delta = System.nanoTime() - timeZero
+      val delta = System.nanoTime() - timeRelNanos
       (delta * sampleRateN).toLong
     }
 
@@ -119,8 +139,9 @@ object SchedulerImpl {
         SoundProcesses.scheduledExecutorService.schedule(new Runnable {
           def run(): Unit = {
             logT(s"scheduled: exe $info")
-            cursor.step { implicit tx =>
-              eventReached(info)
+            val nowNanos = calcTimeNanos(info.targetTime)
+            cursor.stepTag(nowNanos) { implicit tx =>
+              eventReached(info)    // this calls `time_=(info.targetTime)`
             }
           }
         }, actualDelayN, TimeUnit.NANOSECONDS)

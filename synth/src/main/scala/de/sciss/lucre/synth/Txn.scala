@@ -22,15 +22,13 @@ import scala.collection.immutable.{IndexedSeq => Vec}
 import scala.concurrent.stm.InTxn
 
 object Txn {
-  def wrap(itx: InTxn): Txn = new TxnPlainImpl(itx)
+  def wrap(itx: InTxn): Txn = new TxnPlainImpl(itx, 0L)
 
   type Message = osc.Message with message.Send
 
-  /** A data type encapsulating an outgoing OSC bundle for this transaction.
-    */
-  final class Bundle(val stamp: Int, val msgs: Vec[Message]) {
-    // def copy(newMsgs: Vec[Message]): Bundle = new Bundle(stamp, newMsgs)
-    def append(msg: Message): Bundle = new Bundle(stamp, msgs :+ msg)
+  /** A data type encapsulating an outgoing OSC bundle for this transaction. */
+  final class Bundle(val stamp: Int, val messages: Vec[Message]) {
+    def append(msg: Message): Bundle = new Bundle(stamp, messages :+ msg)
 
     /** A bundle depends on messages with any smaller time stamp (this stamp minus one). */
     def depStamp: Int = stamp - 1
@@ -45,5 +43,8 @@ object Txn {
   * `addMessage` method for staging OSC messages which are flushed at the end of a successful transaction.
   */
 trait Txn extends TxnLike {
+  /** Or zero if not scheduled. */
+  def systemTimeNanos: Long
+
   def addMessage(resource: Resource, m: osc.Message with message.Send, dependencies: Seq[Resource] = Nil): Unit
 }

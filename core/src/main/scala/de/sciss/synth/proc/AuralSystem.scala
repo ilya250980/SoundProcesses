@@ -15,13 +15,15 @@ package de.sciss.synth.proc
 
 import impl.{AuralSystemImpl => Impl}
 import de.sciss.lucre.synth.{Server, Txn}
+import de.sciss.synth.Client
 
 object AuralSystem {
   def apply(): AuralSystem = Impl()
 
-  def start(config: Server.Config = Server.Config(), connect: Boolean = false)(implicit tx: Txn): AuralSystem = {
+  def start(config: Server.Config = Server.Config(), client: Client.Config = Client.Config(),
+            connect: Boolean = false)(implicit tx: Txn): AuralSystem = {
     val res = apply()
-    res.start(config, connect = connect)
+    res.start(config, client, connect = connect)
     res
   }
 
@@ -48,7 +50,9 @@ trait AuralSystem {
   import AuralSystem.Client
 
   /** Boots the server. This method must be called from within a transaction. */
-  def start(config: Server.Config = Server.Config(), connect: Boolean = false)(implicit tx: Txn): Unit
+  def start(config: Server.Config = Server.Config(), client: Client.Config = Client.Config(),
+            connect: Boolean = false)(implicit tx: Txn): Unit
+
   private[proc] def offline(server: Server.Offline)(implicit tx: Txn): Unit
 
   /** Quits the server. This method must not be called from within a transaction. */

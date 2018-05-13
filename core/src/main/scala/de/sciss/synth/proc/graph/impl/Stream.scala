@@ -49,8 +49,8 @@ trait Stream extends synth.GE.Lazy {
     // val (numCh, idx)  = b.addStreamIn(key, info)
     val ctlName       = Stream.controlName(key, idx)
     val ctl           = ctlName.ir(Seq(0, 0))
-    val buf           = ctl \ 0
-    val gain          = ctl \ 1
+    val buf           = ctl out 0
+    val gain          = ctl out 1
     makeUGen(server = b.server, numChannels = info.numChannels, sampleRate = info.sampleRate,
       idx = idx, buf = buf, gain = gain)
   }

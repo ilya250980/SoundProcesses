@@ -42,7 +42,7 @@ private[graph] object fade {
       // b.addAttributeIn(key)
       val ctlName = Attribute.controlName(key)
       val ctl     = ctlName.ir(Seq(0f, 0f, 0f, 0f))  // dur, shape-id, shape-curvature, floor
-      (ctl \ 0, Env.Curve(ctl \ 1, ctl \ 2), ctl \ 3)
+      (ctl out 0, Env.Curve(ctl out 1, ctl out 2), ctl out 3)
     }
   }
 

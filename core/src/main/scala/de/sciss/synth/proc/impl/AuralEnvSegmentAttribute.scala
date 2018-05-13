@@ -58,8 +58,8 @@ object AuralEnvSegmentAttribute extends Factory with StartLevelViewFactory {
     val dur         = Duration.ir
     val out         = "out"   .kr
     val curveCtl    = "curve" .ir(Vector.fill(2)(0.0f))
-    val cid         = curveCtl \ 0
-    val cvt         = curveCtl \ 1
+    val cid         = curveCtl out 0
+    val cvt         = curveCtl out 1
     val phase       = Line.ar(off, dur, dur - off)
     val curve       = Env.Curve(id = cid, curvature = cvt)
     val env         = IEnv(startLevel, Env.Segment(dur = dur, targetLevel = endLevel, curve = curve) :: Nil)

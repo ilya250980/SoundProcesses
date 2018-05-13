@@ -78,7 +78,7 @@ class AuralTests2[S <: Sys[S]](name: String)(implicit cursor: stm.Cursor[S]) ext
 
       after(4.0) { implicit tx =>
         val gr  = grH()
-        val lvl = t1.linlin(t0, t2, f1, f2)  // = 800
+        val lvl = t1.linLin(t0, t2, f1, f2)  // = 800
         println(f"Insert static $lvl%g")
         gr.add(frame(t1), DoubleObj.newConst(lvl))
 //        gr.remove()
@@ -204,7 +204,7 @@ class AuralTests2[S <: Sys[S]](name: String)(implicit cursor: stm.Cursor[S]) ext
         val indicesIn = "buses-in".ir
         val numCh     = NumChannels(indicesIn)
         val numFrames = dur * SampleRate.ir
-        val in        = WhiteNoise.ar(Pad(Impulse.ar(SinOsc.ar(0.25).abs.linexp(0, 1, 5, 50)), indicesIn))
+        val in        = WhiteNoise.ar(Pad(Impulse.ar(SinOsc.ar(0.25).abs.linExp(0, 1, 5, 50)), indicesIn))
         val buf       = graph.BufferOut(artifact = "file", action = "done", numFrames = numFrames, numChannels = numCh)
         val rec       = RecordBuf.ar(in = in, buf = buf, loop = 0)
         val done      = Done.kr(rec)

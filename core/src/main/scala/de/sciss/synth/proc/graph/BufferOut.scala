@@ -91,11 +91,11 @@ object BufferOut {
           case other      => Left(s"Cannot convert attribute value to Float: $other")
         }
 
-      case UnaryOpUGen(op, a)  =>
+      case UnaryOpUGen(op: UnaryOpUGen.PureOp, a)  =>
         val af = resolveFloat(a, builder)
         af.right.map(op.make1)
 
-      case BinaryOpUGen(op, a, b) =>
+      case BinaryOpUGen(op: BinaryOpUGen.PureOp, a, b) =>
         for {
           af <- resolveFloat(a, builder).right
           bf <- resolveFloat(b, builder).right

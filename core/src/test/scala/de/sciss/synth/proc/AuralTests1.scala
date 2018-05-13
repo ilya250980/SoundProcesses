@@ -194,7 +194,7 @@ class AuralTests1[S <: Sys[S]](name: String)(implicit cursor: stm.Cursor[S]) ext
       tl.add(Span.from(frame(4.0)), p)
 
       import numbers.Implicits._
-      def freq(midi: Int)(implicit tx: S#Tx) = DoubleObj.newConst[S](midi.midicps)
+      def freq(midi: Int)(implicit tx: S#Tx) = DoubleObj.newConst[S](midi.midiCps)
 
       val gr = Grapheme[S]
       val in = Grapheme[S]
@@ -253,7 +253,7 @@ class AuralTests1[S <: Sys[S]](name: String)(implicit cursor: stm.Cursor[S]) ext
       }
 
       val p2 = proc {
-        val freq = LFTri.ar(2).linexp(-1, 1, 441.0, 882.0)
+        val freq = LFTri.ar(2).linExp(-1, 1, 441.0, 882.0)
         graph.ScanOut(freq)
       }
       val out = addOutput(p2)
@@ -302,7 +302,7 @@ class AuralTests1[S <: Sys[S]](name: String)(implicit cursor: stm.Cursor[S]) ext
       }
 
       val p2 = proc {
-        val freq = LFTri.ar(2).linexp(-1, 1, 441.0, 882.0)
+        val freq = LFTri.ar(2).linExp(-1, 1, 441.0, 882.0)
         graph.ScanOut(freq)
       }
       val out = addOutput(p2)
@@ -352,7 +352,7 @@ class AuralTests1[S <: Sys[S]](name: String)(implicit cursor: stm.Cursor[S]) ext
     cursor.step { implicit tx =>
       val p1 = proc {
         val freq  = graph.Attribute.ar("key")
-        val sin   = SinOsc.ar(SinOsc.ar(freq).madd(300, 600))
+        val sin   = SinOsc.ar(SinOsc.ar(freq).mulAdd(300, 600))
         Out.ar(0, Pan2.ar(sin * 0.1))
       }
 
@@ -405,7 +405,7 @@ class AuralTests1[S <: Sys[S]](name: String)(implicit cursor: stm.Cursor[S]) ext
 
     cursor.step { implicit tx =>
       val pRec = proc {
-        val freq  = LFNoise0.ar(Seq(5, 5)).linlin(-1, 1, 70, 90).roundTo(1).midicps
+        val freq  = LFNoise0.ar(Seq(5, 5)).linLin(-1, 1, 70, 90).roundTo(1).midiCps
         val sig   = SinOsc.ar(freq) * 0.2
         graph.DiskOut.ar("disk", sig)
         Out.ar(0, sig)  // let it be heard
@@ -529,7 +529,7 @@ class AuralTests1[S <: Sys[S]](name: String)(implicit cursor: stm.Cursor[S]) ext
     cursor.step { implicit tx =>
       val _proc = proc {
         val in  = graph.ScanInFix("in", 1)
-        val gen = Pulse.ar(LFNoise1.ar(1).linexp(0, 1, 400, 1000.0)) * 0.05
+        val gen = Pulse.ar(LFNoise1.ar(1).linExp(0, 1, 400, 1000.0)) * 0.05
         val sig = gen + in
         Out.ar(0, Pan2.ar(sig))
       }
@@ -627,7 +627,7 @@ class AuralTests1[S <: Sys[S]](name: String)(implicit cursor: stm.Cursor[S]) ext
 
       val _proc = proc {
         val buf   = graph.Buffer("metal")
-        val speed = LFPulse.ar(0.25).linlin(0, 1, -4, 4)
+        val speed = LFPulse.ar(0.25).linLin(0, 1, -4, 4)
         val sig0  = PlayBuf.ar(numChannels = spec.numChannels, buf = buf, speed = speed, loop = 1)
         val sig   = Pan2.ar(sig0)
         Out.ar(0, sig)
@@ -690,7 +690,7 @@ class AuralTests1[S <: Sys[S]](name: String)(implicit cursor: stm.Cursor[S]) ext
         val m    = graph.Attribute.kr("mute", 0.0)
         val sig0 = in * (1 - m)
         val pos  = LFTri.ar(4)
-        val sig  = Balance2.ar(sig0 \ 0, sig0 \ 1, pos)
+        val sig  = Balance2.ar(sig0 out 0, sig0 out 1, pos)
         Out.ar(0, sig)
       }
       _proc2.name = "spat"
@@ -771,7 +771,7 @@ class AuralTests1[S <: Sys[S]](name: String)(implicit cursor: stm.Cursor[S]) ext
       // import ExprImplicits._
 
       val fadeExprIn  = FadeSpec.Obj[S](frame(4.0), linear, 0.0)
-      val fadeExprOut = FadeSpec.Obj[S](frame(3.0), exponential, -40.0.dbamp)
+      val fadeExprOut = FadeSpec.Obj[S](frame(3.0), exponential, -40.0.dbAmp)
       val attr = _proc1.attr
       attr.put("fadeIn" , fadeExprIn )
       attr.put("fadeOut", fadeExprOut)
@@ -816,14 +816,14 @@ class AuralTests1[S <: Sys[S]](name: String)(implicit cursor: stm.Cursor[S]) ext
     val tl = cursor.step { implicit tx =>
       val _proc1 = proc {
         val sig = graph.ScanIn("in")
-        (sig \ 0).poll(1, "ping-1")
+        (sig out 0).poll(1, "ping-1")
         Out.ar(0, sig)
       }
       _proc1.name = "reader"
 
       val _proc2 = proc {
         val sig = PinkNoise.ar(Seq(0.5, 0.5))
-        (sig \ 0).poll(1, "ping-2")
+        (sig out 0).poll(1, "ping-2")
         graph.ScanOut("out", sig)
       }
       _proc2.name = "noise"
@@ -1027,7 +1027,7 @@ class AuralTests1[S <: Sys[S]](name: String)(implicit cursor: stm.Cursor[S]) ext
             val off  = graph.Offset  .ir
             val pos  = Line.ar(off / dur, 1, dur - off)
             pos.poll(8, "pos")
-            val freq = pos.linexp(0, 1, 400, 4000)
+            val freq = pos.linExp(0, 1, 400, 4000)
             val sig  = Pan2.ar(SinOsc.ar(freq) * 0.2)
             Out.ar(0, sig)
           }

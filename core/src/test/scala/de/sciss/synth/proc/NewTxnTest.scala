@@ -18,7 +18,7 @@ object NewTxnTest extends App {
         import synth._
         import ugen._
         //            import Ops._
-        Out.ar(0, SinOsc.ar(SinOsc.kr(0.1).linexp(-1, 1, 300, 600)) * 0.1)
+        Out.ar(0, SinOsc.ar(SinOsc.kr(0.1).linExp(-1, 1, 300, 600)) * 0.1)
       }
       Synth.play(g)(s.defaultGroup)
     }

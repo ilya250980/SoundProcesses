@@ -160,7 +160,7 @@ abstract class BounceSpec extends fixture.AsyncFlatSpec with Matchers {
   final def mkLine(len: Int, start: Float = 0f, end: Float = 1f, startFrame: Int = 0, lineLen: Int = 0): Array[Float] = {
     val lineLen0 = if (lineLen == 0) len else lineLen
     import numbers.Implicits._
-    Array.tabulate(len)(i => (i + startFrame).clip(0, lineLen0).linlin(0, lineLen0, start, end))
+    Array.tabulate(len)(i => (i + startFrame).clip(0, lineLen0).linLin(0, lineLen0, start, end))
   }
 
   final def mkSilent(len: Int): Array[Float] = new Array(len)

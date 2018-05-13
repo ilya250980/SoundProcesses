@@ -21,7 +21,7 @@ class SynthGraphSerializationSpec extends FunSpec {
     val f1  = "freq1".kr(0.4)
     val f2  = "freq2".kr(8.0)
     val d   = "detune".kr(0.90375)
-    val f   = LFSaw.ar(f1).madd(24, LFSaw.ar(Seq(f2, f2 * d)).madd(3, 80)).midicps // glissando function
+    val f   = LFSaw.ar(f1).mulAdd(24, LFSaw.ar(Seq(f2, f2 * d)).mulAdd(3, 80)).midiCps // glissando function
     val res = CombN.ar(SinOsc.ar(f) * 0.04, 0.2, 0.2, 4) // echoing sine wave
     Out.ar(0, res)
   }
@@ -31,8 +31,8 @@ class SynthGraphSerializationSpec extends FunSpec {
   // LFO modulation of Pulse waves and resonant filters
   dfs += "LFO mod" -> SynthGraph {
     val res = CombL.ar(
-      RLPF.ar(LFPulse.ar(FSinOsc.kr(0.05).madd(80, 160), 0, 0.4) * 0.05,
-        FSinOsc.kr(Seq(0.6, 0.7)).madd(3600, 4000), 0.2),
+      RLPF.ar(LFPulse.ar(FSinOsc.kr(0.05).mulAdd(80, 160), 0, 0.4) * 0.05,
+        FSinOsc.kr(Seq(0.6, 0.7)).mulAdd(3600, 4000), 0.2),
       0.3, Seq(0.2, 0.25), 2)
     WrapOut(res)
   }
@@ -55,7 +55,7 @@ class SynthGraphSerializationSpec extends FunSpec {
     val res     = Mix.tabulate(p) { i =>
       val sig = FSinOsc.ar(f * (i + 1)) * // freq of partial
         LFNoise1.kr(
-          Seq(Rand(2, 10), Rand(2, 10))).madd(// amplitude rate
+          Seq(Rand(2, 10), Rand(2, 10))).mulAdd(// amplitude rate
           0.02, // amplitude scale
           offset // amplitude offset
         ).max(0) // clip negative amplitudes to zero
@@ -118,7 +118,7 @@ class SynthGraphSerializationSpec extends FunSpec {
     val z = DelayN.ar(s, 0.048)
 
     // 'c' length modulated comb delays in parallel :
-    val y = Mix(CombL.ar(z, 0.1, LFNoise1.kr(Seq.fill(c)(Rand(0, 0.1))).madd(0.04, 0.05), 15))
+    val y = Mix(CombL.ar(z, 0.1, LFNoise1.kr(Seq.fill(c)(Rand(0, 0.1))).mulAdd(0.04, 0.05), 15))
 
     // chain of 'a' allpass delays on each of two channels (2 times 'a' total) :
     val x = (0 until a).foldLeft[GE](y)((y, _) => AllpassN.ar(y, 0.050, Seq(Rand(0, 0.050), Rand(0, 0.050)), 1))
@@ -145,19 +145,19 @@ class SynthGraphSerializationSpec extends FunSpec {
       val excitation = PinkNoise.ar(
         // if amplitude is below zero it is clipped
         // density determines the probability of being above zero
-        LFNoise1.kr(8).madd(dmul, dadd).max(0)
+        LFNoise1.kr(8).mulAdd(dmul, dadd).max(0)
       )
 
       val freq = Lag.kr(// lag the pitch so it glissandos between pitches
         LFNoise0.kr(// use low freq step noise as a pitch control
           Array(1, 0.5, 0.25)(// choose a frequency of pitch change
             util.Random.nextInt(3)))
-          .madd(
+          .mulAdd(
           7, // +/- 7 semitones
           IRand(36, 96) // random center note
         ).roundTo(1), // round to nearest semitone
         0.2 // gliss time
-      ).midicps // convert to hertz
+      ).midiCps // convert to hertz
 
       Pan2.ar(// pan each intrument
         CombL.ar(excitation, 0.02, freq.reciprocal, 3), // comb delay simulates string
@@ -221,10 +221,10 @@ class SynthGraphSerializationSpec extends FunSpec {
     val in      = Mix(In.ar(NumOutputBuses.ir + Seq(0, 1)))
     val amp     = Amplitude.kr(in, 0.05, 0.05) * 0.3
     val pch     = Pitch.kr(in, ampThresh = 0.02, median = 7)
-    val freq    = pch \ 0
-    val hasFreq = pch \ 1
+    val freq    = pch.freq
+    val hasFreq = pch.hasFreq
     hasFreq.poll(1)
-    val syn: GE = Mix(VarSaw.ar(freq * Seq(0.5, 1, 2), 0, LFNoise1.kr(0.3).madd(0.1, 0.1)) * amp)
+    val syn: GE = Mix(VarSaw.ar(freq * Seq(0.5, 1, 2), 0, LFNoise1.kr(0.3).mulAdd(0.1, 0.1)) * amp)
     val res = (1 to 6).foldLeft(syn) {
       (sig, _) =>
         AllpassN.ar(sig, 0.040, Seq(Rand(0, 0.040), Rand(0, 0.040)), 2)
@@ -262,13 +262,13 @@ class SynthGraphSerializationSpec extends FunSpec {
 
   // SysSon problem patch
   dfs += "SysSon-Test" -> SynthGraph {
-    val v = LFDNoise3.ar(0.1).linexp(-1, 1, 1e-5, 1)
+    val v = LFDNoise3.ar(0.1).linExp(-1, 1, 1e-5, 1)
     val n = 32
     var mix: GE = 0
     for (_ <- 0 until n) {
-      val freq = LFDNoise3.ar(LFDNoise3.ar(v).linexp(-1, 1, 1e-4, 0.01)).linexp(-1, 1, 64, 16000)
+      val freq = LFDNoise3.ar(LFDNoise3.ar(v).linExp(-1, 1, 1e-4, 0.01)).linExp(-1, 1, 64, 16000)
       val sin = SinOsc.ar(freq)
-      val mul = LFDNoise3.ar(LFDNoise3.ar(v).linexp(-1, 1, 1e-4, 1)).linexp(-1, 1, 0.001, 1)
+      val mul = LFDNoise3.ar(LFDNoise3.ar(v).linExp(-1, 1, 1e-4, 1)).linExp(-1, 1, 0.001, 1)
       mix += sin * mul
     }
     val sig = OnePole.ar(mix / n * 2, 0.95)

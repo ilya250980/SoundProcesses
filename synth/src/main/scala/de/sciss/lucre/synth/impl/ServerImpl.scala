@@ -224,10 +224,10 @@ object ServerImpl {
 
     // ---- side effects ----
 
-    private def splitAndSend[A, B](init: A, iter: Iterator[osc.Packet], addSize: Int)(fun: Vec[osc.Packet] => B)
+    private def splitAndSend[A, B](init: A, it: Iterator[osc.Packet], addSize: Int)(fun: Vec[osc.Packet] => B)
                                   (combine: (A, B) => A): A = {
       @tailrec def loop(a: A, sz: Int, builder: mutable.Builder[osc.Packet, Vec[osc.Packet]]): A =
-        if (iter.isEmpty) {
+        if (it.isEmpty) {
           val res = builder.result()
           if (res.nonEmpty) {
             val a1 = fun(res)
@@ -236,7 +236,7 @@ object ServerImpl {
           } else a
 
         } else {
-          val next  = iter.next()
+          val next  = it.next()
           val sz1   = next.encodedSize(Server.codec) + 4
           val sz2   = sz + sz1
           if (sz2 > MaxOnlinePacketSize) {
@@ -284,7 +284,7 @@ object ServerImpl {
               Iterator.single(message.NodeRun(gid -> false)) ++ b.packets.iterator ++
               Iterator.single(message.NodeRun(gid -> true ))
 
-            splitAndSend[Unit, Unit](init = (), iter = iter, addSize = 0) { packets =>
+            splitAndSend[Unit, Unit](init = (), it = iter, addSize = 0) { packets =>
               peer ! osc.Bundle(b.timetag, packets: _*)
             } ((_, _) => ())
           }
@@ -302,9 +302,9 @@ object ServerImpl {
         if (sz0 + 20 <= MaxOnlinePacketSize) {
           perform_!!(tt, b.packets)
         } else {
-          val iter = b.packets.iterator
+          val it = b.packets.iterator
           val futures = splitAndSend[Vec[Future[Unit]], Future[Unit]](init = Vector.empty,
-                                                                      iter = iter, addSize = 20) { packets =>
+                                                                      it = it, addSize = 20) { packets =>
             perform_!!(tt, packets)
           } (_ :+ _)
           Future.reduce[Unit, Unit](futures)((_, _) => ()) // reduceLeft requires Scala 2.12
@@ -606,13 +606,13 @@ object ServerImpl {
         val i = bundleReplySeen + 1
         if (i <= stamp) {
           bundleReplySeen = stamp
-          val funs = (i to stamp).flatMap { j =>
+          val scheduled: Vec[Scheduled] = (i to stamp).flatMap { j =>
             bundleWaiting.get(j) match {
-              case Some(_funs)  => bundleWaiting -= j; _funs
-              case _            => Vector.empty
+              case Some(sch)  => bundleWaiting -= j; sch
+              case _          => Vector.empty
             }
           }
-          funs.map(_.apply())
+          scheduled.map(_.apply())
         }
         else Vector.empty
       }

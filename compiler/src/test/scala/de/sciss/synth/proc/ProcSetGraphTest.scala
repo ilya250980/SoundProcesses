@@ -20,9 +20,9 @@ object ProcSetGraphTest {
       import ugen._
       p.setGraph {
         // bubbles here
-        val o = LFSaw.kr(Seq(8, 7.23)).madd(3, 80)
-        val f = LFSaw.kr(0.4).madd(24, o)
-        val s = SinOsc.ar(f.midicps) * 0.04
+        val o = LFSaw.kr(Seq(8, 7.23)).mulAdd(3, 80)
+        val f = LFSaw.kr(0.4).mulAdd(24, o)
+        val s = SinOsc.ar(f.midiCps) * 0.04
         val c = CombN.ar(s, 0.2, 0.2, 4)
         val l = Line.kr(1, 0, 10, doneAction = freeSelf)
         Out.ar(0, c * l)

@@ -248,7 +248,7 @@ final class AuralAttributeTargetImpl[S <: Sys[S]](target: NodeRef.Full[S], val k
           import synth._
           import ugen._
           val in  = "in".ar(Vector.fill(inChannels)(0f)) // In.ar("in".kr, inChannels)
-          val ext = Vector.tabulate(numChannels)(in \ _)
+          val ext = Vector.tabulate(numChannels)(in.out)
           Out.ar("out".kr, ext)
         }
         val syn         = Synth.play(g, nameHint = Some("attr-map"))(

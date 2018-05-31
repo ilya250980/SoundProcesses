@@ -17,6 +17,9 @@ import de.sciss.lucre.expr.{BooleanObj, Expr, StringObj}
 import de.sciss.lucre.stm.{Obj, Sys}
 import de.sciss.span.SpanLike
 
+import scala.language.higherKinds
+import scala.reflect.ClassTag
+
 object Implicits {
   implicit class SecFrames(val `this`: Double) extends AnyVal { me =>
     import me.{`this` => d}
@@ -50,6 +53,16 @@ object Implicits {
       // if (res.isEmpty) warn(s"Child $child not found in $folder")
       res
     }
+
+    def $ [R[~ <: Sys[~]] <: Obj[~]](child: String)(implicit tx: S#Tx, ct: ClassTag[R[S]]): Option[R[S]] =
+      / (child).collect {
+        case value if ct.runtimeClass.isAssignableFrom(value.getClass) =>
+          value.asInstanceOf[R[S]]
+      }
+
+    def ! [R[~ <: Sys[~]] <: Obj[~]](child: String)(implicit tx: S#Tx, ct: ClassTag[R[S]]): R[S] =
+      $[R](child).getOrElse(throw new NoSuchElementException(
+        s"""Folder(${`this`.name}).![${ct.runtimeClass.getName}]("${child}")"""))
   }
 
   implicit class EnsembleOps[S <: Sys[S]](val `this`: Ensemble[S]) extends AnyVal { me =>
@@ -63,6 +76,16 @@ object Implicits {
       // if (res.isEmpty) warn(s"Child $child not found in ${ensemble.attr.name}")
       res
     }
+
+    def $ [R[~ <: Sys[~]] <: Obj[~]](child: String)(implicit tx: S#Tx, ct: ClassTag[R[S]]): Option[R[S]] =
+      / (child).collect {
+        case value if ct.runtimeClass.isAssignableFrom(value.getClass) =>
+          value.asInstanceOf[R[S]]
+      }
+
+    def ! [R[~ <: Sys[~]] <: Obj[~]](child: String)(implicit tx: S#Tx, ct: ClassTag[R[S]]): R[S] =
+      $[R](child).getOrElse(throw new NoSuchElementException(
+        s"""Ensemble(${`this`.name}).![${ct.runtimeClass.getName}]("${child}")"""))
 
     def play()(implicit tx: S#Tx): Unit = play1(value = true )
     def stop()(implicit tx: S#Tx): Unit = play1(value = false)
@@ -112,5 +135,13 @@ object Implicits {
           attr.put(ObjKeys.attrMute, valueVr)
       }
     }
+  }
+
+  implicit final class ObjAttrMapOps[S <: Sys[S]](val `this`: Obj.AttrMap[S]) extends AnyVal {me =>
+    import me.{`this` => attr}
+
+    def ![R[~ <: Sys[~]] <: Obj[~]](key: String)(implicit tx: S#Tx, ct: ClassTag[R[S]]): R[S] =
+      attr.$[R](key).getOrElse(throw new NoSuchElementException(
+        s"""obj.attr.![${ct.runtimeClass.getName}]("${key}")"""))
   }
 }

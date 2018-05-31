@@ -38,11 +38,16 @@ object Macros {
     val source0 = if (inT.startsWith("{") && inT.endsWith("}")) inT.substring(1, inT.length - 1) else in
     val res = {
       val arr0 = source0.split("\n")
+      // println(s"----\n${arr0.head}\n----\n${arr0.last}\n----")
       val arr1 = arr0.dropWhile(_.trim.isEmpty)
       val arr  = arr1.reverse.dropWhile(_.trim.isEmpty).reverse
       if (arr.isEmpty) source0 else {
-        val drop = arr.map(_.prefixLength(_ == ' ')).min
-        arr.map(_.substring(drop)).mkString("\n")
+        val arrM = arr.iterator.filterNot(_.trim.isEmpty).map(_.prefixLength(_ == ' '))
+        val arrI = if (arrM.isEmpty) arr else {
+          val drop = arrM.min
+          arr.map(ln => ln.substring(math.min(ln.length, drop)))
+        }
+        arrI.mkString("\n")
       }
     }
     res

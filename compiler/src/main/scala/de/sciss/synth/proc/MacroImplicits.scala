@@ -25,7 +25,7 @@ import scala.language.experimental.macros
   * and preserving the corresponding source code.
   */
 object MacroImplicits {
-  implicit final class ProcMacroOps[S <: Sys[S]](private[proc] val `this`: Proc[S]) extends AnyVal {
+  implicit final class ProcMacroOps[S <: Sys[S]](val `this`: Proc[S]) extends AnyVal {
     def setGraph(body: Unit)(implicit tx: S#Tx): Unit =
       macro Macros.procGraphWithSource[S]
   }

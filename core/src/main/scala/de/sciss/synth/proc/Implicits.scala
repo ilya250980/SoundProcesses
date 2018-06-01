@@ -140,7 +140,7 @@ object Implicits {
   implicit final class ObjAttrMapOps[S <: Sys[S]](val `this`: Obj.AttrMap[S]) extends AnyVal {me =>
     import me.{`this` => attr}
 
-    def ![R[~ <: Sys[~]] <: Obj[~]](key: String)(implicit tx: S#Tx, ct: ClassTag[R[S]]): R[S] =
+    def ! [R[~ <: Sys[~]] <: Obj[~]](key: String)(implicit tx: S#Tx, ct: ClassTag[R[S]]): R[S] =
       attr.$[R](key).getOrElse(throw new NoSuchElementException(
         s"""obj.attr.![${ct.runtimeClass.getName}]("${key}")"""))
   }

@@ -75,7 +75,7 @@ final class AudioBusMeterImpl(val strips: ISeq[AudioBusMeter.Strip])
       }
 
       val syn = Synth.play(graph, nameHint = Some("meter"))(target = target, addAction = addAction)
-      syn.read(bus -> "in")
+      syn.read(bus -> "bus")
 
       val SynId = syn.peer.id
       val resp = message.Responder.add(syn.server.peer) {

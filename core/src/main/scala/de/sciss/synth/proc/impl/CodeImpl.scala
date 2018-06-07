@@ -129,6 +129,8 @@ object CodeImpl {
       "de.sciss.synth.proc.graph.Ops._"
     ),
     Code.Action.id -> Vec(     // what should go inside?
+      "de.sciss.osc",
+      "de.sciss.synth.io",
       "de.sciss.synth.proc._",
       "de.sciss.synth.proc.Implicits._",
       "de.sciss.lucre.artifact.{Artifact, ArtifactLocation}",

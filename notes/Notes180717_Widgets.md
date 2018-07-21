@@ -405,6 +405,10 @@ trait Trigger {
   def ~> (sink: TriggerInput): Unit
 }
 
+trait TriggerInput {
+  def ++ (that: TriggerInput): TriggerInput  // useful?
+}
+
 trait ListView[A] extends Component {
   object selection {
     def indices: Ex[Seq[Int]]
@@ -423,6 +427,79 @@ trait Example {
   
   val c = Button()
   c.text = "Render"
-  c.clicked ~> Action("attr-key")
+  c.clicked ~> Action("attr-key") // or just "attr-key".attr ?
+}
+```
+
+Thinking this further:
+
+```
+c.clicked ~> Obj("attr-key").play  // or .run ? or .view, ...
+```
+
+without the need to insert an extra action to accomplish this. (Basically avoiding having to write `Action`
+bodies as much as possible)
+
+What about parametric actions, say selecting a list item or a tab page? Could we combine triggers and expressions
+here?
+
+```
+c.clicked ~> tabbedPane1.selection.index_=(0)
+c.clicked ~> tabbedPane2.selection.index_=(combo.selection.index)
+
+object TabbedPane {
+  trait Selection {
+    def index: Ex[Int]
+    def index_=(value: Ex[Int]): TriggerInput
+  }
+}
+trait TabbedPane {
+  def selection: TabbedPane.Selection
+}
+```
+
+We could use this for initial settings in interactive properties?
+
+```
+  val t = TabbedPane()
+  // ...
+  
+  t.selection.index = 0
+```
+
+This could create an "unconnected" TriggerInput which might be tracked and stored for initial evaluation?
+(In Dotty, this will become nicer and safer as we have implicit functions)
+
+## Events
+
+Could we need something more complex than `c.clicked: Trigger`, i.e. something that gives us, for example,
+information on click count, modifiers, ...?
+
+```
+trait Clicked extends Trigger {
+  def count: Ex[Int]
+  def modifiers: Ex[Int]
+  def shiftPressed: Ex[Boolean] // etc.
+}
+
+trait Example {
+  def b: Button
+  def t: TabbedPane
+  
+  val c = b.clicked
+  c ~> (t.selection.index = If (c.shiftPressed) 0 Else 1)   // hypothetical syntax
+}
+```
+
+versus
+
+```
+trait Trigger[A] {
+  def value: A
+  def ~> (sink: TriggerInput): Unit
+}
+
+trait Button {
+  def clicked: Trigger[(Int, Int)]  // ugly?
 }
 ```

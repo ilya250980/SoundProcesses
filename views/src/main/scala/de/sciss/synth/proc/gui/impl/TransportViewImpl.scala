@@ -85,6 +85,8 @@ object TransportViewImpl {
                                        (implicit protected val cursor: Cursor[S])
     extends TransportView[S] with ComponentHolder[Component] with CursorHolder[S] {
 
+    type C = Component
+
     var observer: Disposable[S#Tx] = _
 
     private[this] val modOpt  = timelineModel.modifiableOption
@@ -170,7 +172,7 @@ object TransportViewImpl {
       }
     }
 
-    private def cancelLoop()(implicit tx: S#Tx) =
+    private def cancelLoop()(implicit tx: S#Tx): Unit =
       transport.scheduler.cancel(loopToken.swap(-1)(tx.peer))
 
     def startedPlaying(time: Long)(implicit tx: S#Tx): Unit = {
@@ -197,7 +199,7 @@ object TransportViewImpl {
       }
     }
 
-    private def rtz() = {
+    private def rtz(): Unit = {
       stop()
       modOpt.foreach { mod =>
         val start     = mod.bounds.start
@@ -206,7 +208,7 @@ object TransportViewImpl {
       }
     }
 
-    private def playOrStop() = {
+    private def playOrStop(): Unit = {
       // we have both visual feedback
       // and transactional control here,
       // because we want to see the buttons
@@ -231,22 +233,22 @@ object TransportViewImpl {
       }
     }
 
-    private def stop() = atomic { implicit tx =>
+    private def stop(): Unit = atomic { implicit tx =>
       transport.stop()
     }
 
-    private def play() = atomic { implicit tx =>
+    private def play(): Unit = atomic { implicit tx =>
       playTxn()
     }
 
-    private def playTxn(pos: Long = timelineModel.position)(implicit tx: S#Tx) =
+    private def playTxn(pos: Long = timelineModel.position)(implicit tx: S#Tx): Unit =
       if (!transport.isPlaying) {
 //        transport.stop()
         transport.seek(pos  )
         transport.play()
       }
 
-    private def toggleLoop() = transportStrip.button(Loop).foreach { ggLoop =>
+    private def toggleLoop(): Unit = transportStrip.button(Loop).foreach { ggLoop =>
       val wasLooping  = ggLoop.selected
       val sel         = if (wasLooping) Span.Void else timelineModel.selection
       val isLooping   = sel.nonEmpty
@@ -260,7 +262,7 @@ object TransportViewImpl {
       }
     }
 
-    private def checkLoop()(implicit tx: S#Tx) = {
+    private def checkLoop()(implicit tx: S#Tx): Unit = {
       val pos       = transport.position
       val loopStop  = loopSpan.get(tx.peer) match { case hs: Span.HasStop => hs.stop; case _ => Long.MinValue }
       if (loopStop > pos) {
@@ -272,7 +274,7 @@ object TransportViewImpl {
       }
     }
 
-    private def loopEndReached()(implicit tx: S#Tx) = loopSpan.get(tx.peer) match {
+    private def loopEndReached()(implicit tx: S#Tx): Unit = loopSpan.get(tx.peer) match {
       case hs: Span.HasStart => playTxn(hs.start)
       case _ =>
     }
@@ -299,7 +301,7 @@ object TransportViewImpl {
         contents += transportStrip
       }
 
-      def addClickAction(name: String, key: Key.Value, elem: GUITransport.Element) =
+      def addClickAction(name: String, key: Key.Value, elem: GUITransport.Element): Unit =
         transportPane.addAction(name, focus = FocusType.Window, action = new Action(name) {
           accelerator = Some(KeyStrokes.plain + key)
           enabled     = modOpt.isDefined

@@ -52,7 +52,7 @@ trait Slider {
   def enabled: Sink[Boolean]
   
   def min: Sink[Int]
-  def max: Sink[Int
+  def max: Sink[Int]
 
   def value: Expr.Var[Int]
 }

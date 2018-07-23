@@ -1,0 +1,50 @@
+package de.sciss.synth.proc
+
+import de.sciss.lucre.expr.ExOps
+import de.sciss.lucre.stm.store.BerkeleyDB
+import de.sciss.lucre.swing.{Graph => WGraph, graph => wgraph}
+import org.scalatest.{Matchers, Outcome, fixture}
+
+class SerializationSpec extends fixture.FlatSpec with Matchers {
+  type S = Durable
+  type FixtureParam = S
+
+  SoundProcesses.init()
+  Widget        .init()
+
+  protected def withFixture(test: OneArgTest): Outcome = {
+    val store  = BerkeleyDB.tmp()
+    val system = Durable(store)
+    try {
+      test(system)
+    } finally {
+      system.close()
+    }
+  }
+
+  "An Widget object" should "be serializable" in { cursor =>
+    val (wH, gIn) = cursor.step { implicit tx =>
+      val w = Widget[S]
+      val g = WGraph {
+        import ExOps._
+        import wgraph._
+        val sl    = Slider.mk { w =>
+          w.min   = 1
+          w.max   = 10
+          w.value = 1
+        }
+        val txt = (sl.value.dbAmp * 2.0).toStr
+        val lb = Label(txt)
+        FlowPanel(sl, lb)
+      }
+      w.graph() = g
+      tx.newHandle(w) -> g
+    }
+
+    cursor.step { implicit tx =>
+      val w = wH()
+      val gOut = w.graph.value
+      assert(gIn === gOut)
+    }
+  }
+}

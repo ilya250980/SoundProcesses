@@ -35,7 +35,7 @@ object SynthGraphObj extends expr.impl.ExprTypeImpl[SynthGraph, SynthGraphObj] {
   protected def mkConst[S <: Sys[S]](id: S#Id, value: A)(implicit tx: S#Tx): Const[S] =
     new _Const[S](id, value)
 
-  protected def mkVar[S <: Sys[S]](targets: Targets[S], vr: S#Var[Ex[S]], connect: Boolean)
+  protected def mkVar[S <: Sys[S]](targets: Targets[S], vr: S#Var[_Ex[S]], connect: Boolean)
                                   (implicit tx: S#Tx): Var[S] = {
     val res = new _Var[S](targets, vr)
     if (connect) res.connect()
@@ -45,7 +45,7 @@ object SynthGraphObj extends expr.impl.ExprTypeImpl[SynthGraph, SynthGraphObj] {
   private final class _Const[S <: Sys[S]](val id: S#Id, val constValue: A)
     extends ConstImpl[S] with Repr[S]
 
-  private final class _Var[S <: Sys[S]](val targets: Targets[S], val ref: S#Var[Ex[S]])
+  private final class _Var[S <: Sys[S]](val targets: Targets[S], val ref: S#Var[_Ex[S]])
     extends VarImpl[S] with Repr[S]
 
   /** A serializer for synth graphs. */
@@ -273,7 +273,7 @@ object SynthGraphObj extends expr.impl.ExprTypeImpl[SynthGraph, SynthGraphObj] {
 //  def readValue (                   in : DataInput ): SynthGraph  = ValueSerializer.read (       in )
 //  def writeValue(value: SynthGraph, out: DataOutput): Unit        = ValueSerializer.write(value, out)
 
-  override protected def readCookie[S <: Sys[S]](in: DataInput, access: S#Acc, cookie: Byte)(implicit tx: S#Tx): Ex[S] =
+  override protected def readCookie[S <: Sys[S]](in: DataInput, access: S#Acc, cookie: Byte)(implicit tx: S#Tx): _Ex[S] =
     cookie match {
       case /* `oldTapeCookie` | */ `emptyCookie` | `tapeCookie` =>
         val id = tx.readId(in, access)
@@ -314,11 +314,11 @@ object SynthGraphObj extends expr.impl.ExprTypeImpl[SynthGraph, SynthGraphObj] {
 
   private val emptySynthGraph = SynthGraph {}
 
-  def tape   [S <: Sys[S]](implicit tx: S#Tx): Ex[S] = apply(tapeCookie   )
+  def tape   [S <: Sys[S]](implicit tx: S#Tx): _Ex[S] = apply(tapeCookie   )
   // def tapeOld[S <: Sys[S]](implicit tx: S#Tx): Ex[S] = apply(oldTapeCookie)
-  def empty  [S <: Sys[S]](implicit tx: S#Tx): Ex[S] = apply(emptyCookie  )
+  def empty  [S <: Sys[S]](implicit tx: S#Tx): _Ex[S] = apply(emptyCookie  )
 
-  private def apply[S <: Sys[S]](cookie: Int)(implicit tx: S#Tx): Ex[S] = {
+  private def apply[S <: Sys[S]](cookie: Int)(implicit tx: S#Tx): _Ex[S] = {
     val id = tx.newId()
     new Predefined(id, cookie)
   }

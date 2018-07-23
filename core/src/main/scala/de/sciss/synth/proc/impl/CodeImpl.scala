@@ -149,13 +149,13 @@ object CodeImpl {
 
   object Wrapper {
     implicit object FileTransform
-      extends Wrapper[(File, File, ProcessorLike[Any, Any] => Unit), Future[Unit], Code.FileTransform] {
+      extends Wrapper[(File, File, ProcessorLike[Any, Any] => Unit), Future[Unit], Unit, Code.FileTransform] {
 
       def id: Int = Code.FileTransform.id
 
       def binding: Option[String] = Some("FileTransformContext")
 
-      def wrap(args: (File, File, ProcessorLike[Any, Any] => Unit))(fun: => Any): Future[Unit] = {
+      def wrap(args: (File, File, ProcessorLike[Any, Any] => Unit))(fun: => Unit): Future[Unit] = {
         val (in, out, procHandler) = args
         val proc = new FileTransformContext(in, out, () => fun)
         procHandler(proc)
@@ -168,18 +168,18 @@ object CodeImpl {
     }
 
     implicit object SynthGraph
-      extends Wrapper[Unit, synth.SynthGraph, Code.SynthGraph] {
+      extends Wrapper[Unit, synth.SynthGraph, Unit, Code.SynthGraph] {
 
       def id: Int = Code.SynthGraph.id
 
       def binding: Option[String] = None
 
-      def wrap(in: Unit)(fun: => Any): synth.SynthGraph = synth.SynthGraph(fun)
+      def wrap(in: Unit)(fun: => Unit): synth.SynthGraph = synth.SynthGraph(fun)
 
       def blockTag = "Unit" // typeTag[Unit]
     }
   }
-  trait Wrapper[In, Out, Repr] {
+  trait Wrapper[In, Out, A, Repr] {
     protected def id: Int
 
     final def imports: ISeq[String] = importsMap(id)
@@ -193,7 +193,7 @@ object CodeImpl {
       * @param fun  the thunk that executes the code
       * @return     the result of `fun` wrapped into type `Out`
       */
-    def wrap(in: In)(fun: => Any): Out
+    def wrap(in: In)(fun: => A): Out
 
     /** TypeTag of */
     def blockTag: String // TypeTag[_]
@@ -201,20 +201,20 @@ object CodeImpl {
     //    def outTag  : TypeTag[Out]
   }
 
-  final def execute[I, O, Repr <: Code { type In = I; type Out = O }](code: Repr, in: I)
-                                                                     (implicit w: Wrapper[I, O, Repr],
+  final def execute[I, O, A, Repr <: Code { type In = I; type Out = O }](code: Repr, in: I)
+                                                                     (implicit w: Wrapper[I, O, A, Repr],
                                                                       compiler: Code.Compiler): O = {
     w.wrap(in) {
       compileThunk(code.source, w, execute = true)
     }
   }
 
-  def compileBody[I, O, Repr <: Code { type In = I; type Out = O }](code: Repr)
-                                                                   (implicit w: Wrapper[I, O, Repr],
+  def compileBody[I, O, A, Repr <: Code { type In = I; type Out = O }](code: Repr)
+                                                                   (implicit w: Wrapper[I, O, A, Repr],
                                                                     compiler: Code.Compiler): Future[Unit] =
     future {
       blocking {
-        compileThunk(code.source, w, execute = false)
+        compileThunk[A](code.source, w, execute = false)
       }
     }
 
@@ -302,7 +302,7 @@ object CodeImpl {
   private val pkgSys    = "de.sciss.lucre.stm"
 
   // note: synchronous
-  private def compileThunk(code: String, w: Wrapper[_, _, _], execute: Boolean)(implicit compiler: Code.Compiler): Any = {
+  private def compileThunk[A](code: String, w: Wrapper[_, _, A, _], execute: Boolean)(implicit compiler: Code.Compiler): A = {
     val impS  = w.imports.map(i => s"  import $i\n").mkString
     val bindS = w.binding.fold("")(i =>
       s"""  val __context__ = $pkgCode.$i.__context__
@@ -316,6 +316,7 @@ object CodeImpl {
         |
         |""".stripMargin + code + "\n}"
 
-    compiler.interpret(synth, execute = execute && w.blockTag != "Unit")
+    val res: Any = compiler.interpret(synth, execute = execute && w.blockTag != "Unit")
+    res.asInstanceOf[A]
   }
 }

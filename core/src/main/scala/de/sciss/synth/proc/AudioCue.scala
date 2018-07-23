@@ -74,7 +74,7 @@ object AudioCue {
     protected def mkConst[S <: Sys[S]](id: S#Id, value: A)(implicit tx: S#Tx): Const[S] =
       new _Const[S](id, value)
 
-    protected def mkVar[S <: Sys[S]](targets: Targets[S], vr: S#Var[Ex[S]], connect: Boolean)
+    protected def mkVar[S <: Sys[S]](targets: Targets[S], vr: S#Var[_Ex[S]], connect: Boolean)
                                     (implicit tx: S#Tx): Var[S] = {
       val res = new _Var[S](targets, vr)
       if (connect) res.connect()
@@ -87,7 +87,7 @@ object AudioCue {
       def spec(implicit tx: S#Tx): AudioFileSpec = constValue.spec
     }
 
-    private final class _Var[S <: Sys[S]](val targets: Targets[S], val ref: S#Var[Ex[S]])
+    private final class _Var[S <: Sys[S]](val targets: Targets[S], val ref: S#Var[_Ex[S]])
       extends VarImpl[S] with Repr[S] {
 
       def spec(implicit tx: S#Tx): AudioFileSpec = ref().spec
@@ -220,7 +220,7 @@ object AudioCue {
 
       // ---- abstract ----
 
-      def peer: Ex[S]
+      def peer: _Ex[S]
 
       protected def num: LongObj[S]
 
@@ -288,16 +288,16 @@ object AudioCue {
     }
 
     object ReplaceOffset {
-      def unapply[S <: Sys[S]](ex: Ex[S]): Option[(Ex[S], LongObj[S])] = ex match {
+      def unapply[S <: Sys[S]](ex: _Ex[S]): Option[(_Ex[S], LongObj[S])] = ex match {
         case s: ReplaceOffset[S] => Some((s.peer, s.offset))
         case _ => None
       }
-      def apply[S <: Sys[S]](peer: Ex[S], offset: LongObj[S])(implicit tx: S#Tx): ReplaceOffset[S] = {
+      def apply[S <: Sys[S]](peer: _Ex[S], offset: LongObj[S])(implicit tx: S#Tx): ReplaceOffset[S] = {
         new ReplaceOffset(Targets[S], peer, offset).connect()
       }
     }
     final class ReplaceOffset[S <: Sys[S]](protected val targets: Targets[S],
-                                           val peer: Ex[S],
+                                           val peer: _Ex[S],
                                            val offset: LongObj[S])
       extends LongOpImpl[S] {
 
@@ -313,16 +313,16 @@ object AudioCue {
     }
 
     object Shift {
-      def unapply[S <: Sys[S]](ex: Ex[S]): Option[(Ex[S], LongObj[S])] = ex match {
+      def unapply[S <: Sys[S]](ex: _Ex[S]): Option[(_Ex[S], LongObj[S])] = ex match {
         case s: Shift[S] => Some((s.peer, s.amount))
         case _ => None
       }
-      def apply[S <: Sys[S]](peer: Ex[S], amount: LongObj[S])(implicit tx: S#Tx): Shift[S] = {
+      def apply[S <: Sys[S]](peer: _Ex[S], amount: LongObj[S])(implicit tx: S#Tx): Shift[S] = {
         new Shift(Targets[S], peer, amount).connect()
       }
     }
     final class Shift[S <: Sys[S]](protected val targets: Targets[S],
-                                   val peer: Ex[S],
+                                   val peer: _Ex[S],
                                    val amount: LongObj[S])
       extends LongOpImpl[S] {
 
@@ -337,10 +337,10 @@ object AudioCue {
         new Shift(Targets[Out], peer = context(peer), amount = context(amount)).connect()
     }
 
-    final class Ops[S <: Sys[S]](val `this`: Ex[S]) extends AnyVal { me =>
+    final class Ops[S <: Sys[S]](val `this`: _Ex[S]) extends AnyVal { me =>
       import me.{`this` => ex}
 
-      def replaceOffset(newValue: LongObj[S])(implicit tx: S#Tx): Ex[S] = (ex, newValue) match {
+      def replaceOffset(newValue: LongObj[S])(implicit tx: S#Tx): _Ex[S] = (ex, newValue) match {
         case (a: Apply[S], _) => Obj(artifact = a.artifact, spec = a.specValue, offset = newValue, gain = a.gain)
         case (_Expr.Const(c), _Expr.Const(offset)) => newConst(c.copy(offset = offset))
         case _ =>
@@ -353,7 +353,7 @@ object AudioCue {
         case _              => Offset[S](ex)
       }
 
-      def shift(amount: LongObj[S])(implicit tx: S#Tx): Ex[S] = (ex, amount) match {
+      def shift(amount: LongObj[S])(implicit tx: S#Tx): _Ex[S] = (ex, amount) match {
         case (_Expr.Const(c), _Expr.Const(amountC)) => newConst(c.copy(offset = c.offset + amountC))
         case (s: Shift[S], _) =>
           import proc.Ops.longObjOps

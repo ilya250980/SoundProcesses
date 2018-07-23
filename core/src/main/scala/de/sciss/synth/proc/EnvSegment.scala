@@ -71,7 +71,7 @@ object EnvSegment {
     protected def mkConst[S <: Sys[S]](id: S#Id, value: A)(implicit tx: S#Tx): Const[S] =
       new _Const[S](id, value)
 
-    protected def mkVar[S <: Sys[S]](targets: Targets[S], vr: S#Var[Ex[S]], connect: Boolean)
+    protected def mkVar[S <: Sys[S]](targets: Targets[S], vr: S#Var[_Ex[S]], connect: Boolean)
                                     (implicit tx: S#Tx): Var[S] = {
       val res = new _Var[S](targets, vr)
       if (connect) res.connect()
@@ -81,7 +81,7 @@ object EnvSegment {
     private final class _Const[S <: Sys[S]](val id: S#Id, val constValue: A)
       extends ConstImpl[S] with Repr[S]
 
-    private final class _Var[S <: Sys[S]](val targets: Targets[S], val ref: S#Var[Ex[S]])
+    private final class _Var[S <: Sys[S]](val targets: Targets[S], val ref: S#Var[_Ex[S]])
       extends VarImpl[S] with Repr[S]
 
     def valueSerializer: ImmutableSerializer[EnvSegment] = EnvSegment.serializer

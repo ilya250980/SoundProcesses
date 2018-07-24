@@ -16,10 +16,13 @@ import scala.concurrent.Future
 object Widget extends Obj.Type {
   final val typeId = 0x1000E
 
+  /** Source code of the graph function. */
+  final val attrSource = "graph-source"
+
   override def init(): Unit = {
-    super .init()
-    Graph .init()
-    Code  .init()
+    super   .init()
+    GraphObj.init()
+    Code    .init()
   }
 
   def apply[S <: Sys[S]](implicit tx: S#Tx): Widget[S] = Impl[S]
@@ -30,6 +33,9 @@ object Widget extends Obj.Type {
 
   def readIdentifiedObj[S <: Sys[S]](in: DataInput, access: S#Acc)(implicit tx: S#Tx): Obj[S] =
     Impl.readIdentifiedObj(in, access)
+
+  type Graph = _Graph
+  val Graph: _Graph.type = _Graph
 
   // ---- event types ----
 
@@ -52,7 +58,7 @@ object Widget extends Obj.Type {
       proc.Code.addType(this)
       proc.Code.registerImports(id, Vec(
         "de.sciss.numbers.Implicits._",
-        "de.sciss.lucre.swing.ExOps._",
+        "de.sciss.lucre.expr.ExOps._",
         "de.sciss.lucre.swing.graph._"
       ))
       proc.Code.registerImports(proc.Code.Action.id, Vec(
@@ -87,7 +93,7 @@ object Widget extends Obj.Type {
 
   // ---- graph obj ----
 
-  object Graph extends expr.impl.ExprTypeImpl[_Graph, Graph] {
+  object GraphObj extends expr.impl.ExprTypeImpl[_Graph, GraphObj] {
     final val typeId = 400
 
     protected def mkConst[S <: Sys[S]](id: S#Id, value: A)(implicit tx: S#Tx): Const[S] =
@@ -101,10 +107,10 @@ object Widget extends Obj.Type {
     }
 
     private final class _Const[S <: Sys[S]](val id: S#Id, val constValue: A)
-      extends ConstImpl[S] with Graph[S]
+      extends ConstImpl[S] with GraphObj[S]
 
     private final class _Var[S <: Sys[S]](val targets: Targets[S], val ref: S#Var[_Ex[S]])
-      extends VarImpl[S] with Graph[S]
+      extends VarImpl[S] with GraphObj[S]
 
     /** A serializer for graphs. */
     def valueSerializer: ImmutableSerializer[_Graph] = _Graph.serializer
@@ -135,11 +141,11 @@ object Widget extends Obj.Type {
     }
 
     private final class Predefined[S <: Sys[S]](val id: S#Id, cookie: Int)
-      extends Graph[S] with Expr.Const[S, _Graph] {
+      extends GraphObj[S] with Expr.Const[S, _Graph] {
 
       def event(slot: Int): Event[S, Any] = throw new UnsupportedOperationException
 
-      def tpe: Obj.Type = Graph
+      def tpe: Obj.Type = GraphObj
 
       def copy[Out <: Sys[Out]]()(implicit tx: S#Tx, txOut: Out#Tx, context: Copy[S, Out]): Elem[Out] =
         new Predefined(txOut.newId(), cookie) // .connect()
@@ -161,8 +167,8 @@ object Widget extends Obj.Type {
       }
     }
   }
-  trait Graph[S <: Sys[S]] extends Expr[S, _Graph]
+  trait GraphObj[S <: Sys[S]] extends Expr[S, _Graph]
 }
 trait Widget[S <: Sys[S]] extends Obj[S] with Publisher[S, Widget.Update[S]] {
-  def graph: Widget.Graph.Var[S]
+  def graph: Widget.GraphObj.Var[S]
 }

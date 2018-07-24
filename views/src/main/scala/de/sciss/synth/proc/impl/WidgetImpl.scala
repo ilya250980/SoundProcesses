@@ -77,7 +77,7 @@ object WidgetImpl {
     def copy[Out <: Sys[Out]]()(implicit tx: S#Tx, txOut: Out#Tx, context: Copy[S, Out]): Elem[Out] =
       new Impl[Out] { out =>
         protected val targets: Targets[Out]                     = Targets[Out]
-        val graph     : Widget.Graph.Var[Out]                   = context(proc.graph)
+        val graph     : Widget.GraphObj.Var[Out]                   = context(proc.graph)
 //        val outputsMap: SkipList.Map[Out, String, Output[Out]]  = SkipList.Map.empty
 
         connect()
@@ -129,7 +129,7 @@ object WidgetImpl {
 
   private final class New[S <: Sys[S]](implicit tx0: S#Tx) extends Impl[S] {
     protected val targets: Targets[S] = Targets(tx0)
-    val graph     : Widget.Graph.Var[S]                 = Widget.Graph.newVar(Widget.Graph.empty)
+    val graph     : Widget.GraphObj.Var[S]                 = Widget.GraphObj.newVar(Widget.GraphObj.empty)
 //    val outputsMap: SkipList.Map[S, String, Output[S]]  = SkipList.Map.empty
     connect()(tx0)
   }
@@ -138,7 +138,7 @@ object WidgetImpl {
                                        (implicit tx0: S#Tx)
     extends Impl[S] {
 
-    val graph     : Widget.Graph.Var[S]                 = Widget.Graph.readVar(in, access)
+    val graph     : Widget.GraphObj.Var[S]                 = Widget.GraphObj.readVar(in, access)
 //    val outputsMap: SkipList.Map[S, String, Output[S]]  = SkipList.Map.read   (in, access)
   }
 }

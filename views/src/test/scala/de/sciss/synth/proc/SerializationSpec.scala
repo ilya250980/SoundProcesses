@@ -28,11 +28,11 @@ class SerializationSpec extends fixture.FlatSpec with Matchers {
       val g = WGraph {
         import ExOps._
         import wgraph._
-        val sl    = Slider()
-        sl.min   = 1
-        sl.max   = 10
-        sl.value = "foo".attr(1)
-        val txt = (sl.value.dbAmp * 2.0).toStr
+        val sl      = Slider()
+        sl.min      = 1
+        sl.max      = 10
+        sl.value()  = "foo".attr(1)
+        val txt = (sl.value().dbAmp * 2.0).toStr
         val lb = Label(txt)
         FlowPanel(sl, lb)
       }

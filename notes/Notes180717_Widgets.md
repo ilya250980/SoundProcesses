@@ -503,3 +503,14 @@ trait Button {
   def clicked: Trigger[(Int, Int)]  // ugly?
 }
 ```
+
+------------
+
+# Artifacts
+
+Sadly we have `ArtifactLocation <: Expr[File]` and `Artifact <: Expr[File]`, and the latter not corresponding
+with `Type.Expr`. So we need some glue objects to play nicely with widgets.
+
+We have redundant bridge here: `ExAttr(WithDefault)` already carries an instance, and `Model` methods ask for it again.
+If we move the bridge solely to `ExAttr(WithDefault)`, we can simply have custom constructors for artifacts, and
+so we also can avoid having to type `File`.

@@ -1,13 +1,15 @@
 package de.sciss.synth.proc
 
+import de.sciss.lucre.expr.StringObj
 import de.sciss.lucre.stm.InMemory
 import de.sciss.lucre.{expr, swing}
 
 import scala.swing.Component
 
-object ResampleDlgTest {
+object ResampleDlgTest extends AppLike {
   protected def mkView(): Component = {
     import expr.ExOps._
+    // import swing.WidgetOps._
     import swing.graph._
     val g = swing.Graph {
       //      val sepWave         = TitledSeparator("Waveform I/O")
@@ -15,7 +17,7 @@ object ResampleDlgTest {
       val lbIn            = Label("Input file:")
       val ggIn            = PathField()
       ggIn.mode           = PathField.Open
-      ??? // ggIn.value() ---> "in".attr[File]
+      ggIn.value <--> Artifact("in")
       val ggInfo          = TextField(20)
       ggInfo.editable     = false
       ggInfo.focusable    = false
@@ -81,7 +83,8 @@ object ResampleDlgTest {
     implicit val sys: S = InMemory()
 
     val view = sys.step { implicit tx =>
-      g.expand[S]()
+      val self = StringObj.newConst[S]("foo")
+      g.expand[S](self = Some(self))
     }
     view.component
   }

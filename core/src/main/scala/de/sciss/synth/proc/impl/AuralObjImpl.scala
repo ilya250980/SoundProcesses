@@ -55,7 +55,7 @@ object AuralObjImpl {
     def apply[S <: Sys[S]](obj: Obj[S])(implicit tx: S#Tx): AuralObj[S] =
       new Impl(tx.newHandle(obj))
 
-    private final class Impl[S <: Sys[S]](val obj: stm.Source[S#Tx, Obj[S]])
+    private final class Impl[S <: Sys[S]](val objH: stm.Source[S#Tx, Obj[S]])
       extends AuralObj[S] with DummyObservableImpl[S] {
 
       def typeId: Int = 0

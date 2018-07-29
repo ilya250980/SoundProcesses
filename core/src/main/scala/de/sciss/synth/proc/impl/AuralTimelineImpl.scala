@@ -58,7 +58,7 @@ object AuralTimelineImpl {
     res
   }
 
-  private final class Impl[S <: Sys[S], I <: stm.Sys[I]](val obj: stm.Source[S#Tx, Timeline[S]],
+  private final class Impl[S <: Sys[S], I <: stm.Sys[I]](val objH: stm.Source[S#Tx, Timeline[S]],
                                                          protected val tree: SkipOctree[I, LongSpace.TwoDim, Leaf[S]])
                                                         (implicit protected val context: AuralContext[S],
                                                          protected val iSys: S#Tx => I#Tx)

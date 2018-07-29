@@ -831,7 +831,7 @@ class AuralTests1[S <: Sys[S]](name: String)(implicit cursor: stm.Cursor[S]) ext
       println("--mk timeline--")
 
       val _tl = timelineV()
-      val tlObj = _tl.obj()
+      val tlObj = _tl.objH()
       tlObj += (0.0 -> 10.0, _proc1)
       // the problem occurs (occurred! now it's fixed) when we add the scan _before_ creating
       // adding _proc2. like here:
@@ -881,8 +881,8 @@ class AuralTests1[S <: Sys[S]](name: String)(implicit cursor: stm.Cursor[S]) ext
         graph.ScanOut("out", PinkNoise.ar(Seq(0.5, 0.5)))
       }
 
-      val scanOut = addOutput(_view2.obj(), "out")
-      val scanBar = addScanIn (_view1.obj(), "bar")
+      val scanOut = addOutput(_view2.objH(), "out")
+      val scanBar = addScanIn (_view1.objH(), "bar")
 
       scanOut ~> scanBar
 
@@ -892,7 +892,7 @@ class AuralTests1[S <: Sys[S]](name: String)(implicit cursor: stm.Cursor[S]) ext
 
       after(2.0) { implicit tx =>
         println("--issue graph change--")
-        val pObj = _view1.obj()
+        val pObj = _view1.objH()
         val newGraph = SynthGraph {
           val in   = graph.ScanIn("bar")
           val sig  = Resonz.ar(in, 555, 0.1) * 10
@@ -997,7 +997,7 @@ class AuralTests1[S <: Sys[S]](name: String)(implicit cursor: stm.Cursor[S]) ext
       putDouble(_view2, "pan", 1)
 
       val _tl   = timelineV()
-      val tlObj = _tl.obj()
+      val tlObj = _tl.objH()
       tlObj += (1.0 -> 3.0, _view1)
       tlObj += (2.0 -> 4.0, _view2)
       val it = tlObj.debugList
@@ -1021,7 +1021,7 @@ class AuralTests1[S <: Sys[S]](name: String)(implicit cursor: stm.Cursor[S]) ext
 
         after(2.0) { implicit tx =>
           println("--insert at 5.5s--")
-          val tlObj = tl.obj()
+          val tlObj = tl.objH()
           val _view3 = procV {
             val dur  = graph.Duration.ir
             val off  = graph.Offset  .ir
@@ -1032,7 +1032,7 @@ class AuralTests1[S <: Sys[S]](name: String)(implicit cursor: stm.Cursor[S]) ext
             Out.ar(0, sig)
           }
 
-          tlObj += (3.5 -> 8.5, _view3.obj())
+          tlObj += (3.5 -> 8.5, _view3.objH())
 
           val _view4 = procV {
             val sig  = PinkNoise.ar(0.5)
@@ -1040,16 +1040,16 @@ class AuralTests1[S <: Sys[S]](name: String)(implicit cursor: stm.Cursor[S]) ext
           }
 
           val span1 = SpanLikeObj.newConst(6.0 -> 7.5): SpanLikeObj[S]
-          tlObj.modifiableOption.get.add(span1, _view4.obj())
+          tlObj.modifiableOption.get.add(span1, _view4.objH())
           // tlObj += (6.0 -> 7.5, _view4.obj())
           val span1H = tx.newHandle(span1)
 
           after(1.0) { implicit tx =>
-            val tlObj = tl.obj()
+            val tlObj = tl.objH()
             println("--kill your idol at 6.5s--")
             val span1 = span1H()
             // tlObj -= (6.0 -> 7.5, _view4.obj())
-            tlObj.modifiableOption.get.remove(span1, _view4.obj())
+            tlObj.modifiableOption.get.remove(span1, _view4.objH())
 
             stopAndQuit(3.0)
           }
@@ -1077,7 +1077,7 @@ class AuralTests1[S <: Sys[S]](name: String)(implicit cursor: stm.Cursor[S]) ext
         graph.ScanOut("out", noise)
       }
       _view1.react { implicit tx => upd => println(s"Observed: $upd") }
-      val proc1 = _view1.obj()
+      val proc1 = _view1.objH()
       proc1.name = "pink"
       putDouble(proc1, "amp", 0.5)
 
@@ -1086,7 +1086,7 @@ class AuralTests1[S <: Sys[S]](name: String)(implicit cursor: stm.Cursor[S]) ext
         val in    = graph.ScanIn("in")
         Out.ar(0, Resonz.ar(in, freq, 0.1) * 10)
       }
-      val proc2 = _view2.obj()
+      val proc2 = _view2.objH()
       proc2.name = "filter"
       putDouble(proc2, "freq", 666)
 
@@ -1096,8 +1096,8 @@ class AuralTests1[S <: Sys[S]](name: String)(implicit cursor: stm.Cursor[S]) ext
     cursor.step { implicit tx =>
       println("--issue play2--")
       view2.play()
-      val proc1   = view1.obj()
-      val proc2   = view2.obj()
+      val proc1   = view1.objH()
+      val proc2   = view2.objH()
       //      val test = de.sciss.lucre.event.Peek.targets(proc2)
       //      println(s"---1, num-children is ${test.size}")
       // reversed steps
@@ -1114,7 +1114,7 @@ class AuralTests1[S <: Sys[S]](name: String)(implicit cursor: stm.Cursor[S]) ext
       //      println(s"---2, num-children is ${test.size}")
 
       after(1.0) { implicit tx =>
-        val proc2b = view2.obj()
+        val proc2b = view2.objH()
         println("--adjust attribute--")
         // val test1 = de.sciss.lucre.event.Peek.targets(proc2b)
         // println(s"---3, num-children is ${test1.size}")
@@ -1144,7 +1144,7 @@ class AuralTests1[S <: Sys[S]](name: String)(implicit cursor: stm.Cursor[S]) ext
         graph.ScanOut("out", noise)
       }
       _view1.react { implicit tx => upd => println(s"Observed: $upd") }
-      val proc1 = _view1.obj()
+      val proc1 = _view1.objH()
       putDouble(proc1, "amp", 0.5)
 
       val _view2 = procV {
@@ -1152,7 +1152,7 @@ class AuralTests1[S <: Sys[S]](name: String)(implicit cursor: stm.Cursor[S]) ext
         val in    = graph.ScanIn("in")
         Out.ar(0, Resonz.ar(in, freq, 0.1) * 10)
       }
-      val proc2 = _view2.obj()
+      val proc2 = _view2.objH()
       putDouble(proc2, "freq", 666)
 
       (_view1, _view2)
@@ -1161,8 +1161,8 @@ class AuralTests1[S <: Sys[S]](name: String)(implicit cursor: stm.Cursor[S]) ext
     cursor.step { implicit tx =>
       println("--issue play1--")
       view1.play()
-      val proc1   = view1.obj()
-      val proc2   = view2.obj()
+      val proc1   = view1.objH()
+      val proc2   = view2.objH()
       val scanOut = addOutput(proc1, "out")
       val scanIn  = addScanIn (proc2, "in" )
       scanOut ~> scanIn
@@ -1197,7 +1197,7 @@ class AuralTests1[S <: Sys[S]](name: String)(implicit cursor: stm.Cursor[S]) ext
       }
       import Implicits._
       _view1.react { implicit tx => upd => println(s"Observed: $upd") }
-      val proc1 = _view1.obj()
+      val proc1 = _view1.objH()
       proc1.name = "pink"
       putDouble(proc1, "amp", 0.5)
 
@@ -1206,7 +1206,7 @@ class AuralTests1[S <: Sys[S]](name: String)(implicit cursor: stm.Cursor[S]) ext
         val in    = graph.ScanIn("in")
         Out.ar(0, Resonz.ar(in, freq, 0.1) * 10)
       }
-      val proc2 = _view2.obj()
+      val proc2 = _view2.objH()
       proc2.name = "filter"
       putDouble(proc2, "freq", 666)
 
@@ -1217,8 +1217,8 @@ class AuralTests1[S <: Sys[S]](name: String)(implicit cursor: stm.Cursor[S]) ext
       println("--issue play--")
       view1.play()
       view2.play()
-      val proc1   = view1.obj()
-      val proc2   = view2.obj()
+      val proc1   = view1.objH()
+      val proc2   = view2.objH()
       val scanOut = addOutput(proc1, "out")
       val scanIn  = addScanIn(proc2, "in" )
       scanOut ~> scanIn

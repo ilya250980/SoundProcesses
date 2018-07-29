@@ -78,7 +78,7 @@ object AuralProcImpl {
 
     private[this] var _obj: stm.Source[S#Tx, Proc[S]] = _
 
-    final def obj: stm.Source[S#Tx, Proc[S]] = _obj
+    final def objH: stm.Source[S#Tx, Proc[S]] = _obj
 
     override def toString = s"AuralObj.Proc@${hashCode().toHexString}"
 
@@ -538,7 +538,7 @@ object AuralProcImpl {
     final protected def procCached()(implicit tx: S#Tx): Proc[S] = {
       if (procLoc.isInitialized) procLoc.get
       else {
-        val proc = obj()
+        val proc = objH()
         procLoc.set(proc)
         proc
       }
@@ -702,7 +702,7 @@ object AuralProcImpl {
           nr.addResource(late)
 
         case UGB.Input.Action.Value =>   // ----------------------- action
-          val resp = new ActionResponder(objH = obj /* tx.newHandle(nr.obj) */, key = key, synth = nr.node)
+          val resp = new ActionResponder(objH = objH /* tx.newHandle(nr.obj) */, key = key, synth = nr.node)
           nr.addUser(resp)
 
         case UGB.Input.DiskOut.Value(numCh) =>

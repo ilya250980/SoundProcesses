@@ -41,7 +41,7 @@ trait AuralGraphemeBase[S <: Sys[S], I <: stm.Sys[I], Target, Elem <: AuralView[
 
   // ---- abstract ----
 
-  def obj: stm.Source[S#Tx, Grapheme[S]]
+  override def objH: stm.Source[S#Tx, Grapheme[S]]
 
   protected def viewTree: SkipList.Map[I, Long, Vec[Elem]]
 
@@ -65,7 +65,7 @@ trait AuralGraphemeBase[S <: Sys[S], I <: stm.Sys[I], Target, Elem <: AuralView[
     viewTree.ceil(offset + 1)(iSys(tx)).fold(Long.MaxValue)(_._1)
 
   protected final def modelEventAfter(offset: Long)(implicit tx: S#Tx): Long =
-    obj().eventAfter(offset).getOrElse(Long.MaxValue)
+    objH().eventAfter(offset).getOrElse(Long.MaxValue)
 
   protected final def processPlay(timeRef: TimeRef, target: Target)(implicit tx: S#Tx): Unit = {
     implicit val itx: I#Tx = iSys(tx)
@@ -84,7 +84,7 @@ trait AuralGraphemeBase[S <: Sys[S], I <: stm.Sys[I], Target, Elem <: AuralView[
   protected final def processPrepare(spanP: Span, timeRef: TimeRef, initial: Boolean)
                                     (implicit tx: S#Tx): Iterator[PrepareResult] = {
     // println(s"processPrepare($span, $timeRef, initial = $initial")
-    val gr    = obj()
+    val gr    = objH()
     val opt0  = if (initial) gr.floor(spanP.start) else gr.ceil(spanP.start)
     opt0.fold[Iterator[PrepareResult]](Iterator.empty) { e0 =>
       new Iterator[PrepareResult] {
@@ -242,7 +242,7 @@ trait AuralGraphemeBase[S <: Sys[S], I <: stm.Sys[I], Target, Elem <: AuralView[
     // implicit val itx = iSys(tx)
     val opt = for {
       seq  <- viewTree.get(start)(iSys(tx))
-      view <- seq.find(_.obj() == child)
+      view <- seq.find(_.objH() == child)
     } yield {
       logA(s"timeline - elemRemoved($start, $child)")
       val h         = ElemHandle(start, view)

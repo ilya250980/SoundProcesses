@@ -58,9 +58,9 @@ object AuralTimelineAttribute extends Factory {
   }
 }
 final class AuralTimelineAttribute[S <: Sys[S], I <: stm.Sys[I]](val key: String,
-         val obj: stm.Source[S#Tx, Timeline[S]],
-         observer: Observer[S],
-         protected val tree: SkipOctree[I, LongSpace.TwoDim, AuralTimelineAttribute.Leaf[S]])
+                                                                 val objH: stm.Source[S#Tx, Timeline[S]],
+                                                                 observer: Observer[S],
+                                                                 protected val tree: SkipOctree[I, LongSpace.TwoDim, AuralTimelineAttribute.Leaf[S]])
         (implicit protected val context: AuralContext[S], protected val iSys: S#Tx => I#Tx)
   extends AuralTimelineBase[S, I, AuralAttribute.Target[S], AuralAttribute[S]]
   with AuralAttribute[S]
@@ -89,7 +89,7 @@ final class AuralTimelineAttribute[S <: Sys[S], I <: stm.Sys[I]](val key: String
       return cache
     }
 
-    val timeline  = obj()
+    val timeline  = objH()
     val time0     = timeline.firstEvent.getOrElse(-1L)
     if (time0 < 0L) {
       // println(s"preferredNumChannels - empty: -1")

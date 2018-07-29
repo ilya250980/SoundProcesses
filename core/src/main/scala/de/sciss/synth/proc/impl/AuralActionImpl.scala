@@ -32,7 +32,7 @@ object AuralActionImpl extends AuralObj.Factory {
     new Impl(objH)
   }
 
-  private final class Impl[S <: Sys[S]](val obj: stm.Source[S#Tx, Action[S]])(implicit context: AuralContext[S])
+  private final class Impl[S <: Sys[S]](val objH: stm.Source[S#Tx, Action[S]])(implicit context: AuralContext[S])
     extends AuralObj.Action[S] with ObservableImpl[S, AuralView.State] {
 
     override def toString = s"AuralAction@${hashCode().toHexString}"
@@ -48,7 +48,7 @@ object AuralActionImpl extends AuralObj.Factory {
     def play(timeRef: TimeRef.Option, unit: Unit)(implicit tx: S#Tx): Unit = {
       val oldState = stateRef.swap(AuralView.Playing)(tx.peer) // XXX TODO fire update
       if (oldState != AuralView.Playing) {
-        val actionObj = obj()
+        val actionObj = objH()
         if (!actionObj.muted) {
           val action    = actionObj
           val universe  = Action.Universe(actionObj, context.workspaceHandle, invoker = None)(context.scheduler.cursor)

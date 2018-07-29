@@ -51,7 +51,7 @@ object AuralGraphemeAttribute extends Factory {
   }
 }
 final class AuralGraphemeAttribute[S <: Sys[S], I <: stm.Sys[I]](val key: String,
-                                                                 val obj: stm.Source[S#Tx, Grapheme[S]],
+                                                                 val objH: stm.Source[S#Tx, Grapheme[S]],
                                                                  observer: Observer[S],
                                                                  protected val viewTree: SkipList.Map[I, Long, Vec[AuralAttribute[S]]])
                                                                 (implicit protected val context: AuralContext[S],
@@ -74,7 +74,7 @@ final class AuralGraphemeAttribute[S <: Sys[S], I <: stm.Sys[I]](val key: String
   protected def makeViewElem(start: Long, child: Obj[S])(implicit tx: S#Tx): Elem = {
     val view = AuralAttribute(key, child, attr)
     view match {
-      case ga: GraphemeAware[S] => ga.setGrapheme(start, obj())
+      case ga: GraphemeAware[S] => ga.setGrapheme(start, objH())
       case _ =>
     }
     view
@@ -87,7 +87,7 @@ final class AuralGraphemeAttribute[S <: Sys[S], I <: stm.Sys[I]](val key: String
       return cache
     }
 
-    val gr      = obj()
+    val gr      = objH()
     val time0   = gr.firstEvent.getOrElse(-1L)
     if (time0 < 0L) {
       // println(s"preferredNumChannels - empty: -1")

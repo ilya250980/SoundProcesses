@@ -45,7 +45,7 @@ trait AuralTimelineBase[S <: Sys[S], I <: stm.Sys[I], Target, Elem <: AuralView[
 
   // ---- abstract ----
 
-  def obj: stm.Source[S#Tx, Timeline[S]]
+  override def objH: stm.Source[S#Tx, Timeline[S]]
 
   protected def tree: SkipOctree[I, LongSpace.TwoDim, (SpanLike, Vec[(stm.Source[S#Tx, S#Id], Elem)])]
 
@@ -89,7 +89,7 @@ trait AuralTimelineBase[S <: Sys[S], I <: stm.Sys[I], Target, Elem <: AuralView[
     BiGroupImpl.eventAfter(tree)(offset)(iSys(tx)).getOrElse(Long.MaxValue)
 
   protected final def modelEventAfter(offset: Long)(implicit tx: S#Tx): Long =
-    obj().eventAfter(offset).getOrElse(Long.MaxValue)
+    objH().eventAfter(offset).getOrElse(Long.MaxValue)
 
   protected final def processPlay(timeRef: TimeRef, target: Target)(implicit tx: S#Tx): Unit = {
     val toStart = intersect(timeRef.offset)
@@ -102,7 +102,7 @@ trait AuralTimelineBase[S <: Sys[S], I <: stm.Sys[I], Target, Elem <: AuralView[
 
   protected final def processPrepare(span: Span, timeRef: TimeRef, initial: Boolean)
                                     (implicit tx: S#Tx): Iterator[PrepareResult] = {
-    val tl          = obj()
+    val tl          = objH()
     // search for new regions starting within the look-ahead period
     val startSpan   = if (initial) Span.until(span.stop) else span
     val stopSpan    = Span.from(span.start)
@@ -283,7 +283,7 @@ trait AuralTimelineBase[S <: Sys[S], I <: stm.Sys[I], Target, Elem <: AuralView[
         val views1 = if (i >= 0) {
           views.patch(i, Nil, 1)
         } else {
-          Console.err.println(s"Warning: timeline - removeView - view for $obj not in tree")
+          Console.err.println(s"Warning: timeline - removeView - view for $objH not in tree")
           views
         }
         if (views1.isEmpty) None else Some(span1 -> views1)

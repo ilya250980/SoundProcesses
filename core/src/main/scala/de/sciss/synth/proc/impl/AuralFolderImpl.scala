@@ -25,14 +25,14 @@ object AuralFolderImpl {
     new Impl(tx.newHandle(folder), transport).init(folder)
   }
 
-  private final class Impl[S <: Sys[S]](val obj: stm.Source[S#Tx, Folder[S]],
+  private final class Impl[S <: Sys[S]](val objH: stm.Source[S#Tx, Folder[S]],
                                         protected val transport: Transport[S])
     extends AuralFolderLikeImpl[S, Folder[S], AuralObj.Folder[S]]
     with AuralObj.Folder[S] { impl =>
 
     def typeId: Int = Folder.typeId
 
-    def folder(implicit tx: S#Tx): Folder[S] = obj()
+    def folder(implicit tx: S#Tx): Folder[S] = objH()
 
     def mkObserver(ens: Folder[S])(implicit tx: S#Tx): Disposable[S#Tx] =
       ens.changed.react { implicit tx => upd =>

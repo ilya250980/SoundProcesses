@@ -25,8 +25,8 @@ object AuralContext {
 
   def apply[S <: SSys[S]](server: Server)(implicit tx: S#Tx, cursor: stm.Cursor[S],
                                          workspaceHandle: WorkspaceHandle[S]): AuralContext[S] = {
-    val sched = Scheduler[S]
-    apply(server, sched)
+    val scheduler = Scheduler[S]
+    apply(server, scheduler)
   }
 }
 trait AuralContext[S <: Sys[S]] extends AuxContext[S] {

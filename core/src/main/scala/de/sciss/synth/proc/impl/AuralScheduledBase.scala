@@ -42,7 +42,7 @@ object AuralScheduledBase {
 }
 /** Common base for `AuralGraphemeBase` and `AuralTimelineBase`. */
 trait AuralScheduledBase[S <: Sys[S], Target, Elem <: AuralViewBase[S, Target]]
-  extends ObservableImpl[S, AuralView.State] { impl =>
+  extends AuralView[S, Target] with ObservableImpl[S, AuralView.State] { impl =>
 
   import TxnLike.peer
 

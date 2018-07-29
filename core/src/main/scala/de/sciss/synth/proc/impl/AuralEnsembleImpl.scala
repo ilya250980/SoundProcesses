@@ -27,7 +27,7 @@ object AuralEnsembleImpl {
     new Impl(tx.newHandle(obj), transport).init(ensemble)
   }
   
-  private final class Impl[S <: Sys[S]](val obj: stm.Source[S#Tx, Ensemble[S]],
+  private final class Impl[S <: Sys[S]](val objH: stm.Source[S#Tx, Ensemble[S]],
                                         protected val transport: Transport[S])
     extends AuralFolderLikeImpl[S, Ensemble[S], AuralObj.Ensemble[S]]
     with AuralObj.Ensemble[S] { impl =>
@@ -53,7 +53,7 @@ object AuralEnsembleImpl {
         }
       }
 
-    private def ensemble(implicit tx: S#Tx): Ensemble[S] = obj()
+    private def ensemble(implicit tx: S#Tx): Ensemble[S] = objH()
 
     protected def performPlay(timeRef: TimeRef)(implicit tx: S#Tx): Unit = {
       val ens = ensemble

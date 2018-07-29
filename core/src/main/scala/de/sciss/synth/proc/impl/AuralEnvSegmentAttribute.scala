@@ -87,7 +87,7 @@ object AuralEnvSegmentAttribute extends Factory with StartLevelViewFactory {
     def dispose()(implicit tx: S#Tx): Unit = obs.dispose()
   }
 
-  private final class Impl[S <: Sys[S]](val key: String, val obj: stm.Source[S#Tx, Repr[S]])
+  private final class Impl[S <: Sys[S]](val key: String, val objH: stm.Source[S#Tx, Repr[S]])
                                        (implicit val context: AuralContext[S])
     extends ExprImpl[S, EnvSegment] with GraphemeAware[S] {
 
@@ -96,9 +96,9 @@ object AuralEnvSegmentAttribute extends Factory with StartLevelViewFactory {
 
     def typeId: Int = EnvSegment.typeId
 
-    def preferredNumChannels(implicit tx: S#Tx): Int = obj().value.numChannels
+    def preferredNumChannels(implicit tx: S#Tx): Int = objH().value.numChannels
 
-    private def valueChanged()(implicit tx: S#Tx): Unit = valueChanged(obj().value)
+    private def valueChanged()(implicit tx: S#Tx): Unit = valueChanged(objH().value)
 
     override def dispose()(implicit tx: S#Tx): Unit = {
       _endLevel.swap(None).foreach(_.dispose())

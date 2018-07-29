@@ -31,7 +31,7 @@ object AuralOutputAttribute extends Factory {
                         (implicit tx: S#Tx, context: AuralContext[S]): AuralAttribute[S] =
     new AuralOutputAttribute(key, tx.newHandle(value), observer).init(value)
 }
-final class AuralOutputAttribute[S <: Sys[S]](val key: String, val obj: stm.Source[S#Tx, Output[S]],
+final class AuralOutputAttribute[S <: Sys[S]](val key: String, val objH: stm.Source[S#Tx, Output[S]],
                                               observer: Observer[S])
                                              (implicit context: AuralContext[S])
   extends AuralAttributeImpl[S] { attr =>

@@ -62,7 +62,7 @@ object AuralFolderAttribute extends Factory {
     def external: AuralView.State = Playing
   }
 }
-final class AuralFolderAttribute[S <: Sys[S]](val key: String, val obj: stm.Source[S#Tx, Folder[S]],
+final class AuralFolderAttribute[S <: Sys[S]](val key: String, val objH: stm.Source[S#Tx, Folder[S]],
                                               observer: Observer[S])
                                              (implicit context: AuralContext[S])
   extends AuralAttribute[S] with ObservableImpl[S, AuralView.State] with AuralAttribute.Observer[S] { attr =>

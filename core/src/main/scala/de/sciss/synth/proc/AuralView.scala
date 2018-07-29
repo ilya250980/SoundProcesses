@@ -42,5 +42,5 @@ trait AuralView[S <: Sys[S], -Target] extends AuralViewBase[S, Target] {
   def typeId: Int
 
   /** The view must store a handle to its underlying model. */
-  def obj: stm.Source[S#Tx, Obj[S]]
+  def objH: stm.Source[S#Tx, Obj[S]]
 }

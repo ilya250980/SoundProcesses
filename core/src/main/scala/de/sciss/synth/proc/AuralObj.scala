@@ -100,7 +100,7 @@ object AuralObj {
       extends OutputUpdate[S]
   }
   trait Proc[S <: Sys[S]] extends AuralObj[S] {
-    override def obj: stm.Source[S#Tx, _Proc[S]]
+    override def objH: stm.Source[S#Tx, _Proc[S]]
 
     /** The node reference associated with the process. A `Some` value indicates that
       * at least one instance view is playing, whereas a `None` value indicates that
@@ -166,7 +166,7 @@ object AuralObj {
     }
   }
   trait Timeline[S <: Sys[S]] extends Container[S, Timeline[S]] {
-    override def obj: stm.Source[S#Tx, _Timeline[S]]
+    override def objH: stm.Source[S#Tx, _Timeline[S]]
 
     def getView(timed: _Timeline.Timed[S])(implicit tx: S#Tx): Option[AuralObj[S]]
   }
@@ -188,7 +188,7 @@ object AuralObj {
       AuralEnsembleImpl(obj)
   }
   trait Ensemble[S <: Sys[S]] extends FolderLike[S, Ensemble[S]] {
-    override def obj: stm.Source[S#Tx, _Ensemble[S]]
+    override def objH: stm.Source[S#Tx, _Ensemble[S]]
   }
 
   // ---- folder ----
@@ -202,7 +202,7 @@ object AuralObj {
       AuralFolderImpl(obj)
   }
   trait Folder[S <: Sys[S]] extends FolderLike[S, Folder[S]] {
-    override def obj: stm.Source[S#Tx, _Folder[S]]
+    override def objH: stm.Source[S#Tx, _Folder[S]]
   }
 
   // ---- action ----
@@ -216,7 +216,7 @@ object AuralObj {
       AuralActionImpl(obj)
   }
   trait Action[S <: Sys[S]] extends AuralObj[S] {
-    override def obj: stm.Source[S#Tx, _Action[S]]
+    override def objH: stm.Source[S#Tx, _Action[S]]
   }
 }
 trait AuralObj[S <: Sys[S]] extends AuralView[S, Unit] {

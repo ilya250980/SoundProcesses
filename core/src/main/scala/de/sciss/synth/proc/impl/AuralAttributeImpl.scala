@@ -118,7 +118,7 @@ object AuralAttributeImpl {
 
     protected val context: AuralContext[S]
 
-    def obj: stm.Source[S#Tx, Expr[S, A]]
+    def objH: stm.Source[S#Tx, Expr[S, A]]
 
     /** Creates a value representation of this input. If the value is a `Stream`,
       * that stream's node reference will be disposed when the input stops (is replaced by other input).
@@ -139,7 +139,7 @@ object AuralAttributeImpl {
     final def play(timeRef: TimeRef.Option, target: Target[S])(implicit tx: S#Tx): Unit /* Instance */ = {
       state = Playing
       val timeF   = timeRef.force
-      val value   = updateTarget(timeF, target, obj().value)
+      val value   = updateTarget(timeF, target, objH().value)
       val playing = new Playing(timeF, sched.time, target, value)
       require(playRef.swap(Some(playing))(tx.peer).isEmpty)
     }
@@ -238,7 +238,7 @@ object AuralAttributeImpl {
     def mkValue(in: Int): ControlValues = in.toFloat
   }
   
-  private final class IntAttribute[S <: Sys[S]](val key: String, val obj: stm.Source[S#Tx, IntObj[S]])
+  private final class IntAttribute[S <: Sys[S]](val key: String, val objH: stm.Source[S#Tx, IntObj[S]])
                                                (implicit val context: AuralContext[S])
     extends SingleChannelImpl[S, Int] with NumericExprImpl[S, Int] {
 
@@ -270,7 +270,7 @@ object AuralAttributeImpl {
     def mkValue(in: Double): ControlValues = in
   }
   
-  private final class DoubleAttribute[S <: Sys[S]](val key: String, val obj: stm.Source[S#Tx, DoubleObj[S]])
+  private final class DoubleAttribute[S <: Sys[S]](val key: String, val objH: stm.Source[S#Tx, DoubleObj[S]])
                                                   (implicit val context: AuralContext[S])
     extends SingleChannelImpl[S, Double] with NumericExprImpl[S, Double] {
 
@@ -302,7 +302,7 @@ object AuralAttributeImpl {
     def mkValue(in: Boolean): ControlValues = if (in) 1f else 0f
   }
   
-  private final class BooleanAttribute[S <: Sys[S]](val key: String, val obj: stm.Source[S#Tx, BooleanObj[S]])
+  private final class BooleanAttribute[S <: Sys[S]](val key: String, val objH: stm.Source[S#Tx, BooleanObj[S]])
                                                    (implicit val context: AuralContext[S])
     extends SingleChannelImpl[S, Boolean] with NumericExprImpl[S, Boolean] {
 
@@ -324,7 +324,7 @@ object AuralAttributeImpl {
                           (implicit tx: S#Tx, context: AuralContext[S]): AuralAttribute[S] =
       new FadeSpecAttribute(key, tx.newHandle(value)).init(value)
   }
-  private final class FadeSpecAttribute[S <: Sys[S]](val key: String, val obj: stm.Source[S#Tx, FadeSpec.Obj[S]])
+  private final class FadeSpecAttribute[S <: Sys[S]](val key: String, val objH: stm.Source[S#Tx, FadeSpec.Obj[S]])
                                                     (implicit val context: AuralContext[S])
     extends ExprImpl[S, FadeSpec] {
 
@@ -366,13 +366,13 @@ object AuralAttributeImpl {
     def mkValue(in: Vec[Double]): ControlValues = in.map(_.toFloat)
   }
   
-  private final class DoubleVectorAttribute[S <: Sys[S]](val key: String, val obj: stm.Source[S#Tx, DoubleVector[S]])
+  private final class DoubleVectorAttribute[S <: Sys[S]](val key: String, val objH: stm.Source[S#Tx, DoubleVector[S]])
                                                         (implicit val context: AuralContext[S])
     extends ExprImpl[S, Vec[Double]] with NumericExprImpl[S, Vec[Double]] {
 
     def typeId: Int = DoubleVector.typeId
 
-    def preferredNumChannels(implicit tx: S#Tx): Int = obj().value.size
+    def preferredNumChannels(implicit tx: S#Tx): Int = objH().value.size
 
     def mkValue(in: Vec[Double]): Scalar = in.map(_.toFloat)
 
@@ -381,7 +381,7 @@ object AuralAttributeImpl {
 
   // ------------------- generic (dummy) -------------------
 
-  private final class DummyAttribute[S <: Sys[S]](val key: String, val obj: stm.Source[S#Tx, Obj[S]])
+  private final class DummyAttribute[S <: Sys[S]](val key: String, val objH: stm.Source[S#Tx, Obj[S]])
     extends AuralAttribute[S] with DummyObservableImpl[S] {
 
     def typeId: Int = throw new UnsupportedOperationException("DummyAttribute.typeId")

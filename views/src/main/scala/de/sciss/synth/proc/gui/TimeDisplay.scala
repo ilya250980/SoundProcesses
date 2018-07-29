@@ -14,9 +14,10 @@
 package de.sciss.synth.proc
 package gui
 
-import scala.swing.Component
 import de.sciss.audiowidgets.TimelineModel
-import impl.{TimeDisplayImpl => Impl}
+import de.sciss.synth.proc.gui.impl.{TimeDisplayImpl => Impl}
+
+import scala.swing.Component
 
 object TimeDisplay {
   def apply(model: TimelineModel, hasMillis: Boolean): TimeDisplay = new Impl(model, hasMillis = hasMillis)

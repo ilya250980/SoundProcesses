@@ -9,10 +9,9 @@ import scala.swing.Component
 object ResampleDlgTest extends AppLike {
   protected def mkView(): Component = {
     import expr.ExOps._
-    // import swing.WidgetOps._
+    import expr.graph._
     import swing.graph._
     val g = swing.Graph {
-      //      val sepWave         = TitledSeparator("Waveform I/O")
       val sepWave         = Label("———— Waveform I/O ————") // Titled-Border
       val lbIn            = Label("Input file:")
       val ggIn            = PathField()
@@ -21,28 +20,23 @@ object ResampleDlgTest extends AppLike {
       val ggInfo          = TextField(20)
       ggInfo.editable     = false
       ggInfo.focusable    = false
-      //      ggIn.info           = true
       val lbOut           = Label("Output file:")
       val ggOut           = PathField()
       ggOut.mode          = PathField.Save
       val ggFileType      = ComboBox(List("AIFF", "Snd", "IRCAM", "WAVE", "Wav64"))
       val ggSmpFmt        = ComboBox(List("16-bit int", "24-bit int", "32-bit float", "32-bit int"))
       ggSmpFmt.index()    = 1
-      //      ggSmpFmt.valueOption = Some("24-bit int")
       val lbGain          = Label("Gain:")
       val ggGain          = DoubleField()
       ggGain.value()      = -0.20
       ggGain.max          = 1000.0
-      //      val ggGain          = IntField()
-      //      ggGain.value()      = -20
-      //      ggGain.min          = -1000
-      //      ggGain.max          = 1000
       ggGain.unit         = "dB"
-      //      ggGain.spec         = ParamSpec(...)
       val ggGainType      = ComboBox(List("normalized", "immediate"))
-      val sepSRC          = Label("———— Sample Rate Conversion ————") // Titled-Border
+      val sepSRC          = Label("———— Sample Rate Conversion ————")
       val lbNewRate       = Label("New rate:")
-      //      val ggNewRate       = NumberField()
+      val ggNewRate       = DoubleField()
+      ggNewRate.min       = 0.0
+      ggNewRate.value()   = 44100.0
       val ggModRate       = CheckBox()
       ggModRate.tooltip   = "Modulate resampling rate"
       val lbDistinctRight = Label("Distinct right channel mod.:")
@@ -58,17 +52,18 @@ object ResampleDlgTest extends AppLike {
       val ggInterp        = CheckBox("Interpolate")
       ggInterp.tooltip    = "Increase resolution by interpolating the FIR table"
       val ggProg          = ProgressBar()
-      //      ggProg.max          = 300
       val ggCancel        = Button(" X ")
       ggCancel.enabled    = false
+      ggCancel.tooltip    = "Cancel Rendering"
       val ggRender        = Button(" Render ")
-      //      ggRender.action     = "render".attr
+
+      ggRender.clicked ---> Println("TODO: Render")
 
       val lineIn    = FlowPanel(lbIn, ggIn)
       val lineOut   = FlowPanel(lbOut, ggOut)
       val lineFmt   = FlowPanel(ggFileType, ggSmpFmt)
       val lineGain  = FlowPanel(lbGain, ggGain, ggGainType)
-      val lineRate  = FlowPanel(lbNewRate, ggModRate)
+      val lineRate  = FlowPanel(lbNewRate, ggNewRate, ggModRate)
       val lineRate2 = FlowPanel(lbDistinctRight, ggDistinctRight)
       val lineMode  = FlowPanel(ggChangePch, lbFltLen, ggFltLen, ggInterp)
       val lineProg  = FlowPanel(ggProg, ggCancel, ggRender)

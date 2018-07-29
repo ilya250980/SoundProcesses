@@ -20,7 +20,7 @@ lazy val commonSettings = Seq(
 lazy val deps = new {
   val main = new {
     val audioFile           = "1.5.0"
-    val audioWidgets        = "1.12.0"
+    val audioWidgets        = "1.12.1"
     val equal               = "0.1.2"
     val fileUtil            = "1.1.3"
     val lucre               = "3.9.0-SNAPSHOT"
@@ -126,7 +126,6 @@ lazy val views = project.withId(s"$baseNameL-views").in(file("views"))
     libraryDependencies ++= Seq(
       "de.sciss"      %% "lucreswing"               % deps.main.lucreSwing,
       "de.sciss"      %% "swingplus"                % deps.main.swingPlus,
-      "de.sciss"      %% "audiowidgets-swing"       % deps.main.audioWidgets,
       "de.sciss"      %% "audiowidgets-app"         % deps.main.audioWidgets,
       "de.sciss"      %  "submin"                   % deps.test.submin    % Test,
       "de.sciss"      %% s"lucre-${deps.test.bdb}"  % deps.main.lucre     % Test,

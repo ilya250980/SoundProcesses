@@ -382,7 +382,7 @@ object AuralAttributeImpl {
   // ------------------- generic (dummy) -------------------
 
   private final class DummyAttribute[S <: Sys[S]](val key: String, val obj: stm.Source[S#Tx, Obj[S]])
-    extends AuralAttribute[S] {
+    extends AuralAttribute[S] with DummyObservableImpl[S] {
 
     def typeId: Int = throw new UnsupportedOperationException("DummyAttribute.typeId")
 
@@ -399,7 +399,7 @@ object AuralAttributeImpl {
     def stop   ()(implicit tx: S#Tx): Unit = ()
     def dispose()(implicit tx: S#Tx): Unit = ()
 
-    def react(fun: (S#Tx) => (State) => Unit)(implicit tx: S#Tx): Disposable[S#Tx] = DummyObservableImpl
+//    def react(fun: (S#Tx) => (State) => Unit)(implicit tx: S#Tx): Disposable[S#Tx] = DummyObservableImpl
 
     override def toString = s"DummyAttribute($key)@${hashCode.toHexString}"
   }

@@ -59,7 +59,6 @@ object Widget extends Obj.Type {
       proc.Code.registerImports(id, Vec(
         "de.sciss.numbers.Implicits._",
         "de.sciss.lucre.expr.ExOps._",
-        "de.sciss.lucre.swing.WidgetOps._",
         "de.sciss.synth.proc.ExOps._",
         "de.sciss.file._",
         "de.sciss.lucre.swing.graph._"

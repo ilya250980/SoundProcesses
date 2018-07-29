@@ -1,6 +1,6 @@
 package de.sciss.synth.proc
 
-import de.sciss.lucre.expr.ExOps
+import de.sciss.lucre.expr
 import de.sciss.lucre.stm.store.BerkeleyDB
 import de.sciss.lucre.swing.{Graph => WGraph, graph => wgraph}
 import org.scalatest.{Matchers, Outcome, fixture}
@@ -26,7 +26,7 @@ class SerializationSpec extends fixture.FlatSpec with Matchers {
     val (wH, gIn) = cursor.step { implicit tx =>
       val w = Widget[S]
       val g = WGraph {
-        import ExOps._
+        import expr.ExOps._
         import wgraph._
         val sl      = Slider()
         sl.min      = 1

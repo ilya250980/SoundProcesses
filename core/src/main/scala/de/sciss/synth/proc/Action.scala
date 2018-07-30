@@ -13,7 +13,7 @@
 
 package de.sciss.synth.proc
 
-import de.sciss.lucre.stm.{Obj, Sys, TxnLike}
+import de.sciss.lucre.stm.{Cursor, Folder, Obj, Sys, TxnLike, WorkspaceHandle}
 import de.sciss.lucre.{stm, event => evt}
 import de.sciss.serial.{DataInput, Serializer}
 import de.sciss.synth.proc.impl.{ActionImpl => Impl}
@@ -72,7 +72,7 @@ object Action extends Obj.Type {
 
   object Universe {
     def apply[S <: Sys[S]](self: Action[S], workspace: WorkspaceHandle[S], invoker: Option[Obj[S]] = None,
-                           value: Any = ())(implicit cursor: stm.Cursor[S]): Universe[S] =
+                           value: Any = ())(implicit cursor: Cursor[S]): Universe[S] =
       new Impl.UniverseImpl(self, workspace, invoker, value)
   }
   trait Universe[S <: Sys[S]] {

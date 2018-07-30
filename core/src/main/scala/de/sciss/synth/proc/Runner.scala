@@ -15,7 +15,7 @@ package de.sciss.synth.proc
 
 import de.sciss.lucre.event.Observable
 import de.sciss.lucre.stm
-import de.sciss.lucre.stm.{Cursor, Disposable, Obj}
+import de.sciss.lucre.stm.{Cursor, Disposable, Obj, WorkspaceHandle}
 import de.sciss.lucre.synth.Sys
 import de.sciss.synth.proc.impl.{ActionRunnerImpl, RunnerHandlerImpl => Impl}
 import de.sciss.synth.proc.{Action => _Action}

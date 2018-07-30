@@ -19,7 +19,7 @@ import de.sciss.lucre.confluent.{Sys => KSys}
 import de.sciss.lucre.event.Targets
 import de.sciss.lucre.expr.StringObj
 import de.sciss.lucre.stm.{Copy, Elem, Sys, DurableLike => DSys}
-import de.sciss.lucre.{confluent, expr, stm, event => evt}
+import de.sciss.lucre.{confluent, stm, event => evt}
 import de.sciss.serial.{DataInput, DataOutput, Serializer, Writable}
 
 object CursorsImpl {
@@ -31,7 +31,7 @@ object CursorsImpl {
     val cursor  = confluent.Cursor.Data[S, D1](seminal)
     val name    = StringObj.newVar[D1]("branch")
     type CursorAux[~ <: stm.Sys[~]] = Cursors[S, ~]
-    val list    = expr.List.Modifiable[D1, CursorAux]
+    val list    = stm.List.Modifiable[D1, CursorAux]
     log(s"Cursors.apply targets = $targets, list = $list")
     new Impl(targets, seminal, cursor, name, list).connect()
   }
@@ -65,7 +65,7 @@ object CursorsImpl {
     val seminal: S#Acc = confluent.Access.read(in) // system.readPath(in)
     val cursor  = confluent.Cursor.Data.read[S, D1](in, access)
     val name    = StringObj.readVar[D1](in, access)
-    val list    = expr.List.Modifiable.read[D1, Cursors[S, D1] /* , Cursors.Update[S, D1] */](in, access)
+    val list    = stm.List.Modifiable.read[D1, Cursors[S, D1] /* , Cursors.Update[S, D1] */](in, access)
     log(s"Cursors.read targets = $targets, list = $list")
     new Impl(targets, seminal, cursor, name, list)
   }
@@ -74,7 +74,7 @@ object CursorsImpl {
       protected val targets: evt.Targets[D1], val seminal: S#Acc with Writable,
       val cursor: confluent.Cursor.Data[S, D1] with stm.Disposable[D1#Tx] with Writable,
       nameVar: StringObj.Var[D1],
-      list: expr.List.Modifiable[D1, Cursors[S, D1]]
+      list: stm.List.Modifiable[D1, Cursors[S, D1]]
     ) // (implicit tx: D1#Tx)
     extends Cursors[S, D1] with evt.impl.SingleNode[D1, Cursors.Update[S, D1]] {
     impl =>
@@ -84,7 +84,7 @@ object CursorsImpl {
     override def toString() = s"Cursors$id"
 
     def copy[Out <: Sys[Out]]()(implicit tx: D1#Tx, txOut: Out#Tx, context: Copy[D1, Out]): Elem[Out] = {
-      type ListAux[~ <: Sys[~]] = expr.List.Modifiable[~, Cursors[S, ~]]
+      type ListAux[~ <: Sys[~]] = stm.List.Modifiable[~, Cursors[S, ~]]
       if (tx != txOut) throw new UnsupportedOperationException(s"Cannot copy cursors across systems")
       // thus, we can now assume that D1 == Out, specifically that Out <: DurableLike[Out]
       val out = new Impl[S, D1](Targets[D1], seminal, Data(cursor.path()),
@@ -173,8 +173,8 @@ object CursorsImpl {
             val childUpdates = listUpd.changes.collect {
 // ELEM
 //              case expr.List.Element(child, childUpd) => Cursors.ChildUpdate (childUpd)
-              case expr.List.Added  (idx, child)      => Cursors.ChildAdded  (idx, child)
-              case expr.List.Removed(idx, child)      => Cursors.ChildRemoved(idx, child)
+              case stm.List.Added  (idx, child)      => Cursors.ChildAdded  (idx, child)
+              case stm.List.Removed(idx, child)      => Cursors.ChildRemoved(idx, child)
             }
             flat1 ++ childUpdates
 

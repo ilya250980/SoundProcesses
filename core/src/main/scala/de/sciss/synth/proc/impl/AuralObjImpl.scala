@@ -16,7 +16,7 @@ package impl
 
 import de.sciss.lucre.event.impl.DummyObservableImpl
 import de.sciss.lucre.stm
-import de.sciss.lucre.stm.Obj
+import de.sciss.lucre.stm.{Folder, Obj}
 import de.sciss.lucre.synth.Sys
 import de.sciss.synth.proc.AuralObj.Factory
 

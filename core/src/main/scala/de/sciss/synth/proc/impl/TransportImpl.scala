@@ -16,14 +16,14 @@ package impl
 
 import de.sciss.lucre.event.impl.ObservableImpl
 import de.sciss.lucre.stm
-import de.sciss.lucre.stm.{TxnLike, Obj, IdentifierMap}
-import de.sciss.lucre.synth.{Txn, Server, Sys}
+import de.sciss.lucre.stm.{IdentifierMap, Obj, TxnLike, WorkspaceHandle}
+import de.sciss.lucre.synth.{Server, Sys, Txn}
 import de.sciss.span.Span
 import de.sciss.synth.proc
 import de.sciss.synth.proc.Transport.AuralStarted
 import proc.{logTransport => logT}
 
-import scala.concurrent.stm.{TSet, Ref}
+import scala.concurrent.stm.{Ref, TSet}
 
 object TransportImpl {
   def apply[S <: Sys[S]](auralSystem: AuralSystem, scheduler: Scheduler[S])

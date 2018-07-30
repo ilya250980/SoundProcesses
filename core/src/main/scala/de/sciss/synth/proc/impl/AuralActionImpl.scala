@@ -15,7 +15,7 @@ package de.sciss.synth.proc
 package impl
 
 import de.sciss.lucre.stm
-import de.sciss.lucre.stm.{Cursor, Obj, Sys}
+import de.sciss.lucre.stm.{Cursor, Obj, Sys, WorkspaceHandle}
 import de.sciss.lucre.synth.{Sys => SSys}
 
 object AuralActionImpl extends AuralObj.Factory {

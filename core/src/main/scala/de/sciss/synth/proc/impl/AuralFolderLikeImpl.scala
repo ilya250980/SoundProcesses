@@ -15,8 +15,8 @@ package de.sciss.synth.proc
 package impl
 
 import de.sciss.lucre.event.impl.ObservableImpl
-import de.sciss.lucre.expr
-import de.sciss.lucre.stm.{Disposable, Obj}
+import de.sciss.lucre.stm
+import de.sciss.lucre.stm.{Disposable, Folder, Obj}
 import de.sciss.lucre.synth.Sys
 import de.sciss.synth.proc.AuralObj.Container
 
@@ -41,7 +41,7 @@ trait AuralFolderLikeImpl[S <: Sys[S], Repr <: Obj[S], View <: AuralObj.FolderLi
 
   private[this] val currentStateRef = Ref[Runner.State](Runner.Stopped)
 
-  final protected def processFolderUpdate(fUpd: expr.List.Update[S, Obj[S]])(implicit tx: S#Tx): Unit =
+  final protected def processFolderUpdate(fUpd: stm.List.Update[S, Obj[S]])(implicit tx: S#Tx): Unit =
     fUpd.changes.foreach {
       case Folder.Added  (_, elem) => transport.addObject   (elem)
       case Folder.Removed(_, elem) => transport.removeObject(elem)

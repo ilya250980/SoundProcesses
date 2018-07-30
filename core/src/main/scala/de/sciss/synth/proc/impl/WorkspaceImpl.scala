@@ -18,7 +18,7 @@ import java.io.{File, FileInputStream, FileNotFoundException, FileOutputStream, 
 import java.util.Properties
 
 import de.sciss.file._
-import de.sciss.lucre.stm.{DataStore, Disposable, Obj, Sys, TxnLike}
+import de.sciss.lucre.stm.{DataStore, Disposable, Folder, Obj, Sys, TxnLike}
 import de.sciss.lucre.synth.{InMemory => InMem}
 import de.sciss.lucre.{confluent, stm}
 import de.sciss.serial.{DataInput, DataOutput, Serializer}

@@ -16,7 +16,7 @@ package impl
 
 import de.sciss.lucre.stm
 import de.sciss.lucre.stm.TxnLike.peer
-import de.sciss.lucre.stm.{IdentifierMap, Sys}
+import de.sciss.lucre.stm.{IdentifierMap, Sys, WorkspaceHandle}
 
 import scala.concurrent.stm.TMap
 

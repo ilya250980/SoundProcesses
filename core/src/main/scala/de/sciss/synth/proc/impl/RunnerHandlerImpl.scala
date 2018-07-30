@@ -16,7 +16,7 @@ package impl
 
 import de.sciss.lucre.event.impl.ObservableImpl
 import de.sciss.lucre.stm
-import de.sciss.lucre.stm.{Cursor, Obj}
+import de.sciss.lucre.stm.{Cursor, Obj, WorkspaceHandle}
 import de.sciss.lucre.stm.TxnLike.peer
 import de.sciss.lucre.synth.Sys
 import de.sciss.synth.proc.Runner.{Factory, Handler}
@@ -78,12 +78,15 @@ object RunnerHandlerImpl {
     def dispose()(implicit tx: S#Tx): Unit = handlerMap.remove(workspace)
 
     def mkRunner(obj: Obj[S])(implicit tx: S#Tx): Option[Runner[S]] = {
-      val tid = obj.tpe.typeId
-      val opt: Option[Factory] = factoryMap.get(tid)
-      val res = opt.map { f =>
-        f.mkRunner[S](obj.asInstanceOf[f.Repr[S]], h)
+      val opt = getFactory(obj.tpe)
+      opt match {
+        case Some(f) =>
+          val r = f.mkRunner[S](obj.asInstanceOf[f.Repr[S]], h)
+          fire(Handler.Added(r))
+          Some(r)
+
+        case _ => None
       }
-      res
     }
   }
 }

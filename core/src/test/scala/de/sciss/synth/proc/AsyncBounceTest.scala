@@ -74,7 +74,7 @@ object AsyncBounceTest {
       tx.newHandle(group)
     }
 
-    import WorkspaceHandle.Implicits._
+    import de.sciss.lucre.stm.WorkspaceHandle.Implicits._
     val bounce              = Bounce[S, I]
     val bCfg                = Bounce.Config[S]
     bCfg.group              = groupH :: Nil

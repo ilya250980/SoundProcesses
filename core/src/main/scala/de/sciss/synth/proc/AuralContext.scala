@@ -14,7 +14,7 @@
 package de.sciss.synth.proc
 
 import de.sciss.lucre.stm
-import de.sciss.lucre.stm.{Disposable, Obj, Sys}
+import de.sciss.lucre.stm.{Disposable, Obj, Sys, WorkspaceHandle}
 import de.sciss.lucre.synth.{Server, Sys => SSys}
 import de.sciss.synth.proc.impl.{AuralContextImpl => Impl}
 

@@ -2,7 +2,7 @@ package de.sciss.synth.proc
 
 import de.sciss.lucre.expr.{DoubleObj, SpanLikeObj}
 import de.sciss.lucre.stm
-import de.sciss.lucre.stm.Obj
+import de.sciss.lucre.stm.{Folder, Obj}
 import de.sciss.lucre.stm.store.BerkeleyDB
 import de.sciss.lucre.synth.{Server, Sys}
 import de.sciss.span.{Span, SpanLike}
@@ -62,7 +62,7 @@ abstract class AuralTestLike[S <: Sys[S]](implicit cursor: stm.Cursor[S]) {
 
     s.peer.dumpOSC()
     implicit val context: AuralContext[S] = cursor.step { implicit tx =>
-      import WorkspaceHandle.Implicits._
+      import de.sciss.lucre.stm.WorkspaceHandle.Implicits._
       AuralContext[S](s)
     }
 

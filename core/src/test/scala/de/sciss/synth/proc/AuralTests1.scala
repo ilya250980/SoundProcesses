@@ -4,14 +4,14 @@ import de.sciss.file._
 import de.sciss.lucre.artifact.{Artifact, ArtifactLocation}
 import de.sciss.lucre.expr.{BooleanObj, DoubleObj, IntObj, SpanLikeObj}
 import de.sciss.lucre.stm
-import de.sciss.lucre.stm.Cursor
+import de.sciss.lucre.stm.{Cursor, Folder}
+import de.sciss.lucre.stm.WorkspaceHandle.Implicits._
 import de.sciss.lucre.synth.Sys
 import de.sciss.span.Span
 import de.sciss.synth.Curve.{exponential, linear}
 import de.sciss.synth.io.{AudioFile, AudioFileType}
 import de.sciss.synth.proc.Action.Universe
 import de.sciss.synth.proc.Implicits._
-import de.sciss.synth.proc.WorkspaceHandle.Implicits._
 import de.sciss.{numbers, synth}
 
 import scala.language.implicitConversions

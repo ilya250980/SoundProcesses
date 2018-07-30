@@ -20,12 +20,13 @@ import java.nio.ByteBuffer
 import de.sciss.equal.Implicits._
 import de.sciss.file._
 import de.sciss.lucre.stm
+import de.sciss.lucre.stm.WorkspaceHandle
 import de.sciss.lucre.synth.{Buffer, Server, Synth, Sys, Txn}
 import de.sciss.processor.Processor
 import de.sciss.processor.impl.ProcessorImpl
 import de.sciss.synth.Ops.stringToControl
 import de.sciss.synth.io.{AudioFileType, SampleFormat}
-import de.sciss.synth.proc.Runner.{Running, Prepared, Preparing, Stopped}
+import de.sciss.synth.proc.Runner.{Prepared, Preparing, Running, Stopped}
 import de.sciss.synth.{SynthGraph, addToTail, Server => SServer}
 import de.sciss.{osc, synth}
 
@@ -161,7 +162,7 @@ final class BounceImpl[S <: Sys[S], I <: stm.Sys[I]](implicit cursor: stm.Cursor
         state == Prepared || state == Stopped
       }
 
-      lazy val scheduleProgress: (S#Tx) => Unit = { implicit tx: S#Tx =>
+      lazy val scheduleProgress: S#Tx => Unit = { implicit tx: S#Tx =>
         val now = scheduler.time
         if (!isCompleted) {
           if (now < span.stop ) {

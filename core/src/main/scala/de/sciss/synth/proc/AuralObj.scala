@@ -18,12 +18,14 @@ import de.sciss.lucre.expr.SpanLikeObj
 import de.sciss.lucre.stm
 import de.sciss.lucre.stm.{Obj, Sys, TxnLike}
 import de.sciss.lucre.synth.{NodeRef, Sys => SSys}
+import de.sciss.synth.proc
 import de.sciss.synth.proc.impl.{AuralActionImpl, AuralEnsembleImpl, AuralFolderImpl, AuralObjImpl => Impl, AuralProcImpl, AuralTimelineImpl}
 
 import scala.language.higherKinds
 
 object AuralObj {
-  import de.sciss.synth.proc.{Action => _Action, Ensemble => _Ensemble, Folder => _Folder, Proc => _Proc, Timeline => _Timeline}
+  import proc.{Action => _Action, Ensemble => _Ensemble, Proc => _Proc, Timeline => _Timeline}
+  import stm.{Folder => _Folder}
 
   trait Factory {
     def tpe: Obj.Type

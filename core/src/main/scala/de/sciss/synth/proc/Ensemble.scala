@@ -14,18 +14,17 @@
 package de.sciss.synth.proc
 
 import de.sciss.lucre.event.Publisher
-import de.sciss.lucre.expr
 import de.sciss.lucre.expr.{BooleanObj, LongObj}
-import de.sciss.lucre.stm.{Obj, Sys}
+import de.sciss.lucre.stm
+import de.sciss.lucre.stm.{Folder, Obj, Sys}
 import de.sciss.model
 import de.sciss.serial.{DataInput, Serializer}
-import de.sciss.synth.proc
 import de.sciss.synth.proc.impl.{EnsembleImpl => Impl}
 
 object Ensemble extends Obj.Type {
   final val typeId = 0x10007
 
-  def apply[S <: Sys[S]](folder: proc.Folder /* Elem.Obj */[S], offset: LongObj[S], playing: BooleanObj[S])
+  def apply[S <: Sys[S]](folder: stm.Folder /* Elem.Obj */[S], offset: LongObj[S], playing: BooleanObj[S])
                         (implicit tx: S#Tx): Ensemble[S] = Impl(folder, offset, playing)
 
   def read[S <: Sys[S]](in: DataInput, access: S#Acc)(implicit tx: S#Tx): Ensemble[S] =
@@ -36,7 +35,7 @@ object Ensemble extends Obj.Type {
   final case class Update[S <: Sys[S]](ensemble: Ensemble[S], changes: List[Change[S]])
 
   sealed trait Change[S]
-  final case class Folder [S <: Sys[S]](peer: expr.List.Update[S, Obj[S]] /* SCALAC BUG: proc.Folder.Update[S] */) extends Change[S]
+  final case class Folder [S <: Sys[S]](peer: stm.List.Update[S, Obj[S]] /* SCALAC BUG: proc.Folder.Update[S] */) extends Change[S]
   final case class Offset [S <: Sys[S]](peer: model.Change[Long   ]) extends Change[S]
   final case class Playing[S <: Sys[S]](peer: model.Change[Boolean]) extends Change[S]
 

@@ -2,7 +2,7 @@ package de.sciss
 package synth
 package proc
 
-import de.sciss.lucre.stm.Obj
+import de.sciss.lucre.stm.{Folder, Obj}
 import de.sciss.lucre.stm.store.BerkeleyDB
 import de.sciss.span.Span
 import de.sciss.synth.proc.Implicits._

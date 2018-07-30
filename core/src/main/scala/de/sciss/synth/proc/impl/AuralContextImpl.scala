@@ -14,7 +14,7 @@
 package de.sciss.synth.proc
 package impl
 
-import de.sciss.lucre.stm.IdentifierMap
+import de.sciss.lucre.stm.{IdentifierMap, WorkspaceHandle}
 import de.sciss.lucre.synth.{Server, Sys}
 
 object AuralContextImpl {

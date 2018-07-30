@@ -17,7 +17,7 @@ package impl
 import de.sciss.lucre.event.impl.ObservableImpl
 import de.sciss.lucre.stm
 import de.sciss.lucre.stm.TxnLike.peer
-import de.sciss.lucre.stm.{Cursor, Obj}
+import de.sciss.lucre.stm.{Cursor, Obj, WorkspaceHandle}
 import de.sciss.lucre.synth.Sys
 import de.sciss.synth.proc.Implicits._
 import de.sciss.synth.proc.Runner.{Handler, Prepared, Running, Stopped}

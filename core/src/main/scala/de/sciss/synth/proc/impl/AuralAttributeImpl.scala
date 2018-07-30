@@ -17,11 +17,11 @@ package impl
 import de.sciss.lucre.event.impl.{DummyObservableImpl, ObservableImpl}
 import de.sciss.lucre.expr.{BooleanObj, DoubleObj, DoubleVector, Expr, IntObj}
 import de.sciss.lucre.stm
-import de.sciss.lucre.stm.{Disposable, NoSys, Obj, TxnLike}
+import de.sciss.lucre.stm.{Disposable, Folder, NoSys, Obj, TxnLike}
 import de.sciss.lucre.synth.Sys
 import de.sciss.synth.Curve
 import de.sciss.synth.proc.AuralAttribute.{Factory, Observer, Scalar, Target}
-import de.sciss.synth.proc.Runner.{Running, Prepared, State, Stopped}
+import de.sciss.synth.proc.Runner.{Prepared, Running, State, Stopped}
 import de.sciss.synth.ugen.ControlValues
 
 import scala.collection.immutable.{IndexedSeq => Vec}

@@ -15,7 +15,7 @@ package de.sciss.synth.proc
 package impl
 
 import de.sciss.lucre.stm
-import de.sciss.lucre.stm.{Disposable, Obj}
+import de.sciss.lucre.stm.{Disposable, Folder, Obj}
 import de.sciss.lucre.synth.Sys
 
 object AuralFolderImpl {

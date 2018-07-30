@@ -2,6 +2,7 @@ package de.sciss.synth.proc
 
 import de.sciss.lucre.expr.IntObj
 import de.sciss.lucre.stm
+import de.sciss.lucre.stm.WorkspaceHandle
 import de.sciss.lucre.synth.InMemory
 import de.sciss.synth.SynthGraph
 

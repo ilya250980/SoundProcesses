@@ -16,7 +16,7 @@ package impl
 
 import de.sciss.equal.Implicits._
 import de.sciss.lucre.stm
-import de.sciss.lucre.stm.{Disposable, Obj}
+import de.sciss.lucre.stm.{Disposable, Folder, Obj}
 import de.sciss.lucre.synth.Sys
 import de.sciss.model.Change
 

@@ -16,11 +16,11 @@ package impl
 
 import de.sciss.equal.Implicits._
 import de.sciss.lucre.event.impl.ObservableImpl
-import de.sciss.lucre.stm.{Obj, Disposable, TxnLike}
+import de.sciss.lucre.stm
+import de.sciss.lucre.stm.{Disposable, Folder, Obj, TxnLike}
 import de.sciss.lucre.synth.Sys
-import de.sciss.lucre.{expr, stm}
 import de.sciss.synth.proc.AuralAttribute.{Factory, Observer, Target}
-import de.sciss.synth.proc.Runner.{Running, Prepared, Preparing, Stopped}
+import de.sciss.synth.proc.Runner.{Prepared, Preparing, Running, Stopped}
 
 import scala.annotation.tailrec
 import scala.collection.breakOut
@@ -77,7 +77,7 @@ final class AuralFolderAttribute[S <: Sys[S]](val key: String, val objH: stm.Sou
 
   private[this] val childAttrRef    = Ref.make[Vector[Elem]]
 
-  import AuralFolderAttribute.{InternalState, IPlaying, IPreparing, IStopped}
+  import AuralFolderAttribute.{IPlaying, IPreparing, IStopped, InternalState}
 
   private[this] val _IStopped = IStopped[S]()
   private[this] val internalRef = Ref[InternalState[S]](_IStopped)
@@ -128,7 +128,7 @@ final class AuralFolderAttribute[S <: Sys[S]](val key: String, val objH: stm.Sou
 
     // views.foreach(_.init())
     obs = folder.changed.react { implicit tx => upd => upd.changes.foreach {
-      case expr.List.Added  (idx, child) =>
+      case stm.List.Added  (idx, child) =>
         val childView = mkView(child)
         childAttrRef.transform(_.patch(idx, childView :: Nil, 0))
         internalRef() match {
@@ -149,7 +149,7 @@ final class AuralFolderAttribute[S <: Sys[S]](val key: String, val objH: stm.Sou
           case _ => // Karl-Friedrich von der Stoppenweide
         }
 
-      case expr.List.Removed(idx, _ /* child */) =>
+      case stm.List.Removed(idx, _ /* child */) =>
         val c0          = childAttrRef()
         val childView   = c0(idx)
         val childChans  = childView.preferredNumChannels

@@ -16,7 +16,7 @@ package de.sciss.synth.proc
 import java.io.File
 
 import de.sciss.lucre.stm
-import de.sciss.lucre.stm.Obj
+import de.sciss.lucre.stm.{Obj, WorkspaceHandle}
 import de.sciss.lucre.synth.{Server, Sys}
 import de.sciss.processor.ProcessorFactory
 import de.sciss.span.Span

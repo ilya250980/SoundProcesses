@@ -3,7 +3,7 @@ package de.sciss.synth.proc
 import de.sciss.file._
 import de.sciss.lucre.expr.DoubleObj
 import de.sciss.lucre.stm
-import de.sciss.lucre.stm.Obj
+import de.sciss.lucre.stm.{Folder, Obj}
 import de.sciss.lucre.stm.store.BerkeleyDB
 import de.sciss.lucre.synth.InMemory
 import de.sciss.numbers
@@ -212,7 +212,7 @@ abstract class BounceSpec extends fixture.AsyncFlatSpec with Matchers {
   final def bounce(config: Bounce.Config[S], timeOut: Duration = 20.seconds)
                   (implicit cursor: stm.Cursor[S]): Future[Array[Array[Float]]] = {
     requireOutsideTxn()
-    import WorkspaceHandle.Implicits.dummy
+    import de.sciss.lucre.stm.WorkspaceHandle.Implicits.dummy
     val b = Bounce[S, I]
     val p = b(config)
     // Important: don't use the single threaded SP context,

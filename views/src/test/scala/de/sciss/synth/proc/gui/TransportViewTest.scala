@@ -1,10 +1,11 @@
 package de.sciss.synth.proc.gui
 
 import de.sciss.audiowidgets.TimelineModel
+import de.sciss.lucre.stm.WorkspaceHandle
 import de.sciss.lucre.synth.InMemory
 import de.sciss.span.Span
 import de.sciss.submin.Submin
-import de.sciss.synth.proc.{AuralSystem, TimeRef, Transport, WorkspaceHandle}
+import de.sciss.synth.proc.{AuralSystem, TimeRef, Transport}
 
 import scala.swing.{MainFrame, Swing}
 

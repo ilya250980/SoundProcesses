@@ -17,12 +17,12 @@ import java.io.File
 
 import de.sciss.lucre
 import de.sciss.lucre.bitemp.BiGroup
-import de.sciss.lucre.stm.{DataStore, Disposable, Obj, Sys}
+import de.sciss.lucre.stm
+import de.sciss.lucre.stm.{DataStore, Disposable, Folder, Obj, Sys, WorkspaceHandle}
 import de.sciss.lucre.synth.{Sys => SSys}
-import de.sciss.lucre.{expr, stm}
-import de.sciss.synth.proc.impl.{WorkspaceImpl => Impl}
 import de.sciss.serial.Serializer
 import de.sciss.synth.proc
+import de.sciss.synth.proc.impl.{WorkspaceImpl => Impl}
 
 import scala.collection.immutable.{IndexedSeq => Vec}
 
@@ -33,10 +33,10 @@ object Workspace {
   type Group       [S <: Sys[S]] = BiGroup.Modifiable   [S, Proc[S] /* , Proc.Update[S] */]
   type GroupUpdate [S <: Sys[S]] = BiGroup.Update       [S, Proc[S] /* , Proc.Update[S] */]
 
-  type Groups      [S <: Sys[S]] = expr.List.Modifiable[S, Group[S] /* , GroupUpdate[S] */]
-  type GroupsUpdate[S <: Sys[S]] = expr.List.Update    [S, Group[S] /* , GroupUpdate[S] */]
+  type Groups      [S <: Sys[S]] = stm.List.Modifiable[S, Group[S] /* , GroupUpdate[S] */]
+  type GroupsUpdate[S <: Sys[S]] = stm.List.Update    [S, Group[S] /* , GroupUpdate[S] */]
 
-  type Transports  [S <: SSys[S]] = expr.List.Modifiable[S, Transport[S] /* , Unit */] // Transport.Update[ S, Proc[ S ]]]
+  type Transports  [S <: SSys[S]] = stm.List.Modifiable[S, Transport[S] /* , Unit */] // Transport.Update[ S, Proc[ S ]]]
 
   def read (dir: File, ds: DataStore.Factory /* config: BerkeleyDB.Config */): WorkspaceLike = Impl.read(dir, ds)
 

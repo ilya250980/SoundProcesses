@@ -16,7 +16,7 @@ package impl
 
 import de.sciss.lucre.event.Targets
 import de.sciss.lucre.stm.impl.ObjSerializer
-import de.sciss.lucre.stm.{Copy, Elem, IdPeek, NoSys, Obj, Sys, TxnLike}
+import de.sciss.lucre.stm.{Copy, Elem, Folder, IdPeek, NoSys, Obj, Sys, TxnLike, WorkspaceHandle}
 import de.sciss.lucre.{stm, event => evt}
 import de.sciss.serial.{DataInput, DataOutput, Serializer}
 

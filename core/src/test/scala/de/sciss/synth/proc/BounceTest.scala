@@ -69,7 +69,7 @@ class BounceTest[S <: Sys[S]](val system: S, realtime: Boolean)(implicit cursor:
 
   // type I = InMemory
 
-  import WorkspaceHandle.Implicits._
+  import de.sciss.lucre.stm.WorkspaceHandle.Implicits._
 
   implicit val bridge = system.inMemoryTx _
 

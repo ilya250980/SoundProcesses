@@ -56,7 +56,7 @@ class Issue28 extends BounceSpec {
 
     def runTL(s: Server)(implicit tx: S#Tx): Unit = {
       // println("Here [1]")
-      import WorkspaceHandle.Implicits.dummy
+      import de.sciss.lucre.stm.WorkspaceHandle.Implicits.dummy
       val t   = Transport[S](as)
       val tl  = tlH()
       t.addObject(tl)

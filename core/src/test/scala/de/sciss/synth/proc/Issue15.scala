@@ -3,7 +3,7 @@ package synth
 package proc
 
 import de.sciss.lucre.expr.{BooleanObj, SpanLikeObj}
-import de.sciss.lucre.stm.{Disposable, Identifier}
+import de.sciss.lucre.stm.{Disposable, Folder, Identifier}
 import de.sciss.lucre.{event => evt}
 import de.sciss.span.Span
 

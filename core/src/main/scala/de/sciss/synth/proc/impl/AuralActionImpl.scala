@@ -34,5 +34,7 @@ object AuralActionImpl extends AuralObj.Factory {
     protected def cursor    : Cursor          [S] = context.scheduler.cursor
 
     override def toString = s"AuralAction@${hashCode().toHexString}"
+
+    def dispose()(implicit tx: S#Tx): Unit = ()
   }
 }

@@ -14,7 +14,7 @@
 package de.sciss.synth.proc
 
 object ObjKeys {
-  /** Name attribute. Type `String` */
+  /** Name attribute. Type `String`. Same as `Obj.attrName`. */
   final val attrName    = "name"
   /** Bus attribute. Type `Int` */
   final val attrBus     = "bus"

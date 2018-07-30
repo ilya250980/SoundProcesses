@@ -22,3 +22,5 @@ object Sys {
 trait Sys[S <: Sys[S]] extends stm.Sys[S] {
   type Tx <: Sys.Txn[S]
 }
+
+trait NoSys extends Sys[NoSys]

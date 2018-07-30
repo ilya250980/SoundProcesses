@@ -21,7 +21,8 @@ import de.sciss.lucre.stm.TxnLike.peer
 import de.sciss.lucre.synth.Sys
 import de.sciss.synth.proc.Runner.{Factory, Handler}
 
-import scala.concurrent.stm.TMap
+import scala.collection.immutable.{IndexedSeq => Vec}
+import scala.concurrent.stm.{Ref, TMap}
 
 object RunnerHandlerImpl {
   private val sync = new AnyRef
@@ -75,13 +76,29 @@ object RunnerHandlerImpl {
                                        (implicit val cursor: stm.Cursor[S], val workspace: WorkspaceHandle[S])
     extends Handler[S] with ObservableImpl[S, Handler.Update[S]] { h =>
 
-    def dispose()(implicit tx: S#Tx): Unit = handlerMap.remove(workspace)
+    private[this] val runnersRef = Ref(Vec.empty[Runner[S]])
+
+    def runners(implicit tx: S#Tx): Iterator[Runner[S]] = runnersRef().iterator
+
+    def dispose()(implicit tx: S#Tx): Unit =
+      handlerMap.remove(workspace)  // XXX TODO --- should we dispose all runners?
+
+    private[proc] def removeRunner(r: Runner[S])(implicit tx: S#Tx): Unit = {
+      val found = runnersRef.transformAndExtract { vec0 =>
+        val i       = vec0.indexOf(r)
+        val _found  = i >= 0
+        val vec1    = if (_found) vec0.patch(i, Nil, 1) else vec0
+        (vec1, _found)
+      }
+      if (found) fire(Handler.Removed(r))
+    }
 
     def mkRunner(obj: Obj[S])(implicit tx: S#Tx): Option[Runner[S]] = {
       val opt = getFactory(obj.tpe)
       opt match {
         case Some(f) =>
           val r = f.mkRunner[S](obj.asInstanceOf[f.Repr[S]], h)
+          runnersRef.transform(_ :+ r)
           fire(Handler.Added(r))
           Some(r)
 

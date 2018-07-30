@@ -55,8 +55,6 @@ object ActionRunnerImpl {
 
     def messages(implicit tx: S#Tx): Any = ???
 
-    def dispose()(implicit tx: S#Tx): Unit = ()
-
     def run(timeRef: TimeRef.Option, target: Target)(implicit tx: S#Tx): Unit = {
       state = Running
       val action = objH()
@@ -75,5 +73,7 @@ object ActionRunnerImpl {
     protected def cursor    : Cursor          [S] = handler.cursor
 
     override def toString = s"Runner.Action${hashCode().toHexString}"
+
+    protected def disposeData()(implicit tx: S#Tx): Unit = ()
   }
 }

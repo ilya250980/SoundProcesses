@@ -54,6 +54,10 @@ object Runner {
     def auralSystem: AuralSystem
 
     def mkRunner(obj: Obj[S])(implicit tx: S#Tx): Option[Runner[S]]
+
+    def runners(implicit tx: S#Tx): Iterator[Runner[S]]
+
+    private[proc] def removeRunner(r: Runner[S])(implicit tx: S#Tx): Unit
   }
   
   def addFactory(f: Factory): Unit = Impl.addFactory(f)
@@ -64,6 +68,10 @@ object Runner {
 
   def apply[S <: Sys[S]](obj: Obj[S])(implicit tx: S#Tx, h: Handler[S]): Option[Runner[S]] =
     h.mkRunner(obj)
+
+//  def orDummy[S <: stm.Sys[S]](obj: Obj[S])
+
+//  def dummy[S <: stm.Sys[S]](implicit tx: S#Tx, h: Handler[S])
 
   trait Factory {
     def prefix      : String
@@ -106,6 +114,16 @@ trait Runner[S <: stm.Sys[S]] extends ViewBase[S, Unit] {
   def messages(implicit tx: S#Tx): Any
 
   val handler: Runner.Handler[S]
+
+  protected def disposeData()(implicit tx: S#Tx): Unit
+
+  // this is implemented so there is no chance of forgetting
+  // to remove the runner from the handler
+  final def dispose()(implicit tx: S#Tx): Unit = {
+    handler.removeRunner(this)
+    disposeData()
+  }
+
 /*
 - allow both for a `self` and an `invoker` (`Action.Universe`)
 - should we have an `value: Any` as in `Action.Universe`?

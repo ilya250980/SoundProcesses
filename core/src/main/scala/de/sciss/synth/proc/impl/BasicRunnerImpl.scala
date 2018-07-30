@@ -16,7 +16,7 @@ package impl
 
 import de.sciss.lucre.event.impl.ObservableImpl
 import de.sciss.lucre.stm.TxnLike.peer
-import de.sciss.lucre.stm.{Cursor, Obj, WorkspaceHandle}
+import de.sciss.lucre.stm.{Cursor, WorkspaceHandle}
 import de.sciss.lucre.synth.Sys
 
 import scala.concurrent.stm.Ref

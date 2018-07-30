@@ -30,7 +30,22 @@ object AuralSystemImpl {
 
   var dumpOSC = false
 
-  def apply(): AuralSystem = new Impl
+  private val sync = new AnyRef
+  private var globalInstance: AuralSystem = _
+
+  def apply(global: Boolean): AuralSystem =
+    if (global) {
+      sync.synchronized(
+        if (globalInstance != null) globalInstance
+        else {
+          val res = new Impl
+          globalInstance = res
+          res
+        }
+      )
+    } else {
+      new Impl
+    }
 
   /* There is a bug in Scala-STM which means
    * that calling atomic from within Txn.afterCommit

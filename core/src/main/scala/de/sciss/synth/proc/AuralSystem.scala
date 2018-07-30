@@ -18,7 +18,7 @@ import de.sciss.lucre.synth.{Server, Txn}
 import de.sciss.synth.Client
 
 object AuralSystem {
-  def apply(): AuralSystem = Impl()
+  def apply(global: Boolean = false): AuralSystem = Impl(global = global)
 
   def start(config: Server.Config = Server.Config(), client: Client.Config = Client.Config(),
             connect: Boolean = false)(implicit tx: Txn): AuralSystem = {

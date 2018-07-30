@@ -16,8 +16,8 @@ package impl
 
 import de.sciss.lucre.event.impl.ObservableImpl
 import de.sciss.lucre.stm
-import de.sciss.lucre.stm.{Cursor, Obj, WorkspaceHandle}
 import de.sciss.lucre.stm.TxnLike.peer
+import de.sciss.lucre.stm.{Cursor, Obj, WorkspaceHandle}
 import de.sciss.lucre.synth.Sys
 import de.sciss.synth.proc.Runner.{Factory, Handler}
 
@@ -29,7 +29,7 @@ object RunnerHandlerImpl {
 
   private var factoryMap = Map[Int, Factory](
 //    Folder          .typeId -> AuralObj.Folder,
-//    Proc            .typeId -> AuralObj.Proc,
+    Proc            .typeId -> Runner.Proc,
 //    Timeline        .typeId -> AuralObj.Timeline,
 //    Ensemble        .typeId -> AuralObj.Ensemble,
     Action          .typeId -> Runner.Action
@@ -52,38 +52,47 @@ object RunnerHandlerImpl {
     * creates a new one if not found.
     */
   def apply[S <: Sys[S]]()(implicit tx: S#Tx, cursor: Cursor[S], workspace: WorkspaceHandle[S]): Handler[S] = {
-    val gen       = GenContext[S]
-    val scheduler = Scheduler [S]
-    val aural     = AuralSystem()
-    apply(gen, scheduler, aural)
+    val res = handlerMap.get(workspace).getOrElse {
+      val gen       = GenContext[S]
+      val scheduler = Scheduler [S]
+      val aural     = AuralSystem(global = true)
+      val res0      = new Impl[S](gen, scheduler, aural, stored = true)
+      handlerMap.put(workspace, res0)
+      res0
+    }
+    val resC = res.asInstanceOf[Impl[S]]
+    resC.use()
+    resC
   }
 
   /** Creates a new handler. */
   def apply[S <: Sys[S]](genContext: GenContext[S], scheduler: Scheduler[S], auralSystem: AuralSystem)
                         (implicit tx: S#Tx, cursor: Cursor[S], workspace: WorkspaceHandle[S]): Handler[S] = {
-    val res = handlerMap.get(workspace).getOrElse {
-      val res0 = new Impl[S](genContext, scheduler, auralSystem)
-      handlerMap.put(workspace, res0)
-      res0
-    }
-    res.asInstanceOf[Handler[S]]
+    new Impl[S](genContext, scheduler, auralSystem, stored = false)
   }
 
-  private[this] val handlerMap = TMap.empty[WorkspaceHandle[_], Handler[_]]
+  private[this] val handlerMap = TMap.empty[WorkspaceHandle[_], Impl[_]]
 
   private final class Impl[S <: Sys[S]](val genContext: GenContext[S], val scheduler: Scheduler[S],
-                                        val auralSystem: AuralSystem)
+                                        val auralSystem: AuralSystem, stored: Boolean)
                                        (implicit val cursor: stm.Cursor[S], val workspace: WorkspaceHandle[S])
     extends Handler[S] with ObservableImpl[S, Handler.Update[S]] { h =>
 
-    private[this] val runnersRef = Ref(Vec.empty[Runner[S]])
+    private[this] val runnersRef  = Ref(Vec.empty[Runner[S]])
+    private[this] val useCount    = Ref(0)
 
     def mkTransport()(implicit tx: S#Tx): Transport[S] = Transport(auralSystem, scheduler)
 
     def runners(implicit tx: S#Tx): Iterator[Runner[S]] = runnersRef().iterator
 
-    def dispose()(implicit tx: S#Tx): Unit =
-      handlerMap.remove(workspace)  // XXX TODO --- should we dispose all runners?
+    def use()(implicit tx: S#Tx): Unit =
+      useCount += 1
+
+    def dispose()(implicit tx: S#Tx): Unit = {
+      // XXX TODO --- should we dispose all runners?
+      if (stored && useCount.transformAndGet(_ - 1) == 0)
+        handlerMap.remove(workspace)
+    }
 
     private[proc] def removeRunner(r: Runner[S])(implicit tx: S#Tx): Unit = {
       val found = runnersRef.transformAndExtract { vec0 =>

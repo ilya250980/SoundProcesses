@@ -14,29 +14,24 @@
 package de.sciss.synth.proc
 package impl
 
-import de.sciss.lucre.event.impl.ObservableImpl
+import de.sciss.lucre.event.impl.DummyObservableImpl
 import de.sciss.lucre.stm
-import de.sciss.lucre.stm.TxnLike.peer
 import de.sciss.lucre.stm.{Cursor, Obj, WorkspaceHandle}
 import de.sciss.lucre.synth.Sys
 import de.sciss.synth.proc.Implicits._
 import de.sciss.synth.proc.Runner.{Handler, Prepared, Running, Stopped}
 
-import scala.concurrent.stm.Ref
-
 object ActionRunnerImpl {
   def apply[S <: Sys[S]](obj: Action[S], h: Handler[S])(implicit tx: S#Tx): Runner[S] =
     new Impl(tx.newHandle(obj), h)
 
-  abstract class Base[S <: stm.Sys[S], Target] extends ObjViewBase[S, Target] with ObservableImpl[S, Runner.State] {
+  abstract class Base[S <: stm.Sys[S], Target] extends ObjViewBase[S, Target] with BasicViewBaseImpl[S, Target] {
     protected def workspace : WorkspaceHandle [S]
     protected def cursor    : Cursor          [S]
 
     override def objH: stm.Source[S#Tx, Action[S]]
 
-    private[this] val stateRef = Ref[Runner.State](Runner.Stopped)
-
-    final def factory: Runner.Factory = Runner.Action
+//    final def factory: Runner.Factory = Runner.Action
 
     final def tpe: Obj.Type = Action
 
@@ -45,15 +40,6 @@ object ActionRunnerImpl {
 
     final def stop()(implicit tx: S#Tx): Unit =
       state = Stopped
-
-    final def state(implicit tx: S#Tx): Runner.State = stateRef()
-
-    final protected def state_=(now: Runner.State)(implicit tx: S#Tx): Unit = {
-      val before = stateRef.swap(now)
-      if (before != now) fire(now)
-    }
-
-    def messages(implicit tx: S#Tx): Any = ???
 
     def run(timeRef: TimeRef.Option, target: Target)(implicit tx: S#Tx): Unit = {
       state = Running
@@ -67,13 +53,14 @@ object ActionRunnerImpl {
   }
 
   private final class Impl[S <: stm.Sys[S]](val objH: stm.Source[S#Tx, Action[S]], val handler: Handler[S])
-    extends Base[S, Unit] with Runner[S] {
-
-    protected def workspace : WorkspaceHandle [S] = handler.workspace
-    protected def cursor    : Cursor          [S] = handler.cursor
+    extends Base[S, Unit] with BasicRunnerImpl[S] {
 
     override def toString = s"Runner.Action${hashCode().toHexString}"
 
     protected def disposeData()(implicit tx: S#Tx): Unit = ()
+
+    object progress extends Runner.Progress[S#Tx] with DummyObservableImpl[S] {
+      def current(implicit tx: S#Tx): Double = -1
+    }
   }
 }

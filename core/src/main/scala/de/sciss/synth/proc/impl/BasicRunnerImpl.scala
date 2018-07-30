@@ -16,25 +16,24 @@ package impl
 
 import de.sciss.lucre.event.impl.ObservableImpl
 import de.sciss.lucre.stm.TxnLike.peer
-import de.sciss.lucre.stm.{Cursor, WorkspaceHandle}
-import de.sciss.lucre.synth.Sys
+import de.sciss.lucre.stm.{Cursor, Sys, WorkspaceHandle}
 
 import scala.concurrent.stm.Ref
 
 trait BasicRunnerImpl[S <: Sys[S]]
-  extends ViewBase[S, Unit] with ObservableImpl[S, Runner.State] with Runner[S] {
-
-//  final def tpe: Obj.Type = factory.tpe
+  extends BasicViewBaseImpl[S, Unit] with Runner[S] {
 
   implicit final def workspace : WorkspaceHandle[S] = handler.workspace
   implicit final def cursor    : Cursor[S]          = handler.cursor
 
-  private[this] val stateRef = Ref[Runner.State](Runner.Stopped)
+  final object messages extends Runner.Messages[S#Tx] with ObservableImpl[S, List[Runner.Message]] {
+    private[this] val ref = Ref(List.empty[Runner.Message])
 
-  final def state(implicit tx: S#Tx): Runner.State = stateRef()
+    def current(implicit tx: S#Tx): List[Runner.Message] = ref()
 
-  final protected def state_=(now: Runner.State)(implicit tx: S#Tx): Unit = {
-    val before = stateRef.swap(now)
-    if (before != now) fire(now)
+    protected def current_=(value: List[Runner.Message])(implicit tx: S#Tx): Unit = {
+      ref() = value
+      fire(value)
+    }
   }
 }

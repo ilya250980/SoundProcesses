@@ -14,8 +14,9 @@
 package de.sciss.synth.proc
 package impl
 
+import de.sciss.lucre.event.impl.DummyObservableImpl
 import de.sciss.lucre.stm
-import de.sciss.lucre.stm.Disposable
+import de.sciss.lucre.stm.{Disposable, Obj}
 import de.sciss.lucre.stm.TxnLike.peer
 import de.sciss.lucre.synth.Sys
 import de.sciss.synth.proc.Runner.Handler
@@ -34,9 +35,11 @@ object ProcRunnerImpl {
   private final class Impl[S <: Sys[S]](val objH: stm.Source[S#Tx, Proc[S]],
                                         t: Transport[S],
                                         val handler: Handler[S])
-    extends BasicRunnerImpl[S] {
+    extends BasicRunnerImpl[S] with ObjViewBase[S, Unit] {
 
     override def toString = s"Runner.Proc${hashCode().toHexString}"
+
+    def tpe: Obj.Type = Proc
 
     private[this] val dispatchedState = Ref[Runner.State](Runner.Stopped)
     private[this] val targetState     = Ref[Runner.State](Runner.Stopped)
@@ -45,7 +48,11 @@ object ProcRunnerImpl {
 
 //    private[this] var tObs: Disposable[S#Tx] = _
 
-    def factory: Runner.Factory = Runner.Proc
+    object progress extends Runner.Progress[S#Tx] with DummyObservableImpl[S] {
+      def current(implicit tx: S#Tx): Double = -1
+    }
+
+//    def factory: Runner.Factory = Runner.Proc
 
     def init(obj: Proc[S])(implicit tx: S#Tx): this.type = {
       val vOpt = t.getView(obj)

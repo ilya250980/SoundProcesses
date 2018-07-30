@@ -23,11 +23,11 @@ import de.sciss.synth.proc.{Action => _Action, Proc => _Proc}
 import scala.language.higherKinds
 
 object Runner {
-  sealed trait State
-  case object Stopped   extends State
-  case object Preparing extends State
-  case object Prepared  extends State
-  case object Running   extends State
+  sealed trait State { def id: Int }
+  case object Stopped   extends State { final val id = 0 }
+  case object Preparing extends State { final val id = 1 }
+  case object Prepared  extends State { final val id = 2 }
+  case object Running   extends State { final val id = 3 }
 
   object Handler {
     sealed trait Update[S <: stm.Sys[S]]
@@ -88,7 +88,7 @@ object Runner {
 
     type Repr[~ <: Sys[~]] <: Obj[~]
 
-    private[proc] def mkRunner[S <: Sys[S]](obj: Repr[S], h: Handler[S])(implicit tx: S#Tx): Runner[S]
+    def mkRunner[S <: Sys[S]](obj: Repr[S], h: Handler[S])(implicit tx: S#Tx): Runner[S]
   }
 
   // -------------------
@@ -107,7 +107,7 @@ object Runner {
 
     type Repr[~ <: Sys[~]] = _Action[~]
 
-    private[proc] def mkRunner[S <: Sys[S]](obj: _Action[S], h: Handler[S])(implicit tx: S#Tx): Runner[S] =
+    def mkRunner[S <: Sys[S]](obj: _Action[S], h: Handler[S])(implicit tx: S#Tx): Runner[S] =
       ActionRunnerImpl(obj, h)
   }
 
@@ -122,14 +122,33 @@ object Runner {
 
     type Repr[~ <: Sys[~]] = _Proc[~]
 
-    private[proc] def mkRunner[S <: Sys[S]](obj: _Proc[S], h: Handler[S])(implicit tx: S#Tx): Runner[S] =
+    def mkRunner[S <: Sys[S]](obj: _Proc[S], h: Handler[S])(implicit tx: S#Tx): Runner[S] =
       ProcRunnerImpl(obj, h)
+  }
+
+  object Message {
+    sealed trait Level
+    case object Error   extends Level
+    case object Warning extends Level
+    case object Info    extends Level
+  }
+  final case class Message(time: Long, level: Message.Level, text: String)
+
+  trait Messages[Tx] extends Observable[Tx, List[Message]] {
+    def current(implicit tx: Tx): List[Message]
+  }
+
+  trait Progress[Tx] extends Observable[Tx, Double] {
+    /** Zero to one. Note: negative numbers indicate indeterminate progress */
+    def current(implicit tx: Tx): Double
   }
 }
 trait Runner[S <: stm.Sys[S]] extends ViewBase[S, Unit] {
   // def factory: Runner.Factory
 
-  def messages(implicit tx: S#Tx): Any
+  def messages: Runner.Messages[S#Tx] // (implicit tx: S#Tx): Any
+
+  def progress: Runner.Progress[S#Tx]
 
   val handler: Runner.Handler[S]
 

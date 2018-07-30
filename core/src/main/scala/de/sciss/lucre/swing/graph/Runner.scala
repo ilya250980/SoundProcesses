@@ -14,46 +14,114 @@
 package de.sciss.lucre.swing
 package graph
 
-import de.sciss.lucre.expr.{Act, Control, Ex, IAction}
+import de.sciss.lucre.event.{IEvent, IPull, ITargets}
+import de.sciss.lucre.event.impl.IGenerator
+import de.sciss.lucre.expr.{Act, Control, Ex, IAction, IExpr}
 import de.sciss.lucre.stm.Sys
 import de.sciss.lucre.synth
+import de.sciss.model.Change
 import de.sciss.synth.proc
 import de.sciss.synth.proc.Runner.Handler
 import de.sciss.synth.proc.TimeRef
 import de.sciss.synth.proc.{UGenGraphBuilder => UGB}
 
-object Runner {
-  object Run {
-    private final class Expanded[S <: Sys[S]](r: proc.Runner[S]) extends IAction[S] {
-      def execute()(implicit tx: S#Tx): Unit =
-        r.run(TimeRef.undefined, ())
+import scala.concurrent.stm.Ref
 
-      def dispose()(implicit tx: S#Tx): Unit = ()
-    }
+object Runner {
+  private final class ExpandedRun[S <: Sys[S]](r: proc.Runner[S]) extends IAction[S] {
+    def execute()(implicit tx: S#Tx): Unit =
+    r.run(TimeRef.undefined, ())
+
+    def dispose()(implicit tx: S#Tx): Unit = ()
   }
+
   final case class Run(r: Runner) extends Act {
     override def productPrefix: String = s"Runner$$Run" // serialization
 
     def expand[S <: Sys[S]](implicit ctx: Ex.Context[S], tx: S#Tx): IAction[S] = {
       val rx = r.expand[S]
-      new Run.Expanded[S](rx)
+      new ExpandedRun[S](rx)
     }
   }
 
-  object Stop {
-    private final class Expanded[S <: Sys[S]](r: proc.Runner[S]) extends IAction[S] {
-      def execute()(implicit tx: S#Tx): Unit =
-        r.stop()
+  private final class ExpandedStop[S <: Sys[S]](r: proc.Runner[S]) extends IAction[S] {
+    def execute()(implicit tx: S#Tx): Unit =
+      r.stop()
 
-      def dispose()(implicit tx: S#Tx): Unit = ()
-    }
+    def dispose()(implicit tx: S#Tx): Unit = ()
   }
+
   final case class Stop(r: Runner) extends Act {
     override def productPrefix: String = s"Runner$$Stop" // serialization
 
     def expand[S <: Sys[S]](implicit ctx: Ex.Context[S], tx: S#Tx): IAction[S] = {
       val rx = r.expand[S]
-      new Stop.Expanded[S](rx)
+      new ExpandedStop[S](rx)
+    }
+  }
+
+  private final class ExpandedState[S <: Sys[S]](r: proc.Runner[S], tx0: S#Tx)
+                                                (implicit protected val targets: ITargets[S])
+    extends IExpr[S, Int] with IGenerator[S, Change[Int]] {
+
+    private[this] val beforeRef = Ref(value(tx0))
+
+    private[this] val obs = r.react { implicit tx => state =>
+      val now     = state.id
+      val before  = beforeRef.swap(now)(tx.peer)
+      val ch      = Change(before, now)
+      if (ch.isSignificant) fire(ch)
+    } (tx0)
+
+    def value(implicit tx: S#Tx): Int = r.state.id
+
+    def dispose()(implicit tx: S#Tx): Unit = obs.dispose()
+
+    def changed: IEvent[S, Change[Int]] = this
+
+    private[lucre] def pullUpdate(pull: IPull[S])(implicit tx: S#Tx): Option[Change[Int]] =
+      Some(pull.resolve[Change[Int]])
+  }
+
+  final case class State(r: Runner) extends Ex[Int] {
+    override def productPrefix: String = s"Runner$$State" // serialization
+
+    def expand[S <: Sys[S]](implicit ctx: Ex.Context[S], tx: S#Tx): IExpr[S, Int] = {
+      import ctx.targets
+      val rx = r.expand[S]
+      new ExpandedState[S](rx, tx)
+    }
+  }
+
+  private final class ExpandedProgress[S <: Sys[S]](r: proc.Runner[S], tx0: S#Tx)
+                                                (implicit protected val targets: ITargets[S])
+    extends IExpr[S, Double] with IGenerator[S, Change[Double]] {
+
+    private[this] val beforeRef = Ref(value(tx0))
+
+    private[this] val obs = r.progress.react { implicit tx => now =>
+      val before  = beforeRef.swap(now)(tx.peer)
+      val ch      = Change(before, now)
+      if (ch.isSignificant) fire(ch)
+    } (tx0)
+
+    def value(implicit tx: S#Tx): Double = r.progress.current
+
+    def dispose()(implicit tx: S#Tx): Unit = obs.dispose()
+
+    def changed: IEvent[S, Change[Double]] = this
+
+    private[lucre] def pullUpdate(pull: IPull[S])(implicit tx: S#Tx): Option[Change[Double]] =
+      Some(pull.resolve[Change[Double]])
+  }
+
+  final case class Progress(r: Runner) extends Ex[Double] {
+    override def productPrefix: String = s"Runner$$Progress" // serialization
+
+    def expand[S <: Sys[S]](implicit ctx: Ex.Context[S], tx: S#Tx): IExpr[S, Double] = {
+      import ctx.targets
+      val rx = r.expand[S]
+      new ExpandedProgress[S](rx, tx)
     }
   }
 }
@@ -63,6 +131,12 @@ final case class Runner(key: String) extends Control {
 
   def run : Act = Runner.Run  (this)
   def stop: Act = Runner.Stop (this)
+
+  /** 0 - stopped, 1 - preparing, 2 - prepared, 3 - running */
+  def state: Ex[Int] = Runner.State(this)
+
+  /** Zero to one. Negative if unknown */
+  def progress: Ex[Double] = Runner.Progress(this)
 
   protected def mkControl[S <: Sys[S]](implicit ctx: Ex.Context[S], tx: S#Tx): Repr[S] =
     tx.system match {

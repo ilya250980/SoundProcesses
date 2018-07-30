@@ -15,17 +15,17 @@ package de.sciss.synth.proc
 package impl
 
 import de.sciss.lucre.stm
-import de.sciss.lucre.stm.{Disposable, TxnLike}
+import de.sciss.lucre.stm.{Disposable, Obj, TxnLike}
 import de.sciss.lucre.synth.Sys
 import de.sciss.synth.proc.AuralAttribute.{Factory, Observer, Target}
-import de.sciss.synth.proc.AuralView.{Playing, Prepared, Stopped}
+import de.sciss.synth.proc.Runner.{Running, Prepared, Stopped}
 
 import scala.concurrent.stm.Ref
 
 object AuralOutputAttribute extends Factory {
   type Repr[S <: stm.Sys[S]] = Output[S]
 
-  def typeId: Int = Output.typeId
+  def tpe: Obj.Type = Output
 
   def apply[S <: Sys[S]](key: String, value: Output[S], observer: Observer[S])
                         (implicit tx: S#Tx, context: AuralContext[S]): AuralAttribute[S] =
@@ -40,7 +40,7 @@ final class AuralOutputAttribute[S <: Sys[S]](val key: String, val objH: stm.Sou
 
   import TxnLike.peer
 
-  def typeId: Int = Output.typeId
+  def tpe: Obj.Type = Output
 
   private[this] val auralRef  = Ref(Option.empty[AuralOutput[S]])
   private[this] var obs: Disposable[S#Tx] = _
@@ -81,12 +81,12 @@ final class AuralOutputAttribute[S <: Sys[S]](val key: String, val objH: stm.Sou
 
   def prepare(timeRef: TimeRef.Option)(implicit tx: S#Tx): Unit = state = Prepared
 
-  def play(timeRef: TimeRef.Option, target: Target[S])(implicit tx: S#Tx): Unit /* Instance */ = {
+  def run(timeRef: TimeRef.Option, target: Target[S])(implicit tx: S#Tx): Unit /* Instance */ = {
     // println(s"PLAY $this")
     require (playRef.swap(Some(target)).isEmpty)
     // target.add(this)
     auralRef().foreach(update(target, _))
-    state = Playing
+    state = Running
   }
 
   def stop()(implicit tx: S#Tx): Unit = {

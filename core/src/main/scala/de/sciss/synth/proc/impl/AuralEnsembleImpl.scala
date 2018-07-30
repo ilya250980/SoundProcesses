@@ -14,8 +14,9 @@
 package de.sciss.synth.proc
 package impl
 
+import de.sciss.equal.Implicits._
 import de.sciss.lucre.stm
-import de.sciss.lucre.stm.Disposable
+import de.sciss.lucre.stm.{Disposable, Obj}
 import de.sciss.lucre.synth.Sys
 import de.sciss.model.Change
 
@@ -32,7 +33,7 @@ object AuralEnsembleImpl {
     extends AuralFolderLikeImpl[S, Ensemble[S], AuralObj.Ensemble[S]]
     with AuralObj.Ensemble[S] { impl =>
     
-    def typeId: Int = Ensemble.typeId
+    def tpe: Obj.Type = Ensemble
 
     def folder(implicit tx: S#Tx): Folder[S] = ensemble.folder
 
@@ -45,7 +46,7 @@ object AuralEnsembleImpl {
           case Ensemble.Playing(Change(_, newPlaying)) =>
             logTransport(s"AuralEnsemble - new playing.value = $newPlaying")
             if (newPlaying) {
-              if (state == AuralView.Playing) startTransport(ens.offset.value)
+              if (state === Runner.Running) startTransport(ens.offset.value)
             } else {
               transport.stop()
             }

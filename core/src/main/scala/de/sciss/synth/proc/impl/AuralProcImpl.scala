@@ -14,6 +14,7 @@
 package de.sciss.synth.proc
 package impl
 
+import de.sciss.equal.Implicits._
 import de.sciss.file._
 import de.sciss.lucre.artifact.Artifact
 import de.sciss.lucre.event.impl.ObservableImpl
@@ -26,7 +27,7 @@ import de.sciss.span.Span
 import de.sciss.synth.ControlSet
 import de.sciss.synth.io.AudioFileType
 import de.sciss.synth.proc.AuralObj.{TargetPlaying, TargetPrepared, TargetState, TargetStop}
-import de.sciss.synth.proc.AuralView.{Playing, Prepared, Preparing, Stopped}
+import de.sciss.synth.proc.Runner.{Running, Prepared, Preparing, Stopped}
 import de.sciss.synth.proc.Implicits._
 import de.sciss.synth.proc.TimeRef.SampleRate
 import de.sciss.synth.proc.UGenGraphBuilder.{Complete, Incomplete, MissingIn}
@@ -57,7 +58,7 @@ object AuralProcImpl {
     extends AuralObj.Proc[S]
     with UGB.Context[S]
     with AuralAttribute.Observer[S]
-    with ObservableImpl[S, AuralView.State] { impl =>
+    with ObservableImpl[S, Runner.State] { impl =>
 
     import TxnLike.peer
     import context.{scheduler => sched}
@@ -119,16 +120,16 @@ object AuralProcImpl {
     }
 
     // XXX TODO - perhaps `currentStateRef` and `playingRef` could be one thing?
-    private[this] val currentStateRef     = Ref[AuralView.State](Stopped    )
+    private[this] val currentStateRef     = Ref[Runner.State](Stopped    )
     private[this] val targetStateRef      = Ref[TargetState    ](TargetStop )
     private[this] val playingRef          = Ref[PlayingRef     ](PlayingNone)
 
-    final def typeId: Int = Proc.typeId
+    final def tpe: Obj.Type = Proc
 
-    final def state      (implicit tx: S#Tx): AuralView.State = currentStateRef()
-    final def targetState(implicit tx: S#Tx): AuralView.State = targetStateRef ().completed
+    final def state      (implicit tx: S#Tx): Runner.State = currentStateRef()
+    final def targetState(implicit tx: S#Tx): Runner.State = targetStateRef ().completed
 
-    private def state_=(value: AuralView.State)(implicit tx: S#Tx): Unit = {
+    private def state_=(value: Runner.State)(implicit tx: S#Tx): Unit = {
       val old = currentStateRef.swap(value)
       if (value != old) {
         fire(value)
@@ -174,7 +175,7 @@ object AuralProcImpl {
     private def newSynthGraph()(implicit tx: S#Tx): Unit = {
       logA(s"newSynthGraph ${procCached()}")
 
-      if (state == Playing) stopForRebuild()
+      if (state == Running) stopForRebuild()
 
       disposeBuild()
 
@@ -233,7 +234,7 @@ object AuralProcImpl {
                   val nr      = p.node
                   val target  = AuralAttribute.Target(nodeRef = nr, key, Bus.audio(server, numChannels = numChannels))
                   val trNew   = nr.shiftTo(sched.time)
-                  view.play(timeRef = trNew, target = target)
+                  view.run(timeRef = trNew, target = target)
                 case _ =>
               }
 
@@ -371,7 +372,7 @@ object AuralProcImpl {
         }
       }
 
-      if (now.isComplete && targetState == Playing) playAfterRebuild()
+      if (now.isComplete && targetState == Running) playAfterRebuild()
     }
 
     /* Creates a new aural output */
@@ -636,7 +637,7 @@ object AuralProcImpl {
         case UGB.Input.Scalar.Value(numChannels) =>  // --------------------- scalar
           auralAttrMap.get(key).foreach { a =>
             val target = AuralAttribute.Target(nr, key, Bus.audio(server, numChannels))
-            a.play(timeRef = timeRef, target = target)
+            a.run(timeRef = timeRef, target = target)
           }
 
         case UGB.Input.Stream.Value(_ /* numChannels */, _, specs) =>  // ------------------ streaming
@@ -736,7 +737,7 @@ object AuralProcImpl {
       // XXX TODO
     }
 
-    final def play(timeRef: TimeRef.Option, unit: Unit)(implicit tx: S#Tx): Unit = {
+    final def run(timeRef: TimeRef.Option, unit: Unit)(implicit tx: S#Tx): Unit = {
       val tr  = timeRef.force
       val ts  = TargetPlaying(sched.time, tr)
       targetStateRef() = ts
@@ -756,7 +757,7 @@ object AuralProcImpl {
     // same as `play` but reusing previous `timeRef`
     private def playAfterRebuild()(implicit tx: S#Tx): Unit = {
       // if (state != Stopped) return
-      if (state == Playing) return
+      if (state === Running) return
 
       (buildState, targetStateRef()) match {
         case (s: UGB.Complete[S], tp: TargetPlaying) =>
@@ -961,7 +962,7 @@ object AuralProcImpl {
       playOutputs(builder)
 
       logA(s"launched $p -> $builder (${hashCode.toHexString})")
-      state = Playing
+      state = Running
     }
 
     private def setPlayingPrepare(resources: List[AsyncResource[S]])(implicit tx: S#Tx): PlayingPrepare = {

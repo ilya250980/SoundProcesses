@@ -17,15 +17,14 @@ package impl
 import de.sciss.lucre.event.impl.ObservableImpl
 import de.sciss.lucre.synth.{Sys => SSys}
 import de.sciss.lucre.stm
-import de.sciss.lucre.stm.Sys
+import de.sciss.lucre.stm.{Obj, Sys}
 import de.sciss.synth.proc.Implicits._
 
 import scala.concurrent.stm.Ref
 
 object AuralActionImpl extends AuralObj.Factory {
-
   type Repr[S <: Sys[S]]  = Action[S]
-  def typeId: Int         = Action.typeId
+  def tpe: Obj.Type       = Action
 
   def apply[S <: SSys[S]](obj: Action[S])(implicit tx: S#Tx, context: AuralContext[S]): AuralObj.Action[S] = {
     val objH = tx.newHandle(obj)
@@ -33,21 +32,21 @@ object AuralActionImpl extends AuralObj.Factory {
   }
 
   private final class Impl[S <: Sys[S]](val objH: stm.Source[S#Tx, Action[S]])(implicit context: AuralContext[S])
-    extends AuralObj.Action[S] with ObservableImpl[S, AuralView.State] {
+    extends AuralObj.Action[S] with ObservableImpl[S, Runner.State] {
 
     override def toString = s"AuralAction@${hashCode().toHexString}"
 
-    def typeId: Int = Action.typeId
+    def tpe: Obj.Type = Action
 
-    private val stateRef = Ref[AuralView.State](AuralView.Stopped)
+    private val stateRef = Ref[Runner.State](Runner.Stopped)
 
     def prepare(timeRef: TimeRef.Option)(implicit tx: S#Tx): Unit = {
       // nothing to do. XXX TODO - set state and fire
     }
 
-    def play(timeRef: TimeRef.Option, unit: Unit)(implicit tx: S#Tx): Unit = {
-      val oldState = stateRef.swap(AuralView.Playing)(tx.peer) // XXX TODO fire update
-      if (oldState != AuralView.Playing) {
+    def run(timeRef: TimeRef.Option, unit: Unit)(implicit tx: S#Tx): Unit = {
+      val oldState = stateRef.swap(Runner.Running)(tx.peer) // XXX TODO fire update
+      if (oldState != Runner.Running) {
         val actionObj = objH()
         if (!actionObj.muted) {
           val action    = actionObj
@@ -58,9 +57,9 @@ object AuralActionImpl extends AuralObj.Factory {
     }
 
     def stop()(implicit tx: S#Tx): Unit =
-      stateRef.set(AuralView.Stopped)(tx.peer)
+      stateRef.set(Runner.Stopped)(tx.peer)
 
-    def state(implicit tx: S#Tx): AuralView.State = stateRef.get(tx.peer)
+    def state(implicit tx: S#Tx): Runner.State = stateRef.get(tx.peer)
 
     def dispose()(implicit tx: S#Tx): Unit = ()
   }

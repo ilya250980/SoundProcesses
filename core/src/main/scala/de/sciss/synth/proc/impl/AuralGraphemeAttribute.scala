@@ -28,7 +28,7 @@ import scala.concurrent.stm.Ref
 object AuralGraphemeAttribute extends Factory {
   type Repr[S <: stm.Sys[S]] = Grapheme[S]
 
-  def typeId: Int = Grapheme.typeId
+  def tpe: Obj.Type = Grapheme
 
   def apply[S <: Sys[S]](key: String, grapheme: Grapheme[S], observer: Observer[S])
                         (implicit tx: S#Tx, context: AuralContext[S]): AuralAttribute[S] = {

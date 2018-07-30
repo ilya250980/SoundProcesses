@@ -37,8 +37,8 @@ object AuralTimelineBase {
 
   protected final case class ElemHandle[S <: Sys[S], Elem](idH: stm.Source[S#Tx, S#Id], span: SpanLike, view: Elem)
 }
-trait AuralTimelineBase[S <: Sys[S], I <: stm.Sys[I], Target, Elem <: AuralView[S, Target]]
-  extends AuralScheduledBase[S, Target, Elem] with ObservableImpl[S, AuralView.State] { impl =>
+trait AuralTimelineBase[S <: Sys[S], I <: stm.Sys[I], Target, Elem <: ViewBase[S, Target]]
+  extends AuralScheduledBase[S, Target, Elem] with ObservableImpl[S, Runner.State] { impl =>
 
   import AuralTimelineBase.spanToPoint
   import TxnLike.peer
@@ -81,7 +81,7 @@ trait AuralTimelineBase[S <: Sys[S], I <: stm.Sys[I], Target, Elem <: AuralView[
 
   final def views(implicit tx: S#Tx): ISet[Elem] = playingRef.map(elemFromHandle)(breakOut) // toSet
 
-  final def typeId: Int = Timeline.typeId
+  final def tpe: Obj.Type = Timeline
 
   private type Leaf = (SpanLike, Vec[(stm.Source[S#Tx, S#Id], Elem)])
 
@@ -122,7 +122,7 @@ trait AuralTimelineBase[S <: Sys[S], I <: stm.Sys[I], Target, Elem <: AuralView[
                               (implicit tx: S#Tx): Unit = {
     val view = elemFromHandle(h)
     logA(s"timeline - playView: $view - $timeRef")
-    view.play(timeRef, target)
+    view.run(timeRef, target)
     playingRef.add(h)
     viewPlaying(h)
   }

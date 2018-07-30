@@ -19,10 +19,10 @@ import impl.{GenContextImpl => Impl}
 
 object GenContext {
   def apply[S <: Sys[S]](implicit tx: S#Tx, cursor: stm.Cursor[S],
-                         workspaceHandle: WorkspaceHandle[S]): GenContext[S] = Impl[S]
+                         workspace: WorkspaceHandle[S]): GenContext[S] = Impl[S]
 }
 /** Context for rendering generated objects. */
-trait GenContext[S <: Sys[S]] {
+trait GenContext[S <: Sys[S]] extends Disposable[S#Tx] {
   /** Acquires a resource associated with an object.
     * The resource is stored under the key `obj.id`,
     * and an internal use count is maintained, calling
@@ -54,5 +54,5 @@ trait GenContext[S <: Sys[S]] {
 
   implicit def cursor: stm.Cursor[S]
 
-  implicit def workspaceHandle: WorkspaceHandle[S]
+  implicit def workspace: WorkspaceHandle[S]
 }

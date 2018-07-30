@@ -26,7 +26,7 @@ object AuralObj {
   import de.sciss.synth.proc.{Action => _Action, Ensemble => _Ensemble, Folder => _Folder, Proc => _Proc, Timeline => _Timeline}
 
   trait Factory {
-    def typeId: Int
+    def tpe: Obj.Type
 
     type Repr[~ <: Sys[~]] <: Obj[~]
 
@@ -43,16 +43,16 @@ object AuralObj {
      independent of the current state which might not yet be ready.
    */
   sealed trait TargetState {
-    def completed: AuralView.State
+    def completed: Runner.State
   }
   case object TargetStop extends TargetState {
-    def completed: AuralView.State = AuralView.Stopped
+    def completed: Runner.State = Runner.Stopped
   }
   case object TargetPrepared extends TargetState {
-    def completed: AuralView.State = AuralView.Prepared
+    def completed: Runner.State = Runner.Prepared
   }
   final case class TargetPlaying(wallClock: Long, timeRef: TimeRef) extends TargetState {
-    def completed: AuralView.State = AuralView.Playing
+    def completed: Runner.State = Runner.Running
 
     def shiftTo(newWallClock: Long): TimeRef = {
       val delta = newWallClock - wallClock
@@ -69,7 +69,7 @@ object AuralObj {
   object Proc extends AuralObj.Factory {
     type Repr[S <: Sys[S]] = _Proc[S]
 
-    def typeId: Int = _Proc.typeId
+    def tpe: Obj.Type = _Proc
 
     def apply[S <: SSys[S]](obj: _Proc[S])(implicit tx: S#Tx, context: AuralContext[S]): AuralObj.Proc[S] =
       AuralProcImpl(obj)
@@ -108,7 +108,7 @@ object AuralObj {
       */
     def nodeOption(implicit tx: TxnLike): Option[NodeRef]
 
-    def targetState(implicit tx: S#Tx): AuralView.State
+    def targetState(implicit tx: S#Tx): Runner.State
 
     implicit def context: AuralContext[S]
 
@@ -149,7 +149,7 @@ object AuralObj {
   object Timeline extends AuralObj.Factory {
     type Repr[S <: Sys[S]] = _Timeline[S]
 
-    def typeId: Int = _Timeline.typeId
+    def tpe: Obj.Type = _Timeline
 
     def apply[S <: SSys[S]](obj: _Timeline[S])(implicit tx: S#Tx, context: AuralContext[S]): AuralObj.Timeline[S] =
       AuralTimelineImpl(obj)
@@ -182,7 +182,7 @@ object AuralObj {
   object Ensemble extends AuralObj.Factory {
     type Repr[S <: Sys[S]] = _Ensemble[S]
 
-    def typeId: Int = _Ensemble.typeId
+    def tpe: Obj.Type = _Ensemble
 
     def apply[S <: SSys[S]](obj: _Ensemble[S])(implicit tx: S#Tx, context: AuralContext[S]): AuralObj.Ensemble[S] =
       AuralEnsembleImpl(obj)
@@ -196,7 +196,7 @@ object AuralObj {
   object Folder extends AuralObj.Factory {
     type Repr[S <: Sys[S]] = _Folder[S]
 
-    def typeId: Int = _Folder.typeId
+    def tpe: Obj.Type = _Folder
 
     def apply[S <: SSys[S]](obj: _Folder[S])(implicit tx: S#Tx, context: AuralContext[S]): AuralObj.Folder[S] =
       AuralFolderImpl(obj)
@@ -210,7 +210,7 @@ object AuralObj {
   object Action extends AuralObj.Factory {
     type Repr[S <: Sys[S]] = _Action[S]
 
-    def typeId: Int = _Action.typeId
+    def tpe: Obj.Type = _Action
 
     def apply[S <: SSys[S]](obj: _Action[S])(implicit tx: S#Tx, context: AuralContext[S]): AuralObj.Action[S] =
       AuralActionImpl(obj)
@@ -219,6 +219,6 @@ object AuralObj {
     override def objH: stm.Source[S#Tx, _Action[S]]
   }
 }
-trait AuralObj[S <: Sys[S]] extends AuralView[S, Unit] {
-  def play()(implicit tx: S#Tx): Unit = play(TimeRef.Undefined, ())
+trait AuralObj[S <: Sys[S]] extends ViewBase[S, Unit] {
+  def play()(implicit tx: S#Tx): Unit = run(TimeRef.Undefined, ())
 }

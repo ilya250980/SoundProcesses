@@ -23,7 +23,7 @@ import de.sciss.synth.proc.AuralObj.Container
 import scala.concurrent.stm.Ref
 
 trait AuralFolderLikeImpl[S <: Sys[S], Repr <: Obj[S], View <: AuralObj.FolderLike[S, View]]
-  extends AuralObj.FolderLike[S, View] with ObservableImpl[S, AuralView.State] {
+  extends AuralObj.FolderLike[S, View] with ObservableImpl[S, Runner.State] {
   impl: View =>
 
   // ---- abstract ----
@@ -39,7 +39,7 @@ trait AuralFolderLikeImpl[S <: Sys[S], Repr <: Obj[S], View <: AuralObj.FolderLi
   private[this] var observer    : Disposable[S#Tx] = _
   private[this] var transportObs: Disposable[S#Tx] = _
 
-  private[this] val currentStateRef = Ref[AuralView.State](AuralView.Stopped)
+  private[this] val currentStateRef = Ref[Runner.State](Runner.Stopped)
 
   final protected def processFolderUpdate(fUpd: expr.List.Update[S, Obj[S]])(implicit tx: S#Tx): Unit =
     fUpd.changes.foreach {
@@ -70,12 +70,12 @@ trait AuralFolderLikeImpl[S <: Sys[S], Repr <: Obj[S], View <: AuralObj.FolderLi
 
   final def stop()(implicit tx: S#Tx): Unit = {
     transport.stop()
-    state = AuralView.Stopped
+    state = Runner.Stopped
   }
 
-  final def state(implicit tx: S#Tx): AuralView.State = currentStateRef.get(tx.peer)
+  final def state(implicit tx: S#Tx): Runner.State = currentStateRef.get(tx.peer)
 
-  private def state_=(value: AuralView.State)(implicit tx: S#Tx): Unit = {
+  private def state_=(value: Runner.State)(implicit tx: S#Tx): Unit = {
     val old = currentStateRef.swap(value)(tx.peer)
     if (value != old) {
       // println(s"------ENSEMBLE STATE $old > $value")
@@ -89,16 +89,16 @@ trait AuralFolderLikeImpl[S <: Sys[S], Repr <: Obj[S], View <: AuralObj.FolderLi
     transport.play()        // XXX TODO -- should we be able to pass the timeRef?
   }
 
-  final def play(timeRef: TimeRef.Option, unit: Unit)(implicit tx: S#Tx): Unit = {
-    if (state == AuralView.Playing) return
+  final def run(timeRef: TimeRef.Option, unit: Unit)(implicit tx: S#Tx): Unit = {
+    if (state == Runner.Running) return
     performPlay(timeRef.force)
-    state = AuralView.Playing
+    state = Runner.Running
   }
 
   final def prepare(timeRef: TimeRef.Option)(implicit tx: S#Tx): Unit = {
-    if (state != AuralView.Stopped) return
+    if (state != Runner.Stopped) return
     Console.err.println("TODO: AuralObj.FolderLike.prepare") // XXX TODO
-    state = AuralView.Prepared
+    state = Runner.Prepared
   }
 
   def dispose()(implicit tx: S#Tx): Unit = {

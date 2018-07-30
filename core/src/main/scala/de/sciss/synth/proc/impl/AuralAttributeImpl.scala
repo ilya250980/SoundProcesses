@@ -21,7 +21,7 @@ import de.sciss.lucre.stm.{Disposable, NoSys, Obj, TxnLike}
 import de.sciss.lucre.synth.Sys
 import de.sciss.synth.Curve
 import de.sciss.synth.proc.AuralAttribute.{Factory, Observer, Scalar, Target}
-import de.sciss.synth.proc.AuralView.{Playing, Prepared, State, Stopped}
+import de.sciss.synth.proc.Runner.{Running, Prepared, State, Stopped}
 import de.sciss.synth.ugen.ControlValues
 
 import scala.collection.immutable.{IndexedSeq => Vec}
@@ -35,7 +35,7 @@ object AuralAttributeImpl {
   // ---- Factory ----
 
   def addFactory(f: Factory): Unit = sync.synchronized {
-    val tid = f.typeId
+    val tid = f.tpe.typeId
     if (map.contains(tid)) throw new IllegalArgumentException(s"View factory for type $tid already installed")
     map += tid -> f
   }
@@ -79,7 +79,7 @@ object AuralAttributeImpl {
   )
 
   def addStartLevelViewFactory(f: StartLevelViewFactory): Unit = sync.synchronized {
-    val tid = f.typeId
+    val tid = f.tpe.typeId
     if (startLevelMap.contains(tid)) throw new IllegalArgumentException(s"View factory for type $tid already installed")
     startLevelMap += tid -> f
   }
@@ -136,8 +136,8 @@ object AuralAttributeImpl {
 
     final def prepare(timeRef: TimeRef.Option)(implicit tx: S#Tx): Unit = state = Prepared
 
-    final def play(timeRef: TimeRef.Option, target: Target[S])(implicit tx: S#Tx): Unit /* Instance */ = {
-      state = Playing
+    final def run(timeRef: TimeRef.Option, target: Target[S])(implicit tx: S#Tx): Unit /* Instance */ = {
+      state = Running
       val timeF   = timeRef.force
       val value   = updateTarget(timeF, target, objH().value)
       val playing = new Playing(timeF, sched.time, target, value)
@@ -222,7 +222,7 @@ object AuralAttributeImpl {
   private[this] object IntAttribute extends Factory with StartLevelViewFactory {
     type Repr[S <: stm.Sys[S]] = IntObj[S]
 
-    def typeId: Int = IntObj.typeId
+    def tpe: Obj.Type = IntObj
 
     def apply[S <: Sys[S]](key: String, value: IntObj[S], observer: Observer[S])
                           (implicit tx: S#Tx, context: AuralContext[S]): AuralAttribute[S] =
@@ -242,7 +242,7 @@ object AuralAttributeImpl {
                                                (implicit val context: AuralContext[S])
     extends SingleChannelImpl[S, Int] with NumericExprImpl[S, Int] {
 
-    def typeId: Int = IntObj.typeId
+    def tpe: Obj.Type = IntObj
 
     def mkValue(in: Int): Scalar = in.toFloat
 
@@ -254,7 +254,7 @@ object AuralAttributeImpl {
   private[this] object DoubleAttribute extends Factory with StartLevelViewFactory  {
     type Repr[S <: stm.Sys[S]] = DoubleObj[S]
 
-    def typeId: Int = DoubleObj.typeId
+    def tpe: Obj.Type = DoubleObj
 
     def apply[S <: Sys[S]](key: String, value: DoubleObj[S], observer: Observer[S])
                           (implicit tx: S#Tx, context: AuralContext[S]): AuralAttribute[S] =
@@ -274,7 +274,7 @@ object AuralAttributeImpl {
                                                   (implicit val context: AuralContext[S])
     extends SingleChannelImpl[S, Double] with NumericExprImpl[S, Double] {
 
-    def typeId: Int = DoubleObj.typeId
+    def tpe: Obj.Type = DoubleObj
 
     def mkValue(value: Double): Scalar = value.toFloat
 
@@ -286,7 +286,7 @@ object AuralAttributeImpl {
   private[this] object BooleanAttribute extends Factory with StartLevelViewFactory {
     type Repr[S <: stm.Sys[S]] = BooleanObj[S]
 
-    def typeId: Int = BooleanObj.typeId
+    def tpe: Obj.Type = BooleanObj
 
     def apply[S <: Sys[S]](key: String, value: BooleanObj[S], observer: Observer[S])
                           (implicit tx: S#Tx, context: AuralContext[S]): AuralAttribute[S] =
@@ -306,7 +306,7 @@ object AuralAttributeImpl {
                                                    (implicit val context: AuralContext[S])
     extends SingleChannelImpl[S, Boolean] with NumericExprImpl[S, Boolean] {
 
-    def typeId: Int = BooleanObj.typeId
+    def tpe: Obj.Type = BooleanObj
 
     def mkValue(in: Boolean): Scalar = if (in) 1f else 0f
 
@@ -318,7 +318,7 @@ object AuralAttributeImpl {
   private[this] object FadeSpecAttribute extends Factory {
     type Repr[S <: stm.Sys[S]] = FadeSpec.Obj[S]
 
-    def typeId: Int = FadeSpec.Obj.typeId
+    def tpe: Obj.Type = FadeSpec.Obj
 
     def apply[S <: Sys[S]](key: String, value: FadeSpec.Obj[S], observer: Observer[S])
                           (implicit tx: S#Tx, context: AuralContext[S]): AuralAttribute[S] =
@@ -328,7 +328,7 @@ object AuralAttributeImpl {
                                                     (implicit val context: AuralContext[S])
     extends ExprImpl[S, FadeSpec] {
 
-    def typeId: Int = FadeSpec.Obj.typeId
+    def tpe: Obj.Type = FadeSpec.Obj
 
     def preferredNumChannels(implicit tx: S#Tx): Int = 4
 
@@ -350,7 +350,7 @@ object AuralAttributeImpl {
   private[this] object DoubleVectorAttribute extends Factory with StartLevelViewFactory {
     type Repr[S <: stm.Sys[S]] = DoubleVector[S]
 
-    def typeId: Int = DoubleVector.typeId
+    def tpe: Obj.Type = DoubleVector
 
     def apply[S <: Sys[S]](key: String, value: DoubleVector[S], observer: Observer[S])
                           (implicit tx: S#Tx, context: AuralContext[S]): AuralAttribute[S] =
@@ -370,7 +370,7 @@ object AuralAttributeImpl {
                                                         (implicit val context: AuralContext[S])
     extends ExprImpl[S, Vec[Double]] with NumericExprImpl[S, Vec[Double]] {
 
-    def typeId: Int = DoubleVector.typeId
+    def tpe: Obj.Type = DoubleVector
 
     def preferredNumChannels(implicit tx: S#Tx): Int = objH().value.size
 
@@ -384,7 +384,7 @@ object AuralAttributeImpl {
   private final class DummyAttribute[S <: Sys[S]](val key: String, val objH: stm.Source[S#Tx, Obj[S]])
     extends AuralAttribute[S] with DummyObservableImpl[S] {
 
-    def typeId: Int = throw new UnsupportedOperationException("DummyAttribute.typeId")
+    def tpe: Obj.Type = throw new UnsupportedOperationException("DummyAttribute.tpe")
 
     def preferredNumChannels(implicit tx: S#Tx): Int = 0
 
@@ -394,7 +394,7 @@ object AuralAttributeImpl {
 
     def prepare(timeRef: TimeRef.Option)(implicit tx: S#Tx): Unit = ()
 
-    def play(timeRef: TimeRef.Option, target: Target[S])(implicit tx: S#Tx): Unit = ()
+    def run(timeRef: TimeRef.Option, target: Target[S])(implicit tx: S#Tx): Unit = ()
 
     def stop   ()(implicit tx: S#Tx): Unit = ()
     def dispose()(implicit tx: S#Tx): Unit = ()
@@ -404,7 +404,7 @@ object AuralAttributeImpl {
     override def toString = s"DummyAttribute($key)@${hashCode.toHexString}"
   }
 }
-trait AuralAttributeImpl[S <: Sys[S]] extends AuralAttribute[S] with ObservableImpl[S, AuralView.State] {
+trait AuralAttributeImpl[S <: Sys[S]] extends AuralAttribute[S] with ObservableImpl[S, Runner.State] {
   import TxnLike.peer
 
   private[this] final val stateRef = Ref[State](Stopped)

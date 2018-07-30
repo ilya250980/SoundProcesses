@@ -31,7 +31,7 @@ import scala.concurrent.stm.Ref
 object AuralEnvSegmentAttribute extends Factory with StartLevelViewFactory {
   type Repr[S <: stm.Sys[S]] = EnvSegment.Obj[S]
 
-  def typeId: Int = EnvSegment.typeId
+  def tpe: Obj.Type = EnvSegment.Obj
 
   def apply[S <: Sys[S]](key: String, value: Repr[S], observer: Observer[S])
                         (implicit tx: S#Tx, context: AuralContext[S]): AuralAttribute[S] =
@@ -94,7 +94,7 @@ object AuralEnvSegmentAttribute extends Factory with StartLevelViewFactory {
     private[this] val _endLevel = Ref(Option.empty[SegmentEnd[S]])
     private[this] val _grObs    = Ref(Disposable.empty[S#Tx])
 
-    def typeId: Int = EnvSegment.typeId
+    def tpe: Obj.Type = EnvSegment.Obj
 
     def preferredNumChannels(implicit tx: S#Tx): Int = objH().value.numChannels
 

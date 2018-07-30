@@ -11,11 +11,13 @@
  *  contact@sciss.de
  */
 
-package de.sciss.synth.proc.impl
+package de.sciss.synth.proc
+package impl
 
 import java.io.{File, RandomAccessFile}
 import java.nio.ByteBuffer
 
+import de.sciss.equal.Implicits._
 import de.sciss.file._
 import de.sciss.lucre.stm
 import de.sciss.lucre.synth.{Buffer, Server, Synth, Sys, Txn}
@@ -23,8 +25,7 @@ import de.sciss.processor.Processor
 import de.sciss.processor.impl.ProcessorImpl
 import de.sciss.synth.Ops.stringToControl
 import de.sciss.synth.io.{AudioFileType, SampleFormat}
-import de.sciss.synth.proc.AuralView.{Playing, Prepared, Preparing, Stopped}
-import de.sciss.synth.proc.{AuralObj, AuralSystem, AuralView, Bounce, Scheduler, TimeRef, Transport, WorkspaceHandle, logTransport, showTransportLog}
+import de.sciss.synth.proc.Runner.{Running, Prepared, Preparing, Stopped}
 import de.sciss.synth.{SynthGraph, addToTail, Server => SServer}
 import de.sciss.{osc, synth}
 
@@ -259,7 +260,7 @@ final class BounceImpl[S <: Sys[S], I <: stm.Sys[I]](implicit cursor: stm.Cursor
 
       prepare(transport) { state =>
 //        println(s"STATE1 $state")
-        state == Playing | state == Stopped
+        state === Running | state === Stopped
       }
 
       if (config.beforePlay != Bounce.Config.NoOp) cursor.step { implicit tx =>
@@ -350,7 +351,7 @@ final class BounceImpl[S <: Sys[S], I <: stm.Sys[I]](implicit cursor: stm.Cursor
       // scheduler.dispose()
     }
 
-    private def prepare(transport: Transport[S])(isReady: AuralView.State => Boolean): Unit = {
+    private def prepare(transport: Transport[S])(isReady: Runner.State => Boolean): Unit = {
       // Tricky business: While handling prepared state is not yet
       // fully solved, especially with collection objects such as
       // Timeline, we at least provide some bounce support for objects

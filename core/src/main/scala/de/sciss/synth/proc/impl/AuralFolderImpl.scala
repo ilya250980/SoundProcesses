@@ -15,7 +15,7 @@ package de.sciss.synth.proc
 package impl
 
 import de.sciss.lucre.stm
-import de.sciss.lucre.stm.Disposable
+import de.sciss.lucre.stm.{Disposable, Obj}
 import de.sciss.lucre.synth.Sys
 
 object AuralFolderImpl {
@@ -30,7 +30,7 @@ object AuralFolderImpl {
     extends AuralFolderLikeImpl[S, Folder[S], AuralObj.Folder[S]]
     with AuralObj.Folder[S] { impl =>
 
-    def typeId: Int = Folder.typeId
+    def tpe: Obj.Type = Folder
 
     def folder(implicit tx: S#Tx): Folder[S] = objH()
 

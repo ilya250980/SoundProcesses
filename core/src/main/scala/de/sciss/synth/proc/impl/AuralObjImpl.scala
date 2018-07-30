@@ -24,7 +24,7 @@ object AuralObjImpl {
   private val sync = new AnyRef
 
   def addFactory(f: Factory): Unit = sync.synchronized {
-    val tid = f.typeId
+    val tid = f.tpe.typeId
     if (map.contains(tid)) throw new IllegalArgumentException(s"View factory for type $tid already installed")
     map += tid -> f
   }
@@ -58,9 +58,9 @@ object AuralObjImpl {
     private final class Impl[S <: Sys[S]](val objH: stm.Source[S#Tx, Obj[S]])
       extends AuralObj[S] with DummyObservableImpl[S] {
 
-      def typeId: Int = 0
+      def tpe: Obj.Type = throw new UnsupportedOperationException("Generic.tpe")
 
-      def play(timeRef: TimeRef.Option, unit: Unit)(implicit tx: S#Tx): Unit = ()
+      def run(timeRef: TimeRef.Option, unit: Unit)(implicit tx: S#Tx): Unit = ()
       def stop(/* time: Long */)(implicit tx: S#Tx): Unit = ()
 
       // def latencyEstimate(implicit tx: S#Tx): Long = 0L
@@ -69,7 +69,7 @@ object AuralObjImpl {
 
       def dispose()(implicit tx: S#Tx): Unit = ()
 
-      def state(implicit tx: S#Tx): AuralView.State = AuralView.Stopped
+      def state(implicit tx: S#Tx): Runner.State = Runner.Stopped
     }
   }
 }

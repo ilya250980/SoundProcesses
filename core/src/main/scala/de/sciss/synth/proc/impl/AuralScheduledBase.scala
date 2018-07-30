@@ -20,7 +20,7 @@ import de.sciss.lucre.geom.LongPoint2D
 import de.sciss.lucre.stm.{Disposable, TxnLike}
 import de.sciss.lucre.synth.Sys
 import de.sciss.span.{Span, SpanLike}
-import de.sciss.synth.proc.AuralView.{Playing, Prepared, Preparing, Stopped}
+import de.sciss.synth.proc.Runner.{Running, Prepared, Preparing, Stopped}
 import de.sciss.synth.proc.{logAural => logA}
 
 import scala.concurrent.stm.Ref
@@ -41,8 +41,8 @@ object AuralScheduledBase {
   def spanToPoint(span: SpanLike): LongPoint2D = BiGroupImpl.spanToPoint(span)
 }
 /** Common base for `AuralGraphemeBase` and `AuralTimelineBase`. */
-trait AuralScheduledBase[S <: Sys[S], Target, Elem <: AuralViewBase[S, Target]]
-  extends AuralView[S, Target] with ObservableImpl[S, AuralView.State] { impl =>
+trait AuralScheduledBase[S <: Sys[S], Target, Elem <: ViewBase[S, Target]]
+  extends ViewBase[S, Target] with ObservableImpl[S, Runner.State] { impl =>
 
   import TxnLike.peer
 
@@ -143,12 +143,12 @@ trait AuralScheduledBase[S <: Sys[S], Target, Elem <: AuralViewBase[S, Target]]
   import AuralScheduledBase.{EmptyScheduled, LOOK_AHEAD, LOOK_STOP, PREP_FRAMES, Scheduled}
 
   protected sealed trait InternalState extends Disposable[S#Tx] {
-    def external: AuralView.State
+    def external: Runner.State
   }
 
   protected case object IStopped extends InternalState {
     def dispose()(implicit tx: S#Tx): Unit = ()
-    def external: AuralView.State = Stopped
+    def external: Runner.State = Stopped
   }
 
   protected sealed trait ITimedState extends InternalState {
@@ -164,7 +164,7 @@ trait AuralScheduledBase[S <: Sys[S], Target, Elem <: AuralViewBase[S, Target]]
 
     def dispose()(implicit tx: S#Tx): Unit = map.foreach(_._2.dispose())
 
-    def external: AuralView.State = if (map.isEmpty) Prepared else Preparing
+    def external: Runner.State = if (map.isEmpty) Prepared else Preparing
   }
 
   protected final class IPlaying(val wallClock: Long, val timeRef: TimeRef, val target: Target)
@@ -176,7 +176,7 @@ trait AuralScheduledBase[S <: Sys[S], Target, Elem <: AuralViewBase[S, Target]]
 
     def dispose()(implicit tx: S#Tx): Unit = ()
 
-    def external: AuralView.State = Playing
+    def external: Runner.State = Running
   }
 
   import context.{scheduler => sched}
@@ -187,7 +187,7 @@ trait AuralScheduledBase[S <: Sys[S], Target, Elem <: AuralViewBase[S, Target]]
   private[this] val schedEvtToken     = Ref(EmptyScheduled)
   private[this] val schedGridToken    = Ref(EmptyScheduled)
 
-  final def state(implicit tx: S#Tx): AuralView.State = internalRef().external
+  final def state(implicit tx: S#Tx): Runner.State = internalRef().external
 
   protected final def internalState(implicit tx: S#Tx): InternalState = internalRef()
   protected final def internalState_=(value: InternalState)(implicit tx: S#Tx): Unit = internalRef() = value
@@ -277,9 +277,9 @@ trait AuralScheduledBase[S <: Sys[S], Target, Elem <: AuralViewBase[S, Target]]
     * If all is good, sets internal state to `IPlaying` and calls `processPlay`.
     * Next instructs scheduler and sets external state to `Playing`.
     */
-  final def play(timeRef: TimeRef.Option, target: Target)(implicit tx: S#Tx): Unit = {
+  final def run(timeRef: TimeRef.Option, target: Target)(implicit tx: S#Tx): Unit = {
     val st = state
-    if (st == Playing) return
+    if (st == Running) return
 
     val tForce    = timeRef.force
     val offset    = timeRef.offset
@@ -293,7 +293,7 @@ trait AuralScheduledBase[S <: Sys[S], Target, Elem <: AuralViewBase[S, Target]]
     scheduleNextEvent(offset)
     scheduleNextGrid (offset)
 
-    fire(Playing)
+    fire(Running)
   }
 
   /** Calls `eventAfter` to determine the next interesting frame. If that

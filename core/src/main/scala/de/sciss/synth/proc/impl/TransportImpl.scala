@@ -105,7 +105,7 @@ object TransportImpl {
     private def playViews()(implicit tx: S#Tx): Unit = {
       val tr = mkTimeRef()
       logT(s"transport - playViews - $tr")
-      viewSet.foreach(_.play(tr, ()))
+      viewSet.foreach(_.run(tr, ()))
     }
 
     def stop()(implicit tx: S#Tx): Unit = {
@@ -149,7 +149,7 @@ object TransportImpl {
 
       contextOption.foreach { implicit context =>
         val view = mkView(obj)
-        if (isPlaying) view.play(mkTimeRef(), ())
+        if (isPlaying) view.run(mkTimeRef(), ())
       }
     }
 

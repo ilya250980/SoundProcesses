@@ -34,8 +34,8 @@ object AuralGraphemeBase {
   *
   * @see [[AuralGraphemeAttribute]]
   */
-trait AuralGraphemeBase[S <: Sys[S], I <: stm.Sys[I], Target, Elem <: AuralView[S, Target]]
-  extends AuralScheduledBase[S, Target, Elem] with ObservableImpl[S, AuralView.State] { impl =>
+trait AuralGraphemeBase[S <: Sys[S], I <: stm.Sys[I], Target, Elem <: ViewBase[S, Target]]
+  extends AuralScheduledBase[S, Target, Elem] with ObservableImpl[S, Runner.State] { impl =>
 
   import TxnLike.peer
 
@@ -55,7 +55,7 @@ trait AuralGraphemeBase[S <: Sys[S], I <: stm.Sys[I], Target, Elem <: AuralView[
 
   private[this] var grObserver: Disposable[S#Tx] = _
 
-  final def typeId: Int = Grapheme.typeId
+  final def tpe: Obj.Type = Grapheme
 
   protected type ViewId     = Unit
   protected type ElemHandle = AuralGraphemeBase.ElemHandle[S, Elem]
@@ -162,7 +162,7 @@ trait AuralGraphemeBase[S <: Sys[S], I <: stm.Sys[I], Target, Elem <: AuralView[
     val view = elemFromHandle(h)
     logA(s"grapheme - playView: $view - $timeRef")
     stopViews()
-    view.play(timeRef, target)
+    view.run(timeRef, target)
     playingRef() = Some(h)
   }
 

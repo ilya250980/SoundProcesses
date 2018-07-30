@@ -20,7 +20,7 @@ import de.sciss.lucre.stm
 import de.sciss.lucre.synth.{Sys, Txn, Node}
 import de.sciss.osc
 
-final class StopSelfResponder[S <: Sys[S]](view: AuralView[S, Nothing], protected val synth: Node)
+final class StopSelfResponder[S <: Sys[S]](view: ViewBase[S, Nothing], protected val synth: Node)
                                           (implicit cursor: stm.Cursor[S])
   extends SendReplyResponder {
 

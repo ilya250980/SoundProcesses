@@ -106,7 +106,6 @@ trait Runner[S <: stm.Sys[S]] extends ViewBase[S, Unit] {
   def messages(implicit tx: S#Tx): Any
 
   val handler: Runner.Handler[S]
-
 /*
 - allow both for a `self` and an `invoker` (`Action.Universe`)
 - should we have an `value: Any` as in `Action.Universe`?

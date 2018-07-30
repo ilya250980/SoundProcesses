@@ -60,7 +60,7 @@ final class ActionResponder[S <: Sys[S]](objH: stm.Source[S#Tx, Obj[S]], key: St
         val invoker = objH()
         invoker.attr.$[proc.Action](key).foreach { action =>
           if (DEBUG) println("...and found action")
-          val universe = proc.Action.Universe(action, context.workspaceHandle,
+          val universe = proc.Action.Universe(action, context.workspace,
             invoker = Some(invoker), value = proc.Action.FloatVector(values))
           action.execute(universe)
         }

@@ -807,7 +807,7 @@ object AuralProcImpl {
             rb.dispose()
             val invoker = procCached()
             invoker.attr.$[Action](actionKey).foreach { action =>
-              val universe = Action.Universe(action, context.workspaceHandle,
+              val universe = Action.Universe(action, context.workspace,
                 invoker = Some(invoker) /* , values = values */)
               action.execute(universe)
             }

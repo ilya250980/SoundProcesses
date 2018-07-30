@@ -16,37 +16,63 @@ package impl
 
 import de.sciss.lucre.event.impl.ObservableImpl
 import de.sciss.lucre.stm
-import de.sciss.lucre.stm.Obj
+import de.sciss.lucre.stm.TxnLike.peer
+import de.sciss.lucre.stm.{Cursor, Obj}
 import de.sciss.lucre.synth.Sys
-import de.sciss.synth.proc.Runner.Handler
+import de.sciss.synth.proc.Implicits._
+import de.sciss.synth.proc.Runner.{Handler, Prepared, Running, Stopped}
+
+import scala.concurrent.stm.Ref
 
 object ActionRunnerImpl {
   def apply[S <: Sys[S]](obj: Action[S], h: Handler[S])(implicit tx: S#Tx): Runner[S] =
     new Impl(tx.newHandle(obj), h)
 
-  abstract class Base[S <: Sys[S]] extends Runner[S] with ObservableImpl[S, Runner.State] {
+  abstract class Base[S <: stm.Sys[S], Target] extends ViewBase[S, Target] with ObservableImpl[S, Runner.State] {
+    protected def workspace : WorkspaceHandle [S]
+    protected def cursor    : Cursor          [S]
+
+    override def objH: stm.Source[S#Tx, Action[S]]
+
+    private[this] val stateRef = Ref[Runner.State](Runner.Stopped)
 
     final def factory: Runner.Factory = Runner.Action
 
     final def tpe: Obj.Type = Action
 
-    final def prepare()(implicit tx: S#Tx): Unit = ???
+    final def prepare(timeRef: TimeRef.Option)(implicit tx: S#Tx): Unit =
+      state = Prepared
 
-    final def prepare(timeRef: TimeRef.Option)(implicit tx: S#Tx): Unit = ???
+    final def stop()(implicit tx: S#Tx): Unit =
+      state = Stopped
 
-    final def run(timeRef: TimeRef.Option, target: Unit)(implicit tx: S#Tx): Unit = ???
+    final def state(implicit tx: S#Tx): Runner.State = stateRef()
 
-    final def stop()(implicit tx: S#Tx): Unit = ???
-
-    final def state(implicit tx: S#Tx): Runner.State = ???
+    final protected def state_=(now: Runner.State)(implicit tx: S#Tx): Unit = {
+      val before = stateRef.swap(now)
+      if (before != now) fire(now)
+    }
 
     def messages(implicit tx: S#Tx): Any = ???
 
     def dispose()(implicit tx: S#Tx): Unit = ()
+
+    def run(timeRef: TimeRef.Option, target: Target)(implicit tx: S#Tx): Unit = {
+      state = Running
+      val action = objH()
+      if (!action.muted) {
+        val universe = Action.Universe[S](action, workspace)(cursor)
+        action.execute(universe)
+      }
+      state = Stopped
+    }
   }
 
-  private final class Impl[S <: Sys[S]](val objH: stm.Source[S#Tx, Obj[S]], val handler: Handler[S])
-    extends Base[S] {
+  private final class Impl[S <: stm.Sys[S]](val objH: stm.Source[S#Tx, Action[S]], val handler: Handler[S])
+    extends Base[S, Unit] with Runner[S] {
+
+    protected def workspace : WorkspaceHandle [S] = handler.workspace
+    protected def cursor    : Cursor          [S] = handler.cursor
 
     override def toString = s"Runner.Action${hashCode().toHexString}"
   }

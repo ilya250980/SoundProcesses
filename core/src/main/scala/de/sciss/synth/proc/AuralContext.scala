@@ -20,11 +20,11 @@ import de.sciss.synth.proc.impl.{AuralContextImpl => Impl}
 
 object AuralContext {
   def apply[S <: SSys[S]](server: Server, scheduler: Scheduler[S])
-                        (implicit tx: S#Tx, workspaceHandle: WorkspaceHandle[S]): AuralContext[S] =
+                        (implicit tx: S#Tx, workspace: WorkspaceHandle[S]): AuralContext[S] =
     Impl(server, scheduler)
 
   def apply[S <: SSys[S]](server: Server)(implicit tx: S#Tx, cursor: stm.Cursor[S],
-                                         workspaceHandle: WorkspaceHandle[S]): AuralContext[S] = {
+                                          workspace: WorkspaceHandle[S]): AuralContext[S] = {
     val scheduler = Scheduler[S]
     apply(server, scheduler)
   }
@@ -40,7 +40,7 @@ trait AuralContext[S <: Sys[S]] extends AuxContext[S] {
 
   val scheduler: Scheduler[S]
 
-  implicit def workspaceHandle: WorkspaceHandle[S]
+  implicit def workspace: WorkspaceHandle[S]
 
   implicit def gen: GenContext[S]
 }

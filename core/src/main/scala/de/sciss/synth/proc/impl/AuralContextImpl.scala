@@ -18,13 +18,13 @@ import de.sciss.lucre.stm.IdentifierMap
 import de.sciss.lucre.synth.{Server, Sys}
 
 object AuralContextImpl {
-  def apply[S <: Sys[S]](server: Server, sched: Scheduler[S])
-                        (implicit tx: S#Tx, workspaceHandle: WorkspaceHandle[S]): AuralContext[S] = {
+  def apply[S <: Sys[S]](server: Server, scheduler: Scheduler[S])
+                        (implicit tx: S#Tx, workspace: WorkspaceHandle[S]): AuralContext[S] = {
     val objMap  = tx.newInMemoryIdMap[ContextEntry[S]]
     val auxMap  = tx.newInMemoryIdMap[Any]
-    import sched.cursor
+    import scheduler.cursor
     val gen     = GenContext[S]
-    val res     = new Impl[S](objMap, auxMap, sched, server, gen, tx)
+    val res     = new Impl[S](objMap, auxMap, scheduler, server, gen, tx)
     logAural(s"create context ${res.hashCode().toHexString}")
     // (new Throwable).printStackTrace()
     res
@@ -36,7 +36,7 @@ object AuralContextImpl {
                                         val server          : Server,
                                         val gen             : GenContext[S],
                                         tx0: S#Tx)
-                                       (implicit val workspaceHandle: WorkspaceHandle[S])
+                                       (implicit val workspace: WorkspaceHandle[S])
     extends ContextImpl[S] with AuralContext[S] with AuxContextImpl[S] {
 
     protected val auxObservers: IdentifierMap[S#Id, S#Tx, List[AuxObserver]] = tx0.newInMemoryIdMap

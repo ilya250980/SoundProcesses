@@ -38,7 +38,7 @@ object TransportImpl {
   }
 
   def apply[S <: Sys[S]](implicit tx: S#Tx, context: AuralContext[S]): Transport[S] = {
-    import context.workspaceHandle
+    import context.workspace
     val res = mkTransport(None, context.scheduler)
     res.auralStartedTx(context.server)
     res

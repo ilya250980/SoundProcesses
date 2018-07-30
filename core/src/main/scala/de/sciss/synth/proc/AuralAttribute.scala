@@ -136,7 +136,7 @@ object AuralAttribute {
     def setGrapheme(pos: Long, g: Grapheme[S])(implicit tx: S#Tx): Unit
   }
 }
-trait AuralAttribute[S <: Sys[S]] extends ViewBase[S, AuralAttribute.Target[S]] {
+trait AuralAttribute[S <: Sys[S]] extends ObjViewBase[S, AuralAttribute.Target[S]] {
   def key: String
 
   /** Or `-1` if the number of channels cannot be determined. */

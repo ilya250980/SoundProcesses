@@ -78,6 +78,8 @@ object RunnerHandlerImpl {
 
     private[this] val runnersRef = Ref(Vec.empty[Runner[S]])
 
+    def mkTransport()(implicit tx: S#Tx): Transport[S] = Transport(auralSystem, scheduler)
+
     def runners(implicit tx: S#Tx): Iterator[Runner[S]] = runnersRef().iterator
 
     def dispose()(implicit tx: S#Tx): Unit =

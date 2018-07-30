@@ -185,6 +185,11 @@ object AuralSystemImpl {
       // serverOption.foreach(c.auralStarted)
     }
 
+    def addClientNow(c: Client)(implicit tx: Txn): Unit = {
+      addClient(c)
+      serverOption.foreach(c.auralStarted)
+    }
+
     def serverOption(implicit tx: Txn): Option[Server] = state.get(tx.peer).serverOption
 
     def removeClient(c: Client)(implicit tx: Txn): Unit =

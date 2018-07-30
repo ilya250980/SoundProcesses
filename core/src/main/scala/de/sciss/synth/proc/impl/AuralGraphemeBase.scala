@@ -34,8 +34,10 @@ object AuralGraphemeBase {
   *
   * @see [[AuralGraphemeAttribute]]
   */
-trait AuralGraphemeBase[S <: Sys[S], I <: stm.Sys[I], Target, Elem <: ViewBase[S, Target]]
-  extends AuralScheduledBase[S, Target, Elem] with ObservableImpl[S, Runner.State] { impl =>
+trait AuralGraphemeBase[S <: Sys[S], I <: stm.Sys[I], Target, Elem <: ObjViewBase[S, Target]]
+  extends AuralScheduledBase[S, Target, Elem] with ObservableImpl[S, Runner.State] {
+
+  impl: ObjViewBase[S, Target] =>
 
   import TxnLike.peer
 

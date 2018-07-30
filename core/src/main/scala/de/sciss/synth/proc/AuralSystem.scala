@@ -65,7 +65,10 @@ trait AuralSystem {
     * @param  c the client to register. If the server is already running, the client
     *           will _not_ be immediately notified.
     */
-  def addClient   (c: Client)(implicit tx: Txn): Unit
+  def addClient(c: Client)(implicit tx: Txn): Unit
+
+  /** Same as `addClient`, but additionally calls `auralStarted` if the server is already running. */
+  def addClientNow(c: Client)(implicit tx: Txn): Unit
 
   /** Removes a client to the system. It is safe to call this method both inside and
     * outside of a transaction. If called inside a transaction, this is transaction

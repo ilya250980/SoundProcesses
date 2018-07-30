@@ -17,10 +17,10 @@ import de.sciss.lucre.stm
 import de.sciss.lucre.stm.{Disposable, Obj, Sys}
 
 trait ViewBase[S <: Sys[S], -Target] extends Observable[S#Tx, Runner.State] with Disposable[S#Tx] {
-  def tpe: Obj.Type
-
-  /** The view must store a handle to its underlying model. */
-  def objH: stm.Source[S#Tx, Obj[S]]
+//  def tpe: Obj.Type
+//
+//  /** The view must store a handle to its underlying model. */
+//  def objH: stm.Source[S#Tx, Obj[S]]
 
   def state(implicit tx: S#Tx): Runner.State
 
@@ -34,4 +34,11 @@ trait ViewBase[S <: Sys[S], -Target] extends Observable[S#Tx, Runner.State] with
     fun(tx)(state)
     res
   }
+}
+
+trait ObjViewBase[S <: Sys[S], -Target] extends ViewBase[S, Target] {
+  def tpe: Obj.Type
+
+  /** The view must store a handle to its underlying model. */
+  def objH: stm.Source[S#Tx, Obj[S]]
 }

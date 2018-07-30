@@ -28,7 +28,7 @@ object ActionRunnerImpl {
   def apply[S <: Sys[S]](obj: Action[S], h: Handler[S])(implicit tx: S#Tx): Runner[S] =
     new Impl(tx.newHandle(obj), h)
 
-  abstract class Base[S <: stm.Sys[S], Target] extends ViewBase[S, Target] with ObservableImpl[S, Runner.State] {
+  abstract class Base[S <: stm.Sys[S], Target] extends ObjViewBase[S, Target] with ObservableImpl[S, Runner.State] {
     protected def workspace : WorkspaceHandle [S]
     protected def cursor    : Cursor          [S]
 

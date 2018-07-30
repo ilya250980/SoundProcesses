@@ -17,8 +17,8 @@ import de.sciss.lucre.event.Observable
 import de.sciss.lucre.stm
 import de.sciss.lucre.stm.{Cursor, Disposable, Obj, WorkspaceHandle}
 import de.sciss.lucre.synth.Sys
-import de.sciss.synth.proc.impl.{ActionRunnerImpl, RunnerHandlerImpl => Impl}
-import de.sciss.synth.proc.{Action => _Action}
+import de.sciss.synth.proc.impl.{ActionRunnerImpl, ProcRunnerImpl, RunnerHandlerImpl => Impl}
+import de.sciss.synth.proc.{Action => _Action, Proc => _Proc}
 
 import scala.language.higherKinds
 
@@ -50,6 +50,8 @@ object Runner {
     implicit def cursor     : Cursor          [S]
     implicit def genContext : GenContext      [S]
     implicit def scheduler  : Scheduler       [S]
+
+    def mkTransport()(implicit tx: S#Tx): Transport[S]
 
     def auralSystem: AuralSystem
 
@@ -89,8 +91,9 @@ object Runner {
     private[proc] def mkRunner[S <: Sys[S]](obj: Repr[S], h: Handler[S])(implicit tx: S#Tx): Runner[S]
   }
 
+  // -------------------
   // ---- factories ----
-
+  // -------------------
 
   // ---- Action ----
 
@@ -107,9 +110,24 @@ object Runner {
     private[proc] def mkRunner[S <: Sys[S]](obj: _Action[S], h: Handler[S])(implicit tx: S#Tx): Runner[S] =
       ActionRunnerImpl(obj, h)
   }
+
+  // ---- Proc ----
+
+  object Proc extends Factory {
+    final val prefix          = "Proc"
+    final val humanName       = "Process"
+    def tpe       : Obj.Type  = _Proc
+
+    def isSingleton: Boolean = false
+
+    type Repr[~ <: Sys[~]] = _Proc[~]
+
+    private[proc] def mkRunner[S <: Sys[S]](obj: _Proc[S], h: Handler[S])(implicit tx: S#Tx): Runner[S] =
+      ProcRunnerImpl(obj, h)
+  }
 }
 trait Runner[S <: stm.Sys[S]] extends ViewBase[S, Unit] {
-  def factory: Runner.Factory
+  // def factory: Runner.Factory
 
   def messages(implicit tx: S#Tx): Any
 

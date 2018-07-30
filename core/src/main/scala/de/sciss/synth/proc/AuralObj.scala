@@ -221,6 +221,6 @@ object AuralObj {
     override def objH: stm.Source[S#Tx, _Action[S]]
   }
 }
-trait AuralObj[S <: Sys[S]] extends ViewBase[S, Unit] {
+trait AuralObj[S <: Sys[S]] extends ObjViewBase[S, Unit] {
   def play()(implicit tx: S#Tx): Unit = run(TimeRef.Undefined, ())
 }

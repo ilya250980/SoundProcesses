@@ -110,9 +110,8 @@ final case class Artifact(key: String, default: Ex[File] = file(""))
 
   def expand[S <: Sys[S]](implicit ctx: Ex.Context[S], tx: S#Tx): IExpr[S, File] = {
     val defaultEx = default.expand[S]
-    ctx.selfOption.fold(defaultEx) { self =>
+    Attr.resolveNested(key).fold(defaultEx) { attrView =>
       import ctx.targets
-      val attrView = bridge.cellView[S](self, key)
       new Attr.WithDefault.Expanded[S, File](attrView, defaultEx, tx)
     }
   }

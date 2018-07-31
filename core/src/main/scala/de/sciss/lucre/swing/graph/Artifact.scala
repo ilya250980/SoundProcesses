@@ -18,11 +18,12 @@ import de.sciss.file._
 import de.sciss.lucre.artifact.{ArtifactLocation, Artifact => _Artifact}
 import de.sciss.lucre.aux.Aux
 import de.sciss.lucre.expr.ExOps._
+import de.sciss.lucre.expr.graph.Attr
 import de.sciss.lucre.expr.impl.CellViewImpl
 import de.sciss.lucre.expr.impl.CellViewImpl.AttrMapExprObs
-import de.sciss.lucre.expr.{CellView, Ex, ExAttr, IExpr}
+import de.sciss.lucre.expr.{CellView, Control, Ex, IExpr}
 import de.sciss.lucre.stm
-import de.sciss.lucre.stm.{Disposable, Obj, Sys}
+import de.sciss.lucre.stm.{Disposable, Sys}
 import de.sciss.serial.{DataInput, Serializer}
 
 import scala.util.{Failure, Success, Try}
@@ -32,20 +33,20 @@ object Artifact {
 
   def init(): Unit = _init
 
-  private final object Bridge extends ExAttr.Bridge[File] with Aux.Factory {
+  private final object Bridge extends Attr.Bridge[File] with Aux.Factory {
 
     def readIdentifiedAux(in: DataInput): Aux = this
 
-    def cellView[S <: Sys[S]](obj: Obj[S], key: String)(implicit tx: S#Tx): CellView.Var[S, Option[File]] =
+    def cellView[S <: Sys[S]](obj: stm.Obj[S], key: String)(implicit tx: S#Tx): CellView.Var[S, Option[File]] =
       new CellViewImpl(tx.newHandle(obj.attr), key = key)
 
     final val id = 2000
   }
   
-  private final class CellViewImpl[S <: Sys[S]](attrH: stm.Source[S#Tx, Obj.AttrMap[S]], key: String)
+  private final class CellViewImpl[S <: Sys[S]](attrH: stm.Source[S#Tx, stm.Obj.AttrMap[S]], key: String)
     extends CellView.Var[S, Option[File]] with CellViewImpl.Basic[S#Tx, Option[File]] {
 
-    private def attr(implicit tx: S#Tx): Obj.AttrMap[S] = attrH()
+    private def attr(implicit tx: S#Tx): stm.Obj.AttrMap[S] = attrH()
 
     type Repr = Option[_Artifact[S]]
 
@@ -105,18 +106,20 @@ object Artifact {
   }
 }
 final case class Artifact(key: String, default: Ex[File] = file(""))
-  extends ExAttr.WithDefault[File] {
+  extends Attr.WithDefault[File] {
 
   def expand[S <: Sys[S]](implicit ctx: Ex.Context[S], tx: S#Tx): IExpr[S, File] = {
     val defaultEx = default.expand[S]
     ctx.selfOption.fold(defaultEx) { self =>
       import ctx.targets
       val attrView = bridge.cellView[S](self, key)
-      new ExAttr.WithDefault.Expanded[S, File](attrView, defaultEx, tx)
+      new Attr.WithDefault.Expanded[S, File](attrView, defaultEx, tx)
     }
   }
 
-  def bridge: ExAttr.Bridge[File] = Artifact.Bridge
+  def update(in: Ex[File]): Control = Attr.Update(in, key)
+
+  implicit def bridge: Attr.Bridge[File] = Artifact.Bridge
 
   def aux: List[Aux] = Nil
 }

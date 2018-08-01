@@ -72,11 +72,11 @@ object Artifact {
           val loc = repr.fold[ArtifactLocation[S]]({
             defaultLoc()
           })(_.location)
-          val art = tryRelativize(loc, f).fold[_Artifact[S]]({ _ =>
+          val art = tryRelativize(loc, f).toOption.fold[_Artifact[S]]({ // Try#fold not available in Scala 2.11
             _Artifact(defaultLoc(), f)
-          }, { child =>
+          }) { child =>
             _Artifact(loc, child)
-          })
+          }
           Some(art)
 
         case _ => None

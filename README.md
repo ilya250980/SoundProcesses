@@ -15,6 +15,8 @@ Further reading:
 
  - Rutz, H. H., "SoundProcesses: A New Computer Music Framework," in Proceedings of the ICMC|SMC|2014 Joint Conference, Athens 2014.
 
+For tutorials, see the [Mellite website](http://sciss.github.io/Mellite/tutorials.html).
+
 ## building
 
 SoundProcesses builds with sbt and Scala 2.12, 2.11. The dependencies should be downloaded automatically from maven central repository.

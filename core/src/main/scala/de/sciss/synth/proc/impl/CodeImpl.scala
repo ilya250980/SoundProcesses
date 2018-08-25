@@ -129,13 +129,18 @@ object CodeImpl {
       "de.sciss.synth.proc.graph.Ops._"
     ),
     Code.Action.id -> Vec(     // what should go inside?
+      "scala.util.{Try, Success, Failure}",
+      "de.sciss.file._",
+      "de.sciss.lucre.artifact.{Artifact, ArtifactLocation}",
+      "de.sciss.lucre.expr.{Expr, BooleanObj, IntObj, LongObj, DoubleObj, StringObj, IntVector, DoubleVector, SpanObj, SpanLikeObj}",
+      "de.sciss.lucre.expr.Ops._",
+      "de.sciss.lucre.stm.{Obj, Folder}",
+      "de.sciss.numbers.Implicits._",
       "de.sciss.osc",
+      "de.sciss.span._",
       "de.sciss.synth.io",
       "de.sciss.synth.proc._",
-      "de.sciss.synth.proc.Implicits._",
-      "de.sciss.lucre.artifact.{Artifact, ArtifactLocation}",
-      "de.sciss.lucre.expr.{Expr, BooleanObj, IntObj, LongObj, DoubleObj, StringObj, DoubleVector}",
-      "de.sciss.lucre.expr.Ops._"
+      "de.sciss.synth.proc.Implicits._"
     )
   )
 

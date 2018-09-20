@@ -161,7 +161,16 @@ trait AuralTimelineBase[S <: Sys[S], I <: stm.Sys[I], Target, Elem <: ViewBase[S
     //        stopAndDisposeViews(toStop)
 
     stopViews(toStop)
-    playViews(toStart, timeRef, play.target)
+
+    var ok = false  // XXX TODO
+    try {
+      playViews(toStart, timeRef, play.target)
+      ok = true
+    } finally {
+      if (!ok) {
+        println(s"!!! at $timeRef")
+      }
+    }
   }
 
   private def stopViews(it: Iterator[Leaf])(implicit tx: S#Tx): Unit = {

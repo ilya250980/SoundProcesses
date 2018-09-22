@@ -14,13 +14,14 @@
 package de.sciss.synth.proc
 package impl
 
+import de.sciss.lucre.bitemp.BiGroup
 import de.sciss.lucre.bitemp.impl.BiGroupImpl
 import de.sciss.lucre.data.SkipOctree
 import de.sciss.lucre.event.impl.ObservableImpl
 import de.sciss.lucre.expr.SpanLikeObj
-import de.sciss.lucre.geom.{LongPoint2D, LongSpace}
+import de.sciss.lucre.geom.{LongPoint2D, LongRectangle, LongSpace}
 import de.sciss.lucre.stm
-import de.sciss.lucre.stm.{TxnLike, Disposable, IdentifierMap, Obj}
+import de.sciss.lucre.stm.{Disposable, IdentifierMap, Obj, TxnLike}
 import de.sciss.lucre.synth.Sys
 import de.sciss.span.{Span, SpanLike}
 import de.sciss.synth.proc.{logAural => logA}
@@ -143,7 +144,11 @@ trait AuralTimelineBase[S <: Sys[S], I <: stm.Sys[I], Target, Elem <: ViewBase[S
     }
 
   protected final def processEvent(play: IPlaying, timeRef: TimeRef)(implicit tx: S#Tx): Unit = {
-    val (toStart, toStop) = eventsAt(timeRef.offset)
+//    val (toStartI, toStopI) = eventsAt(timeRef.offset)
+
+    val itx       = iSys(tx)
+    val stopShape = LongRectangle(BiGroup.MinCoordinate, timeRef.offset, BiGroup.MaxSide, 1)
+    val toStop    = tree.rangeQuery(stopShape )(itx)
 
     // this is a pretty tricky decision...
     // do we first free the stopped views and then launch the started ones?
@@ -157,32 +162,28 @@ trait AuralTimelineBase[S <: Sys[S], I <: stm.Sys[I], Target, Elem <: ViewBase[S
     // this currently prevented automatically? we might have to
     // reverse this decision.
 
+    // N.B.: as crucial is to understand that the iterators from `rangeQuery` may become
+    // invalid if modifying the tree while iterating. Thus, we first create only the
+    // `toStop` iterator, and if i not empty, force it to a stable collection. Only after
+    // stopping the views, we create the `toStart` iterator which might otherwise have
+    // become invalid as well. (Mellite bug #71).
+
     //        playViews(toStart, tr, play.target)
     //        stopAndDisposeViews(toStop)
 
-    stopViews(toStop)
-
-    var ok = false  // XXX TODO
-    try {
-      playViews(toStart, timeRef, play.target)
-      ok = true
-    } finally {
-      if (!ok) {
-        println(s"!!! at $timeRef")
+    if (toStop.hasNext) {
+      // N.B. `toList` to avoid iterator invalidation
+      toStop.toList.foreach { case (span, views) =>
+        views.foreach { case (idH, view) =>
+          stopView(ElemHandle(idH, span, view))
+        }
       }
     }
-  }
 
-  private def stopViews(it: Iterator[Leaf])(implicit tx: S#Tx): Unit = {
-    // logA("timeline - stopViews")
-//    implicit val itx: I#Tx = iSys(tx)
-    // Note: `toList` makes sure the iterator is not
-    // invalidated when `removeView` removes element from `tree`!
-    if (it.hasNext) it.toList.foreach { case (span, views) =>
-      views.foreach { case (idH, view) =>
-        stopView(ElemHandle(idH, span, view))
-      }
-    }
+    val startShape  = LongRectangle(timeRef.offset, BiGroup.MinCoordinate, 1, BiGroup.MaxSide)
+    val toStart     = tree.rangeQuery(startShape)(itx)
+
+    playViews(toStart, timeRef, play.target)
   }
 
   private def playViews(it: Iterator[Leaf], timeRef: TimeRef, target: Target)(implicit tx: S#Tx): Unit =
@@ -193,11 +194,11 @@ trait AuralTimelineBase[S <: Sys[S], I <: stm.Sys[I], Target, Elem <: ViewBase[S
       }
     }
 
-  // this can be easily implemented with two rectangular range searches
-  // return: (things-that-start, things-that-stop)
-  @inline
-  private[this] def eventsAt(offset: Long)(implicit tx: S#Tx): (Iterator[Leaf], Iterator[Leaf]) =
-    BiGroupImpl.eventsAt(tree)(offset)(iSys(tx))
+//  // this can be easily implemented with two rectangular range searches
+//  // return: (things-that-start, things-that-stop)
+//  @inline
+//  private[this] def eventsAt(offset: Long)(implicit tx: S#Tx): (Iterator[Leaf], Iterator[Leaf]) =
+//    BiGroupImpl.eventsAt(tree)(offset)(iSys(tx))
 
   /** Initializes the object.
     *

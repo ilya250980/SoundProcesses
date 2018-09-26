@@ -47,16 +47,16 @@ object Grapheme extends Obj.Type {
 
   // ---- types from BiPin ----
 
-  type Leaf   [S <: Sys[S]] = BiPin.Leaf   [S, Obj[S]]
-  type Entry  [S <: Sys[S]] = BiPin.Entry  [S, Obj[S]]
-  val  Entry                = BiPin.Entry
+  type Leaf   [S <: Sys[S]]         = BiPin.Leaf   [S, Obj[S]]
+  type Entry  [S <: Sys[S]]         = BiPin.Entry  [S, Obj[S]]
+  val  Entry: BiPin.Entry.type      = BiPin.Entry
 
-  type Added  [S <: Sys[S]] = BiPin.Added  [S, Obj[S]]
-  val  Added                = BiPin.Added
-  type Removed[S <: Sys[S]] = BiPin.Removed[S, Obj[S]]
-  val  Removed              = BiPin.Removed
-  type Moved  [S <: Sys[S]] = BiPin.Moved  [S, Obj[S]]
-  val  Moved                = BiPin.Moved
+  type Added  [S <: Sys[S]]         = BiPin.Added  [S, Obj[S]]
+  val  Added: BiPin.Added.type      = BiPin.Added
+  type Removed[S <: Sys[S]]         = BiPin.Removed[S, Obj[S]]
+  val  Removed: BiPin.Removed.type  = BiPin.Removed
+  type Moved  [S <: Sys[S]]         = BiPin.Moved  [S, Obj[S]]
+  val  Moved: BiPin.Moved.type      = BiPin.Moved
 }
 trait Grapheme[S <: Sys[S]] extends BiPin[S, Obj[S]] {
   import Grapheme.Modifiable
@@ -64,4 +64,5 @@ trait Grapheme[S <: Sys[S]] extends BiPin[S, Obj[S]] {
   override def modifiableOption: Option[Modifiable[S]]
 
   def firstEvent(implicit tx: S#Tx): Option[Long]
+  def lastEvent (implicit tx: S#Tx): Option[Long]
 }

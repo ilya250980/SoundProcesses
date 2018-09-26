@@ -78,7 +78,7 @@ object GraphemeImpl {
         // out.connect()
       }
 
-    final def firstEvent(implicit tx: S#Tx): Option[Long] = eventAfter(Long.MinValue)
-
+    final def firstEvent(implicit tx: S#Tx): Option[Long] = eventAfter  (Long.MinValue)
+    final def lastEvent (implicit tx: S#Tx): Option[Long] = eventBefore (Long.MaxValue)
   }
 }

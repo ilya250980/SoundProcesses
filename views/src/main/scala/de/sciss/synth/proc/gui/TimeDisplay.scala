@@ -20,7 +20,8 @@ import de.sciss.synth.proc.gui.impl.{TimeDisplayImpl => Impl}
 import scala.swing.Component
 
 object TimeDisplay {
-  def apply(model: TimelineModel, hasMillis: Boolean): TimeDisplay = new Impl(model, hasMillis = hasMillis)
+  def apply(model: TimelineModel, hasMillis: Boolean): TimeDisplay =
+    new Impl(model, hasMillis = hasMillis)
 }
 trait TimeDisplay {
   def component: Component

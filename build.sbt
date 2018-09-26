@@ -1,7 +1,7 @@
 lazy val baseName  = "SoundProcesses"
 lazy val baseNameL = baseName.toLowerCase
 
-lazy val projectVersion = "3.21.3"
+lazy val projectVersion = "3.22.0-SNAPSHOT"
 lazy val mimaVersion    = "3.21.0" // used for migration-manager
 
 lazy val commonSettings = Seq(
@@ -14,21 +14,23 @@ lazy val commonSettings = Seq(
   crossScalaVersions := Seq("2.12.6", "2.11.12"),
   scalacOptions     ++= Seq("-deprecation", "-unchecked", "-feature", "-encoding", "utf8", "-Xfuture", "-Xlint"),
   resolvers          += "Oracle Repository" at "http://download.oracle.com/maven",  // required for sleepycat
-  parallelExecution in Test := false
+  parallelExecution in Test := false,
+  updateOptions      := updateOptions.value.withLatestSnapshots(false)
 ) ++ publishSettings
 
 lazy val deps = new {
   val main = new {
     val audioFile           = "1.5.0"
-    val audioWidgets        = "1.12.2"
+    val audioWidgets        = "1.13.0-SNAPSHOT"
     val equal               = "0.1.2"
     val fileUtil            = "1.1.3"
-    val lucre               = "3.9.0"
-    val lucreSwing          = "1.11.1"
+    val lucre               = "3.9.1"
+    val lucreSwing          = "1.12.0-SNAPSHOT"
     val model               = "0.3.4"
     val numbers             = "0.2.0"
     val scalaCollider       = "1.27.0"
     val scalaColliderIf     = "0.8.0"
+    val span                = "1.4.2"
     val swingPlus           = "0.3.1"
     val topology            = "1.1.0"
     val ugens               = "1.19.1"
@@ -103,12 +105,12 @@ lazy val core = project.withId(s"$baseNameL-core").in(file("core"))
     ),
     buildInfoPackage := "de.sciss.synth.proc",
     libraryDependencies ++= Seq(
+      "de.sciss"      %% "span"                     % deps.main.span,              // sbt bug
       "de.sciss"          %% "lucre-confluent"              % deps.main.lucre,
       "de.sciss"          %% "lucre-expr"                   % deps.main.lucre,
       "de.sciss"          %% "scalacollider-if"             % deps.main.scalaColliderIf,
       "de.sciss"          %% "fileutil"                     % deps.main.fileUtil,
       "de.sciss"          %% "equal"                        % deps.main.equal,
-//      "de.sciss"          %% "model"                        % deps.main.model, // sbt bug
       "org.scala-lang"    %  "scala-compiler"               % scalaVersion.value % Provided,
       "org.scalatest"     %% "scalatest"                    % deps.test.scalaTest          % Test,
       "de.sciss"          %% s"lucre-${deps.test.bdb}"      % deps.main.lucre              % Test,
@@ -124,6 +126,7 @@ lazy val views = project.withId(s"$baseNameL-views").in(file("views"))
   .settings(
     description := "Views for Sound Processes",
     libraryDependencies ++= Seq(
+      "de.sciss"      %% "span"                     % deps.main.span,              // sbt bug
       "de.sciss"      %% "lucreswing"               % deps.main.lucreSwing,
       "de.sciss"      %% "swingplus"                % deps.main.swingPlus,
       "de.sciss"      %% "audiowidgets-app"         % deps.main.audioWidgets,

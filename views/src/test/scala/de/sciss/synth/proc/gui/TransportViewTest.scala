@@ -21,7 +21,7 @@ object TransportViewTest {
     val aural = AuralSystem()
     val sr    = TimeRef.SampleRate
     val span  = Span(0L, (sr * 60 * 10).toLong)
-    val model = TimelineModel(span, sr)
+    val model = TimelineModel(span, span, sr)
     model.selection = Span(0L, span.length >> 1)
 
     val view = system.step { implicit tx =>

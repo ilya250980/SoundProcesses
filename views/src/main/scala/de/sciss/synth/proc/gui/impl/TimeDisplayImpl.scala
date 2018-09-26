@@ -26,13 +26,15 @@ import scala.swing.{Swing, Orientation, BoxPanel, Component, Label}
 import Swing._
 import de.sciss.model.Change
 
-final class TimeDisplayImpl(model: TimelineModel, hasMillis: Boolean) extends TimeDisplay {
-  private val lcdFormat = AxisFormat.Time(hours = true, millis = hasMillis)
-  private val lcd: Label = new Label with DynamicComponentImpl {
+final class TimeDisplayImpl(model: TimelineModel, hasMillis: Boolean)
+  extends TimeDisplay {
+
+  private[this] val lcdFormat = AxisFormat.Time(hours = true, millis = hasMillis)
+  private[this] val lcd: Label = new Label with DynamicComponentImpl {
     // protected def component: Component = this
 
-    private val decimals  = if (hasMillis)  3 else 0
-    private val pad       = if (hasMillis) 12 else 8
+    private[this] val decimals  = if (hasMillis)  3 else 0
+    private[this] val pad       = if (hasMillis) 12 else 8
 
     private[this] final val isDark  = UIManager.getBoolean("dark-skin")
     private[this] final val fgNorm  = if (isDark) LCDColors.blueFg else LCDColors.defaultFg
@@ -70,7 +72,8 @@ final class TimeDisplayImpl(model: TimelineModel, hasMillis: Boolean) extends Ti
       reactions += {
         case MouseEntered(_, _, _) => foreground = fgHover
         case MouseExited (_, _, _) => foreground = fgNorm
-        case MouseClicked(_, _, _, _, false)  => new ActionGoToTime(mod, null).apply()
+        case MouseClicked(_, _, _, _, false) =>
+          new ActionGoToTime(mod, null).apply()
       }
       cursor = Cursor.getPredefinedCursor(Cursor.HAND_CURSOR)
     }

@@ -201,8 +201,10 @@ object TransportViewImpl {
 
     private def rtz(): Unit = {
       stop()
-      modOpt.foreach { mod =>
-        val start     = mod.bounds.start
+      for {
+        mod   <- modOpt
+        start <- mod.bounds.startOption
+      } {
         mod.position  = start
         mod.visible   = Span(start, start + mod.visible.length)
       }
@@ -284,14 +286,14 @@ object TransportViewImpl {
       val timeDisplay = TimeDisplay(timelineModel, hasMillis = hasMillis)
 
       val actions0 = Vector(
-        GoToBegin   { rtz() },
         Rewind      { () },     // handled below
         Stop        { stop() },
         Play        { play() },
         FastForward { () }      // handled below
       )
-      val actions1 = if (hasLoop) actions0 :+ Loop { toggleLoop() } else actions0
-      transportStrip = GUITransport.makeButtonStrip(actions1)
+      val actions1 = if (timelineModel.bounds.startOption.isEmpty) actions0 else GoToBegin(rtz()) +: actions0
+      val actions2 = if (!hasLoop) actions1 else actions1 :+ Loop(toggleLoop())
+      transportStrip = GUITransport.makeButtonStrip(actions2)
       val initPressed = if (initPlaying) Play else Stop
       transportStrip.button(initPressed).foreach(_.selected = true)
 

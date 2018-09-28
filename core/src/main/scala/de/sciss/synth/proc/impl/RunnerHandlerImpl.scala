@@ -30,7 +30,7 @@ object RunnerHandlerImpl {
   private var factoryMap = Map[Int, Factory](
 //    Folder          .typeId -> AuralObj.Folder,
     Proc            .typeId -> Runner.Proc,
-//    Timeline        .typeId -> AuralObj.Timeline,
+    Timeline        .typeId -> Runner.Timeline,
 //    Ensemble        .typeId -> AuralObj.Ensemble,
     Action          .typeId -> Runner.Action
   )

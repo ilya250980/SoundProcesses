@@ -17,8 +17,8 @@ import de.sciss.lucre.event.Observable
 import de.sciss.lucre.stm
 import de.sciss.lucre.stm.{Cursor, Disposable, Obj, WorkspaceHandle}
 import de.sciss.lucre.synth.Sys
-import de.sciss.synth.proc.impl.{ActionRunnerImpl, ProcRunnerImpl, RunnerHandlerImpl => Impl}
-import de.sciss.synth.proc.{Action => _Action, Proc => _Proc}
+import de.sciss.synth.proc.impl.{ActionRunnerImpl, ProcRunnerImpl, TimelineRunnerImpl, RunnerHandlerImpl => Impl}
+import de.sciss.synth.proc.{Action => _Action, Proc => _Proc, Timeline => _Timeline}
 
 import scala.language.higherKinds
 
@@ -71,10 +71,6 @@ object Runner {
   def apply[S <: Sys[S]](obj: Obj[S])(implicit tx: S#Tx, h: Handler[S]): Option[Runner[S]] =
     h.mkRunner(obj)
 
-//  def orDummy[S <: stm.Sys[S]](obj: Obj[S])
-
-//  def dummy[S <: stm.Sys[S]](implicit tx: S#Tx, h: Handler[S])
-
   trait Factory {
     def prefix      : String
     def humanName   : String
@@ -124,6 +120,19 @@ object Runner {
 
     def mkRunner[S <: Sys[S]](obj: _Proc[S], h: Handler[S])(implicit tx: S#Tx): Runner[S] =
       ProcRunnerImpl(obj, h)
+  }
+
+  object Timeline extends Factory {
+    final val prefix          = "Timeline"
+    def humanName : String    = prefix
+    def tpe       : Obj.Type  = _Timeline
+
+    def isSingleton: Boolean = false
+
+    type Repr[~ <: Sys[~]] = _Timeline[~]
+
+    def mkRunner[S <: Sys[S]](obj: _Timeline[S], h: Handler[S])(implicit tx: S#Tx): Runner[S] =
+      TimelineRunnerImpl(obj, h)
   }
 
   object Message {

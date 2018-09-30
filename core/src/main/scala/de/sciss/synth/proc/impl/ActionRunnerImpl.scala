@@ -16,17 +16,17 @@ package impl
 
 import de.sciss.lucre.event.impl.DummyObservableImpl
 import de.sciss.lucre.stm
-import de.sciss.lucre.stm.Obj
-import de.sciss.lucre.synth.Sys
+import de.sciss.lucre.stm.{Obj, Sys}
+import de.sciss.synth.proc
 import de.sciss.synth.proc.Implicits._
-import de.sciss.synth.proc.Runner.{Handler, Prepared, Running, Stopped}
+import de.sciss.synth.proc.Runner.{Prepared, Running, Stopped}
 
 object ActionRunnerImpl {
-  def apply[S <: Sys[S]](obj: Action[S], h: Handler[S])(implicit tx: S#Tx): Runner[S] =
-    new Impl(tx.newHandle(obj), h)
+  def apply[S <: Sys[S]](obj: Action[S])(implicit tx: S#Tx, universe: Runner.Universe[S]): Runner[S] =
+    new Impl(tx.newHandle(obj), universe)
 
   abstract class Base[S <: Sys[S], Target] extends ObjViewBase[S, Target] with BasicViewBaseImpl[S, Target] {
-    implicit def universe: Universe[S]
+    implicit def universe: proc.Universe[S]
 
 //    implicit protected       def scheduler : Scheduler       [S]
 //    implicit protected       def genContext: GenContext      [S]
@@ -57,10 +57,8 @@ object ActionRunnerImpl {
     }
   }
 
-  private final class Impl[S <: Sys[S]](val objH: stm.Source[S#Tx, Action[S]], val handler: Handler[S])
+  private final class Impl[S <: Sys[S]](val objH: stm.Source[S#Tx, Action[S]], override val universe: Runner.Universe[S])
     extends Base[S, Unit] with BasicRunnerImpl[S] {
-
-    implicit def universe: Universe[S] = handler
 
     override def toString = s"Runner.Action${hashCode().toHexString}"
 

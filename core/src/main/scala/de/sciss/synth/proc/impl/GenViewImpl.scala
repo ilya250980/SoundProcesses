@@ -14,7 +14,8 @@
 package de.sciss.synth.proc
 package impl
 
-import de.sciss.lucre.stm.{Obj, Sys}
+import de.sciss.lucre.stm.Obj
+import de.sciss.lucre.synth.{Sys => SSys}
 import de.sciss.synth.proc.GenView.Factory
 
 object GenViewImpl {
@@ -35,7 +36,7 @@ object GenViewImpl {
 
   def factories: Iterable[Factory] = map.values
 
-  def apply[S <: Sys[S]](obj: Obj[S])(implicit tx: S#Tx, context: GenContext[S]): GenView[S] = {
+  def apply[S <: SSys[S]](obj: Obj[S])(implicit tx: S#Tx, universe: Universe[S]): GenView[S] = {
     val tid = obj.tpe.typeId
     val opt: Option[Factory] = map.get(tid)
     val f = opt.getOrElse(sys.error(s"No GenView factory for type ${obj.tpe} / $tid"))

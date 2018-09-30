@@ -15,7 +15,6 @@ package de.sciss.synth.proc
 
 import de.sciss.lucre.stm.{Folder, Obj, Sys, TxnLike}
 import de.sciss.lucre.{stm, event => evt}
-import de.sciss.lucre.synth.{Sys => SSys}
 import de.sciss.serial.{DataInput, Serializer}
 import de.sciss.synth.proc
 import de.sciss.synth.proc.impl.{ActionImpl => Impl}
@@ -73,7 +72,7 @@ object Action extends Obj.Type {
   final case class FloatVector (xs: Vec[Float ])
 
   object Universe {
-    def apply[S <: SSys[S]](self: Action[S], invoker: Option[Obj[S]] = None, value: Any = ())
+    def apply[S <: Sys[S]](self: Action[S], invoker: Option[Obj[S]] = None, value: Any = ())
                            (implicit peer: proc.Universe[S]): Universe[S] =
       new Impl.UniverseImpl(self, invoker, value)
   }

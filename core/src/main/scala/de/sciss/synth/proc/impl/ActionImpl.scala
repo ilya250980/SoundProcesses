@@ -20,7 +20,6 @@ import java.util.{Date, Locale}
 import de.sciss.lucre.event.Targets
 import de.sciss.lucre.stm.impl.ObjSerializer
 import de.sciss.lucre.stm.{Copy, Cursor, Elem, IdPeek, NoSys, Obj, Sys, TxnLike, WorkspaceHandle}
-import de.sciss.lucre.synth.{Sys => SSys}
 import de.sciss.lucre.{stm, event => evt}
 import de.sciss.serial.{DataInput, DataOutput, Serializer}
 import de.sciss.synth.proc
@@ -126,7 +125,7 @@ object ActionImpl {
 
   private lazy val logHeader = new SimpleDateFormat("[d MMM yyyy, HH:mm''ss.SSS] 'action' - ", Locale.US)
 
-  final class UniverseImpl[S <: SSys[S]](val self: Action[S],
+  final class UniverseImpl[S <: Sys[S]](val self: Action[S],
                                          val invoker: Option[Obj[S]], val value: Any)
                                         (implicit peer: proc.Universe[S])
     extends Action.Universe[S] {
@@ -151,7 +150,7 @@ object ActionImpl {
       Console.out.println(logHeader.format(new Date()) + what)
     }
 
-    def mkTransport()(implicit tx: S#Tx): Transport[S] = Transport[S](this)
+//    def mkTransport()(implicit tx: S#Tx): Transport[S] = Transport[S](this)
   }
 
   // ---- serialization ----

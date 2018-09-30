@@ -2,7 +2,6 @@ package de.sciss.synth.proc
 package gui
 
 import de.sciss.audiowidgets.TimelineModel
-import de.sciss.lucre.stm.WorkspaceHandle
 import de.sciss.lucre.synth.InMemory
 import de.sciss.span.Span
 import de.sciss.submin.Submin
@@ -16,10 +15,8 @@ object TransportViewTest {
     Submin.install(true)
 
     implicit val system: S = InMemory()
-    implicit val ws: WorkspaceHandle[S] = WorkspaceHandle.Implicits.dummy
-    implicit val universe: Universe[S] = ??? // UUU
+    implicit val universe: Universe[S] = system.step { implicit tx => Universe.dummy }
 
-    val aural = AuralSystem()
     val sr    = TimeRef.SampleRate
     val span  = Span(0L, (sr * 60 * 10).toLong)
     val model = TimelineModel(span, span, span, sr)

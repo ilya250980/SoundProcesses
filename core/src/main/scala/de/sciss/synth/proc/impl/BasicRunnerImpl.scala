@@ -23,8 +23,8 @@ import scala.concurrent.stm.Ref
 trait BasicRunnerImpl[S <: Sys[S]]
   extends BasicViewBaseImpl[S, Unit] with Runner[S] {
 
-  implicit final def workspace : WorkspaceHandle[S] = handler.workspace
-  implicit final def cursor    : Cursor[S]          = handler.cursor
+  implicit final def workspace : WorkspaceHandle[S] = universe.workspace
+  implicit final def cursor    : Cursor[S]          = universe.cursor
 
   final object messages extends Runner.Messages[S#Tx] with ObservableImpl[S, List[Runner.Message]] {
     private[this] val ref = Ref(List.empty[Runner.Message])

@@ -419,7 +419,7 @@ object AuralProcImpl {
     final protected def mkGenView(a: Gen[S], key: String)(implicit tx: S#Tx): GenView[S] =
       genViewMap.get(key).getOrElse {
 //        import context.genContext
-        import context.universe.genContext
+        import context.universe
         val view  = GenView(a)
         val obs   = view.react { implicit tx => state => if (state.isComplete) genComplete(key) }
         val res   = new ObservedGenView(view, obs)

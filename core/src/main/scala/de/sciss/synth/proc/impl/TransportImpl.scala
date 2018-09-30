@@ -57,9 +57,9 @@ object TransportImpl {
     extends Transport[S] with ObservableImpl[S, Transport.Update[S]] with AuralSystem.Client {
 
     import TxnLike.peer
-    import universe.{cursor, scheduler, auralSystem}
+    import universe.{cursor, auralSystem}
 
-//    val scheduler: Scheduler[S] = handler.scheduler
+    def scheduler: Scheduler[S] = universe.scheduler
 
     private final class PlayTime(val wallClock0: Long, val pos0: Long) {
       override def toString = s"[pos0 = ${TimeRef.framesAndSecs(pos0)}, time0 = $wallClock0]"

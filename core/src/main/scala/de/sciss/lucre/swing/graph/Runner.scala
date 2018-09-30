@@ -21,7 +21,7 @@ import de.sciss.lucre.stm.Sys
 import de.sciss.lucre.synth
 import de.sciss.model.Change
 import de.sciss.synth.proc
-import de.sciss.synth.proc.Runner.Handler
+import de.sciss.synth.proc.Runner.Universe
 import de.sciss.synth.proc.TimeRef
 import de.sciss.synth.proc.{UGenGraphBuilder => UGB}
 
@@ -152,7 +152,7 @@ final case class Runner(key: String) extends Control {
     import ctx.{cursor, workspace}
     val objOpt                  = ctx.selfOption.flatMap(self => self.attr.get(key))
     val obj                     = objOpt.getOrElse(throw UGB.MissingIn(UGB.AttributeKey(key)))
-    implicit val h: Handler[S]  = Handler[S]()
+    implicit val h: Universe[S]  = Universe[S]()
     val runOpt                  = proc.Runner[S](obj)
     runOpt.getOrElse(throw new Exception(s"No runner for ${obj.tpe}"))
   }

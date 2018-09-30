@@ -95,5 +95,5 @@ trait Transport[S <: Sys[S]]
 
   implicit val universe: Universe[S]
 
-  // val scheduler: Scheduler[S]
+  def scheduler: Scheduler[S]
 }

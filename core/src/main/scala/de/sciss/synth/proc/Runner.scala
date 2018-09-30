@@ -14,10 +14,10 @@
 package de.sciss.synth.proc
 
 import de.sciss.lucre.event.Observable
-import de.sciss.lucre.stm
-import de.sciss.lucre.stm.{Cursor, Disposable, Obj, WorkspaceHandle}
-import de.sciss.lucre.synth.Sys
-import de.sciss.synth.proc.impl.{ActionRunnerImpl, ProcRunnerImpl, TimelineRunnerImpl, RunnerHandlerImpl => Impl}
+import de.sciss.lucre.stm.{Cursor, Obj, Sys, WorkspaceHandle}
+import de.sciss.lucre.synth.{Sys => SSys}
+import de.sciss.synth.proc
+import de.sciss.synth.proc.impl.{ActionRunnerImpl, ProcRunnerImpl, TimelineRunnerImpl, RunnerUniverseImpl => Impl}
 import de.sciss.synth.proc.{Action => _Action, Proc => _Proc, Timeline => _Timeline}
 
 import scala.language.higherKinds
@@ -29,33 +29,33 @@ object Runner {
   case object Prepared  extends State { final val id = 2 }
   case object Running   extends State { final val id = 3 }
 
-  object Handler {
-    sealed trait Update[S <: stm.Sys[S]]
-    final case class Added  [S <: stm.Sys[S]](r: Runner[S]) extends Update[S]
-    final case class Removed[S <: stm.Sys[S]](r: Runner[S]) extends Update[S]
+  object Universe {
+    sealed trait Update[S <: Sys[S]]
+    final case class Added  [S <: Sys[S]](r: Runner[S]) extends Update[S]
+    final case class Removed[S <: Sys[S]](r: Runner[S]) extends Update[S]
 
     /** Finds an existing handler for the given workspace; returns this handler or
       * creates a new one if not found.
       */
-    def apply[S <: Sys[S]]()(implicit tx: S#Tx, cursor: Cursor[S], workspace: WorkspaceHandle[S]): Handler[S] =
+    def apply[S <: SSys[S]]()(implicit tx: S#Tx, cursor: Cursor[S], workspace: WorkspaceHandle[S]): Universe[S] =
       Impl()
 
     /** Creates a new handler. */
-    def apply[S <: Sys[S]](genContext: GenContext[S], scheduler: Scheduler[S], auralSystem: AuralSystem)
-                          (implicit tx: S#Tx, cursor: Cursor[S], workspace: WorkspaceHandle[S]): Handler[S] =
+    def apply[S <: SSys[S]](genContext: GenContext[S], scheduler: Scheduler[S], auralSystem: AuralSystem)
+                          (implicit tx: S#Tx, cursor: Cursor[S], workspace: WorkspaceHandle[S]): Universe[S] =
       Impl(genContext, scheduler, auralSystem)
   }
-  trait Handler[S <: stm.Sys[S]] extends Universe[S] with Observable[S#Tx, Handler.Update[S]] with Disposable[S#Tx] {
+  trait Universe[S <: Sys[S]] extends proc.Universe.Disposable[S] with Observable[S#Tx, Universe.Update[S]] {
     private[proc] def removeRunner(r: Runner[S])(implicit tx: S#Tx): Unit
   }
-  
+
   def addFactory(f: Factory): Unit = Impl.addFactory(f)
 
   def getFactory(tpe: Obj.Type): Option[Factory] = Impl.getFactory(tpe)
 
   def factories: Iterable[Factory] = Impl.factories
 
-  def apply[S <: Sys[S]](obj: Obj[S])(implicit tx: S#Tx, h: Handler[S]): Option[Runner[S]] =
+  def apply[S <: Sys[S]](obj: Obj[S])(implicit tx: S#Tx, h: Universe[S]): Option[Runner[S]] =
     h.mkRunner(obj)
 
   trait Factory {
@@ -71,7 +71,7 @@ object Runner {
 
     type Repr[~ <: Sys[~]] <: Obj[~]
 
-    def mkRunner[S <: Sys[S]](obj: Repr[S], h: Handler[S])(implicit tx: S#Tx): Runner[S]
+    def mkRunner[S <: SSys[S]](obj: Repr[S])(implicit tx: S#Tx, universe: Runner.Universe[S]): Runner[S]
   }
 
   // -------------------
@@ -90,8 +90,8 @@ object Runner {
 
     type Repr[~ <: Sys[~]] = _Action[~]
 
-    def mkRunner[S <: Sys[S]](obj: _Action[S], h: Handler[S])(implicit tx: S#Tx): Runner[S] =
-      ActionRunnerImpl(obj, h)
+    def mkRunner[S <: Sys[S]](obj: _Action[S])(implicit tx: S#Tx, universe: Runner.Universe[S]): Runner[S] =
+      ActionRunnerImpl(obj)
   }
 
   // ---- Proc ----
@@ -105,8 +105,8 @@ object Runner {
 
     type Repr[~ <: Sys[~]] = _Proc[~]
 
-    def mkRunner[S <: Sys[S]](obj: _Proc[S], h: Handler[S])(implicit tx: S#Tx): Runner[S] =
-      ProcRunnerImpl(obj, h)
+    def mkRunner[S <: SSys[S]](obj: _Proc[S])(implicit tx: S#Tx, universe: Runner.Universe[S]): Runner[S] =
+      ProcRunnerImpl(obj)
   }
 
   object Timeline extends Factory {
@@ -118,8 +118,8 @@ object Runner {
 
     type Repr[~ <: Sys[~]] = _Timeline[~]
 
-    def mkRunner[S <: Sys[S]](obj: _Timeline[S], h: Handler[S])(implicit tx: S#Tx): Runner[S] =
-      TimelineRunnerImpl(obj, h)
+    def mkRunner[S <: SSys[S]](obj: _Timeline[S])(implicit tx: S#Tx, universe: Runner.Universe[S]): Runner[S] =
+      TimelineRunnerImpl(obj)
   }
 
   object Message {
@@ -139,21 +139,21 @@ object Runner {
     def current(implicit tx: Tx): Double
   }
 }
-trait Runner[S <: stm.Sys[S]] extends ViewBase[S, Unit] {
+trait Runner[S <: Sys[S]] extends ViewBase[S, Unit] {
   // def factory: Runner.Factory
 
   def messages: Runner.Messages[S#Tx] // (implicit tx: S#Tx): Any
 
   def progress: Runner.Progress[S#Tx]
 
-  val handler: Runner.Handler[S]
+  val universe: Runner.Universe[S]
 
   protected def disposeData()(implicit tx: S#Tx): Unit
 
   // this is implemented so there is no chance of forgetting
   // to remove the runner from the handler
   final def dispose()(implicit tx: S#Tx): Unit = {
-    handler.removeRunner(this)
+    universe.removeRunner(this)
     disposeData()
   }
 

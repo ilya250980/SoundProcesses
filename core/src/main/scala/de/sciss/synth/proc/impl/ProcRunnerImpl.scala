@@ -16,25 +16,25 @@ package impl
 
 import de.sciss.lucre.event.impl.DummyObservableImpl
 import de.sciss.lucre.stm
-import de.sciss.lucre.stm.{Disposable, Obj}
+import de.sciss.lucre.stm.{Disposable, Obj, Sys}
 import de.sciss.lucre.stm.TxnLike.peer
-import de.sciss.lucre.synth.Sys
-import de.sciss.synth.proc.Runner.Handler
+import de.sciss.lucre.synth.{Sys => SSys}
+import de.sciss.synth.proc.Runner.Universe
 
 import scala.concurrent.stm.Ref
 
 object ProcRunnerImpl {
-  def apply[S <: Sys[S]](obj: Proc[S], h: Handler[S])(implicit tx: S#Tx): Runner[S] = {
+  def apply[S <: SSys[S]](obj: Proc[S])(implicit tx: S#Tx, universe: Runner.Universe[S]): Runner[S] = {
     // the transport is simply to get the work done of dynamically creating
     // an aural-obj... a bit of a resource waste?
-    val t = Transport[S](h)
+    val t = Transport[S](universe)
     t.addObject(obj)
-    new Impl(tx.newHandle(obj), t, h).init(obj)
+    new Impl(tx.newHandle(obj), t, universe).init(obj)
   }
 
   private final class Impl[S <: Sys[S]](val objH: stm.Source[S#Tx, Proc[S]],
                                         t: Transport[S],
-                                        val handler: Handler[S])
+                                        val universe: Universe[S])
     extends BasicRunnerImpl[S] with ObjViewBase[S, Unit] {
 
     override def toString = s"Runner.Proc${hashCode().toHexString}"

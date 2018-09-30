@@ -7,12 +7,14 @@ lazy val mimaVersion    = "3.22.0" // used for migration-manager
 lazy val commonSettings = Seq(
   version            := projectVersion,
   organization       := "de.sciss",
-  homepage           := Some(url(s"https://github.com/Sciss/$baseName")),
+  homepage           := Some(url(s"https://git.iem.at/sciss/$baseName")),
   description        := "A framework for creating and managing ScalaCollider based sound processes",
   licenses           := Seq("LGPL v2.1+" -> url("http://www.gnu.org/licenses/lgpl-2.1.txt")),
   scalaVersion       := "2.12.7",
   crossScalaVersions := Seq("2.12.7", "2.11.12"),
-  scalacOptions     ++= Seq("-deprecation", "-unchecked", "-feature", "-encoding", "utf8", "-Xfuture", "-Xlint"),
+  scalacOptions     ++= Seq(
+    "-deprecation", "-unchecked", "-feature", "-encoding", "utf8", "-Xfuture", "-Xlint", "-Xsource:2.13"
+  ),
   resolvers          += "Oracle Repository" at "http://download.oracle.com/maven",  // required for sleepycat
   parallelExecution in Test := false,
   updateOptions      := updateOptions.value.withLatestSnapshots(false)
@@ -167,8 +169,8 @@ lazy val publishSettings = Seq(
   pomIncludeRepository := { _ => false },
   pomExtra := {
 <scm>
-  <url>git@github.com:Sciss/{baseName}.git</url>
-  <connection>scm:git:git@github.com:Sciss/{baseName}.git</connection>
+  <url>git@git.iem.at:sciss/{baseName}.git</url>
+  <connection>scm:git:git@git.iem.at:sciss/{baseName}.git</connection>
 </scm>
 <developers>
   <developer>

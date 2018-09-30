@@ -217,7 +217,7 @@ abstract class BounceSpec extends fixture.AsyncFlatSpec with Matchers {
   final def bounce(config: Bounce.Config[S], timeOut: Duration = 20.seconds)
                   (implicit universe: Universe[S]): Future[Array[Array[Float]]] = {
     requireOutsideTxn()
-    val b = Bounce[S, I]()
+    val b = Bounce[S]()
     val p = b(config)
     // Important: don't use the single threaded SP context,
     // as bounce will block and hang

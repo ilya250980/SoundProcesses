@@ -19,7 +19,6 @@ import java.nio.ByteBuffer
 
 import de.sciss.equal.Implicits._
 import de.sciss.file._
-import de.sciss.lucre.stm
 import de.sciss.lucre.synth.{Buffer, Server, Synth, Sys, Txn}
 import de.sciss.processor.Processor
 import de.sciss.processor.impl.ProcessorImpl
@@ -37,7 +36,7 @@ import scala.util.Success
 object BounceImpl {
   var DEBUG = false
 }
-final class BounceImpl[S <: Sys[S], I <: stm.Sys[I]](val parentUniverse: Universe[S])
+final class BounceImpl[S <: Sys[S] /*, I <: stm.Sys[I] */](val parentUniverse: Universe[S])
   extends Bounce[S] {
 
   import BounceImpl.DEBUG
@@ -120,7 +119,7 @@ final class BounceImpl[S <: Sys[S], I <: stm.Sys[I]](val parentUniverse: Univers
 
     private def bodyRealtime(sCfg: Server.Config): Unit = {
       val pServer = Promise[Server]()
-      promiseSync.synchronized(promise = Some(pServer))
+      promiseSync.synchronized { promise = Some(pServer) }
       val (span, scheduler, transport, __aural) = cursor.step { implicit tx =>
         val _scheduler  = Scheduler[S]
         addActions(_scheduler)
@@ -179,7 +178,7 @@ final class BounceImpl[S <: Sys[S], I <: stm.Sys[I]](val parentUniverse: Univers
       // println("-----------------------------1")
 
       val p = Promise[Unit]()
-      promiseSync.synchronized(promise = Some(p))
+      promiseSync.synchronized { promise = Some(p) }
       /* val _token = */ cursor.step { implicit tx =>
         // println("-----------------------------2")
         config.beforePlay.apply(tx, server)

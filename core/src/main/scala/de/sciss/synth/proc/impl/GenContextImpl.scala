@@ -23,7 +23,7 @@ import scala.concurrent.stm.TMap
 object GenContextImpl {
   private[this] val map = TMap.empty[WorkspaceHandle[_], GenContext[_]]
 
-  def apply[S <: Sys[S]](implicit tx: S#Tx, cursor: stm.Cursor[S],
+  def apply[S <: Sys[S]]()(implicit tx: S#Tx, cursor: stm.Cursor[S],
                          workspace: WorkspaceHandle[S]): GenContext[S] = {
     val res = map.get(workspace).getOrElse {
       val objMap  = tx.newInMemoryIdMap[ContextEntry[S]]

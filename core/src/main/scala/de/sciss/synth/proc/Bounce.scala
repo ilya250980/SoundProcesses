@@ -26,8 +26,8 @@ import scala.collection.immutable.{Iterable => IIterable}
 import scala.language.implicitConversions
 
 object Bounce {
-  def apply[S <: Sys[S], I <: stm.Sys[I]]()(implicit universe: Universe[S]): Bounce[S] =
-    new Impl[S, I](universe)
+  def apply[S <: Sys[S]]()(implicit universe: Universe[S]): Bounce[S] =
+    new Impl[S](universe)
 
   private type GroupH[S <: Sys[S]] = IIterable[stm.Source[S#Tx, Obj[S]]]
 
@@ -68,7 +68,7 @@ object Bounce {
   object Config {
     val NoOp: (Any, Any) => Unit = (_, _) => ()
 
-    def apply[S <: Sys[S]]: ConfigBuilder[S] = new ConfigBuilder
+    def apply[S <: Sys[S]](): ConfigBuilder[S] = new ConfigBuilder
 
     implicit def build[S <: Sys[S]](b: ConfigBuilder[S]): Config[S] = b.build
   }

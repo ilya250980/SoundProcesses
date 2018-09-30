@@ -27,7 +27,7 @@ import scala.collection.immutable.{IndexedSeq => Vec}
 object ProcImpl {
   private final val SER_VERSION = 0x5074  // was "Pr"
 
-  def apply[S <: Sys[S]](implicit tx: S#Tx): Proc[S] = new New[S]
+  def apply[S <: Sys[S]]()(implicit tx: S#Tx): Proc[S] = new New[S]
 
   def read[S <: Sys[S]](in: DataInput, access: S#Acc)(implicit tx: S#Tx): Proc[S] =
     serializer[S].read(in, access)

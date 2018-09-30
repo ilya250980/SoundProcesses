@@ -8,14 +8,14 @@
 
 SoundProcesses is an extension for ScalaCollider to describe, create and manage sound processes in the Scala 
 programming language. It is (C)opyright 2010&ndash;2018 by Hanns Holger Rutz. All rights reserved. SoundProcesses 
-is released under the [GNU Lesser General Public License](http://github.com/Sciss/SoundProcesses/blob/master/licenses/SoundProcesses-License.txt) v2.1+
+is released under the [GNU Lesser General Public License](https://git.iem.at/sciss/SoundProcesses/raw/master/LICENSE) v2.1+
 and comes with absolutely no warranties. To contact the author, send an email to `contact at sciss.de`.
 
 Further reading:
 
  - Rutz, H. H., "SoundProcesses: A New Computer Music Framework," in Proceedings of the ICMC|SMC|2014 Joint Conference, Athens 2014.
 
-For tutorials, see the [Mellite website](http://sciss.github.io/Mellite/tutorials.html).
+For tutorials, see the [Mellite website](https://www.sciss.de/mellite/tutorials.html).
 
 ## building
 
@@ -49,8 +49,8 @@ Please see the file [CONTRIBUTING.md](CONTRIBUTING.md)
 ## usage
 
 Project is still experimental, and documentation is still sparse.
-There is a graphical front-end [Mellite](https://github.com/Sciss/Mellite) (also experimental)...
-The Mellite website contains a [tutorial on SoundProcesses](http://sciss.github.io/Mellite/tut_soundprocesses1.html).
+There is a graphical front-end [Mellite](https://www.sciss.de/mellite) (also experimental)...
+The Mellite website contains a [tutorial on SoundProcesses](https://www.sciss.de/mellite/tut_soundprocesses1.html).
 
 ## notes
 

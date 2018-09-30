@@ -74,7 +74,7 @@ class BounceTest[S <: Sys[S]](val system: S, realtime: Boolean)(implicit cursor:
   implicit val bridge: S#Tx => system.I#Tx = system.inMemoryTx _
 
   implicit val u: Universe[S] = cursor.step { implicit tx => Universe.dummy }
-  val bounce              = Bounce[S, system.I]
+  val bounce              = Bounce[S]()
   val bCfg                = Bounce.Config[S]
   bCfg.group              = groupH :: Nil
   bCfg.span               = Span(frame(0.15), frame(if (realtime) 3.15 else 0.3)) // start in the middle of the proc span

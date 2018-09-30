@@ -24,11 +24,9 @@ object Timeline extends Obj.Type {
   type Update[S <: Sys[S]]          = BiGroup.Update[S, Obj[S]]
   val  Update: BiGroup.Update.type  = BiGroup.Update
 
-  def apply[S <: Sys[S]](implicit tx: S#Tx): Modifiable[S] = Impl[S]
+  def apply[S <: Sys[S]]()(implicit tx: S#Tx): Modifiable[S] = Impl[S]
 
   object Modifiable {
-    // def apply[S <: Sys[S]](implicit tx: S#Tx): Modifiable[S] = Impl[S]
-
     implicit def serializer[S <: Sys[S]]: Serializer[S#Tx, S#Acc, Modifiable[S]] = Impl.modSerializer[S]
 
     def read[S <: Sys[S]](in: DataInput, access: S#Acc)(implicit tx: S#Tx): Modifiable[S] =

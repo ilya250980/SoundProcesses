@@ -27,7 +27,7 @@ object Proc extends Obj.Type {
 
   // ---- implementation forwards ----
 
-  def apply[S <: Sys[S]](implicit tx: S#Tx): Proc[S] = Impl[S]
+  def apply[S <: Sys[S]]()(implicit tx: S#Tx): Proc[S] = Impl[S]
 
   def read[S <: Sys[S]](in: DataInput, access: S#Acc)(implicit tx: S#Tx): Proc[S] = Impl.read(in, access)
 

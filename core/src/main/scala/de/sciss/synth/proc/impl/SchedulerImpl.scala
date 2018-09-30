@@ -28,7 +28,7 @@ import scala.concurrent.stm.{InTxn, Ref, TMap, TxnLocal}
 import scala.util.control.NonFatal
 
 object SchedulerImpl {
-  def apply[S <: Sys[S]](implicit tx: S#Tx, cursor: stm.Cursor[S]): Scheduler[S] = {
+  def apply[S <: Sys[S]]()(implicit tx: S#Tx, cursor: stm.Cursor[S]): Scheduler[S] = {
     val system  = tx.system
     val pq      = mkPriorityQueue[S, system.I](system)  // IntelliJ highlight bug
     implicit val iSys: S#Tx => system.I#Tx = system.inMemoryTx

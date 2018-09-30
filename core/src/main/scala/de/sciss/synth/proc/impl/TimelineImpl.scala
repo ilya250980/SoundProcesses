@@ -23,7 +23,7 @@ import de.sciss.lucre.{event => evt}
 import de.sciss.serial.{DataInput, Serializer}
 
 object TimelineImpl {
-  def apply[S <: Sys[S]](implicit tx: S#Tx): Timeline.Modifiable[S] =
+  def apply[S <: Sys[S]]()(implicit tx: S#Tx): Timeline.Modifiable[S] =
     new Impl[S](evt.Targets[S]) {
       val tree: TreeImpl[S, Obj] = newTree()
     }

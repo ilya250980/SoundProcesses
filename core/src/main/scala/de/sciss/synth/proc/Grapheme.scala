@@ -25,7 +25,7 @@ object Grapheme extends Obj.Type {
 
   trait Modifiable[S <: Sys[S]] extends Grapheme[S] with BiPin.Modifiable[S, Obj[S]]
 
-  def apply[S <: Sys[S]](implicit tx: S#Tx): Modifiable[S] = Impl.modifiable[S]
+  def apply[S <: Sys[S]]()(implicit tx: S#Tx): Modifiable[S] = Impl.modifiable[S]
 
   object Modifiable {
     def read[S <: Sys[S]](in: DataInput, access: S#Acc)(implicit tx: S#Tx): Modifiable[S] =

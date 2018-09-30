@@ -18,7 +18,7 @@ import de.sciss.lucre.stm.{Disposable, Obj, Sys, WorkspaceHandle}
 import de.sciss.synth.proc.impl.{GenContextImpl => Impl}
 
 object GenContext {
-  def apply[S <: Sys[S]](implicit tx: S#Tx, cursor: stm.Cursor[S],
+  def apply[S <: Sys[S]]()(implicit tx: S#Tx, cursor: stm.Cursor[S],
                          workspace: WorkspaceHandle[S]): GenContext[S] = Impl[S]
 }
 /** Context for rendering generated objects. */

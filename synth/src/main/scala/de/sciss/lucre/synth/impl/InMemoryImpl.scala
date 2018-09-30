@@ -22,7 +22,7 @@ import scala.concurrent.stm.InTxn
 object InMemoryImpl {
   def apply(): InMemory = new System
 
-  private final class TxnImpl(val system: InMemory, val systemTimeNanos: Long, val peer: InTxn)
+  private final class TxnImpl(val system: InMemory, val systemTimeNanoSec: Long, val peer: InTxn)
     extends stm.impl.InMemoryImpl.TxnMixin[InMemory]
     with TxnFullImpl[InMemory] with InMemory.Txn {
 

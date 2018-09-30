@@ -16,50 +16,50 @@ package impl
 
 import de.sciss.lucre.event.impl.ObservableImpl
 import de.sciss.lucre.stm
-import de.sciss.lucre.stm.{IdentifierMap, Obj, TxnLike, WorkspaceHandle}
+import de.sciss.lucre.stm.{IdentifierMap, Obj, TxnLike}
 import de.sciss.lucre.synth.{Server, Sys, Txn}
 import de.sciss.span.Span
-import de.sciss.synth.proc
 import de.sciss.synth.proc.Transport.AuralStarted
-import proc.{logTransport => logT}
+import de.sciss.synth.proc.{logTransport => logT}
 
 import scala.concurrent.stm.{Ref, TSet}
 
 object TransportImpl {
-  def apply[S <: Sys[S]](auralSystem: AuralSystem, scheduler: Scheduler[S])
-                        (implicit tx: S#Tx, workspace: WorkspaceHandle[S]): Transport[S] = {
-    val res = mkTransport(Some(auralSystem), scheduler)
+  def apply[S <: Sys[S]](universe: Universe[S])(implicit tx: S#Tx): Transport[S] = {
+    implicit val u: Universe[S] = universe
+    import u.auralSystem
+    val res = mkTransport(clientAdded = true)
     auralSystem.addClient(res)
     auralSystem.serverOption.foreach { server =>
-      implicit val auralContext: AuralContext[S] = AuralContext(server, scheduler)
+      implicit val auralContext: AuralContext[S] = AuralContext(server)
       res.auralStartedTx(server)
     }
     res
   }
 
-  def apply[S <: Sys[S]](implicit tx: S#Tx, context: AuralContext[S]): Transport[S] = {
-    import context.workspace
-    val res = mkTransport(None, context.scheduler)
-    res.auralStartedTx(context.server)
+  def apply[S <: Sys[S]](context: AuralContext[S])(implicit tx: S#Tx): Transport[S] = {
+    import context.universe
+    val res = mkTransport(clientAdded = false)
+    res.auralStartedTx(context.server)(tx, context)
     res
   }
 
-  private def mkTransport[S <: Sys[S]](auralSystem: Option[AuralSystem], scheduler: Scheduler[S])
-                                      (implicit tx: S#Tx, workspace: WorkspaceHandle[S]): Impl[S] = {
+  private def mkTransport[S <: Sys[S]](clientAdded: Boolean)(implicit tx: S#Tx, universe: Universe[S]): Impl[S] = {
     val objMap  = tx.newInMemoryIdMap[stm.Source[S#Tx, Obj[S]]]
     val viewMap = tx.newInMemoryIdMap[AuralObj[S]]
     // (new Throwable).printStackTrace()
-    new Impl(auralSystem, scheduler, objMap, viewMap)
+    new Impl(objMap, viewMap, clientAdded = clientAdded)
   }
 
-  private final class Impl[S <: Sys[S]](auralSystem: Option[AuralSystem], val scheduler: Scheduler[S],
-                                        objMap : IdentifierMap[S#Id, S#Tx, stm.Source[S#Tx, Obj[S]]],
-                                        viewMap: IdentifierMap[S#Id, S#Tx, AuralObj[S]])
-                                       (implicit workspace: WorkspaceHandle[S])
+  private final class Impl[S <: Sys[S]](objMap : IdentifierMap[S#Id, S#Tx, stm.Source[S#Tx, Obj[S]]],
+                                        viewMap: IdentifierMap[S#Id, S#Tx, AuralObj[S]], clientAdded: Boolean)
+                                       (implicit val universe: Universe[S])
     extends Transport[S] with ObservableImpl[S, Transport.Update[S]] with AuralSystem.Client {
 
-    import scheduler.cursor
     import TxnLike.peer
+    import universe.{cursor, scheduler, auralSystem}
+
+//    val scheduler: Scheduler[S] = handler.scheduler
 
     private final class PlayTime(val wallClock0: Long, val pos0: Long) {
       override def toString = s"[pos0 = ${TimeRef.framesAndSecs(pos0)}, time0 = $wallClock0]"
@@ -184,7 +184,7 @@ object TransportImpl {
     }
 
     def dispose()(implicit tx: S#Tx): Unit = {
-      auralSystem.foreach(_.removeClient(this))
+      if (clientAdded) auralSystem.removeClient(this)
       objMap.dispose()
       objSet.foreach { obj =>
         fire(Transport.ObjectRemoved(this, obj()))
@@ -213,7 +213,7 @@ object TransportImpl {
       // (perhaps the discrepancy between Txn and S#Tx ?)
       tx.afterCommit {
         SoundProcesses.atomic { implicit tx: S#Tx =>
-          implicit val auralContext: AuralContext[S] = AuralContext(server, scheduler)
+          implicit val auralContext: AuralContext[S] = AuralContext(server)
           auralStartedTx(server)
         }
       }

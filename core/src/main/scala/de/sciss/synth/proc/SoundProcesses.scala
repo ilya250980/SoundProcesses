@@ -28,7 +28,7 @@ object SoundProcesses {
     * where `None` indicates that a single-threaded context is used
     * (default).
     */
-  def poolSize        : Option[Int]         = NodeImpl.poolSize
+  def poolSize: Option[Int] = NodeImpl.poolSize
 
   /** Sets the size of the thread pool used in `atomic`.
     * Note that this is only effective until the moment that
@@ -41,18 +41,11 @@ object SoundProcesses {
     */
   def poolSize_=(value: Option[Int]): Unit  = NodeImpl.poolSize = value
 
-  private[proc] def isPowerOfTwo(value: Int) = (value & (value - 1)) == 0
+  private[proc] def isPowerOfTwo(value: Int): Boolean = (value & (value - 1)) == 0
 
   private[proc] def validateCueBufferSize(value: Int): Unit =
     if (!isPowerOfTwo(value) || value < 8192 || value > 131072)
       throw new IllegalArgumentException(s"Must be a power of two and in (8192, 131072) : $value")
-
-//  private var cueBufSz = 32768                // XXX TODO: unused?
-//  def cueBufferSize: Int = cueBufSz           // XXX TODO: unused?
-//  def cueBufferSize_=(value: Int): Unit = {   // XXX TODO: unused?
-//    validateCueBufferSize(value)
-//    cueBufSz = value
-//  }
 
   /** Same as `lucre.synth.impl.NodeImpl.pool`. */
   def scheduledExecutorService: ScheduledExecutorService = NodeImpl.pool

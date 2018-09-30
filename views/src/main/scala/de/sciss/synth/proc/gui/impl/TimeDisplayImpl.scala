@@ -15,16 +15,17 @@ package de.sciss.synth.proc
 package gui
 package impl
 
-import java.awt.{Cursor, Color}
-import javax.swing.UIManager
+import java.awt.{Color, Cursor}
 
 import de.sciss.audiowidgets.impl.ActionGoToTime
-import de.sciss.audiowidgets.{TimelineModel, LCDPanel, LCDColors, LCDFont, AxisFormat}
+import de.sciss.audiowidgets.{AxisFormat, LCDColors, LCDFont, LCDPanel, TimelineModel}
 import de.sciss.desktop.impl.DynamicComponentImpl
-import scala.swing.event.{MouseExited, MouseEntered, MouseClicked}
-import scala.swing.{Swing, Orientation, BoxPanel, Component, Label}
-import Swing._
 import de.sciss.model.Change
+import javax.swing.UIManager
+
+import scala.swing.Swing._
+import scala.swing.event.{MouseClicked, MouseEntered, MouseExited}
+import scala.swing.{BoxPanel, Component, Label, Orientation}
 
 final class TimeDisplayImpl(model: TimelineModel, hasMillis: Boolean)
   extends TimeDisplay {

@@ -20,7 +20,6 @@ import java.nio.ByteBuffer
 import de.sciss.equal.Implicits._
 import de.sciss.file._
 import de.sciss.lucre.stm
-import de.sciss.lucre.stm.WorkspaceHandle
 import de.sciss.lucre.synth.{Buffer, Server, Synth, Sys, Txn}
 import de.sciss.processor.Processor
 import de.sciss.processor.impl.ProcessorImpl
@@ -38,7 +37,7 @@ import scala.util.Success
 object BounceImpl {
   var DEBUG = false
 }
-final class BounceImpl[S <: Sys[S], I <: stm.Sys[I]](implicit cursor: stm.Cursor[S], workspace: WorkspaceHandle[S])
+final class BounceImpl[S <: Sys[S], I <: stm.Sys[I]](val parentUniverse: Universe[S])
   extends Bounce[S] {
 
   import BounceImpl.DEBUG
@@ -54,6 +53,7 @@ final class BounceImpl[S <: Sys[S], I <: stm.Sys[I]](implicit cursor: stm.Cursor
     with Processor[File] {
 
     import config.realtime
+    import parentUniverse.cursor
 
     private val needsOSCFile  = !realtime && config.server.nrtCommandPath.isEmpty  // we need to generate that file
     private val numChannels   = config.server.outputBusChannels
@@ -139,7 +139,8 @@ final class BounceImpl[S <: Sys[S], I <: stm.Sys[I]](implicit cursor: stm.Cursor
           def auralStopped()(implicit tx: Txn): Unit = () // XXX TODO
         })
 
-        val _transport = Transport(_aural, _scheduler)
+        val newU        = parentUniverse.mkChild(_aural, _scheduler)
+        val _transport = Transport(newU)
         config.group.foreach { h =>
           _transport.addObject(h())
         }
@@ -246,8 +247,11 @@ final class BounceImpl[S <: Sys[S], I <: stm.Sys[I]](implicit cursor: stm.Cursor
 
         val _aural = AuralSystem.offline(server)
         config.beforePrepare.apply(tx, server)
-        val _transport = Transport(_aural, _scheduler)
+        val newU        = parentUniverse.mkChild(_aural, _scheduler)
+        val _transport  = Transport(newU)
+//        println("TRANSPORT")
         config.group.foreach { h =>
+//          println("ADD-OBJECT")
           _transport.addObject(h())
         }
         _transport.seek(_span.start)

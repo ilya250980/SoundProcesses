@@ -20,7 +20,7 @@ import de.sciss.lucre.synth.Sys
 
 object AuralFolderImpl {
   def apply[S <: Sys[S]](folder: Folder[S])(implicit tx: S#Tx, context: AuralContext[S]): AuralObj.Folder[S] = {
-    val transport = Transport[S]
+    val transport = Transport[S](context)
     folder.iterator.foreach(transport.addObject)
     new Impl(tx.newHandle(folder), transport).init(folder)
   }

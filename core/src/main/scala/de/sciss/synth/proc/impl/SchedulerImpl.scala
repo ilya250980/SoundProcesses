@@ -30,21 +30,21 @@ import scala.util.control.NonFatal
 object SchedulerImpl {
   def apply[S <: Sys[S]](implicit tx: S#Tx, cursor: stm.Cursor[S]): Scheduler[S] = {
     val system  = tx.system
-    val prio    = mkPrio[S, system.I](system)
+    val pq      = mkPriorityQueue[S, system.I](system)  // IntelliJ highlight bug
     implicit val iSys: S#Tx => system.I#Tx = system.inMemoryTx
-    new RealtimeImpl[S, system.I](prio)
+    new RealtimeImpl[S, system.I](pq)
   }
 
   def offline[S <: Sys[S]](implicit tx: S#Tx, cursor: stm.Cursor[S]): Scheduler.Offline[S] = {
     val system  = tx.system
-    val prio    = mkPrio[S, system.I](system)
+    val pq      = mkPriorityQueue[S, system.I](system)  // IntelliJ highlight bug
     implicit val iSys: S#Tx => system.I#Tx = system.inMemoryTx
-    new OfflineImpl[S, system.I](prio)
+    new OfflineImpl[S, system.I](pq)
   }
 
   // what a mess, Scala
-  private def mkPrio[S <: Sys[S], I1 <: Sys[I1]](system: S { type I = I1 })
-                                                (implicit tx: S#Tx): SkipList.Map[I1, Long, Set[Int]] = {
+  private def mkPriorityQueue[S <: Sys[S], I1 <: Sys[I1]](system: S { type I = I1 })
+                                                         (implicit tx: S#Tx): SkipList.Map[I1, Long, Set[Int]] = {
     implicit val iSys   : S#Tx => I1#Tx = system.inMemoryTx _
     implicit val itx    : I1#Tx         = iSys(tx)
     implicit val setSer: ImmutableSerializer[Set[Int]] = ImmutableSerializer.set
@@ -67,7 +67,7 @@ object SchedulerImpl {
 
   private val infInfo = new Info(issueTime = 0L, targetTime = Long.MaxValue)
 
-  private final class OfflineImpl[S <: Sys[S], I <: stm.Sys[I]](protected val prio: SkipList.Map [I , Long, Set[Int]])
+  private final class OfflineImpl[S <: Sys[S], I <: stm.Sys[I]](protected val pq: SkipList.Map [I , Long, Set[Int]])
                                                                 (implicit val cursor: stm.Cursor[S],
                                                                  protected val iSys: S#Tx => I#Tx)
     extends Impl[S, I] with Scheduler.Offline[S] {
@@ -101,7 +101,7 @@ object SchedulerImpl {
     }
   }
 
-  private final class RealtimeImpl[S <: Sys[S], I <: stm.Sys[I]](protected val prio: SkipList.Map [I , Long, Set[Int]])
+  private final class RealtimeImpl[S <: Sys[S], I <: stm.Sys[I]](protected val pq: SkipList.Map [I , Long, Set[Int]])
                                                                 (implicit val cursor: stm.Cursor[S],
                                                                  protected val iSys: S#Tx => I#Tx)
     extends Impl[S, I] {
@@ -109,38 +109,36 @@ object SchedulerImpl {
     /*
       Timing information:
 
-      - we can't get nanos and milliseconds atomically at the same time (can we?), therefore
-        set nanos to zero for the absolute system time reference `timeAbsNanos`
-      - the relative nanos are used to calculate frames in `calcFrame`
+      - we can't get nanoseconds and milliseconds atomically at the same time (can we?), therefore
+        set nanoseconds to zero for the absolute system time reference `timeAbsNanoSec`
+      - the relative nanoseconds are used to calculate frames in `calcFrame`
       - the `timeRef` freezes the advanced frames since creation time in sample frames
       - to convert this to system time, divide `timeRef` by the sample rate, multiply by 1.0e9,
         and add the absolute time reference.
 
      */
 
-    private[this] val timeAbsNanos    = System.currentTimeMillis() * 1000000L
-    private[this] val timeRelNanos    = System.nanoTime()
+    private[this] val timeAbsNanoSec  = System.currentTimeMillis() * 1000000L
+    private[this] val timeRelNanoSec  = System.nanoTime()
     private[this] val timeRef         = TxnLocal(calcFrame())
 
     def           time               (implicit tx: S#Tx): Long = timeRef.get(tx.peer)
     protected def time_=(value: Long)(implicit tx: S#Tx): Unit = timeRef.set(value)(tx.peer)
 
-//    private def systemTimeNanos(implicit tx: S#Tx): Long = calcTimeNanos(time)
-
-    private def calcTimeNanos(frames: Long): Long = {
-      val framesNanos = (frames / sampleRateN).toLong
-      timeAbsNanos + framesNanos
+    private def calcTimeNanoSec(frames: Long): Long = {
+      val framesNanoSec = (frames / sampleRateN).toLong
+      timeAbsNanoSec + framesNanoSec
     }
 
     private def calcFrame(): Long = {
       // 1 ns = 10^-9 s
-      val delta = System.nanoTime() - timeRelNanos
+      val delta = System.nanoTime() - timeRelNanoSec
       (delta * sampleRateN).toLong
     }
 
     def stepTag[A](fun: S#Tx => A): A = {
       val nowFrames = calcFrame()
-      val nowNanos  = calcTimeNanos(nowFrames)
+      val nowNanos  = calcTimeNanoSec(nowFrames)
       cursor.stepTag(nowNanos) { implicit tx =>
         time = nowFrames
         fun(tx)
@@ -157,7 +155,7 @@ object SchedulerImpl {
         SoundProcesses.scheduledExecutorService.schedule(new Runnable {
           def run(): Unit = {
             logT(s"scheduled: exe $info")
-            val nowNanos = calcTimeNanos(info.targetTime)
+            val nowNanos = calcTimeNanoSec(info.targetTime)
             cursor.stepTag(nowNanos) { implicit tx =>
               eventReached(info)    // this calls `time_=(info.targetTime)`
             }
@@ -175,7 +173,7 @@ object SchedulerImpl {
 
     // ---- abstract ----
 
-    protected def prio: SkipList.Map[I , Long, Set[Int]]
+    protected def pq: SkipList.Map[I , Long, Set[Int]]
     protected def iSys: S#Tx => I#Tx
 
     /** Invoked to submit a schedule step either to a realtime scheduler or other mechanism.
@@ -210,12 +208,12 @@ object SchedulerImpl {
 
       if (reschedule) {   // implies that prio does not have an entry at `timeClip` yet
         // println(s"............... SCHEDULE t = $targetTime; token = $token - REPLACE")
-        assert(!prio.contains(targetTime))
-        prio.put(targetTime, Set(token))
+        assert(!pq.contains(targetTime))
+        pq.put(targetTime, Set(token))
       } else {
-        val newSet = prio.get(targetTime).fold(Set(token))(_ + token)
+        val newSet = pq.get(targetTime).fold(Set(token))(_ + token)
         // println(s"............... SCHEDULE t = $targetTime; token = $token - ADD > $newSet")
-        prio.put(targetTime, newSet)
+        pq.put(targetTime, newSet)
       }
 
       import TimeRef.{framesAndSecs => fas}
@@ -249,11 +247,11 @@ object SchedulerImpl {
 //        val set0  = prio.get(t).getOrElse(
 //          throw new AssertionError(s"Token $token found but no entry at $t in priority queue")
 //        )
-        prio.get(t).foreach { set0 =>
+        pq.get(t).foreach { set0 =>
           val set1  = set0 - token
           if (set1.isEmpty) {
             // println(s"............... .... > EMPTY")
-            prio.remove(t)
+            pq.remove(t)
             // if entry became empty, see if it was
             // scheduled; if so, re-submit
             val info = infoVar()
@@ -261,7 +259,7 @@ object SchedulerImpl {
 
           } else {
             // println(s"............... .... > $set1")
-            prio.put(t, set1)
+            pq.put(t, set1)
           }
         }
       }
@@ -280,7 +278,7 @@ object SchedulerImpl {
       val t = info.targetTime
       time = t
 
-      prio.remove(t).foreach { tokens =>
+      pq.remove(t).foreach { tokens =>
         // println(s"............... REMOVED PRIO t = $t; tokens = $tokens")
         tokens.foreach { token =>
           // println(s"............... .... >>>> TOKEN $token")
@@ -304,7 +302,7 @@ object SchedulerImpl {
     // looks at the smallest time on the queue. if it exists, submits to peer scheduler
     private def scheduleNext()(implicit tx: S#Tx): Unit = {
       implicit val itx: I#Tx = iSys(tx)
-      val headOption = prio.ceil(Long.MinValue) // headOption method missing
+      val headOption = pq.ceil(Long.MinValue) // headOption method missing
 
       headOption.fold {
         infoVar.set(infInfo)(tx.peer)   // so that subsequent `schedule` will succeed

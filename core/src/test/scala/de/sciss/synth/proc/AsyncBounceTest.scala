@@ -19,7 +19,7 @@ object AsyncBounceTest {
 
   def run(): Unit = {
     // implicit val system = InMemory()
-    implicit val system = Durable(BerkeleyDB.tmp())
+    implicit val system: S = Durable(BerkeleyDB.tmp())
 
     de.sciss.lucre.synth.showLog = true
     showTransportLog  = true
@@ -53,7 +53,7 @@ object AsyncBounceTest {
       val tmpF    = tmpDir / "buffer.aif"
       tmpF.deleteOnExit()
       val loc     = ArtifactLocation.newConst[S](tmpDir)
-      val artif   = Artifact(loc, tmpF) // .add(tmpF)
+      val art     = Artifact(loc, tmpF) // .add(tmpF)
       val aSpec   = AudioFileSpec(numChannels = 1, numFrames = numFr, sampleRate = sr)
       val af      = AudioFile.openWrite(tmpF, aSpec)
       val aBuf    = Array(Array.tabulate(numFr) { i =>
@@ -63,7 +63,7 @@ object AsyncBounceTest {
       })
       af.write(aBuf)
       af.close()
-      val gr      = AudioCue.Obj[S](artif, aSpec, 0L, 1.0)
+      val gr      = AudioCue.Obj[S](art, aSpec, 0L, 1.0)
       obj.attr.put("foo", gr)
 
       val group     = Timeline[S]
@@ -73,8 +73,7 @@ object AsyncBounceTest {
       // import ProcGroup.serializer
       tx.newHandle(group)
     }
-
-    import de.sciss.lucre.stm.WorkspaceHandle.Implicits._
+    implicit val u: Universe[S] = system.step { implicit tx => Universe.dummy }
     val bounce              = Bounce[S, I]
     val bCfg                = Bounce.Config[S]
     bCfg.group              = groupH :: Nil

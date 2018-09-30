@@ -32,7 +32,7 @@ sealed trait TxnImpl extends Txn { tx =>
   final protected def flush(): Unit =
     bundlesMap.foreach { case (server, bundles) =>
       log(s"flush $server -> ${bundles.size} bundles")
-      server.send(bundles, systemTimeNanos: Long)
+      server.send(bundles, systemTimeNanoSec: Long)
     }
 
   protected def markBundlesDirty(): Unit
@@ -132,7 +132,7 @@ trait TxnFullImpl[S <: Sys[S]] extends TxnImpl with Sys.Txn[S] {
   }
 }
 
-final class TxnPlainImpl(val peer: InTxn, val systemTimeNanos: Long) extends TxnImpl {
+final class TxnPlainImpl(val peer: InTxn, val systemTimeNanoSec: Long) extends TxnImpl {
   override def toString = s"proc.Txn<plain>@${hashCode().toHexString}"
 
   def afterCommit(code: => Unit): Unit = ScalaTxn.afterCommit(_ => code)(peer)

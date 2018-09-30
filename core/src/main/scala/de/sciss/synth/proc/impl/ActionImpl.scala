@@ -14,11 +14,16 @@
 package de.sciss.synth.proc
 package impl
 
+import java.text.SimpleDateFormat
+import java.util.{Date, Locale}
+
 import de.sciss.lucre.event.Targets
 import de.sciss.lucre.stm.impl.ObjSerializer
-import de.sciss.lucre.stm.{Copy, Elem, Folder, IdPeek, NoSys, Obj, Sys, TxnLike, WorkspaceHandle}
+import de.sciss.lucre.stm.{Copy, Cursor, Elem, IdPeek, NoSys, Obj, Sys, TxnLike, WorkspaceHandle}
+import de.sciss.lucre.synth.{Sys => SSys}
 import de.sciss.lucre.{stm, event => evt}
 import de.sciss.serial.{DataInput, DataOutput, Serializer}
+import de.sciss.synth.proc
 
 import scala.annotation.switch
 import scala.collection.mutable
@@ -119,12 +124,34 @@ object ActionImpl {
 
   // ---- universe ----
 
-  final class UniverseImpl[S <: Sys[S]](val self: Action[S], val workspace: WorkspaceHandle[S],
-                                        val invoker: Option[Obj[S]], val value: Any)
-                                       (implicit val cursor: stm.Cursor[S])
+  private lazy val logHeader = new SimpleDateFormat("[d MMM yyyy, HH:mm''ss.SSS] 'action' - ", Locale.US)
+
+  final class UniverseImpl[S <: SSys[S]](val self: Action[S],
+                                         val invoker: Option[Obj[S]], val value: Any)
+                                        (implicit peer: proc.Universe[S])
     extends Action.Universe[S] {
 
-    def root(implicit tx: S#Tx): Folder[S] = workspace.root
+    implicit def cursor     : Cursor          [S] = peer.cursor
+    implicit def workspace  : WorkspaceHandle [S] = peer.workspace
+    implicit def genContext : GenContext      [S] = peer.genContext
+    implicit val scheduler  : Scheduler       [S] = peer.scheduler
+
+    def mkChild(newAuralSystem: AuralSystem, newScheduler: Scheduler[S]): Universe[S] = {
+      val newPeer = peer.mkChild(newAuralSystem, newScheduler)
+      new UniverseImpl[S](self = self, invoker = invoker, value = value)(peer = newPeer)
+    }
+
+    def auralSystem: AuralSystem = peer.auralSystem
+
+    def mkRunner(obj: Obj[S])(implicit tx: S#Tx): Option[Runner[S]] = peer.mkRunner(obj)
+
+    def runners(implicit tx: S#Tx): Iterator[Runner[S]] = peer.runners
+
+    def log(what: => String)(implicit tx: S#Tx): Unit = tx.afterCommit {
+      Console.out.println(logHeader.format(new Date()) + what)
+    }
+
+    def mkTransport()(implicit tx: S#Tx): Transport[S] = Transport[S](this)
   }
 
   // ---- serialization ----

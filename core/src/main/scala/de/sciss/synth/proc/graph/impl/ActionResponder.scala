@@ -55,14 +55,15 @@ final class ActionResponder[S <: Sys[S]](objH: stm.Source[S#Tx, Obj[S]], key: St
         case f: Float => f
       } (breakOut)
 
-      import context.scheduler.cursor
+      import context.universe
+      import context.universe.cursor
       SoundProcesses.atomic { implicit tx: S#Tx =>
         val invoker = objH()
         invoker.attr.$[proc.Action](key).foreach { action =>
           if (DEBUG) println("...and found action")
-          val universe = proc.Action.Universe(action, context.workspace,
-            invoker = Some(invoker), value = proc.Action.FloatVector(values))
-          action.execute(universe)
+          val au = proc.Action.Universe[S](action, invoker = Some(invoker),
+            value = proc.Action.FloatVector(values))
+          action.execute(au)
         }
       }
   }

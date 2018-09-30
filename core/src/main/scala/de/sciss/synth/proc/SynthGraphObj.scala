@@ -52,15 +52,9 @@ object SynthGraphObj extends expr.impl.ExprTypeImpl[SynthGraph, SynthGraphObj] {
   object valueSerializer extends ImmutableSerializer[SynthGraph] {
     private final val SER_VERSION = 0x5347
 
-    // private final class RefMapOut {
-    // var map   = Map.empty[Product, Int]
-    // val map   = collection.mutable.Map.empty[Product, Int] // not faster than immutable map!
-    // var count = 0
-    // }
-
-      // we use an identity hash map, because we do _not_
-      // want to alias objects in the serialization; the input
-      // is an in-memory object graph.
+    // we use an identity hash map, because we do _not_
+    // want to alias objects in the serialization; the input
+    // is an in-memory object graph.
     private type RefMapOut = util.IdentityHashMap[Product, Integer]
 
     private final class RefMapIn {
@@ -246,32 +240,11 @@ object SynthGraphObj extends expr.impl.ExprTypeImpl[SynthGraph, SynthGraphObj] {
       }
       SynthGraph(sources, controls.result())
     }
-
-    //  private def readOld(in: DataInput): SynthGraph = {
-    //    val ois = new java.io.ObjectInputStream(in.asInputStream)
-    //    val res = ois.readObject().asInstanceOf[SynthGraph]
-    //    ois.close()
-    //    res
-    //  }
   }
-  //  private val map = mutable.Map.empty[String, SynthGraph]
-  //
-  //  /** Adds a predefined synth graph which is serialized through a key.
-  //    * Care must be taken so that the key is unique and that the graph
-  //    * is registered before any possible de-serialization (which would
-  //    * fail if no in-memory graph is found under the key)
-  //    */
-  //  def add(key: String, graph: SynthGraph): Unit =
-  //    map.synchronized(map += (key, graph))
 
   // private final val oldTapeCookie = 1
   private final val emptyCookie   = 4
   private final val tapeCookie    = 5
-
-  // def valueSerializer: ImmutableSerializer[SynthGraph] = ValueSerializer
-
-//  def readValue (                   in : DataInput ): SynthGraph  = ValueSerializer.read (       in )
-//  def writeValue(value: SynthGraph, out: DataOutput): Unit        = ValueSerializer.write(value, out)
 
   override protected def readCookie[S <: Sys[S]](in: DataInput, access: S#Acc, cookie: Byte)(implicit tx: S#Tx): _Ex[S] =
     cookie match {
@@ -279,25 +252,7 @@ object SynthGraphObj extends expr.impl.ExprTypeImpl[SynthGraph, SynthGraphObj] {
         val id = tx.readId(in, access)
         new Predefined(id, cookie)
       case _ => super.readCookie(in, access, cookie)
-      //      case `mapCookie`  =>
-      //        val key     = in.readUTF()
-      //        val graph   = map.synchronized(map(key))
-      //        new MapImpl(key, graph)
     }
-
-  // private final class MapImpl[S <: Sys[S]]
-
-  //  private lazy val oldTapeSynthGraph: SynthGraph =
-  //    SynthGraph {
-  //      import de.sciss.synth._
-  //      import ugen._
-  //      val sig   = graph.scan.In(Proc.Obj.graphAudio)
-  //      val bus   = graph.attribute(ObjKeys.attrBus   ).ir(0)
-  //      val mute  = graph.attribute(ObjKeys.attrMute  ).ir(0)
-  //      val env   = graph.FadeInOut(ObjKeys.attrFadeIn, ObjKeys.attrFadeOut).ar
-  //      val amp   = env * (1 - mute)
-  //      Out.ar(bus, sig * amp)
-  //    }
 
   private lazy val tapeSynthGraph: SynthGraph =
     SynthGraph {

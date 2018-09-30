@@ -84,8 +84,8 @@ class ActionGraphTest[S <: Sys[S]]()(implicit cursor: stm.Cursor[S]) {
       actionObj.attr.put("name", "Baba Ganoush": StringObj[S])
       obj.attr.put("foo", actionObj)
 
-      import de.sciss.lucre.stm.WorkspaceHandle.Implicits._
-      val t = Transport[S](as)
+      implicit val universe: Universe[S] = ??? // UUU
+      val t = Transport[S](universe)
       t.addObject(obj)
       t.play()
     }

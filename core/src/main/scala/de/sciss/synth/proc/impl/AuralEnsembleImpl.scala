@@ -21,8 +21,9 @@ import de.sciss.lucre.synth.Sys
 import de.sciss.model.Change
 
 object AuralEnsembleImpl {
-  def apply[S <: Sys[S]](obj: Ensemble[S])(implicit tx: S#Tx, context: AuralContext[S]): AuralObj.Ensemble[S] = {
-    val transport = Transport[S]
+  def apply[S <: Sys[S]](obj: Ensemble[S])
+                        (implicit tx: S#Tx, context: AuralContext[S]): AuralObj.Ensemble[S] = {
+    val transport = Transport[S](context)
     val ensemble  = obj
     ensemble.folder.iterator.foreach(transport.addObject)
     new Impl(tx.newHandle(obj), transport).init(ensemble)

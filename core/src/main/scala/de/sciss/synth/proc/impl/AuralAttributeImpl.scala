@@ -127,7 +127,8 @@ object AuralAttributeImpl {
 
     // ---- impl ----
 
-    import context.{scheduler => sched}
+//    import context.{scheduler => sched}
+    import context.universe.{scheduler => sched}
 
     private[this] var obs: Disposable[S#Tx] = _
     private[this] val playRef = Ref(Option.empty[Playing[S]])

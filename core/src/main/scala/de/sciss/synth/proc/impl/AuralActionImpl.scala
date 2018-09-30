@@ -15,7 +15,7 @@ package de.sciss.synth.proc
 package impl
 
 import de.sciss.lucre.stm
-import de.sciss.lucre.stm.{Cursor, Obj, Sys, WorkspaceHandle}
+import de.sciss.lucre.stm.{Obj, Sys}
 import de.sciss.lucre.synth.{Sys => SSys}
 
 object AuralActionImpl extends AuralObj.Factory {
@@ -27,11 +27,15 @@ object AuralActionImpl extends AuralObj.Factory {
     new Impl(objH)
   }
 
-  private final class Impl[S <: Sys[S]](val objH: stm.Source[S#Tx, Action[S]])(implicit context: AuralContext[S])
+  private final class Impl[S <: SSys[S]](val objH: stm.Source[S#Tx, Action[S]])(implicit context: AuralContext[S])
     extends ActionRunnerImpl.Base[S, Unit] with AuralObj.Action[S] {
 
-    protected def workspace : WorkspaceHandle [S] = context.workspace
-    protected def cursor    : Cursor          [S] = context.scheduler.cursor
+//    implicit protected def genContext: GenContext[S] = context.genContext
+//    implicit protected def scheduler : Scheduler [S] = context.scheduler
+
+//    def handler: Runner.Handler[S] = context.handler
+
+    implicit def universe: Universe[S] = context.universe
 
     override def toString = s"AuralAction@${hashCode().toHexString}"
 

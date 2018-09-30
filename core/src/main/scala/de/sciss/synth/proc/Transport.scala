@@ -14,7 +14,7 @@
 package de.sciss.synth.proc
 
 import de.sciss.lucre.event.Observable
-import de.sciss.lucre.stm.{Cursor, Disposable, Obj, Sys, WorkspaceHandle}
+import de.sciss.lucre.stm.{Disposable, Obj, Sys}
 import de.sciss.lucre.synth.{Sys => SSys}
 import de.sciss.synth.proc.impl.{TransportImpl => Impl}
 
@@ -22,21 +22,21 @@ object Transport {
   /** Creates a `Transport` independent of a running aural system. If will create and destroy
     * an aural context with the state of the provided system.
     */
-  def apply[S <: SSys[S]](aural: AuralSystem, scheduler: Scheduler[S])
-                        (implicit tx: S#Tx, workspace: WorkspaceHandle[S]): Transport[S] =
-    Impl(aural, scheduler)
+  def apply[S <: SSys[S]](universe: Universe[S])(implicit tx: S#Tx): Transport[S] =
+    Impl(universe)
 
-  /** Creates a `Transport` independent of a running aural system. If will create and destroy
-    * an aural context with the state of the provided system. It creates a new scheduler.
-    */
-  def apply[S <: SSys[S]](aural: AuralSystem)
-                        (implicit tx: S#Tx, cursor: Cursor[S], workspace: WorkspaceHandle[S]): Transport[S] = {
-    val sched = Scheduler[S]
-    apply(aural, sched)
-  }
+//  /** Creates a `Transport` independent of a running aural system. If will create and destroy
+//    * an aural context with the state of the provided system. It creates a new scheduler.
+//    */
+//  def apply[S <: SSys[S]](aural: AuralSystem)
+//                        (implicit tx: S#Tx, cursor: Cursor[S], workspace: WorkspaceHandle[S]): Transport[S] = {
+//    val sched = Scheduler[S]
+//    apply(aural, sched)
+//  }
 
   /** Creates a `Transport` for a running existing aural context. */
-  def apply[S <: SSys[S]](implicit tx: S#Tx, context: AuralContext[S]): Transport[S] = Impl[S]
+  def apply[S <: SSys[S]](context: AuralContext[S])(implicit tx: S#Tx): Transport[S] =
+    Impl[S](context)
 
   sealed trait Update[S <: Sys[S]] {
     def transport: Transport[S]
@@ -93,5 +93,7 @@ trait Transport[S <: Sys[S]]
   // not sure if the transport should generate the context or if use site should provide it?
   def contextOption(implicit tx: S#Tx): Option[AuralContext[S]]
 
-  def scheduler: Scheduler[S]
+  implicit val universe: Universe[S]
+
+  // val scheduler: Scheduler[S]
 }

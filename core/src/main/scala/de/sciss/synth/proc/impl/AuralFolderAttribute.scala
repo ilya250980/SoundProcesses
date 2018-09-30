@@ -69,7 +69,8 @@ final class AuralFolderAttribute[S <: Sys[S]](val key: String, val objH: stm.Sou
   extends AuralAttribute[S] with ObservableImpl[S, Runner.State] with AuralAttribute.Observer[S] { attr =>
 
   import TxnLike.peer
-  import context.{scheduler => sched}
+//  import context.{scheduler => sched}
+  import context.universe.{scheduler => sched}
 
   type Elem = AuralAttribute[S]
 

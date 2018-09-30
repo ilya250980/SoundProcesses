@@ -27,7 +27,7 @@ object ProcRunnerImpl {
   def apply[S <: Sys[S]](obj: Proc[S], h: Handler[S])(implicit tx: S#Tx): Runner[S] = {
     // the transport is simply to get the work done of dynamically creating
     // an aural-obj... a bit of a resource waste?
-    val t = h.mkTransport()
+    val t = Transport[S](h)
     t.addObject(obj)
     new Impl(tx.newHandle(obj), t, h).init(obj)
   }
@@ -117,7 +117,5 @@ object ProcRunnerImpl {
       auralObs.swap(Disposable.empty).dispose()
       t.dispose()
     }
-
-    def messages(implicit tx: S#Tx): Any = ???
   }
 }

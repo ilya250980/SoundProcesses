@@ -31,7 +31,7 @@ object AuralTimelineImpl {
 
   def apply[S <: Sys[S]](timeline: Timeline[S])(implicit tx: S#Tx, context: AuralContext[S]): AuralObj.Timeline[S] = {
     val system  = tx.system
-    val res     = prepare[S, system.I](timeline, system)
+    val res     = prepare[S, system.I](timeline, system)  // IntelliJ highlight bug
     res.init(timeline)
   }
 

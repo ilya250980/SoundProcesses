@@ -2,8 +2,8 @@ package de.sciss.synth.proc
 
 import de.sciss.lucre.expr.{DoubleObj, SpanLikeObj}
 import de.sciss.lucre.stm
-import de.sciss.lucre.stm.{Folder, Obj}
 import de.sciss.lucre.stm.store.BerkeleyDB
+import de.sciss.lucre.stm.{Folder, Obj}
 import de.sciss.lucre.synth.{Server, Sys}
 import de.sciss.span.{Span, SpanLike}
 import de.sciss.synth.SynthGraph
@@ -48,11 +48,15 @@ abstract class AuralTestLike[S <: Sys[S]](implicit cursor: stm.Cursor[S]) {
   showTransportLog  = true
   // de.sciss.lucre.synth.showLog = true
 
-  final val as: AuralSystem = AuralSystem()
-  cursor.step { implicit tx =>
+  implicit val universe: Universe[S] = cursor.step { implicit tx =>
+    val res = Universe.dummy[S]
+    val as =  res.auralSystem
     as.whenStarted(initView)
     as.start()
+    res
   }
+
+  final val as: AuralSystem = universe.auralSystem
 
   final def initView(s: Server): Unit = {
     if (Txn.findCurrent.isDefined) {
@@ -62,7 +66,6 @@ abstract class AuralTestLike[S <: Sys[S]](implicit cursor: stm.Cursor[S]) {
 
     s.peer.dumpOSC()
     implicit val context: AuralContext[S] = cursor.step { implicit tx =>
-      import de.sciss.lucre.stm.WorkspaceHandle.Implicits._
       AuralContext[S](s)
     }
 

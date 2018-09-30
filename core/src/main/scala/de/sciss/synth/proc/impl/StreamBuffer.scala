@@ -66,25 +66,25 @@ object StreamBuffer {
 }
 /** An object that manages streaming an audio buffer.
  *
- * @param key         the key is used for the `SendReply` messages
- * @param idx         the index in `SendReply`
- * @param synth       the synth to expect the `SendReply` messages to come from
- * @param buf         the buffer to send data to
- * @param path        the path of the audio file
- * @param fileFrames  the total number of frames in the file
- * @param interp      the type of interpolation (1 = none, 2 = linear, 4 = cubic)
- * @param startFrame  the start frame into the file to begin with
- * @param loop        if `true` keeps looping the buffer, if `false` pads reset with zeroes, then stops
- * @param resetFrame  when looping, the reset frame position into the file after each loop begins.
-  *                   this should be less than or equal to `startFrame`
+ * @param key             the key is used for the `SendReply` messages
+ * @param idx             the index in `SendReply`
+ * @param synth           the synth to expect the `SendReply` messages to come from
+ * @param buf             the buffer to send data to
+ * @param path            the path of the audio file
+ * @param fileFrames      the total number of frames in the file
+ * @param interpolation   the type of interpolation (1 = none, 2 = linear, 4 = cubic)
+ * @param startFrame      the start frame into the file to begin with
+ * @param loop            if `true` keeps looping the buffer, if `false` pads reset with zeroes, then stops
+ * @param resetFrame      when looping, the reset frame position into the file after each loop begins.
+  *                       this should be less than or equal to `startFrame`
  */
 final class StreamBuffer(key: String, idx: Int, protected val synth: Node,
                          buf: Buffer.Modifiable, path: String, fileFrames: Long,
-                         interp: Int, startFrame: Long, loop: Boolean, resetFrame: Long)
+                         interpolation: Int, startFrame: Long, loop: Boolean, resetFrame: Long)
   extends SendReplyResponder {
 
   private[this] val bufSizeH  = buf.numFrames/2
-  private[this] val diskPad   = StreamBuffer.padSize(interp)
+  private[this] val diskPad   = StreamBuffer.padSize(interpolation)
   private[this] val bufSizeHM = bufSizeH - diskPad
   private[this] val replyName = StreamBuffer.replyName(key)
   private[this] val nodeId    = synth.peer.id

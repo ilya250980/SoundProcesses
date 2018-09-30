@@ -16,25 +16,26 @@ import scala.util.Success
 
   */
 class Issue28 extends BounceSpec {
-  "Auxiliary attribute map synths are correctly freed" works { implicit cursor =>
+  "Auxiliary attribute map synths are correctly freed" works { implicit universe =>
+    import universe.cursor
 
     val tlH = cursor.step { implicit tx =>
       import Implicits._
       val _p1 = proc {
-        import ugen._
         import graph._
+        import ugen._
         ScanOut(WhiteNoise.ar(0.1))     // actual signal has no significance
       }
       _p1.name = "noise"
       val _p2 = proc {
-        import ugen._
         import graph._
+        import ugen._
         ScanOut(SinOsc.ar(441) * 0.1)   // actual signal has no significance
       }
       _p2.name = "sine"
       val _p3 = proc {
-        import ugen._
         import graph._
+        import ugen._
         val sig = ScanInFix(numChannels = 1)
         Out.ar(0, sig)
       }
@@ -52,16 +53,15 @@ class Issue28 extends BounceSpec {
     }
 
     val res = Promise[StatusReply]()
-    val as: AuralSystem = AuralSystem()
+//    implicit val universe: Universe[S] = cursor.step { implicit tx => Universe.dummy }
 
     def runTL(s: Server)(implicit tx: S#Tx): Unit = {
       // println("Here [1]")
-      import de.sciss.lucre.stm.WorkspaceHandle.Implicits.dummy
-      val t   = Transport[S](as)
+      val t   = Transport[S](universe)
       val tl  = tlH()
       t.addObject(tl)
       t.play()
-      t.scheduler.schedule(5.0.seconds) { implicit tx =>
+      universe.scheduler.schedule(5.0.seconds) { implicit tx =>
         // println("Here [2]")
         // t.dispose()
         tx.afterCommit {
@@ -77,15 +77,17 @@ class Issue28 extends BounceSpec {
     }
 
     cursor.step { implicit tx =>
-      as.addClient(new AuralSystem.Client {
-        def auralStarted(s: Server)(implicit itx: Txn): Unit = {
-          implicit val tx: S#Tx = cursor.wrap(itx.peer)
-          runTL(s)
+      universe.auralSystem.addClient(new AuralSystem.Client {
+        def auralStarted(s: Server)(implicit itx: Txn): Unit = itx.afterCommit {
+          cursor.step { implicit tx =>
+            runTL(s)
+          }
+//          implicit val tx: S#Tx = cursor.wrap(itx.peer)
         }
 
         def auralStopped()(implicit tx: Txn): Unit = ()
       })
-      as.start()
+      universe.auralSystem.start()
     }
 
     res.future.map { status =>

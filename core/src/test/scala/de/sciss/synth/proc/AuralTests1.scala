@@ -5,16 +5,12 @@ import de.sciss.lucre.artifact.{Artifact, ArtifactLocation}
 import de.sciss.lucre.expr.{BooleanObj, DoubleObj, IntObj, SpanLikeObj}
 import de.sciss.lucre.stm
 import de.sciss.lucre.stm.{Cursor, Folder}
-import de.sciss.lucre.stm.WorkspaceHandle.Implicits._
 import de.sciss.lucre.synth.Sys
 import de.sciss.span.Span
 import de.sciss.synth.Curve.{exponential, linear}
 import de.sciss.synth.io.{AudioFile, AudioFileType}
-import de.sciss.synth.proc.Action.Universe
 import de.sciss.synth.proc.Implicits._
 import de.sciss.{numbers, synth}
-
-import scala.language.implicitConversions
 
 object AuralTests1 extends AuralTestLike.Factory {
   def main(args: Array[String]): Unit = init(args)
@@ -31,7 +27,7 @@ class AuralTests1[S <: Sys[S]](name: String)(implicit cursor: stm.Cursor[S]) ext
       case "--test3"  => test3()
       case "--test4"  => test4()
       case "--test5"  => test5()
-      case "--test6"  => test6(as)
+      case "--test6"  => test6()
       case "--test7"  => test7()
       case "--test8"  => test8()
       case "--test9"  => test9()
@@ -113,7 +109,7 @@ class AuralTests1[S <: Sys[S]](name: String)(implicit cursor: stm.Cursor[S]) ext
       tl   .add(Span.from (frame(2.0)            ), pDif  )
       tl   .add(Span      (frame(4.0), frame(6.0)), pFlt  )
 
-      val t = Transport[S]
+      val t = Transport[S](context)
       t.addObject(tl)
       t.play()
 
@@ -140,10 +136,10 @@ class AuralTests1[S <: Sys[S]](name: String)(implicit cursor: stm.Cursor[S]) ext
         |""".stripMargin)
 
     cursor.step { implicit tx =>
-      val t = Transport[S]
+      val t = Transport[S](context)
 
-      val body = new Action.Body {
-        def apply[T <: stm.Sys[T]](universe: Universe[T])(implicit tx: T#Tx): Unit = {
+      val body: Action.Body = new Action.Body {
+        def apply[T <: stm.Sys[T]](universe: Action.Universe[T])(implicit tx: T#Tx): Unit = {
           val secs = seconds(t.position(tx.asInstanceOf[S#Tx]))
           println(f"bang at $secs%1.3f sec.")
         }
@@ -211,7 +207,7 @@ class AuralTests1[S <: Sys[S]](name: String)(implicit cursor: stm.Cursor[S]) ext
       val attr = p.attr
       attr.put("key", gr)
 
-      val t = Transport[S]
+      val t = Transport[S](context)
       t.addObject(tl)
       t.play()
 
@@ -269,7 +265,7 @@ class AuralTests1[S <: Sys[S]](name: String)(implicit cursor: stm.Cursor[S]) ext
       val attr = p1.attr
       attr.put("key", gr)
 
-      val t = Transport[S]
+      val t = Transport[S](context)
       t.addObject(p1)
       t.addObject(p2)
       t.play()
@@ -322,7 +318,7 @@ class AuralTests1[S <: Sys[S]](name: String)(implicit cursor: stm.Cursor[S]) ext
       val attr = p1.attr
       attr.put("key", pin)
 
-      val t = Transport[S]
+      val t = Transport[S](context)
       t.addObject(p1)
       t.addObject(p2)
       t.play()
@@ -364,7 +360,7 @@ class AuralTests1[S <: Sys[S]](name: String)(implicit cursor: stm.Cursor[S]) ext
       val p1H = tx.newHandle(p1)
       val p2H = tx.newHandle(p2)
 
-      val t     = Transport[S]
+      val t     = Transport[S](context)
       t.addObject(p1)
       t.addObject(p2)
       t.play()
@@ -416,7 +412,7 @@ class AuralTests1[S <: Sys[S]](name: String)(implicit cursor: stm.Cursor[S]) ext
       val artH  = tx.newHandle(art)
       pRec.attr.put("disk", art)
 
-      val t     = Transport[S]
+      val t     = Transport[S](context)
       t.addObject(pRec)
       t.play()
       val pRecH = tx.newHandle(pRec)
@@ -496,7 +492,7 @@ class AuralTests1[S <: Sys[S]](name: String)(implicit cursor: stm.Cursor[S]) ext
       foldOut.addLast(ensIn) // Obj(Ensemble.Elem(ensIn)))
       foldOut.addLast(filter)
 
-      val t = Transport[S]
+      val t = Transport[S](context)
       t.addObject(ensOut) // Obj(Ensemble.Elem(ensOut)))
       t.play()
 
@@ -535,7 +531,7 @@ class AuralTests1[S <: Sys[S]](name: String)(implicit cursor: stm.Cursor[S]) ext
       }
       _proc.name = "out"
       // addScanIn(_proc, "in")
-      val t = Transport[S]
+      val t = Transport[S](context)
       t.addObject(_proc)
       t.play()
       val procH = tx.newHandle(_proc)
@@ -654,7 +650,7 @@ class AuralTests1[S <: Sys[S]](name: String)(implicit cursor: stm.Cursor[S]) ext
 
   ////////////////////////////////////////////////////////////////////////////////////// 10
 
-  def test10(): Unit = {
+  def test10()(implicit context: AuralContext[S]): Unit = {
     println("----test10----")
     println(
       """
@@ -701,7 +697,7 @@ class AuralTests1[S <: Sys[S]](name: String)(implicit cursor: stm.Cursor[S]) ext
       _tl += (1.0 -> 8.0, _proc1)
       // _tl += (1.0 -> 6.0, _proc2)
       _tl += (Span.all, _proc2)
-      val _tr = Transport(as)
+      val _tr = Transport(context)
       _tr.addObject(_tl)
 
       (_tr, tx.newHandle(_proc1), tx.newHandle(_proc2))
@@ -744,7 +740,7 @@ class AuralTests1[S <: Sys[S]](name: String)(implicit cursor: stm.Cursor[S]) ext
 
   ////////////////////////////////////////////////////////////////////////////////////// 9
 
-  def test9(): Unit = {
+  def test9()(implicit context: AuralContext[S]): Unit = {
     println("----test9----")
     println(
       """
@@ -778,7 +774,7 @@ class AuralTests1[S <: Sys[S]](name: String)(implicit cursor: stm.Cursor[S]) ext
 
       val _tl = timeline()
       _tl += (2.0 -> 10.0, _proc1)
-      val _tr = Transport(as)
+      val _tr = Transport(context)
       _tr.addObject(_tl)
       _tr
     }
@@ -907,7 +903,7 @@ class AuralTests1[S <: Sys[S]](name: String)(implicit cursor: stm.Cursor[S]) ext
 
   ////////////////////////////////////////////////////////////////////////////////////// 6
 
-  def test6(as: AuralSystem): Unit = {
+  def test6()(implicit context: AuralContext[S]): Unit = {
     println("----test6----")
     println(
       """
@@ -937,7 +933,7 @@ class AuralTests1[S <: Sys[S]](name: String)(implicit cursor: stm.Cursor[S]) ext
 
       _tl += (10.0 -> 13.0, _proc1)
 
-      val _tr = Transport(as)
+      val _tr = Transport(context)
       _tr.addObject(_tl)
       _tr.addObject(_proc2)
       _tr.seek(frame(8.0))

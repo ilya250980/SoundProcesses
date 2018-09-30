@@ -21,15 +21,15 @@ import de.sciss.synth.ugen.ControlProxy
 
 object BufferGen {
   // alias these
-  type Command  = message.BufferGen.Command
-  val  Cheby    = message.BufferGen.Cheby
-  type Cheby    = message.BufferGen.Cheby
-  val  Sine1    = message.BufferGen.Sine1
-  type Sine1    = message.BufferGen.Sine1
-  val  Sine2    = message.BufferGen.Sine2
-  type Sine2    = message.BufferGen.Sine2
-  val  Sine3    = message.BufferGen.Sine3
-  type Sine3    = message.BufferGen.Sine3
+  type Command                              = message.BufferGen.Command
+  val  Cheby: message.BufferGen.Cheby.type  = message.BufferGen.Cheby
+  type Cheby                                = message.BufferGen.Cheby
+  val  Sine1: message.BufferGen.Sine1.type  = message.BufferGen.Sine1
+  type Sine1                                = message.BufferGen.Sine1
+  val  Sine2: message.BufferGen.Sine2.type  = message.BufferGen.Sine2
+  type Sine2                                = message.BufferGen.Sine2
+  val  Sine3: message.BufferGen.Sine3.type  = message.BufferGen.Sine3
+  type Sine3                                = message.BufferGen.Sine3
 
   def controlName(id: Int): String = s"$$buf_gen$id"
 

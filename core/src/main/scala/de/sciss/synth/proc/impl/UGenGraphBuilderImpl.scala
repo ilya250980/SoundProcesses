@@ -103,7 +103,7 @@ object UGenGraphBuilderImpl {
     final def requestInput(req: UGB.Input): req.Value = {
       // we pass in `this` and not `in`, because that way the context
       // can find accepted inputs that have been added during the current build cycle!
-      val res   = context.requestInput[req.Value](req, this)(tx)
+      val res   = context.requestInput[req.Value](req, this)(tx)  // IntelliJ highlight bug
       val key   = req.key
       val map0  = acceptedInputs.getOrElse(key, Map.empty)
       val map1  = map0 + (req -> res)

@@ -107,6 +107,7 @@ object TransportViewImpl {
     private[this] val loopToken = Ref(-1)
 
     import GUITransport.{FastForward, GoToBegin, Loop, Play, Rewind, Stop}
+    import transport.universe.scheduler.stepTag
 
     private final class ActionCue(elem: GUITransport.Element, key: Key.Value, onOff: Boolean, select: Boolean)
       extends AbstractAction(elem.toString) { action =>
@@ -173,7 +174,7 @@ object TransportViewImpl {
     }
 
     private def cancelLoop()(implicit tx: S#Tx): Unit =
-      transport.scheduler.cancel(loopToken.swap(-1)(tx.peer))
+      transport.universe.scheduler.cancel(loopToken.swap(-1)(tx.peer))
 
     def startedPlaying(time: Long)(implicit tx: S#Tx): Unit = {
       checkLoop()
@@ -227,7 +228,7 @@ object TransportViewImpl {
           _isPlaying
         }).getOrElse(false)
 
-      atomic { implicit tx =>
+      stepTag { implicit tx =>
         if (isPlaying)
           transport.stop()
         else
@@ -239,7 +240,7 @@ object TransportViewImpl {
       transport.stop()
     }
 
-    private def play(): Unit = atomic { implicit tx =>
+    private def play(): Unit = stepTag { implicit tx =>
       playTxn()
     }
 
@@ -268,11 +269,11 @@ object TransportViewImpl {
       val pos       = transport.position
       val loopStop  = loopSpan.get(tx.peer) match { case hs: Span.HasStop => hs.stop; case _ => Long.MinValue }
       if (loopStop > pos) {
-        val sched   = transport.scheduler
-        val time    = sched.time + (loopStop - pos)
-        val token   = sched.schedule(time) { implicit tx => loopEndReached() }
+        val sch     = transport.universe.scheduler
+        val time    = sch.time + (loopStop - pos)
+        val token   = sch.schedule(time) { implicit tx => loopEndReached() }
         val old     = loopToken.swap(token)(tx.peer)
-        sched.cancel(old)
+        sch.cancel(old)
       }
     }
 

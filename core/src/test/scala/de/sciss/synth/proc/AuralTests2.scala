@@ -8,7 +8,6 @@ import de.sciss.lucre.synth.Sys
 import de.sciss.span.Span
 import de.sciss.synth
 import de.sciss.synth.io.AudioFile
-import de.sciss.synth.proc.Action.Universe
 import de.sciss.synth.proc.Implicits._
 
 object AuralTests2 extends AuralTestLike.Factory {
@@ -215,10 +214,10 @@ class AuralTests2[S <: Sys[S]](name: String)(implicit cursor: stm.Cursor[S]) ext
       val loc   = ArtifactLocation.newConst[S](f.parent)
       val art   = Artifact[S](loc, f)
 
-      val t2 = Transport[S]
+      val t2 = Transport[S](context)
 
-      val body  = new Action.Body {
-        def apply[T <: stm.Sys[T]](universe: Universe[T])(implicit tx: T#Tx): Unit = {
+      val body: Action.Body = new Action.Body {
+        def apply[T <: stm.Sys[T]](universe: Action.Universe[T])(implicit tx: T#Tx): Unit = {
           val spec = AudioFile.readSpec(f)
           println(spec)
           val _proc2 = Proc[T]
@@ -293,7 +292,7 @@ class AuralTests2[S <: Sys[S]](name: String)(implicit cursor: stm.Cursor[S]) ext
       //      tl.add(Span.from(frame(2.0)), pGen)
       //      tl.add(Span.from(frame(2.0)), pDif)
 
-      val t = Transport[S]
+      val t = Transport[S](context)
       t.addObject(tl)
       t.play()
 

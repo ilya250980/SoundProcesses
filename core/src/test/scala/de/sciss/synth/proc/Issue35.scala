@@ -21,16 +21,16 @@ object Issue35 {
   implicit val ws: WorkspaceHandle[S] = WorkspaceHandle.Implicits.dummy
 
   SoundProcesses.init()
-  val aural = AuralSystem()
+  val universe: Universe[S] = cursor.step { implicit tx => Universe.dummy }
 
   cursor.step { implicit tx =>
-    aural.whenStarted { _ =>
+    universe.auralSystem.whenStarted { _ =>
       cursor.step { implicit tx =>
-        val t = Transport[S](aural)
+        val t = Transport[S](universe)
         run(t)
       }
     }
-    aural.start()
+    universe.auralSystem.start()
   }
 
   def main(args: Array[String]): Unit = ()

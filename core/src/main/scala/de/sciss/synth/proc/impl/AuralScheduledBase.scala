@@ -179,7 +179,8 @@ trait AuralScheduledBase[S <: Sys[S], Target, Elem <: ViewBase[S, Target]]
     def external: Runner.State = Running
   }
 
-  import context.{scheduler => sched}
+//  import context.{scheduler => sched}
+  import context.universe.{scheduler => sched}
 
   private[this] val internalRef       = Ref[InternalState](IStopped)
   private[this] val prepareSpanRef    = Ref(Span(0L, 0L))

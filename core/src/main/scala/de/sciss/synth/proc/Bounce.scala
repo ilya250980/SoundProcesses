@@ -16,7 +16,7 @@ package de.sciss.synth.proc
 import java.io.File
 
 import de.sciss.lucre.stm
-import de.sciss.lucre.stm.{Obj, WorkspaceHandle}
+import de.sciss.lucre.stm.Obj
 import de.sciss.lucre.synth.{Server, Sys}
 import de.sciss.processor.ProcessorFactory
 import de.sciss.span.Span
@@ -26,9 +26,8 @@ import scala.collection.immutable.{Iterable => IIterable}
 import scala.language.implicitConversions
 
 object Bounce {
-  def apply[S <: Sys[S], I <: stm.Sys[I]](implicit cursor: stm.Cursor[S],
-                                          workspace: WorkspaceHandle[S]): Bounce[S] =
-    new Impl[S, I]
+  def apply[S <: Sys[S], I <: stm.Sys[I]]()(implicit universe: Universe[S]): Bounce[S] =
+    new Impl[S, I](universe)
 
   private type GroupH[S <: Sys[S]] = IIterable[stm.Source[S#Tx, Obj[S]]]
 

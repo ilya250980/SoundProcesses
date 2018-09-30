@@ -11,7 +11,8 @@ test-only de.sciss.synth.proc.AuralSpecs
 
  */
 class AuralSpecs extends BounceSpec {
-  "A proc with a sine oscillator" works { implicit cursor =>
+  "A proc with a sine oscillator" works { implicit universe =>
+    import universe.cursor
     val freq = 441
 
     val pH = cursor.step { implicit tx =>
@@ -25,13 +26,20 @@ class AuralSpecs extends BounceSpec {
     val c = config(pH, Span(0, 1.0.seconds))
     import ExecutionContext.Implicits.global
     val r = bounce(c)
+
+//    r.onComplete {
+//      res => println(s"RES $res")
+//    } (global)
+
     r.map { case Array(arr) =>
       val man = mkSine(freq, startFrame = 1, len = 1.0.secondsFileI)
       assertSameSignal(arr, man)
     } (global)
   }
 
-  "Two connected procs (generator -> filter)" works { implicit cursor =>
+  "Two connected procs (generator -> filter)" works { implicit universe =>
+    import universe.cursor
+
     val freq  = 441
     val amp   = 0.5
 

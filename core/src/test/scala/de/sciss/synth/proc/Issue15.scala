@@ -5,6 +5,7 @@ package proc
 import de.sciss.lucre.expr.{BooleanObj, SpanLikeObj}
 import de.sciss.lucre.stm.{Disposable, Folder, Identifier}
 import de.sciss.lucre.{event => evt}
+import de.sciss.serial.Serializer
 import de.sciss.span.Span
 
 /*
@@ -22,7 +23,7 @@ class Issue15 extends ConfluentEventSpec {
     if (DEBUG) de.sciss.lucre.event.showLog = true
 
     // ---- we create the "workspace" ----
-    val (fH, pObjH, tlH, timedIdH, spanH) = system.step { implicit tx =>
+    val (fH, pObjH, tlH, _ /* timedIdH */ , _ /* spanH */) = system.step { implicit tx =>
       val p         = Proc[S]
       val pObj      = p // Obj(Proc.Elem(p))
       // pObj.attr // initialize for debugger
@@ -38,7 +39,7 @@ class Issue15 extends ConfluentEventSpec {
       val f         = Folder[S]
       val tlObj     = tl // Obj(Timeline.Elem(tl))
       f.addLast(tlObj)
-      implicit val fSer = Folder.serializer[S]
+      implicit val fSer: Serializer[S#Tx, S#Acc, Folder[S]] = Folder.serializer[S]
       val _fH       = tx.newHandle(f)
       (_fH, _pObjH, _tlH, _timedIdH, _spanH)
     }
@@ -57,7 +58,7 @@ class Issue15 extends ConfluentEventSpec {
     // ---- we "open the folder" view; this is crucial for the bug to appear ----
     system.step { implicit tx =>
       val f = fH()
-      f.changed.react { implicit tx => upd =>
+      f.changed.react { _ => _ =>
         // nada
       }
     }

@@ -21,8 +21,8 @@ import de.sciss.synth.proc.impl.{TimelineImpl => Impl}
 object Timeline extends Obj.Type {
   final val typeId = 0x10006
 
-  type Update[S <: Sys[S]]  = BiGroup.Update[S, Obj[S]]
-  val  Update               = BiGroup.Update
+  type Update[S <: Sys[S]]          = BiGroup.Update[S, Obj[S]]
+  val  Update: BiGroup.Update.type  = BiGroup.Update
 
   def apply[S <: Sys[S]](implicit tx: S#Tx): Modifiable[S] = Impl[S]
 
@@ -42,13 +42,18 @@ object Timeline extends Obj.Type {
     serializer[S].read(in, access)
 
   // ---- events ----
-  val Added     = BiGroup.Added
-  val Removed   = BiGroup.Removed
-  val Moved     = BiGroup.Moved
-  // val Element   = BiGroup.ElementMutated
+  type Added   [S <: Sys[S]] = BiGroup.Added  [S, Obj[S]]
+  type Removed [S <: Sys[S]] = BiGroup.Removed[S, Obj[S]]
+  type Moved   [S <: Sys[S]] = BiGroup.Moved  [S, Obj[S]]
+
+  val Added  : BiGroup.Added  .type = BiGroup.Added
+  val Removed: BiGroup.Removed.type = BiGroup.Removed
+  val Moved  : BiGroup.Moved  .type = BiGroup.Moved
 
   type Timed[S <: Sys[S]] = BiGroup.Entry[S, Obj[S]]
   type Leaf [S <: Sys[S]] = BiGroup.Leaf[S, Obj[S]]
+
+  val Timed : BiGroup.Entry.type = BiGroup.Entry
 
   override def readIdentifiedObj[S <: Sys[S]](in: DataInput, access: S#Acc)(implicit tx: S#Tx): Obj[S] =
     Impl.readIdentifiedObj(in, access)

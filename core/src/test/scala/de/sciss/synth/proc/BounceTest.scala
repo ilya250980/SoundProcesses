@@ -24,10 +24,12 @@ object BounceTest {
       SoundProcesses.init()
       import c._
       if (inMemory) {
-        implicit val system = InMemory()
+        type S = InMemory
+        implicit val system: S = InMemory()
         new BounceTest(system, realtime = realtime)
       } else {
-        implicit val system = Durable(BerkeleyDB.tmp())
+        type S = Durable
+        implicit val system: S = Durable(BerkeleyDB.tmp())
         new BounceTest(system, realtime = realtime)
       }
     }
@@ -69,10 +71,9 @@ class BounceTest[S <: Sys[S]](val system: S, realtime: Boolean)(implicit cursor:
 
   // type I = InMemory
 
-  import de.sciss.lucre.stm.WorkspaceHandle.Implicits._
+  implicit val bridge: S#Tx => system.I#Tx = system.inMemoryTx _
 
-  implicit val bridge = system.inMemoryTx _
-
+  implicit val u: Universe[S] = cursor.step { implicit tx => Universe.dummy }
   val bounce              = Bounce[S, system.I]
   val bCfg                = Bounce.Config[S]
   bCfg.group              = groupH :: Nil

@@ -33,7 +33,7 @@ object AuralGraphemeAttribute extends Factory {
   def apply[S <: Sys[S]](key: String, grapheme: Grapheme[S], observer: Observer[S])
                         (implicit tx: S#Tx, context: AuralContext[S]): AuralAttribute[S] = {
     val system  = tx.system
-    val res     = prepare[S, system.I](key, grapheme, observer, system)
+    val res     = prepare[S, system.I](key, grapheme, observer, system) // IntelliJ highlight error
     res.init(grapheme)
   }
 

@@ -55,11 +55,11 @@ object Server {
     def bundles(addDefaultGroup: Boolean = true): Vec[osc.Bundle]
   }
 
-  val  Config         = SServer.Config
-  type Config         = SServer.Config
-  val  ConfigBuilder  = SServer.ConfigBuilder
-  type ConfigBuilder  = SServer.ConfigBuilder
-  type ConfigLike     = SServer.ConfigLike
+  val  Config       : SServer.Config.type         = SServer.Config
+  type Config                                     = SServer.Config
+  val  ConfigBuilder: SServer.ConfigBuilder.type  = SServer.ConfigBuilder
+  type ConfigBuilder                              = SServer.ConfigBuilder
+  type ConfigLike                                 = SServer.ConfigLike
 }
 
 trait Server {

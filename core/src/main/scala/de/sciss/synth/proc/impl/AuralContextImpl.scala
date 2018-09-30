@@ -14,17 +14,17 @@
 package de.sciss.synth.proc
 package impl
 
-import de.sciss.lucre.stm.{IdentifierMap, WorkspaceHandle}
+import de.sciss.lucre.stm.IdentifierMap
 import de.sciss.lucre.synth.{Server, Sys}
 
 object AuralContextImpl {
-  def apply[S <: Sys[S]](server: Server, scheduler: Scheduler[S])
-                        (implicit tx: S#Tx, workspace: WorkspaceHandle[S]): AuralContext[S] = {
+  def apply[S <: Sys[S]](server: Server)
+                        (implicit tx: S#Tx, universe: Universe[S]): AuralContext[S] = {
     val objMap  = tx.newInMemoryIdMap[ContextEntry[S]]
     val auxMap  = tx.newInMemoryIdMap[Any]
-    import scheduler.cursor
-    val gen     = GenContext[S]
-    val res     = new Impl[S](objMap, auxMap, scheduler, server, gen, tx)
+//    import scheduler.cursor
+//    val gen     = GenContext[S]
+    val res     = new Impl[S](objMap, auxMap, server, tx)
     logAural(s"create context ${res.hashCode().toHexString}")
     // (new Throwable).printStackTrace()
     res
@@ -32,12 +32,14 @@ object AuralContextImpl {
 
   private final class Impl[S <: Sys[S]](protected val objMap: IdentifierMap[S#Id, S#Tx, ContextEntry[S]],
                                         protected val auxMap: IdentifierMap[S#Id, S#Tx, Any],
-                                        val scheduler       : Scheduler[S],
                                         val server          : Server,
-                                        val gen             : GenContext[S],
                                         tx0: S#Tx)
-                                       (implicit val workspace: WorkspaceHandle[S])
+                                       (implicit val universe: Universe[S])
     extends ContextImpl[S] with AuralContext[S] with AuxContextImpl[S] {
+
+//    implicit val scheduler  : Scheduler       [S] = handler.scheduler
+//    implicit def workspace  : WorkspaceHandle [S] = handler.workspace
+//    implicit def genContext : GenContext      [S] = handler.genContext
 
     protected val auxObservers: IdentifierMap[S#Id, S#Tx, List[AuxObserver]] = tx0.newInMemoryIdMap
   }

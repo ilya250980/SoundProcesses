@@ -17,7 +17,7 @@ package impl
 import de.sciss.lucre.event.impl.ObservableImpl
 import de.sciss.lucre.stm
 import de.sciss.lucre.stm.TxnLike.peer
-import de.sciss.lucre.stm.{Cursor, Obj, WorkspaceHandle}
+import de.sciss.lucre.stm.{Cursor, Disposable, Obj, WorkspaceHandle}
 import de.sciss.lucre.synth.Sys
 import de.sciss.synth.proc.Runner.{Factory, Handler}
 
@@ -58,6 +58,7 @@ object RunnerHandlerImpl {
       val aural     = AuralSystem(global = true)
       val res0      = new Impl[S](gen, scheduler, aural, stored = true)
       handlerMap.put(workspace, res0)
+      workspace.addDependent(res0.dependent)
       res0
     }
     val resC = res.asInstanceOf[Impl[S]]
@@ -81,18 +82,30 @@ object RunnerHandlerImpl {
     private[this] val runnersRef  = Ref(Vec.empty[Runner[S]])
     private[this] val useCount    = Ref(0)
 
-    def mkTransport()(implicit tx: S#Tx): Transport[S] = Transport(auralSystem, scheduler)
+    def mkChild(newAuralSystem: AuralSystem, newScheduler: Scheduler[S]): Universe[S] = {
+      new Impl[S](genContext = genContext, scheduler = newScheduler, auralSystem = newAuralSystem, stored = stored)
+    }
+
+    def mkTransport()(implicit tx: S#Tx): Transport[S] = Transport(this)
 
     def runners(implicit tx: S#Tx): Iterator[Runner[S]] = runnersRef().iterator
+
+    object dependent extends Disposable[S#Tx] {
+      def dispose()(implicit tx: S#Tx): Unit = {
+        handlerMap.remove(workspace)
+        workspace.removeDependent(dependent)
+        val r = runnersRef.swap(Vector.empty)
+        r.foreach(_.dispose())
+      }
+    }
 
     def use()(implicit tx: S#Tx): Unit =
       useCount += 1
 
-    def dispose()(implicit tx: S#Tx): Unit = {
-      // XXX TODO --- should we dispose all runners?
-      if (stored && useCount.transformAndGet(_ - 1) == 0)
-        handlerMap.remove(workspace)
-    }
+    def dispose()(implicit tx: S#Tx): Unit =
+      if (stored && useCount.transformAndGet(_ - 1) == 0) {
+        dependent.dispose()
+      }
 
     private[proc] def removeRunner(r: Runner[S])(implicit tx: S#Tx): Unit = {
       val found = runnersRef.transformAndExtract { vec0 =>

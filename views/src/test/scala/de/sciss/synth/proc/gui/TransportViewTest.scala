@@ -1,11 +1,11 @@
-package de.sciss.synth.proc.gui
+package de.sciss.synth.proc
+package gui
 
 import de.sciss.audiowidgets.TimelineModel
 import de.sciss.lucre.stm.WorkspaceHandle
 import de.sciss.lucre.synth.InMemory
 import de.sciss.span.Span
 import de.sciss.submin.Submin
-import de.sciss.synth.proc.{AuralSystem, TimeRef, Transport}
 
 import scala.swing.{MainFrame, Swing}
 
@@ -17,15 +17,16 @@ object TransportViewTest {
 
     implicit val system: S = InMemory()
     implicit val ws: WorkspaceHandle[S] = WorkspaceHandle.Implicits.dummy
+    implicit val universe: Universe[S] = ??? // UUU
 
     val aural = AuralSystem()
     val sr    = TimeRef.SampleRate
     val span  = Span(0L, (sr * 60 * 10).toLong)
-    val model = TimelineModel(span, span, sr)
+    val model = TimelineModel(span, span, span, sr)
     model.selection = Span(0L, span.length >> 1)
 
     val view = system.step { implicit tx =>
-      val transport = Transport[S](aural)
+      val transport = Transport[S](universe)
       TransportView[S](transport, model)
     }
 

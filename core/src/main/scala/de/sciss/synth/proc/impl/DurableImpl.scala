@@ -29,7 +29,7 @@ private[proc] object DurableImpl {
 
   def apply(mainStore: DataStore): Durable = new System(mainStore)
 
-  private final class TxnImpl(val system: System, val systemTimeNanos: Long, val peer: InTxn)
+  private final class TxnImpl(val system: System, val systemTimeNanoSec: Long, val peer: InTxn)
     extends stm.impl.DurableImpl.TxnMixin[Durable]
     with TxnFullImpl[Durable] with Durable.Txn {
 

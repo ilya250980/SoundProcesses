@@ -13,21 +13,19 @@
 
 package de.sciss.synth.proc
 
-import de.sciss.lucre.stm
-import de.sciss.lucre.stm.{Disposable, Obj, Sys, WorkspaceHandle}
+import de.sciss.lucre.stm.{Disposable, Obj, Sys}
 import de.sciss.lucre.synth.{Server, Sys => SSys}
 import de.sciss.synth.proc.impl.{AuralContextImpl => Impl}
 
 object AuralContext {
-  def apply[S <: SSys[S]](server: Server, scheduler: Scheduler[S])
-                        (implicit tx: S#Tx, workspace: WorkspaceHandle[S]): AuralContext[S] =
-    Impl(server, scheduler)
+  def apply[S <: SSys[S]](server: Server)(implicit tx: S#Tx, universe: Universe[S]): AuralContext[S] =
+    Impl(server)
 
-  def apply[S <: SSys[S]](server: Server)(implicit tx: S#Tx, cursor: stm.Cursor[S],
-                                          workspace: WorkspaceHandle[S]): AuralContext[S] = {
-    val scheduler = Scheduler[S]
-    apply(server, scheduler)
-  }
+//  def apply[S <: SSys[S]](server: Server)(implicit tx: S#Tx, cursor: stm.Cursor[S],
+//                                          workspace: WorkspaceHandle[S]): AuralContext[S] = {
+//    val scheduler = Scheduler[S]
+//    apply(server, scheduler)
+//  }
 }
 trait AuralContext[S <: Sys[S]] extends AuxContext[S] {
   def server: Server
@@ -38,9 +36,5 @@ trait AuralContext[S <: Sys[S]] extends AuxContext[S] {
 
   def get[A](obj: Obj[S])(implicit tx: S#Tx): Option[A]
 
-  val scheduler: Scheduler[S]
-
-  implicit def workspace: WorkspaceHandle[S]
-
-  implicit def gen: GenContext[S]
+  implicit val universe: Universe[S]
 }

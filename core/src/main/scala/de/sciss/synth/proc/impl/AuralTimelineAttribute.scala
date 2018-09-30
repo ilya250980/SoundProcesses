@@ -39,7 +39,7 @@ object AuralTimelineAttribute extends Factory {
   def apply[S <: Sys[S]](key: String, timeline: Timeline[S], observer: Observer[S])
                         (implicit tx: S#Tx, context: AuralContext[S]): AuralAttribute[S] = {
     val system  = tx.system
-    val res     = prepare[S, system.I](key, timeline, observer, system)
+    val res     = prepare[S, system.I](key, timeline, observer, system) // IntelliJ highlight bug
     res.init(timeline)
   }
 

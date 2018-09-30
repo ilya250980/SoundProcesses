@@ -70,7 +70,7 @@ trait AuralFolderLikeImpl[S <: Sys[S], Repr <: Obj[S], View <: AuralObj.FolderLi
 
   final def stop()(implicit tx: S#Tx): Unit = {
     transport.stop()
-    state = Runner.Stopped
+    state_=(Runner.Stopped)
   }
 
   final def state(implicit tx: S#Tx): Runner.State = currentStateRef.get(tx.peer)

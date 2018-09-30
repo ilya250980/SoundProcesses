@@ -61,8 +61,9 @@ object AuralProcImpl {
     with ObservableImpl[S, Runner.State] { impl =>
 
     import TxnLike.peer
-    import context.{scheduler => sched}
-    import sched.cursor
+//    import context.{scheduler => sched}
+//    import context.scheduler.cursor
+    import context.universe.{cursor, scheduler => sched}
 
     private[this] val buildStateRef = Ref.make[UGB.State[S]]()
 
@@ -417,7 +418,8 @@ object AuralProcImpl {
 
     final protected def mkGenView(a: Gen[S], key: String)(implicit tx: S#Tx): GenView[S] =
       genViewMap.get(key).getOrElse {
-        import context.gen
+//        import context.genContext
+        import context.universe.genContext
         val view  = GenView(a)
         val obs   = view.react { implicit tx => state => if (state.isComplete) genComplete(key) }
         val res   = new ObservedGenView(view, obs)
@@ -604,7 +606,7 @@ object AuralProcImpl {
         } else {
           val __buf = Buffer(server)(numFrames = bufSize, numChannels = spec.numChannels)
           val trig = new StreamBuffer(key = key, idx = idx, synth = nr.node, buf = __buf, path = path,
-            fileFrames = spec.numFrames, interp = info.interp, startFrame = offsetT, loop = false,
+            fileFrames = spec.numFrames, interpolation = info.interp, startFrame = offsetT, loop = false,
             resetFrame = offsetT)
           nr.addUser(trig)
           __buf
@@ -807,9 +809,10 @@ object AuralProcImpl {
             rb.dispose()
             val invoker = procCached()
             invoker.attr.$[Action](actionKey).foreach { action =>
-              val universe = Action.Universe(action, context.workspace,
-                invoker = Some(invoker) /* , values = values */)
-              action.execute(universe)
+//              import context.genContext
+              import context.universe
+              val au = Action.Universe[S](action, invoker = Some(invoker) /* , values = values */)
+              action.execute(au)
             }
           }
         } (SoundProcesses.executionContext)

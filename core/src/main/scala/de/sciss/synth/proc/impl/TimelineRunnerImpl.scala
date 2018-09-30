@@ -28,7 +28,7 @@ object TimelineRunnerImpl {
   def apply[S <: Sys[S]](obj: Timeline[S], h: Handler[S])(implicit tx: S#Tx): Runner[S] = {
     // the transport is simply to get the work done of dynamically creating
     // an aural-obj... a bit of a resource waste?
-    val t = h.mkTransport()
+    val t = Transport[S](h)
     t.addObject(obj)
     new Impl(tx.newHandle(obj), t, h).init(obj)
   }
@@ -114,7 +114,7 @@ object TimelineRunnerImpl {
           val now = timeRef.force.span.start
           val dt  = timeStop - now
           if (dt > 0) {
-            val sch   = t.scheduler
+            val sch   = t.universe.scheduler
             val timeS = sch.time
             val token = sch.schedule(timeS + dt) { implicit tx =>
               val tl    = objH()
@@ -133,7 +133,7 @@ object TimelineRunnerImpl {
 
     private def cancelSch()(implicit tx: S#Tx): Unit = {
       val token = schToken.swap(-1)
-      if (token >= 0) t.scheduler.cancel(token)
+      if (token >= 0) t.universe.scheduler.cancel(token)
     }
 
     def stop()(implicit tx: S#Tx): Unit = {
@@ -147,7 +147,5 @@ object TimelineRunnerImpl {
       auralObs.swap(Disposable.empty).dispose()
       t.dispose()
     }
-
-    def messages(implicit tx: S#Tx): Any = ???
   }
 }

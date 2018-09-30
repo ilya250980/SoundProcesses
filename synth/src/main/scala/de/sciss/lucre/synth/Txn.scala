@@ -49,7 +49,7 @@ object Txn {
   */
 trait Txn extends TxnLike {
   /** Or zero if not scheduled. */
-  def systemTimeNanos: Long
+  def systemTimeNanoSec: Long
 
   def addMessage(resource: Resource, m: osc.Message with message.Send, dependencies: Seq[Resource] = Nil): Unit
 }

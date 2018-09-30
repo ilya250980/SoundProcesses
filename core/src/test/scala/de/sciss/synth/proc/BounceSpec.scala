@@ -3,8 +3,8 @@ package de.sciss.synth.proc
 import de.sciss.file._
 import de.sciss.lucre.expr.DoubleObj
 import de.sciss.lucre.stm
-import de.sciss.lucre.stm.{Folder, Obj}
 import de.sciss.lucre.stm.store.BerkeleyDB
+import de.sciss.lucre.stm.{Disposable, Folder, Obj}
 import de.sciss.lucre.synth.InMemory
 import de.sciss.numbers
 import de.sciss.span.Span
@@ -14,9 +14,9 @@ import org.scalactic.source
 import org.scalatest.{Assertion, FutureOutcome, Matchers, compatible, fixture}
 
 import scala.collection.immutable.{Iterable => IIterable}
-import scala.concurrent.{ExecutionContext, Future}
 import scala.concurrent.duration._
 import scala.concurrent.stm.Txn
+import scala.concurrent.{ExecutionContext, Future}
 import scala.language.implicitConversions
 import scala.util.Try
 
@@ -30,7 +30,7 @@ abstract class BounceSpec extends fixture.AsyncFlatSpec with Matchers {
 
   type S            = Durable
   type I            = InMemory
-  type FixtureParam = Durable
+  type FixtureParam = Universe[Durable]
 
   SoundProcesses.init()
 
@@ -38,10 +38,15 @@ abstract class BounceSpec extends fixture.AsyncFlatSpec with Matchers {
     import sys.process._
     val scOk = Try(Seq("scsynth", "-v").!!).getOrElse("").startsWith("scsynth ")
     if (scOk) {
-      val system = Durable(BerkeleyDB.tmp())
+      implicit val system: S = Durable(BerkeleyDB.tmp())
+      val u: Universe[S] with Disposable[S#Tx] = system.step { implicit tx => Universe.dummy[S] }
       complete {
-        test(system)
+        test(u)
       } .lastly {
+//        println("CLOSE")
+        system.step { implicit tx =>
+          u.dispose() // dispose the universe, because the Runner.Handler will otherwise be cached!
+        }
         system.close()
       }
     } else {
@@ -210,10 +215,9 @@ abstract class BounceSpec extends fixture.AsyncFlatSpec with Matchers {
     config.actions = config.actions ++ (Scheduler.Entry[S](time = frame, fun = fun) :: Nil)
 
   final def bounce(config: Bounce.Config[S], timeOut: Duration = 20.seconds)
-                  (implicit cursor: stm.Cursor[S]): Future[Array[Array[Float]]] = {
+                  (implicit universe: Universe[S]): Future[Array[Array[Float]]] = {
     requireOutsideTxn()
-    import de.sciss.lucre.stm.WorkspaceHandle.Implicits.dummy
-    val b = Bounce[S, I]
+    val b = Bounce[S, I]()
     val p = b(config)
     // Important: don't use the single threaded SP context,
     // as bounce will block and hang

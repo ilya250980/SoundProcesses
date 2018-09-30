@@ -45,20 +45,7 @@ object Runner {
                           (implicit tx: S#Tx, cursor: Cursor[S], workspace: WorkspaceHandle[S]): Handler[S] =
       Impl(genContext, scheduler, auralSystem)
   }
-  trait Handler[S <: stm.Sys[S]] extends Observable[S#Tx, Handler.Update[S]] with Disposable[S#Tx] {
-    implicit def workspace  : WorkspaceHandle [S]
-    implicit def cursor     : Cursor          [S]
-    implicit def genContext : GenContext      [S]
-    implicit def scheduler  : Scheduler       [S]
-
-    def mkTransport()(implicit tx: S#Tx): Transport[S]
-
-    def auralSystem: AuralSystem
-
-    def mkRunner(obj: Obj[S])(implicit tx: S#Tx): Option[Runner[S]]
-
-    def runners(implicit tx: S#Tx): Iterator[Runner[S]]
-
+  trait Handler[S <: stm.Sys[S]] extends Universe[S] with Observable[S#Tx, Handler.Update[S]] with Disposable[S#Tx] {
     private[proc] def removeRunner(r: Runner[S])(implicit tx: S#Tx): Unit
   }
   

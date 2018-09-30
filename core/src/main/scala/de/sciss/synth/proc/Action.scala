@@ -13,9 +13,11 @@
 
 package de.sciss.synth.proc
 
-import de.sciss.lucre.stm.{Cursor, Folder, Obj, Sys, TxnLike, WorkspaceHandle}
+import de.sciss.lucre.stm.{Folder, Obj, Sys, TxnLike}
 import de.sciss.lucre.{stm, event => evt}
+import de.sciss.lucre.synth.{Sys => SSys}
 import de.sciss.serial.{DataInput, Serializer}
+import de.sciss.synth.proc
 import de.sciss.synth.proc.impl.{ActionImpl => Impl}
 
 import scala.collection.immutable.{IndexedSeq => Vec}
@@ -71,23 +73,15 @@ object Action extends Obj.Type {
   final case class FloatVector (xs: Vec[Float ])
 
   object Universe {
-    def apply[S <: Sys[S]](self: Action[S], workspace: WorkspaceHandle[S], invoker: Option[Obj[S]] = None,
-                           value: Any = ())(implicit cursor: Cursor[S]): Universe[S] =
-      new Impl.UniverseImpl(self, workspace, invoker, value)
+    def apply[S <: SSys[S]](self: Action[S], invoker: Option[Obj[S]] = None, value: Any = ())
+                           (implicit peer: proc.Universe[S]): Universe[S] =
+      new Impl.UniverseImpl(self, invoker, value)
   }
-  trait Universe[S <: Sys[S]] {
+  trait Universe[S <: Sys[S]] extends proc.Universe[S] {
     /** The action object itself, most prominently giving access to
       * linked objects via its attributes.
       */
     def self: Action[S]
-
-    /** Root folder of the workspace containing the action. */
-    def root(implicit tx: S#Tx): Folder[S]
-
-//    /** A collection of sampled values if the action was invoked through
-//      * `graph.Reaction` (otherwise empty).
-//      */
-//    def values: Vec[Double]
 
     /** A result object from the invoker. To permit different kind of invocations,
       * this value is untyped. Conventionally, `Action.DoubleVector` and `Action.FloatVector`
@@ -101,9 +95,9 @@ object Action extends Obj.Type {
       */
     def invoker: Option[Obj[S]]
 
-    implicit def cursor: stm.Cursor[S]
+    def root(implicit tx: S#Tx): Folder[S] = workspace.root
 
-    implicit def workspace: WorkspaceHandle[S]
+    def log(what: => String)(implicit tx: S#Tx): Unit
   }
 
   def readIdentifiedObj[S <: Sys[S]](in: DataInput, access: S#Acc)(implicit tx: S#Tx): Obj[S] =

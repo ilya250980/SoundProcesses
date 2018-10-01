@@ -18,13 +18,13 @@ import java.io.File
 import de.sciss.lucre
 import de.sciss.lucre.bitemp.BiGroup
 import de.sciss.lucre.stm
-import de.sciss.lucre.stm.{DataStore, Disposable, Folder, Obj, Sys, WorkspaceHandle}
+import de.sciss.lucre.stm.{DataStore, Sys}
 import de.sciss.lucre.synth.{Sys => SSys}
 import de.sciss.serial.Serializer
 import de.sciss.synth.proc
 import de.sciss.synth.proc.impl.{WorkspaceImpl => Impl}
 
-import scala.collection.immutable.{IndexedSeq => Vec}
+import scala.language.existentials
 
 object Workspace {
   /** File name extension (excluding leading period) */
@@ -38,7 +38,8 @@ object Workspace {
 
   type Transports  [S <: SSys[S]] = stm.List.Modifiable[S, Transport[S] /* , Unit */] // Transport.Update[ S, Proc[ S ]]]
 
-  def read (dir: File, ds: DataStore.Factory /* config: BerkeleyDB.Config */): WorkspaceLike = Impl.read(dir, ds)
+  def read (dir: File, ds: DataStore.Factory /* config: BerkeleyDB.Config */): Workspace[~] forSome { type ~ <: SSys[~] } =
+    Impl.read(dir, ds)
 
   object Confluent {
     def read (dir: File, ds: DataStore.Factory /* config: BerkeleyDB.Config */): Confluent = Impl.readConfluent (dir, ds)
@@ -74,30 +75,39 @@ object Workspace {
     implicit def group[S <: Sys[S]]: Serializer[S#Tx, S#Acc, Group[S]] =
       BiGroup.Modifiable.serializer[S, Proc[S] /* , Proc.Update[S] */ ] // (_.changed)
   }
-}
-sealed trait WorkspaceLike {
-  def folder: Option[File]
-  def name: String
 
-  /** Issues a transaction that closes and disposes the workspace. */
-  def close(): Unit
-}
-sealed trait Workspace[S <: Sys[S]] extends WorkspaceLike with WorkspaceHandle[S] with Disposable[S#Tx] {
-//  import de.sciss.mellite.Workspace.{Group => _}
+  val Implicits: stm.Workspace.Implicits.type = stm.Workspace.Implicits
 
-  // type System = S
-
-  implicit def system: S
-
-  def cursor: stm.Cursor[S]
-  
-  type I <: SSys[I]
-  implicit def inMemoryBridge: S#Tx => I#Tx
-  implicit def inMemoryCursor: stm.Cursor[I]
-
-  def rootH: stm.Source[S#Tx, Folder[S]]
-
-  def collectObjects[A](pf: PartialFunction[Obj[S], A])(implicit tx: S#Tx): Vec[A]
-
-  // implicit def systemType: reflect.runtime.universe.TypeTag[S]
+//  object Implicits {
+//    implicit def dummy[S <: SSys[S]](implicit tx: S#Tx, cursor: stm.Cursor[S]): Workspace[S] =
+//      new DummyImpl[S](tx.system, cursor) // dummyVal.asInstanceOf[DummyImpl[S]]
+//
+////    private val dummyVal = new DummyImpl[NoSys]
+//
+//    private final class DummyImpl[S <: SSys[S]](val system: S, val cursor: stm.Cursor[S])
+//      extends Workspace[S] {
+//
+//      type I = system.I
+//      val inMemoryBridge: S#Tx => I#Tx  = system.inMemoryTx // _.inMemory
+//      def inMemoryCursor: stm.Cursor[I] = system.inMemory
+//
+//      def addDependent   (dep: Disposable[S#Tx])(implicit tx: TxnLike): Unit = ()
+//      def removeDependent(dep: Disposable[S#Tx])(implicit tx: TxnLike): Unit = ()
+//
+//      def dependents(implicit tx: TxnLike): Iterable[Disposable[S#Tx]] = Nil
+//
+//      def name: String = "dummy"
+//
+//      def root(implicit tx: S#Tx): Folder[S] =
+//        throw new UnsupportedOperationException("No root folder on a dummy workspace handle")
+//
+//      def folder: Option[File] = None
+//
+//      def close(): Unit = ()
+//
+//      def dispose()(implicit tx: S#Tx): Unit = ()
+//
+////      def collectObjects[A](pf: PartialFunction[Obj[S], A])(implicit tx: S#Tx): Vec[A] = Vector.empty
+//    }
+//  }
 }

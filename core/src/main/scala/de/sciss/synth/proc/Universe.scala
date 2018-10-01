@@ -14,25 +14,24 @@
 package de.sciss.synth.proc
 
 import de.sciss.lucre.stm
-import de.sciss.lucre.stm.{Cursor, Obj, Sys, WorkspaceHandle}
+import de.sciss.lucre.stm.{Cursor, Obj, Sys}
 import de.sciss.lucre.synth.{Sys => SSys}
 import de.sciss.synth.proc.impl.RunnerUniverseImpl
 
 object Universe {
   def dummy[S <: SSys[S]](implicit tx: S#Tx, cursor: stm.Cursor[S]): Disposable[S] = {
-    implicit val workspace: WorkspaceHandle[S] = WorkspaceHandle.Implicits.dummy
+    implicit val system: S = tx.system
+    implicit val workspace: Workspace[S] = Workspace.Implicits.dummy
     apply[S]()
   }
   
   trait Disposable[S <: Sys[S]] extends Universe[S] with stm.Disposable[S#Tx]
 
-  def apply[S <: SSys[S]]()(implicit tx: S#Tx, cursor: Cursor[S],
-                            workspace: WorkspaceHandle[S]): Disposable[S] =
+  def apply[S <: SSys[S]]()(implicit tx: S#Tx, cursor: Cursor[S], workspace: Workspace[S]): Disposable[S] =
     RunnerUniverseImpl[S]()
 
   def apply[S <: SSys[S]](genContext: GenContext[S], scheduler: Scheduler[S], auralSystem: AuralSystem)
-                        (implicit tx: S#Tx, cursor: Cursor[S],
-                         workspace: WorkspaceHandle[S]): Disposable[S] =
+                        (implicit tx: S#Tx, cursor: Cursor[S], workspace: Workspace[S]): Disposable[S] =
     RunnerUniverseImpl[S](genContext, scheduler, auralSystem)
 }
 
@@ -42,10 +41,10 @@ trait Universe[S <: Sys[S]] {
 
 //  def handler: Runner.Handler[S]
 
-  implicit def workspace    : WorkspaceHandle [S]
-  implicit def cursor       : Cursor          [S]
-  implicit def genContext   : GenContext      [S]
-  implicit val scheduler    : Scheduler       [S]
+  implicit def workspace    : Workspace [S]
+  implicit def cursor       : Cursor    [S]
+  implicit def genContext   : GenContext[S]
+  implicit val scheduler    : Scheduler [S]
 
 //  def mkTransport()(implicit tx: S#Tx): Transport[S]
 

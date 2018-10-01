@@ -13,13 +13,12 @@
 
 package de.sciss.lucre.synth
 
-import de.sciss.lucre.stm.InMemoryLike
 import de.sciss.lucre.synth.impl.{InMemoryImpl => Impl}
 
 object InMemory {
   def apply(): InMemory = Impl()
 
-  trait Txn extends Sys.Txn[InMemory] with InMemoryLike.Txn[InMemory]
+  trait Txn extends InMemoryLike.Txn[InMemory]
 }
 
 trait InMemory extends InMemoryLike[InMemory] with Sys[InMemory] {

@@ -16,15 +16,15 @@ package impl
 
 import de.sciss.lucre.stm
 import de.sciss.lucre.stm.TxnLike.peer
-import de.sciss.lucre.stm.{IdentifierMap, Sys, WorkspaceHandle}
+import de.sciss.lucre.stm.{IdentifierMap, Sys, Workspace}
 
 import scala.concurrent.stm.TMap
 
 object GenContextImpl {
-  private[this] val map = TMap.empty[WorkspaceHandle[_], GenContext[_]]
+  private[this] val map = TMap.empty[Workspace[_], GenContext[_]]
 
   def apply[S <: Sys[S]]()(implicit tx: S#Tx, cursor: stm.Cursor[S],
-                         workspace: WorkspaceHandle[S]): GenContext[S] = {
+                         workspace: Workspace[S]): GenContext[S] = {
     val res = map.get(workspace).getOrElse {
       val objMap  = tx.newInMemoryIdMap[ContextEntry[S]]
       val res0    = new Impl[S](objMap)
@@ -35,7 +35,7 @@ object GenContextImpl {
   }
 
   private final class Impl[S <: Sys[S]](protected val objMap: IdentifierMap[S#Id, S#Tx, ContextEntry[S]])
-                                       (implicit val cursor: stm.Cursor[S], val workspace: WorkspaceHandle[S])
+                                       (implicit val cursor: stm.Cursor[S], val workspace: Workspace[S])
     extends ContextImpl[S] with GenContext[S] {
 
     def dispose()(implicit tx: S#Tx): Unit = map.remove(workspace)

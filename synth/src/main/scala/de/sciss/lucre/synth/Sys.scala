@@ -21,6 +21,7 @@ object Sys {
 
 trait Sys[S <: Sys[S]] extends stm.Sys[S] {
   type Tx <: Sys.Txn[S]
+  type I <: InMemoryLike[I]
 }
 
 trait NoSys extends Sys[NoSys]

@@ -18,13 +18,15 @@ import java.io.{File, FileInputStream, FileNotFoundException, FileOutputStream, 
 import java.util.Properties
 
 import de.sciss.file._
-import de.sciss.lucre.stm.{DataStore, Disposable, Folder, Obj, Sys, TxnLike}
-import de.sciss.lucre.synth.{InMemory => InMem}
+import de.sciss.lucre.stm.{DataStore, Disposable, Folder, Sys, TxnLike, Workspace}
+import de.sciss.lucre.synth.{InMemory => InMem, Sys => SSys}
 import de.sciss.lucre.{confluent, stm}
 import de.sciss.serial.{DataInput, DataOutput, Serializer}
+import de.sciss.synth.proc
 import de.sciss.synth.proc.SoundProcesses.atomic
 import de.sciss.synth.proc.{Confluent => Cf, Durable => Dur}
 
+import scala.language.existentials
 import scala.collection.immutable.{IndexedSeq => Vec}
 import scala.concurrent.stm.{Ref, Txn}
 import scala.util.Try
@@ -56,7 +58,7 @@ object WorkspaceImpl {
   private def requireExistsNot(dir: File): Unit =
     if ((dir / "open").exists()) throw new IOException(s"Workspace ${dir.path} already exists")
 
-  def read(dir: File, ds: DataStore.Factory /* config: BerkeleyDB.Config */): WorkspaceLike = {
+  def read(dir: File, ds: DataStore.Factory /* config: BerkeleyDB.Config */): Workspace[~] forSome { type ~ <: SSys[~] } = {
     requireExists(dir)
     val fis   = new FileInputStream(dir / "open")
     val prop  = new Properties
@@ -67,7 +69,15 @@ object WorkspaceImpl {
       case "ephemeral"  => false
       case other        => sys.error(s"Invalid property 'type': $other")
     }
-    val res = if (confluent) readConfluent(dir, ds) else readDurable(dir, ds)
+    val res: Workspace[~] forSome { type ~ <: SSys[~] } = {
+      if (confluent) {
+        val _res: Workspace[~] forSome { type ~ <: SSys[~] } = readConfluent(dir, ds)
+        _res
+      } else {
+        val _res: Workspace[~] forSome { type ~ <: SSys[~] } = readDurable(dir, ds)
+        _res
+      }
+    }
     res // .asInstanceOf[Workspace[~ forSome { type ~ <: SSys[~] }]]
   }
 
@@ -78,27 +88,27 @@ object WorkspaceImpl {
 //      b.build
 //    }
 
-  def readConfluent(dir: File, ds: DataStore.Factory /* config: BerkeleyDB.Config */): Workspace.Confluent = {
+  def readConfluent(dir: File, ds: DataStore.Factory /* config: BerkeleyDB.Config */): proc.Workspace.Confluent = {
     requireExists(dir)
     applyConfluent(dir, ds = ds /* config = setAllowCreate(config, value = false) */)
   }
 
-  def emptyConfluent(dir: File, ds: DataStore.Factory /* config: BerkeleyDB.Config */): Workspace.Confluent = {
+  def emptyConfluent(dir: File, ds: DataStore.Factory /* config: BerkeleyDB.Config */): proc.Workspace.Confluent = {
     requireExistsNot(dir)
     applyConfluent(dir, ds = ds /* config = setAllowCreate(config, value = true) */)
   }
 
-  def readDurable(dir: File, ds: DataStore.Factory /* config: BerkeleyDB.Config */): Workspace.Durable = {
+  def readDurable(dir: File, ds: DataStore.Factory /* config: BerkeleyDB.Config */): proc.Workspace.Durable = {
     requireExists(dir)
     applyDurable(dir, ds = ds /* config = setAllowCreate(config, value = false) */)
   }
 
-  def emptyDurable(dir: File, ds: DataStore.Factory /* config: BerkeleyDB.Config */): Workspace.Durable = {
+  def emptyDurable(dir: File, ds: DataStore.Factory /* config: BerkeleyDB.Config */): proc.Workspace.Durable = {
     requireExistsNot(dir)
     applyDurable(dir, ds = ds /* config = setAllowCreate(config, value = true) */)
   }
 
-  def applyInMemory(): Workspace.InMemory = {
+  def applyInMemory(): proc.Workspace.InMemory = {
     type S    = InMem
     implicit val system: S = InMem()
 
@@ -136,7 +146,7 @@ object WorkspaceImpl {
     ds
   }
 
-  private def applyConfluent(dir: File, ds: DataStore.Factory /* config: BerkeleyDB.Config */): Workspace.Confluent = {
+  private def applyConfluent(dir: File, ds: DataStore.Factory /* config: BerkeleyDB.Config */): proc.Workspace.Confluent = {
     type S    = Cf
     val fact  = openDataStore(dir, ds = ds /* config = config */, confluent = true)
     implicit val system: S = Confluent(fact)
@@ -156,7 +166,7 @@ object WorkspaceImpl {
     new ConfluentImpl(dir, system, access, cursors)
   }
 
-  private def applyDurable(dir: File, ds: DataStore.Factory /* config: BerkeleyDB.Config */): Workspace.Durable = {
+  private def applyDurable(dir: File, ds: DataStore.Factory /* config: BerkeleyDB.Config */): proc.Workspace.Durable = {
     type S    = Dur
     val fact  = openDataStore(dir, ds = ds /* config = config */, confluent = false)
     implicit val system: S = Dur(fact)
@@ -217,22 +227,22 @@ object WorkspaceImpl {
 
     final def dependents(implicit tx: TxnLike): Iterable[Disposable[S#Tx]] = _dependents.get(tx.peer)
 
-    final def collectObjects[A](pf: PartialFunction[Obj[S], A])(implicit tx: S#Tx): Vec[A] = {
-      val b   = Vector.newBuilder[A]
-      val fun = pf.lift
-
-      def loop(f: Folder[S]): Unit =
-        f.iterator.foreach { obj =>
-          fun(obj).foreach(b += _)
-          obj match {
-            case ef: Folder[S] => loop(ef)
-            case _ =>
-          }
-        }
-
-      loop(root)
-      b.result()
-    }
+//    final def collectObjects[A](pf: PartialFunction[Obj[S], A])(implicit tx: S#Tx): Vec[A] = {
+//      val b   = Vector.newBuilder[A]
+//      val fun = pf.lift
+//
+//      def loop(f: Folder[S]): Unit =
+//        f.iterator.foreach { obj =>
+//          fun(obj).foreach(b += _)
+//          obj match {
+//            case ef: Folder[S] => loop(ef)
+//            case _ =>
+//          }
+//        }
+//
+//      loop(root)
+//      b.result()
+//    }
 
     final def close(): Unit = {
       atomic[S, Unit] { implicit tx =>
@@ -259,7 +269,7 @@ object WorkspaceImpl {
 
   private final class ConfluentImpl(_folder: File, val system: Cf, protected val access: stm.Source[Cf#Tx, Data[Cf]],
                                     val cursors: Cursors[Cf, Cf#D])
-    extends Workspace.Confluent with Impl[Cf] {
+    extends proc.Workspace.Confluent with Impl[Cf] {
 
     def folder: Option[File]  = Some(_folder)
     def name  : String        = _folder.base
@@ -274,7 +284,7 @@ object WorkspaceImpl {
 
   private final class DurableImpl(_folder: File, val system: Dur,
                                   protected val access: stm.Source[Dur#Tx, Data[Dur]])
-    extends Workspace.Durable with Impl[Dur] {
+    extends proc.Workspace.Durable with Impl[Dur] {
 
     def folder: Option[File]  = Some(_folder)
     def name  : String        = _folder.base
@@ -287,7 +297,7 @@ object WorkspaceImpl {
   }
 
   private final class InMemoryImpl(val system: InMem, protected val access: stm.Source[InMem#Tx, Data[InMem]])
-    extends Workspace.InMemory with Impl[InMem] {
+    extends proc.Workspace.InMemory with Impl[InMem] {
 
     // val systemType = implicitly[reflect.runtime.universe.TypeTag[InMem]]
 

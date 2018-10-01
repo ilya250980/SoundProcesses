@@ -30,7 +30,8 @@ object ActionApplyTest {
       println("----------------")
     }
 
-    ws.close()
+    ws.cursor.step { implicit tx => ws.dispose() }
+
     sys.exit()
   }
 }

@@ -1,14 +1,12 @@
 package de.sciss.synth.proc
 
 import de.sciss.lucre.expr.IntObj
-import de.sciss.lucre.stm
-import de.sciss.lucre.stm.WorkspaceHandle
 import de.sciss.lucre.synth.InMemory
 import de.sciss.synth.SynthGraph
 
 object Issue35 {
   type S = InMemory
-  implicit val cursor: stm.Cursor[S] = InMemory()
+  implicit val cursor: S = InMemory()
 
   showAuralLog = true
 
@@ -18,7 +16,7 @@ object Issue35 {
 //    Durable(ds)
 //  }
 
-  implicit val ws: WorkspaceHandle[S] = WorkspaceHandle.Implicits.dummy
+  implicit val ws: Workspace[S] = Workspace.Implicits.dummy
 
   SoundProcesses.init()
   val universe: Universe[S] = cursor.step { implicit tx => Universe.dummy }

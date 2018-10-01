@@ -19,7 +19,7 @@ import java.util.{Date, Locale}
 
 import de.sciss.lucre.event.Targets
 import de.sciss.lucre.stm.impl.ObjSerializer
-import de.sciss.lucre.stm.{Copy, Cursor, Elem, IdPeek, NoSys, Obj, Sys, TxnLike, WorkspaceHandle}
+import de.sciss.lucre.stm.{Copy, Cursor, Elem, IdPeek, NoSys, Obj, Sys, TxnLike, Workspace}
 import de.sciss.lucre.{stm, event => evt}
 import de.sciss.serial.{DataInput, DataOutput, Serializer}
 import de.sciss.synth.proc
@@ -130,10 +130,10 @@ object ActionImpl {
                                         (implicit peer: proc.Universe[S])
     extends Action.Universe[S] {
 
-    implicit def cursor     : Cursor          [S] = peer.cursor
-    implicit def workspace  : WorkspaceHandle [S] = peer.workspace
-    implicit def genContext : GenContext      [S] = peer.genContext
-    implicit val scheduler  : Scheduler       [S] = peer.scheduler
+    implicit def cursor     : Cursor    [S] = peer.cursor
+    implicit def workspace  : Workspace [S] = peer.workspace
+    implicit def genContext : GenContext[S] = peer.genContext
+    implicit val scheduler  : Scheduler [S] = peer.scheduler
 
     def mkChild(newAuralSystem: AuralSystem, newScheduler: Scheduler[S]): Universe[S] = {
       val newPeer = peer.mkChild(newAuralSystem, newScheduler)

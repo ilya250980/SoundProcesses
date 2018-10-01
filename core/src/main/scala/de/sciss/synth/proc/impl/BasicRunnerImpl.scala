@@ -16,14 +16,14 @@ package impl
 
 import de.sciss.lucre.event.impl.ObservableImpl
 import de.sciss.lucre.stm.TxnLike.peer
-import de.sciss.lucre.stm.{Cursor, Sys, WorkspaceHandle}
+import de.sciss.lucre.stm.{Cursor, Sys, Workspace}
 
 import scala.concurrent.stm.Ref
 
 trait BasicRunnerImpl[S <: Sys[S]]
   extends BasicViewBaseImpl[S, Unit] with Runner[S] {
 
-  implicit final def workspace : WorkspaceHandle[S] = universe.workspace
+  implicit final def workspace : Workspace[S] = universe.workspace
   implicit final def cursor    : Cursor[S]          = universe.cursor
 
   final object messages extends Runner.Messages[S#Tx] with ObservableImpl[S, List[Runner.Message]] {

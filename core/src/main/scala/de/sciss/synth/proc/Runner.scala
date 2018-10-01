@@ -14,7 +14,8 @@
 package de.sciss.synth.proc
 
 import de.sciss.lucre.event.Observable
-import de.sciss.lucre.stm.{Cursor, Obj, Sys, WorkspaceHandle}
+import de.sciss.lucre.stm
+import de.sciss.lucre.stm.{Cursor, Obj, Sys}
 import de.sciss.lucre.synth.{Sys => SSys}
 import de.sciss.synth.proc
 import de.sciss.synth.proc.impl.{ActionRunnerImpl, ProcRunnerImpl, TimelineRunnerImpl, RunnerUniverseImpl => Impl}
@@ -37,12 +38,12 @@ object Runner {
     /** Finds an existing handler for the given workspace; returns this handler or
       * creates a new one if not found.
       */
-    def apply[S <: SSys[S]]()(implicit tx: S#Tx, cursor: Cursor[S], workspace: WorkspaceHandle[S]): Universe[S] =
+    def apply[S <: SSys[S]]()(implicit tx: S#Tx, universe: Cursor[S], workspace: stm.Workspace[S]): Universe[S] =
       Impl()
 
     /** Creates a new handler. */
     def apply[S <: SSys[S]](genContext: GenContext[S], scheduler: Scheduler[S], auralSystem: AuralSystem)
-                          (implicit tx: S#Tx, cursor: Cursor[S], workspace: WorkspaceHandle[S]): Universe[S] =
+                          (implicit tx: S#Tx, cursor: Cursor[S], workspace: stm.Workspace[S]): Universe[S] =
       Impl(genContext, scheduler, auralSystem)
   }
   trait Universe[S <: Sys[S]] extends proc.Universe.Disposable[S] with Observable[S#Tx, Universe.Update[S]] {

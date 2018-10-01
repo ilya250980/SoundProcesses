@@ -14,12 +14,11 @@
 package de.sciss.synth.proc
 
 import de.sciss.lucre.stm
-import de.sciss.lucre.stm.{Disposable, Obj, Sys, WorkspaceHandle}
+import de.sciss.lucre.stm.{Disposable, Obj, Sys}
 import de.sciss.synth.proc.impl.{GenContextImpl => Impl}
 
 object GenContext {
-  def apply[S <: Sys[S]]()(implicit tx: S#Tx, cursor: stm.Cursor[S],
-                         workspace: WorkspaceHandle[S]): GenContext[S] = Impl[S]
+  def apply[S <: Sys[S]]()(implicit tx: S#Tx, cursor: stm.Cursor[S], workspace: Workspace[S]): GenContext[S] = Impl[S]
 }
 /** Context for rendering generated objects. */
 trait GenContext[S <: Sys[S]] extends Disposable[S#Tx] {
@@ -54,5 +53,5 @@ trait GenContext[S <: Sys[S]] extends Disposable[S#Tx] {
 
   implicit def cursor: stm.Cursor[S]
 
-  implicit def workspace: WorkspaceHandle[S]
+  implicit def workspace: Workspace[S]
 }

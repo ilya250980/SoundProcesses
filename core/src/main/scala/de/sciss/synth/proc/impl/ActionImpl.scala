@@ -135,7 +135,7 @@ object ActionImpl {
     implicit def genContext : GenContext[S] = peer.genContext
     implicit val scheduler  : Scheduler [S] = peer.scheduler
 
-    def mkChild(newAuralSystem: AuralSystem, newScheduler: Scheduler[S]): Universe[S] = {
+    def mkChild(newAuralSystem: AuralSystem, newScheduler: Scheduler[S])(implicit tx: S#Tx): Universe[S] = {
       val newPeer = peer.mkChild(newAuralSystem, newScheduler)
       new UniverseImpl[S](self = self, invoker = invoker, value = value)(peer = newPeer)
     }

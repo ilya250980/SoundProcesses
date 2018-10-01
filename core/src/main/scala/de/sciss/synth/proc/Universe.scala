@@ -54,5 +54,5 @@ trait Universe[S <: Sys[S]] {
 
   /** Creates a new derived universe with a new aural system and a fresh scheduler.
     */
-  def mkChild(newAuralSystem: AuralSystem, newScheduler: Scheduler[S]): Universe[S]
+  def mkChild(newAuralSystem: AuralSystem, newScheduler: Scheduler[S])(implicit tx: S#Tx): Universe[S]
 }

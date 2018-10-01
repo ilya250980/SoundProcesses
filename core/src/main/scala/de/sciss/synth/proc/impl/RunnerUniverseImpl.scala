@@ -56,9 +56,8 @@ object RunnerUniverseImpl {
       val gen       = GenContext[S]
       val scheduler = Scheduler [S]
       val aural     = AuralSystem(global = true)
-      val res0      = new Impl[S](gen, scheduler, aural, stored = true)
+      val res0      = new Impl[S](gen, scheduler, aural, tx)
       handlerMap.put(workspace, res0)
-      workspace.addDependent(res0.dependent)
       res0
     }
     val resC = res.asInstanceOf[Impl[S]]
@@ -69,21 +68,21 @@ object RunnerUniverseImpl {
   /** Creates a new handler. */
   def apply[S <: SSys[S]](genContext: GenContext[S], scheduler: Scheduler[S], auralSystem: AuralSystem)
                         (implicit tx: S#Tx, cursor: Cursor[S], workspace: Workspace[S]): Universe[S] = {
-    new Impl[S](genContext, scheduler, auralSystem, stored = false)
+    new Impl[S](genContext, scheduler, auralSystem, tx)
   }
 
   private[this] val handlerMap = TMap.empty[Workspace[_], Impl[_]]
 
   private final class Impl[S <: SSys[S]](val genContext: GenContext[S], val scheduler: Scheduler[S],
-                                         val auralSystem: AuralSystem, stored: Boolean)
+                                         val auralSystem: AuralSystem, tx0: S#Tx)
                                         (implicit val cursor: stm.Cursor[S], val workspace: Workspace[S])
     extends Universe[S] with ObservableImpl[S, Universe.Update[S]] { impl =>
 
     private[this] val runnersRef  = Ref(Vec.empty[Runner[S]])
     private[this] val useCount    = Ref(0)
 
-    def mkChild(newAuralSystem: AuralSystem, newScheduler: Scheduler[S]): Universe[S] = {
-      new Impl[S](genContext = genContext, scheduler = newScheduler, auralSystem = newAuralSystem, stored = stored)
+    def mkChild(newAuralSystem: AuralSystem, newScheduler: Scheduler[S])(implicit tx: S#Tx): Universe[S] = {
+      new Impl[S](genContext = genContext, scheduler = newScheduler, auralSystem = newAuralSystem, tx0 = tx)
     }
 
 //    def mkTransport()(implicit tx: S#Tx): Transport[S] = Transport(this)
@@ -99,11 +98,13 @@ object RunnerUniverseImpl {
       }
     }
 
+    workspace.addDependent(dependent)(tx0)
+
     def use()(implicit tx: S#Tx): Unit =
       useCount += 1
 
     def dispose()(implicit tx: S#Tx): Unit =
-      if (stored && useCount.transformAndGet(_ - 1) == 0) {
+      if (useCount.transformAndGet(_ - 1) == 0) {
         dependent.dispose()
       }
 

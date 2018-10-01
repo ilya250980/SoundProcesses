@@ -23,7 +23,6 @@ import de.sciss.lucre.synth.{InMemory => InMem, Sys => SSys}
 import de.sciss.lucre.{confluent, stm}
 import de.sciss.serial.{DataInput, DataOutput, Serializer}
 import de.sciss.synth.proc
-import de.sciss.synth.proc.SoundProcesses.atomic
 import de.sciss.synth.proc.{Confluent => Cf, Durable => Dur}
 
 import scala.language.existentials
@@ -244,11 +243,11 @@ object WorkspaceImpl {
 //      b.result()
 //    }
 
-    final def close(): Unit = {
-      atomic[S, Unit] { implicit tx =>
-        dispose()
-      } (cursor)
-    }
+//    final def close(): Unit = {
+//      atomic[S, Unit] { implicit tx =>
+//        dispose()
+//      } (cursor)
+//    }
 
     final def dispose()(implicit tx: S#Tx): Unit = {
       // logInfoTx(s"Dispose workspace $name")

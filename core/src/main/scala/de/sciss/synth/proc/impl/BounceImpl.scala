@@ -25,7 +25,7 @@ import de.sciss.processor.impl.ProcessorImpl
 import de.sciss.synth.Ops.stringToControl
 import de.sciss.synth.io.{AudioFileType, SampleFormat}
 import de.sciss.synth.proc.Runner.{Prepared, Preparing, Running, Stopped}
-import de.sciss.synth.{SynthGraph, addToTail, Server => SServer}
+import de.sciss.synth.{Client, SynthGraph, addToTail, Server => SServer}
 import de.sciss.{osc, synth}
 
 import scala.annotation.tailrec
@@ -97,7 +97,7 @@ final class BounceImpl[S <: Sys[S] /*, I <: stm.Sys[I] */](val parentUniverse: U
       }
 
       if (realtime)
-        bodyRealtime(sCfg)
+        bodyRealtime(sCfg, config.client)
       else
         bodyOffline (sCfg)
 
@@ -117,7 +117,7 @@ final class BounceImpl[S <: Sys[S] /*, I <: stm.Sys[I] */](val parentUniverse: U
         scheduler.schedule(entry.time)(entry.fun)
       }
 
-    private def bodyRealtime(sCfg: Server.Config): Unit = {
+    private def bodyRealtime(sCfg: Server.Config, cCfg: Client.Config): Unit = {
       val pServer = Promise[Server]()
       promiseSync.synchronized { promise = Some(pServer) }
       val (span, scheduler, transport, __aural) = cursor.step { implicit tx =>
@@ -145,7 +145,7 @@ final class BounceImpl[S <: Sys[S] /*, I <: stm.Sys[I] */](val parentUniverse: U
         }
         _transport.seek(_span.start)
         if (DEBUG) println(sCfg)
-        _aural.start(config = sCfg)
+        _aural.start(config = sCfg, client = cCfg)
         (_span, _scheduler, _transport, _aural)
       }
 

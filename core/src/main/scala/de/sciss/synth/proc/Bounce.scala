@@ -20,6 +20,7 @@ import de.sciss.lucre.stm.Obj
 import de.sciss.lucre.synth.{Server, Sys}
 import de.sciss.processor.ProcessorFactory
 import de.sciss.span.Span
+import de.sciss.synth.Client
 import de.sciss.synth.proc.impl.{BounceImpl => Impl}
 
 import scala.collection.immutable.{Iterable => IIterable}
@@ -54,6 +55,8 @@ object Bounce {
       */
     def server: Server.ConfigLike
 
+    def client: Client.ConfigLike
+
     /** An arbitrary function may be provided which is called when the server is initialized (logical time zero).
       * This entry is typically used to set up extra routing synths, master volume, etc.
       */
@@ -74,6 +77,7 @@ object Bounce {
   }
   sealed trait Config[S <: Sys[S]] extends ConfigLike[S] {
     def server: Server.Config
+    def client: Client.Config
   }
   final class ConfigBuilder[S <: Sys[S]] private[Bounce] () extends ConfigLike[S] {
     private var _group: GroupH[S] = _
@@ -88,12 +92,17 @@ object Bounce {
     /** The default server configuration is ScalaCollider's
       * default, a block-size of one, no input and one output channel.
       */
-    val server: Server.ConfigBuilder    = {
+    val server: Server.ConfigBuilder = {
       val res = Server.Config()
       // some sensible defaults
       res.blockSize          = 1
       res.inputBusChannels   = 0
       res.outputBusChannels  = 1
+      res
+    }
+
+    val client: Client.ConfigBuilder = {
+      val res = Client.Config()
       res
     }
 
@@ -105,13 +114,14 @@ object Bounce {
 
     var actions: IIterable[Scheduler.Entry[S]] = Nil
 
-    def build: Config[S] = ConfigImpl(group = group, span = span, server = server,
+    def build: Config[S] = ConfigImpl(group = group, span = span, server = server, client = client,
       beforePrepare = beforePrepare, beforePlay = beforePlay, realtime = realtime, actions = actions)
   }
 
   private final case class ConfigImpl[S <: Sys[S]](group        : GroupH[S],
                                                    span         : Span,
                                                    server       : Server.Config,
+                                                   client       : Client.Config,
                                                    beforePrepare: (S#Tx, Server) => Unit,
                                                    beforePlay   : (S#Tx, Server) => Unit,
                                                    realtime     : Boolean,

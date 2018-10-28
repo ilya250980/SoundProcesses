@@ -473,9 +473,11 @@ object AuralProcImpl {
         val found: Int = valueOpt.fold(-1) {
           case a: Gen[S] =>
             val genView   = mkGenView(a, aKey)
-            genView.value.fold(-1) { tr =>
-              val value = tr.get
-              auralChans(value)
+            genView.value match {
+              case Some(tr) =>
+                val value = tr.get
+                auralChans(value)
+              case None => -1
             }
 
           case value =>
@@ -494,7 +496,12 @@ object AuralProcImpl {
         val procObj       = procCached()
         val aKey          = i.name
         val valueOpt      = procObj.attr.get(aKey)
-        val value0        = valueOpt.fold(simpleInputStreamValue(-1))(value => requestAttrStreamValue(aKey, value))
+        val value0        = valueOpt match {
+          case Some(value) =>
+            requestAttrStreamValue(aKey, value)
+          case None =>
+            simpleInputStreamValue(-1)
+        }
         val chansUnknown  = value0.numChannels < 0
         if (chansUnknown && !i.spec.isEmpty) throw MissingIn(i.key)
         val value1        = if (chansUnknown) value0.copy(numChannels = 1) else value0 // simply default to 1
@@ -567,12 +574,19 @@ object AuralProcImpl {
           UGB.Input.Stream.Value(numChannels = spec.numChannels, sampleRate = spec.sampleRate, specs = Nil)
         case _: FadeSpec.Obj[S] => simpleInputStreamValue(4)
         case a: Output[S] =>
-          simpleInputStreamValue(getAuralOutput(a).fold(-1)(_.bus.numChannels))
+          val numCh = getAuralOutput(a) match {
+            case Some(out)  => out.bus.numChannels
+            case None       => -1
+          }
+          simpleInputStreamValue(numCh)
         case a: Gen[S] =>
           val genView = mkGenView(a, key)
-          genView.value.fold(simpleInputStreamValue(-1)) { tryValue =>
-            val newValue = tryValue.get
-            requestAttrStreamValue(key, newValue) // XXX TODO --- there is no sensible value for `key` now
+          genView.value match {
+            case Some(tryValue) =>
+              val newValue = tryValue.get
+              requestAttrStreamValue(key, newValue) // XXX TODO --- there is no sensible value for `key` now
+            case None =>
+              simpleInputStreamValue(-1)
           }
 
         case a => sys.error(s"Cannot use attribute $a as an audio stream")
@@ -581,39 +595,27 @@ object AuralProcImpl {
 
     /** Sub-classes may override this if invoking the super-method. */
     protected def buildAttrStreamInput(nr: NodeRef.Full[S], timeRef: TimeRef, key: String,
+                                       info: UGB.Input.Stream.Spec, idx: Int, bufSize: Int)
+                                      (implicit tx: S#Tx): BufferAndGain =
+      procCached().attr.get(key) match {
+        case Some(value) =>
+          buildAttrStreamInput(nr = nr, timeRef = timeRef, key = key,
+            info = info, idx = idx, bufSize = bufSize, value = value)
+        case None =>
+          // DiskIn and VDiskIn are fine with an empty non-streaming buffer, as far as I can tell...
+          // So instead of aborting when the attribute is not set, fall back to zero
+          val _buf = Buffer(server)(numFrames = bufSize, numChannels = 1)
+          new BufferAndGain(_buf, 0f)
+      }
+
+    /** Sub-classes may override this if invoking the super-method. */
+    protected def buildAttrStreamInput(nr: NodeRef.Full[S], timeRef: TimeRef, key: String,
                                        info: UGB.Input.Stream.Spec, idx: Int,
                                        bufSize: Int, value: Obj[S])
                                       (implicit tx: S#Tx): BufferAndGain = value match {
       case a: AudioCue.Obj[S] =>
-        val audioVal  = a.value
-        val spec      = audioVal.spec
-        val path      = audioVal.artifact.getAbsolutePath
-        val _gain     = audioVal.gain
-        val offsetT   = ((audioVal.offset + timeRef.offset) * spec.sampleRate / SampleRate + 0.5).toLong
-        val _buf      = if (info.isNative) {
-          // XXX DIRTY HACK
-          val offset1 = if (key.contains("!rnd")) {
-            val fOffset = audioVal.fileOffset
-            fOffset + (math.random * (spec.numFrames - fOffset)).toLong
-          } else {
-            offsetT
-          }
-          // println(s"OFFSET = $offset1")
-          Buffer.diskIn(server)(
-            path          = path,
-            startFrame    = offset1,
-            numFrames     = bufSize,
-            numChannels   = spec.numChannels
-          )
-        } else {
-          val __buf = Buffer(server)(numFrames = bufSize, numChannels = spec.numChannels)
-          val trig = new StreamBuffer(key = key, idx = idx, synth = nr.node, buf = __buf, path = path,
-            fileFrames = spec.numFrames, interpolation = info.interp, startFrame = offsetT, loop = false,
-            resetFrame = offsetT)
-          nr.addUser(trig)
-          __buf
-        }
-        new BufferAndGain(_buf, _gain.toFloat)
+        streamAudioCueToBuffer(cue = a.value, nr = nr, timeRef = timeRef, key = key, info = info,
+          idx = idx, bufSize = bufSize)
 
       case _: Gen[S] =>
         val valueOpt: Option[Obj[S]] = for {
@@ -626,6 +628,54 @@ object AuralProcImpl {
         buildAttrStreamInput(nr, timeRef, key = key, info = info, idx = idx, bufSize = bufSize, value = newValue)
 
       case a => sys.error(s"Cannot use attribute $a as an audio stream")
+    }
+
+    final protected def streamAudioCueToBuffer(cue: AudioCue, nr: NodeRef.Full[S], timeRef: TimeRef, key: String,
+                                               info: UGB.Input.Stream.Spec, idx: Int,
+                                               bufSize: Int)(implicit tx: S#Tx): BufferAndGain = {
+      val spec      = cue.spec
+      val path      = cue.artifact.getAbsolutePath
+      val _gain     = cue.gain
+      val offsetT   = ((cue.offset + timeRef.offset) * spec.sampleRate / SampleRate + 0.5).toLong
+      val _buf      = if (info.isNative) {
+        // XXX DIRTY HACK
+        val offset1 = if (key.contains("!rnd")) {
+          val fOffset = cue.fileOffset
+          fOffset + (math.random * (spec.numFrames - fOffset)).toLong
+        } else {
+          offsetT
+        }
+        // println(s"OFFSET = $offset1")
+        Buffer.diskIn(server)(
+          path          = path,
+          startFrame    = offset1,
+          numFrames     = bufSize,
+          numChannels   = spec.numChannels
+        )
+      } else {
+        val __buf = Buffer(server)(numFrames = bufSize, numChannels = spec.numChannels)
+        val trig = new StreamBuffer(key = key, idx = idx, synth = nr.node, buf = __buf, path = path,
+          fileFrames = spec.numFrames, interpolation = info.interp, startFrame = offsetT, loop = false,
+          resetFrame = offsetT)
+        nr.addUser(trig)
+        __buf
+      }
+      new BufferAndGain(_buf, _gain.toFloat)
+    }
+
+    final protected def readAudioCueToBuffer(cue: AudioCue)(implicit tx: S#Tx): Buffer = {
+      val spec      = cue.spec
+      val path      = cue.artifact.getAbsolutePath
+      val offset    = cue.fileOffset
+      // XXX TODO - for now, gain is ignored.
+      // one might add an auxiliary control proxy e.g. Buffer(...).gain
+      // val _gain     = audioElem.gain    .value
+      if (spec.numFrames > 0x3FFFFFFF)
+        sys.error(s"File too large for in-memory buffer: $path (${spec.numFrames} frames)")
+      val bufSize   = spec.numFrames.toInt
+      val _buf      = Buffer(server)(numFrames = bufSize, numChannels = spec.numChannels)
+      _buf.read(path = path, fileStartFrame = offset)
+      _buf
     }
 
     /** Sub-classes may override this if invoking the super-method.
@@ -659,15 +709,8 @@ object AuralProcImpl {
               val bestSzLo  = bestSzHi >> 1
               if (bestSzHi.toDouble/bestSz < bestSz.toDouble/bestSzLo) bestSzHi else bestSzLo
             }
-            val bufAndGain: BufferAndGain = procCached().attr.get(key).fold {
-              // DiskIn and VDiskIn are fine with an empty non-streaming buffer, as far as I can tell...
-              // So instead of aborting when the attribute is not set, fall back to zero
-              val _buf = Buffer(server)(numFrames = bufSize, numChannels = 1)
-              new BufferAndGain(_buf, 0f)
-            } { value =>
-              buildAttrStreamInput(nr = nr, timeRef = timeRef, key = key,
-                info = info, idx = idx, bufSize = bufSize, value = value)
-            }
+            val bufAndGain = buildAttrStreamInput(nr = nr, timeRef = timeRef, key = key,
+              info = info, idx = idx, bufSize = bufSize)
             nr.addControl(ctlName -> Seq[Float](bufAndGain.buf.id, bufAndGain.gain): ControlSet)
             val late = Buffer.disposeWithNode(bufAndGain.buf, nr)
             nr.addResource(late)
@@ -678,19 +721,7 @@ object AuralProcImpl {
             sys.error(s"Missing attribute $key for buffer content")
           } {
             case a: AudioCue.Obj[S] =>
-              val audioVal  = a.value
-              val spec      = audioVal.spec
-              val path      = audioVal.artifact.getAbsolutePath
-              val offset    = audioVal.fileOffset
-              // XXX TODO - for now, gain is ignored.
-              // one might add an auxiliary control proxy e.g. Buffer(...).gain
-              // val _gain     = audioElem.gain    .value
-              if (spec.numFrames > 0x3FFFFFFF)
-                sys.error(s"File too large for in-memory buffer: $path (${spec.numFrames} frames)")
-              val bufSize   = spec.numFrames.toInt
-              val _buf      = Buffer(server)(numFrames = bufSize, numChannels = spec.numChannels)
-              _buf.read(path = path, fileStartFrame = offset)
-              _buf
+              readAudioCueToBuffer(a.value)
 
             case dv: DoubleVector[S] =>
               val values    = dv.value.map(_.toFloat)

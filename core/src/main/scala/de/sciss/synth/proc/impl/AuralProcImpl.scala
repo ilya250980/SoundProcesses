@@ -290,8 +290,10 @@ object AuralProcImpl {
       disposeBuild()
     }
 
-    // does _not_ dispose playingRef
-    private def disposeBuild()(implicit tx: S#Tx): Unit = {
+    /** Sub-classes may override this if invoking the super-method.
+      * Note that this does ''not'' dispose `playingRef`.
+      */
+    protected def disposeBuild()(implicit tx: S#Tx): Unit = {
       auralOutputs.foreach { case (_, view) =>
         ports(AuralObj.Proc.OutputRemoved(this, view))
         view.dispose()
@@ -526,11 +528,11 @@ object AuralProcImpl {
         }
         UGB.Input.Attribute.Value(opt)
 
-      case i: UGB.Input.BufferOut => UGB.Unit
+      case _: UGB.Input.BufferOut => UGB.Unit
       case    UGB.Input.StopSelf  => UGB.Unit
-      case i: UGB.Input.Action    => UGB.Input.Action .Value
+      case _: UGB.Input.Action    => UGB.Input.Action .Value
       case i: UGB.Input.DiskOut   => UGB.Input.DiskOut.Value(i.numChannels)
-      case i: UGB.Input.BufferGen => UGB.Input.BufferGen.Value(st.allocUniqueId())
+      case _: UGB.Input.BufferGen => UGB.Input.BufferGen.Value(st.allocUniqueId())
 
       case _ => throw new IllegalStateException(s"Unsupported input request $in")
     }

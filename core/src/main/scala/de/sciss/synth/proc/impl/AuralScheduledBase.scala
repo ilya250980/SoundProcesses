@@ -59,8 +59,7 @@ trait AuralScheduledBase[S <: Sys[S], Target, Elem <: ViewBase[S, Target]]
     * - for each view call `prepareChild`
     * - accumulate the results of `prepareChild` into a `Map` that is returned.
     *
-    * The map will become part of `IPreparing`. (NOT: The returned `Boolean` indicates
-    * if elements were found (`true`) or not (`false`)).
+    * The map will become part of `IPreparing`.
     *
     * @param initial  if `true` this is an initial preparation which means the method
     *                 must include views that start before `prepareSpan` if their span

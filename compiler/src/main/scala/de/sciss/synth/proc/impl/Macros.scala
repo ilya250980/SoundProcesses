@@ -20,6 +20,7 @@ import de.sciss.synth.SynthGraph
 import scala.concurrent.stm.Ref
 import scala.reflect.macros.blackbox
 import scala.tools.nsc.Global
+import scala.tools.nsc.interpreter.IMain
 
 object Macros {
   def mkSource(c: blackbox.Context)(name: String, tree: c.Tree): String = {
@@ -75,7 +76,8 @@ object Macros {
 
   private[this] val compileCount = Ref(0)
 
-  private[this] var iMainImpl: IMainPeer = _
+  private[this] var iMainImpl: IMain  = _
+  private[this] var iMainPeer: Global = _
 
   def actionWithSource[S <: Sys[S]](c: blackbox.Context)(body: c.Expr[Action.Universe[S] => Unit])(tx: c.Expr[S#Tx])
                                    (implicit tt: c.WeakTypeTag[S]): c.Expr[Action[S]] = {
@@ -102,11 +104,14 @@ object Macros {
     val code0       = Code.Action(source)
 
     val iMainOld    = iMainImpl
+    val iMainPeerOld= iMainPeer
     val global      = c.universe
-    val iMain       = if (iMainOld != null && iMainOld.peer == global) iMainOld else {
+    val iMain       = if (iMainOld != null && iMainPeerOld == global) iMainOld else {
       require(global.isInstanceOf[Global], s"Universe not an instance of Global: $global")
-      val res = new IMainPeer(global.asInstanceOf[Global])
-      iMainImpl = res
+      val newPeer = global.asInstanceOf[Global]
+      val res     = MacroCompilerImpl(newPeer)
+      iMainImpl   = res
+      iMainPeer   = newPeer
       res
     }
 

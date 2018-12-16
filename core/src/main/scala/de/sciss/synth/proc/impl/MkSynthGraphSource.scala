@@ -198,7 +198,7 @@ object MkSynthGraphSource {
       }
     }
     // calc indentation
-    val maxValNameSz0 = (0 /: lines)((res, line) => line.valName.fold(res)(n => math.max(n.length, res)))
+    val maxValNameSz0 = lines.foldLeft(0)((res, line) => line.valName.fold(res)(n => math.max(n.length, res)))
     val maxValNameSz  = maxValNameSz0 | 1 // odd
 
     def mkFloatString(f: Float): String =

@@ -1,5 +1,5 @@
 /*
- *  IMainPeer.scala
+ *  MacroCompilerImpl.scala
  *  (SoundProcesses)
  *
  *  Copyright (c) 2010-2018 Hanns Holger Rutz. All rights reserved.
@@ -17,7 +17,11 @@ package impl
 import scala.tools.nsc.interpreter.IMain
 import scala.tools.nsc.{ConsoleWriter, Global, NewLinePrintWriter}
 
-// this is the trick to get the right class-path -- we steal it from the macro compiler
-private[impl] final class IMainPeer(val peer: Global)
-  extends IMain({ val set = peer.settings.copy(); set.warnUnused.clear(); set },
-    new NewLinePrintWriter(new ConsoleWriter, autoFlush = true))
+object MacroCompilerImpl {
+  def apply(peer: Global): IMain = {
+    // this is the trick to get the right class-path -- we steal it from the macro compiler
+    val cSet       = peer.settings.copy()
+    val writer    = new NewLinePrintWriter(new ConsoleWriter, autoFlush = true)
+    new IMain(cSet, writer)
+  }
+}

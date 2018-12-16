@@ -39,7 +39,7 @@ lazy val deps = new {
   }
   
   val test = new {
-    val bdb                = "bdb"  // either "bdb" or "bdb6"
+    val bdb                = "bdb"  // "bdb" or "bdb6" or "bdb7"
     val scalaColliderSwing = "1.41.0-SNAPSHOT"
     val scalaTest          = "3.0.5"
     val scopt              = "3.7.1"

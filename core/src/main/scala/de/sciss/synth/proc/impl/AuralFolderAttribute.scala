@@ -23,7 +23,6 @@ import de.sciss.synth.proc.AuralAttribute.{Factory, Observer, Target}
 import de.sciss.synth.proc.Runner.{Prepared, Preparing, Running, Stopped}
 
 import scala.annotation.tailrec
-import scala.collection.breakOut
 import scala.concurrent.stm.Ref
 
 object AuralFolderAttribute extends Factory {
@@ -180,9 +179,9 @@ final class AuralFolderAttribute[S <: Sys[S]](val key: String, val objH: stm.Sou
     clearPlayState()
 
     val childViews = childAttrRef()
-    val prepObs: Map[Elem, Disposable[S#Tx]] = childViews.flatMap { childView =>
+    val prepObs: Map[Elem, Disposable[S#Tx]] = childViews.iterator.flatMap { childView =>
       prepareChild(childView, childTime = timeRef)
-    } (breakOut)
+    } .toMap
 
     val st = IPreparing(prepObs, timeRef)
     internalRef() = st

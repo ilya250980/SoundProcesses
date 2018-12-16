@@ -21,7 +21,6 @@ import de.sciss.lucre.synth.{Node, Sys, Txn}
 import de.sciss.synth.{GE, proc}
 import de.sciss.{osc, synth}
 
-import scala.collection.breakOut
 import scala.collection.immutable.{IndexedSeq => Vec}
 
 object ActionResponder {
@@ -51,10 +50,17 @@ final class ActionResponder[S <: Sys[S]](objH: stm.Source[S#Tx, Obj[S]], key: St
     case osc.Message(Name, NodeId, 0, raw @ _*) =>
       if (DEBUG) println(s"ActionResponder($key, $NodeId) - received trigger")
       // logAural(m.toString)
-      val values: Vec[Float] = raw.collect {
-        case f: Float => f
-      } (breakOut)
+      val values: Vec[Float] = raw match {
+        case rawV: Vec[_] =>
+          rawV.collect {
+            case f: Float => f
+          }
 
+        case _ =>
+          raw.iterator.collect {
+            case f: Float => f
+          }.toIndexedSeq
+      }
       import context.universe
       import context.universe.cursor
       SoundProcesses.atomic { implicit tx: S#Tx =>

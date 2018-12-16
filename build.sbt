@@ -1,8 +1,8 @@
 lazy val baseName  = "SoundProcesses"
 lazy val baseNameL = baseName.toLowerCase
 
-lazy val projectVersion = "3.23.1"
-lazy val mimaVersion    = "3.23.0" // used for migration-manager
+lazy val projectVersion = "3.24.0-SNAPSHOT"
+lazy val mimaVersion    = "3.24.0" // used for migration-manager
 
 lazy val commonSettings = Seq(
   version            := projectVersion,
@@ -10,8 +10,8 @@ lazy val commonSettings = Seq(
   homepage           := Some(url(s"https://git.iem.at/sciss/$baseName")),
   description        := "A framework for creating and managing ScalaCollider based sound processes",
   licenses           := Seq("LGPL v2.1+" -> url("http://www.gnu.org/licenses/lgpl-2.1.txt")),
-  scalaVersion       := "2.12.7",
-  crossScalaVersions := Seq("2.12.7", "2.11.12"),
+  scalaVersion       := "2.13.0-M5",
+  crossScalaVersions := Seq("2.12.8", "2.11.12", "2.13.0-M5"),
   scalacOptions     ++= Seq(
     "-deprecation", "-unchecked", "-feature", "-encoding", "utf8", "-Xfuture", "-Xlint", "-Xsource:2.13"
   ),
@@ -22,27 +22,27 @@ lazy val commonSettings = Seq(
 
 lazy val deps = new {
   val main = new {
-    val audioFile           = "1.5.0"
-    val audioWidgets        = "1.13.0"
-    val equal               = "0.1.2"
+    val audioFile           = "1.5.1-SNAPSHOT"
+    val audioWidgets        = "1.14.0-SNAPSHOT"
+    val equal               = "0.1.3-SNAPSHOT"
     val fileUtil            = "1.1.3"
-    val lucre               = "3.10.1"
-    val lucreSwing          = "1.13.0"
+    val lucre               = "3.11.0-SNAPSHOT"
+    val lucreSwing          = "1.14.0-SNAPSHOT"
     val model               = "0.3.4"
     val numbers             = "0.2.0"
-    val scalaCollider       = "1.27.0"
-    val scalaColliderIf     = "0.8.0"
+    val scalaCollider       = "1.28.0-SNAPSHOT"
+    val scalaColliderIf     = "0.9.0-SNAPSHOT"
     val span                = "1.4.2"
-    val swingPlus           = "0.3.1"
-    val topology            = "1.1.0"
-    val ugens               = "1.19.1"
+    val swingPlus           = "0.4.0-SNAPSHOT"
+    val topology            = "1.1.1-SNAPSHOT"
+    val ugens               = "1.19.2-SNAPSHOT"
   }
   
   val test = new {
     val bdb                = "bdb"  // either "bdb" or "bdb6"
-    val scalaColliderSwing = "1.40.0"
+    val scalaColliderSwing = "1.41.0-SNAPSHOT"
     val scalaTest          = "3.0.5"
-    val scopt              = "3.7.0"
+    val scopt              = "3.7.1"
     val submin             = "0.2.2"
   }
 }
@@ -94,10 +94,18 @@ lazy val synth = project.withId("lucresynth").in(file("synth"))
     mimaPreviousArtifacts := Set("de.sciss" %% "lucresynth" % mimaVersion)
   )
 
+lazy val testSettings = Seq(
+  libraryDependencies += {
+    val v = if (scalaVersion.value == "2.13.0-M5") "3.0.6-SNAP5" else deps.test.scalaTest
+    "org.scalatest" %% "scalatest" % v % Test
+  }
+)
+
 lazy val core = project.withId(s"$baseNameL-core").in(file("core"))
   .dependsOn(synth)
   .enablePlugins(BuildInfoPlugin)
   .settings(commonSettings)
+  .settings(testSettings)
   .settings(
     description := "A framework for creating and managing ScalaCollider based sound processes",
     scalacOptions in Test += "-Yrangepos",  // this is needed to extract source code
@@ -114,7 +122,6 @@ lazy val core = project.withId(s"$baseNameL-core").in(file("core"))
       "de.sciss"          %% "fileutil"                     % deps.main.fileUtil,
       "de.sciss"          %% "equal"                        % deps.main.equal,
       "org.scala-lang"    %  "scala-compiler"               % scalaVersion.value % Provided,
-      "org.scalatest"     %% "scalatest"                    % deps.test.scalaTest          % Test,
       "de.sciss"          %% s"lucre-${deps.test.bdb}"      % deps.main.lucre              % Test,
       "com.github.scopt"  %% "scopt"                        % deps.test.scopt              % Test,
       "de.sciss"          %% "scalacolliderswing-plotting"  % deps.test.scalaColliderSwing % Test
@@ -125,6 +132,7 @@ lazy val core = project.withId(s"$baseNameL-core").in(file("core"))
 lazy val views = project.withId(s"$baseNameL-views").in(file("views"))
   .dependsOn(core)
   .settings(commonSettings)
+  .settings(testSettings)
   .settings(
     description := "Views for Sound Processes",
     libraryDependencies ++= Seq(
@@ -134,7 +142,6 @@ lazy val views = project.withId(s"$baseNameL-views").in(file("views"))
       "de.sciss"      %% "audiowidgets-app"         % deps.main.audioWidgets,
       "de.sciss"      %  "submin"                   % deps.test.submin    % Test,
       "de.sciss"      %% s"lucre-${deps.test.bdb}"  % deps.main.lucre     % Test,
-      "org.scalatest" %% "scalatest"                % deps.test.scalaTest % Test,
     ),
     mimaPreviousArtifacts := Set("de.sciss" %% s"$baseNameL-views" % mimaVersion)
   )

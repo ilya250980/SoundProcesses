@@ -23,7 +23,6 @@ import de.sciss.synth
 import de.sciss.synth.Ops.stringToControl
 import de.sciss.synth.{SynthGraph, message}
 
-import scala.collection.breakOut
 import scala.collection.immutable.{Seq => ISeq}
 import scala.concurrent.stm.Ref
 import scala.swing.{BoxPanel, Component, Orientation}
@@ -45,13 +44,13 @@ final class AudioBusMeterImpl(val strips: ISeq[AudioBusMeter.Strip])
     synths.foreach(_.dispose())
 
   private[this] def guiInit(): Unit = {
-    meters = strips.map { strip =>
+    meters = strips.iterator.map { strip =>
       val meter           = new PeakMeter
       meter.numChannels   = strip.bus.numChannels
       meter.caption       = true
       meter.borderVisible = true
       meter
-    } (breakOut)
+    } .toArray
     component = new BoxPanel(Orientation.Horizontal) {
       contents ++= meters
     }

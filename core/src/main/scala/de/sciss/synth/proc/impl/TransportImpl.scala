@@ -156,9 +156,11 @@ object TransportImpl {
     def removeObject(obj: Obj[S])(implicit tx: S#Tx): Unit = {
       val id    = obj.id
       // we need objH to find the index in objSeq
-      val objH  = objMap.get(id).getOrElse {
-        Console.err.println(s"Warning: transport - removeObject - not found: $obj")
-        return
+      val objH  = objMap.get(id) match {
+        case Some(res) => res
+        case None =>
+          Console.err.println(s"Warning: transport - removeObject - not found: $obj")
+          return
       }
       objMap.remove(id)
       objSet.remove(objH)

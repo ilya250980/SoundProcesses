@@ -26,7 +26,6 @@ import de.sciss.lucre.synth.Sys
 import de.sciss.span.{Span, SpanLike}
 import de.sciss.synth.proc.{logAural => logA}
 
-import scala.collection.breakOut
 import scala.collection.immutable.{IndexedSeq => Vec, Set => ISet}
 import scala.concurrent.stm.TSet
 
@@ -80,7 +79,7 @@ trait AuralTimelineBase[S <: Sys[S], I <: stm.Sys[I], Target, Elem <: ViewBase[S
 
   protected def elemFromHandle(h: ElemHandle): Elem = h.view
 
-  final def views(implicit tx: S#Tx): ISet[Elem] = playingRef.map(elemFromHandle)(breakOut) // toSet
+  final def views(implicit tx: S#Tx): ISet[Elem] = playingRef.iterator.map(elemFromHandle).toSet
 
   final def tpe: Obj.Type = Timeline
 

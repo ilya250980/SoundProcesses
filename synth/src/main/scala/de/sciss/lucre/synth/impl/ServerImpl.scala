@@ -18,11 +18,12 @@ import java.io.{ByteArrayOutputStream, DataOutputStream}
 
 import de.sciss.lucre.stm.TxnLike.{peer => txPeer}
 import de.sciss.osc
-import de.sciss.osc.Timetag
+import de.sciss.osc.TimeTag
 import de.sciss.synth.{AllocatorExhausted, ControlABusMap, ControlSet, UGenGraph, addToHead, message, Client => SClient, Server => SServer}
 import de.sciss.topology.Topology
 
 import scala.annotation.tailrec
+import scala.collection.{IndexedSeq => SIndexedSeq}
 import scala.collection.immutable.{IndexedSeq => Vec}
 import scala.collection.mutable
 import scala.concurrent.stm.{Ref, TMap}
@@ -213,7 +214,8 @@ object ServerImpl {
       if (outOff == num) b else {
         val outT = new Array[osc.Packet](outOff)
         System.arraycopy(out, 0, outT, 0, outOff)
-        val res = osc.Bundle(b.timetag, outT: _*)
+        // XXX TODO 2.13: val outTW = ArraySeq.unsafeWrapArray(outT)
+        val res = osc.Bundle(b.timeTag, outT: _*)
         //        Console.err.println("----------- BEFORE COMPRESSION -----------")
         //        osc.Packet.printTextOn(b  , Server.codec, Console.err)
         //        Console.err.println("----------- AFTER  COMPRESSION -----------")
@@ -285,7 +287,7 @@ object ServerImpl {
               Iterator.single(message.NodeRun(gid -> true ))
 
             splitAndSend[Unit, Unit](init = (), it = iter, addSize = 0) { packets =>
-              peer ! osc.Bundle(b.timetag, packets: _*)
+              peer ! osc.Bundle(b.timeTag, packets: _*)
             } ((_, _) => ())
           }
 
@@ -296,7 +298,7 @@ object ServerImpl {
 
     def !! (b0: osc.Bundle): Future[Unit] = {
       val b   = if (USE_COMPRESSION) compress(b0) else b0
-      val tt  = b.timetag
+      val tt  = b.timeTag
       if (VERIFY_BUNDLE_SIZE) {
         val sz0     = Server.codec.encodedBundleSize(b)
         if (sz0 + 20 <= MaxOnlinePacketSize) {
@@ -314,7 +316,7 @@ object ServerImpl {
       }
     }
 
-    private def perform_!!(tt: Timetag, packets: Seq[osc.Packet]): Future[Unit] = {
+    private def perform_!!(tt: TimeTag, packets: Seq[osc.Packet]): Future[Unit] = {
       val syncMsg = peer.syncMsg()
       val syncId  = syncMsg.id
       val bndlS   = osc.Bundle(tt, packets :+ syncMsg: _*)
@@ -353,7 +355,7 @@ object ServerImpl {
       val res   = _bundles
       _bundles  = Vector.empty
       val res1  = if (res.isEmpty || !addDefaultGroup) res else {
-        val b   = osc.Bundle(res.head.timetag,
+        val b   = osc.Bundle(res.head.timeTag,
           message.GroupNew(message.GroupNew.Data(groupId = 1, addAction = addToHead.id, targetId = 0)))
         b +: res
       }
@@ -361,18 +363,18 @@ object ServerImpl {
     }
 
     private def addBundle(b: osc.Bundle): Unit = sync.synchronized {
-      val b1 = if (b.timetag == osc.Timetag.now) osc.Bundle.secs(time, b: _*) else b
+      val b1 = if (b.timeTag == osc.TimeTag.now) osc.Bundle.secs(time, b.packets: _*) else b
       val sz = Server.codec.encodedBundleSize(b1)
       // SuperCollider versions until 2014 have a hard-coded limit of 8K bundles in NRT!
       // cf. https://github.com/supercollider/supercollider/commit/f3f0f81de4259aa44983f1041589f895c91798a1
       val szOk = sz <= MaxOfflinePacketSize
-      if (szOk || b1.length == 1) {
+      if (szOk || b1.packets.length == 1) {
         log(s"addBundle $b1")
         if (!szOk) log(s"addBundle - bundle exceeds ${MaxOfflinePacketSize/1024}k!")
         _bundles :+= b1
       } else {
-        val tt = b1.timetag
-        b.foreach(p => addBundle(osc.Bundle(tt, p)))
+        val tt = b1.timeTag
+        b.packets.foreach(p => addBundle(osc.Bundle(tt, p)))
       }
     }
 
@@ -448,8 +450,8 @@ object ServerImpl {
 
     private type T = Topology[NodeRef, NodeRef.Edge]
 
-    final private[this] val ugenGraphMap  = TMap.empty[IndexedSeq[Byte], SynthDef]
-    final private[this] val synthDefLRU   = Ref(Vector.empty[(IndexedSeq[Byte], SynthDef)])
+    final private[this] val ugenGraphMap  = TMap      .empty[ SIndexedSeq[Byte], SynthDef]
+    final private[this] val synthDefLRU   = Ref(Vector.empty[(SIndexedSeq[Byte], SynthDef)])
 
     // limit on number of online defs XXX TODO -- head room rather arbitrary
     final private[this] val maxDefs       = math.max(128, server.config.maxSynthDefs - 128)
@@ -465,7 +467,7 @@ object ServerImpl {
       dos.flush()
       dos.close()
       val bytes = bos.toByteArray
-      val equ: IndexedSeq[Byte] = bytes // opposed to plain `Array[Byte]`, this has correct definition of `equals`
+      val equ: SIndexedSeq[Byte] = bytes // opposed to plain `Array[Byte]`, this has correct definition of `equals`
       log(s"request for synth graph ${equ.hashCode()}")
 
       ugenGraphMap.get(equ).fold[SynthDef] {
@@ -592,9 +594,9 @@ object ServerImpl {
     final private[this] var bundleWaiting   = Map.empty[Int, Vec[Scheduled]]
     final private[this] var bundleReplySeen = -1
 
-    final private[this] class Scheduled(bundle: Txn.Bundle, timetag: Timetag, promise: Promise[Unit]) {
+    final private[this] class Scheduled(bundle: Txn.Bundle, timeTag: TimeTag, promise: Promise[Unit]) {
       def apply(): Future[Unit] = {
-        val fut = sendNow(bundle, timetag)
+        val fut = sendNow(bundle, timeTag)
         promise.completeWith(fut)
         fut
       }
@@ -619,27 +621,27 @@ object ServerImpl {
       reduceFutures(futures)
     }
 
-    final private[this] def sendNow(bundle: Txn.Bundle, timetag: Timetag): Future[Unit] = {
+    final private[this] def sendNow(bundle: Txn.Bundle, timeTag: TimeTag): Future[Unit] = {
       import bundle.{messages, stamp}
       if (messages.isEmpty) return sendAdvance(stamp)
 
-      // for simplicity, if a timetag is used (`&& timetag`), we require acknowledgement
+      // for simplicity, if a time-tag is used (`&& timeTag`), we require acknowledgement
       // of completion through `/synced`. a more performative variant for the
-      // case of `allSync` might be to store the timetag somewhere so that if
-      // a dependent message comes later with timetag now, it would have to
-      // be adapted to a timetag no smaller than this.
+      // case of `allSync` might be to store the time-tag somewhere so that if
+      // a dependent message comes later with time-tag now, it would have to
+      // be adapted to a time-tag no smaller than this.
       // the disadvantage of the forced sync will be that high frequency
       // parameter changes might be jammed, even though correctness is preserved.
-      val allSync = (stamp & 1) == 1 && timetag == Timetag.now
+      val allSync = (stamp & 1) == 1 && timeTag == TimeTag.now
       if (DEBUG) println(s"SEND NOW $messages - allSync? $allSync; stamp = $stamp")
       if (allSync) {
-        val p = if (messages.size == 1 && timetag == Timetag.now) messages.head
-        else osc.Bundle(timetag, messages: _*)
+        val p = if (messages.size == 1 && timeTag == TimeTag.now) messages.head
+        else osc.Bundle(timeTag, messages: _*)
         server ! p
         sendAdvance(stamp)
 
       } else {
-        val bndl  = osc.Bundle(timetag, messages: _*)
+        val bndl  = osc.Bundle(timeTag, messages: _*)
         val fut   = server.!!(bndl)
         val futR  = fut.recover {
           case message.Timeout() =>
@@ -651,13 +653,13 @@ object ServerImpl {
 
     final def send(bundles: Txn.Bundles, systemTimeNanos: Long): Future[Unit] = {
       // this time-tag is used for the first synchronous bundle (index 1 in bundles)
-      val ttLatency = if (systemTimeNanos == 0L /* || tail.nonEmpty */) Timetag.now else {
+      val ttLatency = if (systemTimeNanos == 0L /* || tail.nonEmpty */) TimeTag.now else {
         // ttLatency
         val latencyNanos    = (clientConfig.latency * 1000000000L).toLong
         val targetNanos     = systemTimeNanos + latencyNanos
         val secsSince1900   =  targetNanos / 1000000000L + SECONDS_FROM_1900_TO_1970
         val secsFractional = ((targetNanos % 1000000000L) << 32) / 1000000000L
-        Timetag((secsSince1900 << 32) | secsFractional)
+        TimeTag((secsSince1900 << 32) | secsFractional)
       }
 
       val res = sync.synchronized {
@@ -670,7 +672,7 @@ object ServerImpl {
         var i = now.size
         val futuresLater = later.map { m =>
           val p   = Promise[Unit]()
-          val tt  = if (i == 1) ttLatency else Timetag.now
+          val tt  = if (i == 1) ttLatency else TimeTag.now
           val sch = new Scheduled(m, tt, p)
           bundleWaiting += m.depStamp -> (bundleWaiting.getOrElse(m.depStamp, Vector.empty) :+ sch)
           i += 1
@@ -678,7 +680,7 @@ object ServerImpl {
         }
         i = 0
         val futuresNow = now.map { m =>
-          val tt  = if (i == 1) ttLatency else Timetag.now
+          val tt  = if (i == 1) ttLatency else TimeTag.now
           i += 1
           sendNow(m, tt)
         }

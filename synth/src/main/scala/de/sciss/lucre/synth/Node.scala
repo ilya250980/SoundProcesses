@@ -13,7 +13,7 @@
 
 package de.sciss.lucre.synth
 
-import de.sciss.synth.{Node => SNode, _}
+import de.sciss.synth.{AddAction, ControlABusMap, ControlFillRange, ControlKBusMap, ControlSet, Node => SNode}
 
 import scala.collection.immutable.{Seq => ISeq}
 

@@ -201,7 +201,7 @@ abstract class BounceSpec extends fixture.AsyncFlatSpec with Matchers {
 
   final def config(objects: Objects, span: Span, numChannels: Int = 1): Bounce.ConfigBuilder[S] = {
     requireOutsideTxn()
-    val res = Bounce.Config[S]
+    val res = Bounce.Config[S]()
     res.span                      = span
     res.server.outputBusChannels  = numChannels
     res.server.sampleRate         = sampleRateI

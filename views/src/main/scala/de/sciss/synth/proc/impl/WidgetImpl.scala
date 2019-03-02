@@ -17,7 +17,6 @@ package impl
 import de.sciss.lucre.event.Targets
 import de.sciss.lucre.stm.impl.ObjSerializer
 import de.sciss.lucre.stm.{Copy, Elem, NoSys, Obj, Sys}
-import de.sciss.lucre.swing.{Graph, Widget => _Widget}
 import de.sciss.lucre.{event => evt}
 import de.sciss.serial.{DataInput, DataOutput, Serializer}
 
@@ -26,7 +25,7 @@ import scala.collection.immutable.{IndexedSeq => Vec}
 object WidgetImpl {
   private final val SER_VERSION = 0x4674
 
-  def apply[S <: Sys[S]](implicit tx: S#Tx): Widget[S] = new New[S]
+  def apply[S <: Sys[S]]()(implicit tx: S#Tx): Widget[S] = new New[S]
 
   def read[S <: Sys[S]](in: DataInput, access: S#Acc)(implicit tx: S#Tx): Widget[S] =
     serializer[S].read(in, access)
@@ -50,15 +49,6 @@ object WidgetImpl {
   }
 
   // ---- Code ----
-
-  implicit object CodeWrapper extends CodeImpl.Wrapper[Unit, Graph, _Widget, Widget.Code] {
-    def id      : Int             = Widget.Code.id
-    def binding : Option[String]  = None
-
-    def wrap(in: Unit)(fun: => _Widget): Graph = Graph(fun)
-
-    def blockTag = "de.sciss.lucre.swing.Widget"
-  }
 
   private sealed trait Impl[S <: Sys[S]]
     extends Widget[S] with evt.impl.SingleNode[S, Widget.Update[S]] {

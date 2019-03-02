@@ -13,13 +13,10 @@
 
 package de.sciss.synth.proc
 
-import java.io.File
-
 import de.sciss.lucre.event.Targets
 import de.sciss.lucre.expr
 import de.sciss.lucre.expr.impl.ExprTypeImpl
 import de.sciss.lucre.stm.Sys
-import de.sciss.processor.ProcessorLike
 import de.sciss.serial.{DataInput, DataOutput, ImmutableSerializer, Writable}
 import de.sciss.synth
 import de.sciss.synth.proc.impl.{CodeImpl => Impl}
@@ -32,12 +29,14 @@ object Code {
 
   def init(): Unit = {
     Obj.init()
-    FileTransform.init()
     SynthGraph   .init()
     Action       .init()
   }
 
   final val UserPackage = "user"
+
+  /** Generates the default package statement. */
+  def packagePrelude: String = s"package $UserPackage\n"
 
   final case class CompilationFailed() extends Exception
   final case class CodeIncomplete   () extends Exception
@@ -51,6 +50,13 @@ object Code {
   def registerImports(id: Int, imports: Seq[String]): Unit = Impl.registerImports(id, imports)
 
   def getImports(id: Int): Vec[String] = Impl.getImports(id)
+
+  /** Generates the import statements prelude for a given code object. */
+  def importsPrelude(code: Code, indent: Int = 0): String = Impl.importsPrelude(code, indent = indent)
+
+  /** Generates the full prelude of a code object, containing package, imports, and code specific prelude. */
+  def fullPrelude(code: Code): String =
+    s"${Code.packagePrelude}${Code.importsPrelude(code)}${code.prelude}"
 
   // ---- type ----
 
@@ -103,30 +109,6 @@ object Code {
     def interpret(source: String, execute: Boolean): Any
   }
 
-  // ---- type: FileTransform ----
-
-  object FileTransform extends Type {
-    final val id    = 0
-    final val name  = "File Transform"
-
-    type Repr = FileTransform
-
-    def mkCode(source: String): Repr = FileTransform(source)
-  }
-  final case class FileTransform(source: String) extends Code {
-    type In     = (File, File, ProcessorLike[Any, Any] => Unit)
-    type Out    = Future[Unit]
-    def id: Int = FileTransform.id
-
-    def compileBody()(implicit compiler: Code.Compiler): Future[Unit] = Impl.compileBody[In, Out, Unit, FileTransform](this)
-
-    def execute(in: In)(implicit compiler: Code.Compiler): Out = Impl.execute[In, Out, Unit, FileTransform](this, in)
-
-    def contextName: String = FileTransform.name
-
-    def updateSource(newText: String): FileTransform = copy(source = newText)
-  }
-
   // ---- type: SynthGraph ----
 
   object SynthGraph extends Type {
@@ -141,11 +123,19 @@ object Code {
     type Out    = synth.SynthGraph
     def id: Int = SynthGraph.id
 
-    def compileBody()(implicit compiler: Code.Compiler): Future[Unit] = Impl.compileBody[In, Out, Unit, SynthGraph](this)
+    def compileBody()(implicit compiler: Code.Compiler): Future[Unit] =
+      Impl.compileBody[In, Out, Unit, SynthGraph](this)
 
-    def execute(in: In)(implicit compiler: Code.Compiler): Out = Impl.execute[In, Out, Unit, SynthGraph](this, in)
+    def execute(in: In)(implicit compiler: Code.Compiler): Out =
+      synth.SynthGraph {
+        Impl.compileThunk(this, execute = true)
+      }
 
     def contextName: String = SynthGraph.name
+
+    def prelude : String = "object Main {\n"
+
+    def postlude: String = "\n}\n"
 
     def updateSource(newText: String): SynthGraph = copy(source = newText)
   }
@@ -158,6 +148,9 @@ object Code {
     type Repr = Action
 
     def mkCode(source: String): Repr = Action(source)
+
+    private def pkgAction = "de.sciss.synth.proc.Action"
+    private val pkgSys    = "de.sciss.lucre.stm"
   }
   final case class Action(source: String) extends Code {
     type In     = String
@@ -168,14 +161,25 @@ object Code {
 
     def execute(in: In)(implicit compiler: Code.Compiler): Out = {
       // Impl.execute[In, Out, Action](this, in)
-      Impl.compileToFunction(in, this)
+      Impl.compileToJar(in, this, prelude = mkPrelude(in), postlude = postlude)
     }
 
     def contextName: String = Action.name
 
     def updateSource(newText: String): Action = copy(source = newText)
 
-    // def compileToFunction(name: String): Future[Array[Byte]] = Impl.compileToFunction(name, this)
+    private def mkPrelude(name: String): String = {
+      import Action.{pkgAction, pkgSys}
+
+      s"""final class $name extends $pkgAction.Body {
+         |  def apply[S <: $pkgSys.Sys[S]](universe: $pkgAction.Universe[S])(implicit tx: S#Tx): Unit = {
+         |    import universe._
+         |""".stripMargin
+    }
+
+    def prelude: String = mkPrelude("Main")
+
+    def postlude: String = "\n  }\n}\n"
   }
 
   // ---- expr ----
@@ -203,9 +207,11 @@ object Code {
       extends VarImpl[S] with Repr[S]
   }
   trait Obj[S <: Sys[S]] extends expr.Expr[S, Code]
+
+  type T[I, O] = Code { type In = I; type Out = O }
 }
 trait Code extends Writable { me =>
-  type Self = Code { type In = me.In; type Out = me.Out }
+  type Self = Code.T[In, Out]
 
   /** The interfacing input type */
   type In
@@ -218,10 +224,26 @@ trait Code extends Writable { me =>
   /** Source code. */
   def source: String
 
+  /** Creates a new code object with updated source code. */
   def updateSource(newText: String): Self
 
   /** Human readable name. */
   def contextName: String
+
+  /** Generic source code prelude wrapping code,
+    * containing package, class or object.
+    * Should generally end in a newline.
+    *
+    * Must not include `Code.packagePrelude`.
+    * Must not include imports as retrieved by `Code.importsPrelude`.
+    */
+  def prelude: String
+
+  /** Source code postlude wrapping code,
+    * containing for example closing braces.
+    * Should generally begin and end in a newline.
+    */
+  def postlude: String
 
   /** Compiles the code body without executing it. */
   def compileBody()(implicit compiler: Code.Compiler): Future[Unit]

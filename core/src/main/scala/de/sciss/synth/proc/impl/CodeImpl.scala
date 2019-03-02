@@ -11,20 +11,16 @@
  *  contact@sciss.de
  */
 
-package de.sciss.synth.proc
-package impl
+package de.sciss.synth.proc.impl
 
-import java.io.{ByteArrayInputStream, ByteArrayOutputStream, File}
+import java.io.{ByteArrayInputStream, ByteArrayOutputStream}
 
-import de.sciss.processor.ProcessorLike
-import de.sciss.processor.impl.ProcessorImpl
 import de.sciss.serial.{DataInput, DataOutput, ImmutableSerializer}
-import de.sciss.synth
+import de.sciss.synth.proc.Code
 
-import scala.collection.immutable.{IndexedSeq => Vec, Seq => ISeq}
-import scala.concurrent.duration.Duration
-import scala.concurrent.{Await, ExecutionContext, Future, Promise, blocking}
-import scala.util.{Failure, Success}
+import scala.collection.immutable.{IndexedSeq => Vec}
+import scala.concurrent.{Future, blocking}
+import scala.reflect.ClassTag
 
 object CodeImpl {
   private final val COOKIE  = 0x436F6465  // "Code"
@@ -115,13 +111,6 @@ object CodeImpl {
   private val sync = new AnyRef
 
   private var importsMap = Map[Int, Vec[String]](
-    Code.FileTransform.id -> Vec(
-      "de.sciss.synth.io.{AudioFile, AudioFileSpec, AudioFileType, SampleFormat, Frames}",
-      "de.sciss.synth._",
-      "de.sciss.file._",
-      "de.sciss.fscape.{FScapeJobs => fscape}",
-      "de.sciss.mellite.TransformUtil._"  // XXX TODO - should not refer to Mellite packages
-    ),
     Code.SynthGraph.id -> Vec(
       "de.sciss.synth.{Buffer => _, _}",
       "de.sciss.synth.ugen.{DiskIn => _, VDiskIn => _, BufChannels => _, BufRateScale => _, BufSampleRate => _, _}",
@@ -152,100 +141,30 @@ object CodeImpl {
 
   // ---- internals ----
 
-  object Wrapper {
-    implicit object FileTransform
-      extends Wrapper[(File, File, ProcessorLike[Any, Any] => Unit), Future[Unit], Unit, Code.FileTransform] {
+//  final def execute[I, O, A, Repr <: Code { type In = I; type Out = O }](code: Repr, in: I)
+//                                                                     (implicit w: Wrapper[I, O, A, Repr],
+//                                                                      compiler: Code.Compiler): O = {
+//    w.wrap(in) {
+//      compileThunk(code, w, execute = true)
+//    }
+//  }
 
-      def id: Int = Code.FileTransform.id
-
-      def binding: Option[String] = Some("FileTransformContext")
-
-      def wrap(args: (File, File, ProcessorLike[Any, Any] => Unit))(fun: => Unit): Future[Unit] = {
-        val (in, out, procHandler) = args
-        val proc = new FileTransformContext(in, out, () => fun)
-        procHandler(proc)
-        import ExecutionContext.Implicits.global  // XXX TODO - good?
-        proc.start()
-        proc
-      }
-
-      def blockTag = "Unit" // = typeTag[Unit]
-    }
-
-    implicit object SynthGraph
-      extends Wrapper[Unit, synth.SynthGraph, Unit, Code.SynthGraph] {
-
-      def id: Int = Code.SynthGraph.id
-
-      def binding: Option[String] = None
-
-      def wrap(in: Unit)(fun: => Unit): synth.SynthGraph = synth.SynthGraph(fun)
-
-      def blockTag = "Unit" // typeTag[Unit]
-    }
-  }
-  trait Wrapper[In, Out, A, Repr] {
-    protected def id: Int
-
-    final def imports: ISeq[String] = importsMap(id)
-
-    def binding: Option[String]
-
-    /** When `execute` is called, the result of executing the compiled code
-      * is passed into this function.
-      *
-      * @param in   the code type's input
-      * @param fun  the thunk that executes the code
-      * @return     the result of `fun` wrapped into type `Out`
-      */
-    def wrap(in: In)(fun: => A): Out
-
-    /** TypeTag of */
-    def blockTag: String // TypeTag[_]
-    //    def inTag   : TypeTag[In]
-    //    def outTag  : TypeTag[Out]
-  }
-
-  final def execute[I, O, A, Repr <: Code { type In = I; type Out = O }](code: Repr, in: I)
-                                                                     (implicit w: Wrapper[I, O, A, Repr],
-                                                                      compiler: Code.Compiler): O = {
-    w.wrap(in) {
-      compileThunk(code.source, w, execute = true)
-    }
-  }
-
-  def compileBody[I, O, A, Repr <: Code { type In = I; type Out = O }](code: Repr)
-                                                                   (implicit w: Wrapper[I, O, A, Repr],
-                                                                    compiler: Code.Compiler): Future[Unit] =
+  def compileBody[I, O, A: ClassTag, Repr <: Code.T[I, O]](code: Repr)
+                                                          (implicit compiler: Code.Compiler): Future[Unit] =
     future {
       blocking {
-        compileThunk[A](code.source, w, execute = false)
+        compileThunk[A](code, execute = false)
       }
     }
 
-  /** Compiles a source code consisting of a body which is wrapped in a `Function0` apply method,
-    * and returns the function's class name (without package) and the raw jar file produced in the compilation.
+  /** Compiles a source code consisting of a body which is wrapped in its prelude/postlude,
+    * and returns the raw jar file produced in the compilation.
     */
-  def compileToFunction(name: String, code: Code.Action)(implicit compiler: Code.Compiler): Array[Byte] = {
-
-    val imports = getImports(Code.Action.id)
-    val impS  = /* w. */imports.map(i => s"  import $i\n").mkString
-    //        val bindS = w.binding.fold("")(i =>
-    //          s"""  val __context__ = $pkg.$i.__context__
-    //             |  import __context__._
-    //             |""".stripMargin)
-    // val aTpe  = w.blockTag.tpe.toString
-    val source =
-      s"""package ${Code.UserPackage}
-         |
-         |final class $name extends $pkgAction.Body {
-         |  def apply[S <: $pkgSys.Sys[S]](universe: $pkgAction.Universe[S])(implicit tx: S#Tx): Unit = {
-         |    import universe._
-         |$impS
-         |${code.source}
-         |  }
-         |}
-         |""".stripMargin
+  def compileToJar(name: String, code: Code.Action, prelude: String, postlude: String)
+                  (implicit compiler: Code.Compiler): Array[Byte] = {
+    val impS    = importsPrelude(code, indent = 2)
+    val source  =
+      s"${Code.packagePrelude}$impS$prelude${code.source}$postlude"
 
     // println(source)
 
@@ -256,72 +175,23 @@ object CodeImpl {
     def apply[A](execute: Boolean)(thunk: => A): A = if (execute) thunk else null.asInstanceOf[A]
   }
 
-  sealed trait Context[A] {
-    def __context__(): A
-  }
+  private val pkgCode = "de.sciss.synth.proc.impl.CodeImpl"
 
-  object FileTransformContext extends Context[FileTransformContext#Bindings] {
-    private[CodeImpl] val contextVar = new ThreadLocal[FileTransformContext#Bindings]
-    def __context__(): FileTransformContext#Bindings = contextVar.get()
-  }
-
-  final class FileTransformContext(in: File, out: File, fun: () => Any)
-    extends ProcessorImpl[Unit, FileTransformContext] {
-    process =>
-
-    type Bindings = Bindings.type
-    object Bindings {
-      def in : File = process.in
-      def out: File = process.out
-      def checkAborted(): Unit = process.checkAborted()
-      def progress(f: Double): Unit = {
-        process.progress = f
-        process.checkAborted()
-      }
-    }
-
-    protected def body(): Unit = {
-      // blocking {
-      val prom  = Promise[Unit]()
-      val t = new Thread {
-        override def run(): Unit = {
-          FileTransformContext.contextVar.set(Bindings)
-          try {
-            fun()
-            prom.complete(Success {})
-          } catch {
-            case e: Exception =>
-              e.printStackTrace()
-              prom.complete(Failure(e))
-          }
-        }
-      }
-      t.start()
-      Await.result(prom.future, Duration.Inf)
-      // }
-    }
-  }
-
-  private val pkgAction = "de.sciss.synth.proc.Action"
-  private val pkgCode   = "de.sciss.synth.proc.impl.CodeImpl"
-  private val pkgSys    = "de.sciss.lucre.stm"
+  def importsPrelude(code: Code, indent: Int = 0): String =
+    importsMap(code.id).map(i => s"${"  " * indent}import $i\n").mkString
 
   // note: synchronous
-  private def compileThunk[A](code: String, w: Wrapper[_, _, A, _], execute: Boolean)(implicit compiler: Code.Compiler): A = {
-    val impS  = w.imports.map(i => s"  import $i\n").mkString
-    val bindS = w.binding.fold("")(i =>
-      s"""  val __context__ = $pkgCode.$i.__context__
-        |  import __context__._
-        |""".stripMargin)
-    val aTpe  = w.blockTag // .tpe.toString
+  def compileThunk[A: ClassTag](code: Code, execute: Boolean)(implicit compiler: Code.Compiler): A = {
+    val impS  = importsPrelude(code, indent = 1)
+    val ct    = implicitly[ClassTag[A]].runtimeClass
+    val aTpe  = ct.getName // w.returnType
     val synth =
       s"""$pkgCode.Run[$aTpe]($execute) {
         |$impS
-        |$bindS
         |
         |""".stripMargin + code + "\n}"
 
-    val res: Any = compiler.interpret(synth, execute = execute && w.blockTag != "Unit")
+    val res: Any = compiler.interpret(synth, execute = execute && ct != classOf[Unit])
     res.asInstanceOf[A]
   }
 }

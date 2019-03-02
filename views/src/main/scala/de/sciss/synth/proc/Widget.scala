@@ -80,16 +80,22 @@ object Widget extends Obj.Type {
     def id: Int = Code.id
 
     def compileBody()(implicit compiler: proc.Code.Compiler): Future[Unit] = {
-      import Impl.CodeWrapper
       CodeImpl.compileBody[In, Out, _Widget, Code](this)
     }
 
-    def execute(in: In)(implicit compiler: proc.Code.Compiler): Out = {
-      import Impl.CodeWrapper
-      CodeImpl.execute[In, Out, _Widget, Code](this, in)
-    }
+    def execute(in: In)(implicit compiler: proc.Code.Compiler): Out =
+      Graph {
+        CodeImpl.compileThunk(this, execute = true)
+      }
 
     def contextName: String = Code.name
+
+    def prelude : String =
+      s"""object Main {
+         |  def __result__ : ${classOf[_Widget].getName} = {
+         |""".stripMargin
+
+    def postlude: String = "\n  }\n}\n"
 
     def updateSource(newText: String): Code = copy(source = newText)
   }

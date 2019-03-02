@@ -3,7 +3,6 @@ package de.sciss.synth.proc
 import java.nio.ByteBuffer
 
 import de.sciss.osc
-import de.sciss.synth.proc.impl.CodeImpl
 
 import scala.concurrent.{ExecutionContext, Future, blocking}
 import scala.util.Success
@@ -62,7 +61,8 @@ object ActionTest extends App {
   def iter(name: String): Future[Array[Byte]] = {
     val code  = Code.Action(exampleSource)
     println("Compiling...")
-    val fut   = Code.future(blocking(CodeImpl.compileToFunction(name, code)))
+//    val fut   = Code.future(blocking(CodeImpl.compileToJar(name, code)))
+    val fut   = Code.future(blocking(code.execute(name)))
 
     fut.onComplete { res =>
       println("Result:")

@@ -128,7 +128,7 @@ object Code {
 
     def execute(in: In)(implicit compiler: Code.Compiler): Out =
       synth.SynthGraph {
-        Impl.compileThunk(this, execute = true)
+        Impl.compileThunk[Unit](this, execute = true)
       }
 
     def contextName: String = SynthGraph.name

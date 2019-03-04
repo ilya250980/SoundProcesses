@@ -10,7 +10,7 @@ lazy val commonSettings = Seq(
   homepage           := Some(url(s"https://git.iem.at/sciss/$baseName")),
   description        := "A framework for creating and managing ScalaCollider based sound processes",
   licenses           := Seq("LGPL v2.1+" -> url("http://www.gnu.org/licenses/lgpl-2.1.txt")),
-  scalaVersion       := "2.13.0-M5",
+  scalaVersion       := "2.12.8",
   crossScalaVersions := Seq("2.12.8", "2.11.12", "2.13.0-M5"),
   scalacOptions     ++= Seq(
     "-deprecation", "-unchecked", "-feature", "-encoding", "utf8", "-Xfuture", "-Xlint", "-Xsource:2.13"

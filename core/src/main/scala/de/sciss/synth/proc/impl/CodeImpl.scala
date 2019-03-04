@@ -44,33 +44,30 @@ object CodeImpl {
   // ----
 
   def unpackJar(bytes: Array[Byte]): Map[String, Array[Byte]] = {
+    // cf. http://stackoverflow.com/questions/8909743/
     import java.util.jar._
-
-    import scala.annotation.tailrec
 
     val in = new JarInputStream(new ByteArrayInputStream(bytes))
     val b  = Map.newBuilder[String, Array[Byte]]
 
-    @tailrec def loop(): Unit = {
+    while ({
       val entry = in.getNextJarEntry
-      if (entry != null) {
+      (entry != null) && {
         if (!entry.isDirectory) {
-          val name  = entry.getName
-
-          // cf. http://stackoverflow.com/questions/8909743/jarentry-getsize-is-returning-1-when-the-jar-files-is-opened-as-inputstream-f
+          val name = entry.getName
           val bs  = new ByteArrayOutputStream
-          var i   = 0
-          while (i >= 0) {
-            i = in.read()
-            if (i >= 0) bs.write(i)
-          }
+          val arr = new Array[Byte](1024)
+          while ({
+            val sz = in.read(arr, 0, 1024)
+            (sz > 0) && { bs.write(arr, 0, sz); true }
+          }) ()
           val bytes = bs.toByteArray
           b += mkClassName(name) -> bytes
         }
-        loop()
+        true
       }
-    }
-    loop()
+    })
+
     in.close()
     b.result()
   }
@@ -180,18 +177,19 @@ object CodeImpl {
   def importsPrelude(code: Code, indent: Int = 0): String =
     importsMap(code.id).map(i => s"${"  " * indent}import $i\n").mkString
 
-  // note: synchronous
+  // note: synchronous. N.B.: make sure you give `A`, otherwise it will be inferred `Nothing`
   def compileThunk[A: ClassTag](code: Code, execute: Boolean)(implicit compiler: Code.Compiler): A = {
     val impS  = importsPrelude(code, indent = 1)
-    val ct    = implicitly[ClassTag[A]].runtimeClass
-    val aTpe  = ct.getName // w.returnType
+    val ct    = implicitly[ClassTag[A]]
+    val clazz = ct.runtimeClass
+    val aTpe  = ct.toString // not `clazz.getName` which gives `void` instead of `Unit`!
     val synth =
       s"""$pkgCode.Run[$aTpe]($execute) {
         |$impS
         |
-        |""".stripMargin + code + "\n}"
+        |""".stripMargin + code.source + "\n}"
 
-    val res: Any = compiler.interpret(synth, execute = execute && ct != classOf[Unit])
+    val res: Any = compiler.interpret(synth, execute = execute && clazz != classOf[Unit])
     res.asInstanceOf[A]
   }
 }

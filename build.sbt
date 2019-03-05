@@ -1,7 +1,7 @@
 lazy val baseName  = "SoundProcesses"
 lazy val baseNameL = baseName.toLowerCase
 
-lazy val projectVersion = "3.25.0-SNAPSHOT"
+lazy val projectVersion = "3.25.0"
 lazy val mimaVersion    = "3.25.0" // used for migration-manager
 
 lazy val commonSettings = Seq(
@@ -30,18 +30,18 @@ lazy val deps = new {
     val lucreSwing          = "1.14.0"
     val model               = "0.3.4"
     val numbers             = "0.2.0"
-    val scalaCollider       = "1.28.0"
+    val scalaCollider       = "1.28.1"
     val scalaColliderIf     = "0.9.0"
     val span                = "1.4.2"
     val swingPlus           = "0.4.0"
     val topology            = "1.1.1"
-    val ugens               = "1.19.2"
+    val ugens               = "1.19.3"
   }
   
   val test = new {
     val bdb                = "bdb"  // "bdb" or "bdb6" or "bdb7"
     val scalaColliderSwing = "1.41.0"
-    val scalaTest          = "3.0.5"
+    val scalaTest          = "3.0.6"
     val scopt              = "3.7.1"
     val submin             = "0.2.4"
   }
@@ -96,8 +96,7 @@ lazy val synth = project.withId("lucresynth").in(file("synth"))
 
 lazy val testSettings = Seq(
   libraryDependencies += {
-    val v = if (scalaVersion.value == "2.13.0-M5") "3.0.6-SNAP5" else deps.test.scalaTest
-    "org.scalatest" %% "scalatest" % v % Test
+    "org.scalatest" %% "scalatest" % deps.test.scalaTest % Test
   }
 )
 

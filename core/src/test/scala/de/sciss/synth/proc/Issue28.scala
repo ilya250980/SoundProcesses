@@ -12,7 +12,7 @@ import scala.util.Success
 /*
   To run only this suite:
 
-  test-only de.sciss.synth.proc.Issue28
+  testOnly de.sciss.synth.proc.Issue28
 
   */
 class Issue28 extends BounceSpec {

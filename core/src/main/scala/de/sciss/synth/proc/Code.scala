@@ -2,7 +2,7 @@
  *  Code.scala
  *  (SoundProcesses)
  *
- *  Copyright (c) 2010-2018 Hanns Holger Rutz. All rights reserved.
+ *  Copyright (c) 2010-2019 Hanns Holger Rutz. All rights reserved.
  *
  *	This software is published under the GNU Lesser General Public License v2.1+
  *
@@ -151,11 +151,11 @@ object Code {
     final val name  = "Action"
     type Repr = Action
 
-    def docBaseSymbol: String = pkgAction
+    def docBaseSymbol: String = s"$pkgAction$$$$Universe"
 
     def mkCode(source: String): Repr = Action(source)
 
-    private def pkgAction = "de.sciss.synth.proc.Action$$Universe"
+    private def pkgAction = "de.sciss.synth.proc.Action"
     private val pkgSys    = "de.sciss.lucre.stm"
   }
   final case class Action(source: String) extends Code {

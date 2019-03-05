@@ -54,6 +54,8 @@ object Widget extends Obj.Type {
     final val name  = "Widget Graph"
     type Repr       = Code
 
+    def docBaseSymbol: String = "de.sciss.lucre.swing.graph"
+
     private[this] lazy val _init: Unit = {
       proc.Code.addType(this)
       proc.Code.registerImports(id, Vec(
@@ -89,6 +91,8 @@ object Widget extends Obj.Type {
       }
 
     def contextName: String = Code.name
+
+    def docBaseSymbol: String = Code.docBaseSymbol
 
     def prelude : String =
       s"""object Main {

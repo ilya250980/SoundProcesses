@@ -116,6 +116,8 @@ object Code {
     final val name  = "Synth Graph"
     type Repr = SynthGraph
 
+    def docBaseSymbol: String = "de.sciss.synth.ugen"
+
     def mkCode(source: String): Repr = SynthGraph(source)
   }
   final case class SynthGraph(source: String) extends Code {
@@ -133,6 +135,8 @@ object Code {
 
     def contextName: String = SynthGraph.name
 
+    def docBaseSymbol: String = SynthGraph.docBaseSymbol
+
     def prelude : String = "object Main {\n"
 
     def postlude: String = "\n}\n"
@@ -147,9 +151,11 @@ object Code {
     final val name  = "Action"
     type Repr = Action
 
+    def docBaseSymbol: String = pkgAction
+
     def mkCode(source: String): Repr = Action(source)
 
-    private def pkgAction = "de.sciss.synth.proc.Action"
+    private def pkgAction = "de.sciss.synth.proc.Action$$Universe"
     private val pkgSys    = "de.sciss.lucre.stm"
   }
   final case class Action(source: String) extends Code {
@@ -165,6 +171,8 @@ object Code {
     }
 
     def contextName: String = Action.name
+
+    def docBaseSymbol: String = Action.docBaseSymbol
 
     def updateSource(newText: String): Action = copy(source = newText)
 
@@ -244,6 +252,9 @@ trait Code extends Writable { me =>
     * Should generally begin and end in a newline.
     */
   def postlude: String
+
+  /** Base package or class name for API documentation. */
+  def docBaseSymbol: String
 
   /** Compiles the code body without executing it. */
   def compileBody()(implicit compiler: Code.Compiler): Future[Unit]

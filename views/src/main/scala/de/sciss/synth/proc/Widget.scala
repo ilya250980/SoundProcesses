@@ -30,7 +30,10 @@ object Widget extends Obj.Type {
   final val typeId = 0x1000E
 
   /** Source code of the graph function. */
-  final val attrSource = "graph-source"
+  final val attrSource    = "graph-source"
+
+  /** Boolean indicating whether view should go into edit mode by default. */
+  final val attrEditMode  = "edit-mode"
 
   override def init(): Unit = {
     super   .init()
@@ -100,7 +103,7 @@ object Widget extends Obj.Type {
 
     def execute(in: In)(implicit compiler: proc.Code.Compiler): Out =
       Graph {
-        CodeImpl.compileThunk(this, execute = true)
+        CodeImpl.compileThunk[_Widget](this, execute = true)
       }
 
     def contextName: String = Code.name

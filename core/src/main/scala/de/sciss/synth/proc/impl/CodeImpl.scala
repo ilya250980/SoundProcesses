@@ -177,7 +177,8 @@ object CodeImpl {
   def importsPrelude(code: Code, indent: Int = 0): String =
     importsMap(code.id).map(i => s"${"  " * indent}import $i\n").mkString
 
-  // note: synchronous. N.B.: make sure you give `A`, otherwise it will be inferred `Nothing`
+  // note: synchronous.
+  // XXX TODO -- this is too bad: N.B.: make sure you give `A`, otherwise it will be inferred `Nothing`
   def compileThunk[A: ClassTag](code: Code, execute: Boolean)(implicit compiler: Code.Compiler): A = {
     val impS  = importsPrelude(code, indent = 1)
     val ct    = implicitly[ClassTag[A]]

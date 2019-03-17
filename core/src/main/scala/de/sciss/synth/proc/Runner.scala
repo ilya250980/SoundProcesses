@@ -18,7 +18,7 @@ import de.sciss.lucre.stm
 import de.sciss.lucre.stm.{Cursor, Obj, Sys}
 import de.sciss.lucre.synth.{Sys => SSys}
 import de.sciss.synth.proc
-import de.sciss.synth.proc.impl.{ActionRunnerImpl, ProcRunnerImpl, TimelineRunnerImpl, RunnerUniverseImpl => Impl}
+import de.sciss.synth.proc.impl.{ActionRunnerImpl, BasicRunnerImpl, TimelineRunnerImpl, RunnerUniverseImpl => Impl}
 import de.sciss.synth.proc.{Action => _Action, Proc => _Proc, Timeline => _Timeline}
 
 import scala.language.higherKinds
@@ -107,7 +107,7 @@ object Runner {
     type Repr[~ <: Sys[~]] = _Proc[~]
 
     def mkRunner[S <: SSys[S]](obj: _Proc[S])(implicit tx: S#Tx, universe: Runner.Universe[S]): Runner[S] =
-      ProcRunnerImpl(obj)
+      BasicRunnerImpl(obj)
   }
 
   object Timeline extends Factory {

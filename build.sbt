@@ -1,8 +1,8 @@
 lazy val baseName  = "SoundProcesses"
 lazy val baseNameL = baseName.toLowerCase
 
-lazy val projectVersion = "3.25.1-SNAPSHOT"
-lazy val mimaVersion    = "3.25.0" // used for migration-manager
+lazy val projectVersion = "3.26.0-SNAPSHOT"
+lazy val mimaVersion    = "3.26.0" // used for migration-manager
 
 lazy val commonSettings = Seq(
   version            := projectVersion,
@@ -135,12 +135,13 @@ lazy val views = project.withId(s"$baseNameL-views").in(file("views"))
   .settings(
     description := "Views for Sound Processes",
     libraryDependencies ++= Seq(
-      "de.sciss"      %% "span"                     % deps.main.span,              // sbt bug
-      "de.sciss"      %% "lucreswing"               % deps.main.lucreSwing,
-      "de.sciss"      %% "swingplus"                % deps.main.swingPlus,
-      "de.sciss"      %% "audiowidgets-app"         % deps.main.audioWidgets,
-      "de.sciss"      %  "submin"                   % deps.test.submin    % Test,
-      "de.sciss"      %% s"lucre-${deps.test.bdb}"  % deps.main.lucre     % Test,
+      "de.sciss"        %% "span"                     % deps.main.span,              // sbt bug
+      "de.sciss"        %% "lucreswing"               % deps.main.lucreSwing,
+      "de.sciss"        %% "swingplus"                % deps.main.swingPlus,
+      "de.sciss"        %% "audiowidgets-app"         % deps.main.audioWidgets,
+      "org.scala-lang"  %  "scala-reflect"            % scalaVersion.value,
+      "de.sciss"        %  "submin"                   % deps.test.submin    % Test,
+      "de.sciss"        %% s"lucre-${deps.test.bdb}"  % deps.main.lucre     % Test,
     ),
     mimaPreviousArtifacts := Set("de.sciss" %% s"$baseNameL-views" % mimaVersion)
   )

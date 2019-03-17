@@ -266,6 +266,8 @@ object EnvSegment {
   final case class Single(startLevel: Double, curve: Curve) extends EnvSegment {
     def numChannels: Int = 1
 
+    def updateCurve(curve: Curve): EnvSegment = copy(curve = curve)
+
     def startLevels: Vec[Double] = Vector(startLevel)
 
     private[proc] def startLevelsAsControl: ControlValues = startLevel
@@ -277,8 +279,10 @@ object EnvSegment {
       Curve.serializer.write(curve, out)
     }
   }
-  final case class Multi (startLevels: Vec[Double], curve: Curve) extends EnvSegment {
+  final case class Multi(startLevels: Vec[Double], curve: Curve) extends EnvSegment {
     def numChannels: Int = startLevels.size
+
+    def updateCurve(curve: Curve): EnvSegment = copy(curve = curve)
 
     private[proc] def startLevelsAsControl: ControlValues = startLevels.map(_.toFloat)
 
@@ -290,11 +294,12 @@ object EnvSegment {
     }
   }
 }
-//final case class EnvSegment(targetLevel: Double, curve: Curve)
 sealed abstract class EnvSegment extends Writable {
   def curve: Curve
   def startLevels: Vec[Double]
   def numChannels: Int
+
+  def updateCurve(curve: Curve): EnvSegment
 
   private[proc] def startLevelsAsControl: ControlValues
 }

@@ -66,9 +66,10 @@ object Widget extends Obj.Type {
   // ---- Code ----
 
   object Code extends proc.Code.Type {
-    final val id    = 6
-    final val name  = "Widget Graph"
-    type Repr       = Code
+    final val id        = 6
+    final val prefix    = "Widget"
+    final val humanName = "Widget Graph"
+    type Repr           = Code
 
     def docBaseSymbol: String = "de.sciss.lucre.swing.graph"
 
@@ -95,20 +96,19 @@ object Widget extends Obj.Type {
   final case class Code(source: String) extends proc.Code {
     type In     = Unit
     type Out    = _Graph
-    def id: Int = Code.id
+
+    def tpe: proc.Code.Type = Code
 
     def compileBody()(implicit compiler: proc.Code.Compiler): Future[Unit] = {
-      CodeImpl.compileBody[In, Out, _Widget, Code](this)
+      import reflect.runtime.universe._
+      CodeImpl.compileBody[In, Out, _Widget, Code](this, typeTag[_Widget])
     }
 
     def execute(in: In)(implicit compiler: proc.Code.Compiler): Out =
       Graph {
-        CodeImpl.compileThunk[_Widget](this, execute = true)
+        import reflect.runtime.universe._
+        CodeImpl.compileThunk[_Widget](this, typeTag[_Widget], execute = true)
       }
-
-    def contextName: String = Code.name
-
-    def docBaseSymbol: String = Code.docBaseSymbol
 
     def prelude : String =
       s"""object Main {

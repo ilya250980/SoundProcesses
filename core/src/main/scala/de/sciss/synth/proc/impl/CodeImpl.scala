@@ -18,9 +18,8 @@ import java.io.{ByteArrayInputStream, ByteArrayOutputStream}
 import de.sciss.serial.{DataInput, DataOutput, ImmutableSerializer}
 import de.sciss.synth.proc.Code
 
-import scala.collection.immutable.{IndexedSeq => Vec}
+import scala.collection.immutable.{IndexedSeq => Vec, Seq => ISeq}
 import scala.concurrent.{Future, blocking}
-import scala.reflect.ClassTag
 
 object CodeImpl {
   private final val COOKIE  = 0x436F6465  // "Code"
@@ -40,6 +39,8 @@ object CodeImpl {
   def getType(id: Int): Code.Type = map.getOrElse(id, sys.error(s"Unknown element type $id"))
 
   def apply(id: Int, source: String): Code = getType(id).mkCode(source)
+
+  def types: ISeq[Code.Type] = map.valuesIterator.toList.sortBy(_.humanName)
 
   // ----
 
@@ -66,7 +67,7 @@ object CodeImpl {
         }
         true
       }
-    })
+    }) ()
 
     in.close()
     b.result()
@@ -83,7 +84,7 @@ object CodeImpl {
   implicit object serializer extends ImmutableSerializer[Code] {
     def write(v: Code, out: DataOutput): Unit = {
       out.writeInt(COOKIE)
-      out.writeInt(v.id)
+      out.writeInt(v.tpe.id)
       out.writeUTF(v.source)
     }
 
@@ -146,11 +147,11 @@ object CodeImpl {
 //    }
 //  }
 
-  def compileBody[I, O, A: ClassTag, Repr <: Code.T[I, O]](code: Repr)
-                                                          (implicit compiler: Code.Compiler): Future[Unit] =
+  def compileBody[I, O, A, Repr <: Code.T[I, O]](code: Repr, tt: reflect.runtime.universe.TypeTag[A])
+                                                (implicit compiler: Code.Compiler): Future[Unit] =
     future {
       blocking {
-        compileThunk[A](code, execute = false)
+        compileThunk[A](code, tt = tt, execute = false)
       }
     }
 
@@ -175,22 +176,21 @@ object CodeImpl {
   private val pkgCode = "de.sciss.synth.proc.impl.CodeImpl"
 
   def importsPrelude(code: Code, indent: Int = 0): String =
-    importsMap(code.id).map(i => s"${"  " * indent}import $i\n").mkString
+    importsMap(code.tpe.id).map(i => s"${"  " * indent}import $i\n").mkString
 
   // note: synchronous.
-  // XXX TODO -- this is too bad: N.B.: make sure you give `A`, otherwise it will be inferred `Nothing`
-  def compileThunk[A: ClassTag](code: Code, execute: Boolean)(implicit compiler: Code.Compiler): A = {
-    val impS  = importsPrelude(code, indent = 1)
-    val ct    = implicitly[ClassTag[A]]
-    val clazz = ct.runtimeClass
-    val aTpe  = ct.toString // not `clazz.getName` which gives `void` instead of `Unit`!
+  def compileThunk[A](code: Code, tt: reflect.runtime.universe.TypeTag[A], execute: Boolean)
+                     (implicit compiler: Code.Compiler): A = {
+    val impS    = importsPrelude(code, indent = 1)
+    val aTpe    = tt.tpe.toString // not `clazz.getName` which gives `void` instead of `Unit`!
+    val isUnit  = aTpe == "Unit"
     val synth =
       s"""$pkgCode.Run[$aTpe]($execute) {
         |$impS
         |
         |""".stripMargin + code.source + "\n}"
 
-    val res: Any = compiler.interpret(synth, execute = execute && clazz != classOf[Unit])
+    val res: Any = compiler.interpret(synth, print = false, execute = execute && !isUnit)
     res.asInstanceOf[A]
   }
 }

@@ -30,13 +30,13 @@ package object proc {
 
   type Workspace[S <: Sys[S]] = stm.Workspace[S]
 
-  @elidable(CONFIG) private[proc] def logAural(what: => String): Unit =
+  @elidable(CONFIG) private[sciss] def logAural(what: => String): Unit =
     if (showAuralLog) Console.out.println(s"${logHeader.format(new Date())}aural $what")
 
-  @elidable(CONFIG) private[proc] def logTransport(what: => String): Unit =
+  @elidable(CONFIG) private[sciss] def logTransport(what: => String): Unit =
     if (showTransportLog) Console.out.println(s"${logHeader.format(new Date())}transport $what")
 
-  @elidable(CONFIG) private[proc] def log(what: => String): Unit =
+  @elidable(CONFIG) private[sciss] def log(what: => String): Unit =
     if (showLog) Console.out.println(logHeader.format(new Date()) + what)
 
   /** Exception are sometimes swallowed without printing in a transaction. This ensures a print. */

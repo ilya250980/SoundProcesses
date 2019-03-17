@@ -21,7 +21,7 @@ import de.sciss.serial.{DataInput, DataOutput, ImmutableSerializer, Writable}
 import de.sciss.synth
 import de.sciss.synth.proc.impl.{CodeImpl => Impl}
 
-import scala.collection.immutable.{IndexedSeq => Vec}
+import scala.collection.immutable.{IndexedSeq => Vec, Seq => ISeq}
 import scala.concurrent.{ExecutionContext, Future, blocking}
 
 object Code {
@@ -66,8 +66,14 @@ object Code {
 
   def getType(id: Int): Code.Type = Impl.getType(id)
 
+  def types: ISeq[Code.Type] = Impl.types
+
   trait Type {
     def id: Int
+
+    def prefix        : String
+    def humanName     : String
+    def docBaseSymbol : String
 
     type Repr <: Code
 
@@ -106,14 +112,17 @@ object Code {
       *                 of an imported object. It must contain any necessary `import` statements.
       * @return the evaluation result, or `()` if there is no result value
       */
-    def interpret(source: String, execute: Boolean): Any
+    def interpret(source: String, print: Boolean, execute: Boolean): Any
   }
 
   // ---- type: SynthGraph ----
 
   object SynthGraph extends Type {
-    final val id    = 1
-    final val name  = "Synth Graph"
+    final val id        = 1
+
+    final val prefix    = "Proc"
+    final val humanName = "Synth Graph"
+
     type Repr = SynthGraph
 
     def docBaseSymbol: String = "de.sciss.synth.ugen"
@@ -123,19 +132,19 @@ object Code {
   final case class SynthGraph(source: String) extends Code {
     type In     = Unit
     type Out    = synth.SynthGraph
-    def id: Int = SynthGraph.id
 
-    def compileBody()(implicit compiler: Code.Compiler): Future[Unit] =
-      Impl.compileBody[In, Out, Unit, SynthGraph](this)
+    def tpe: Code.Type = SynthGraph
+
+    def compileBody()(implicit compiler: Code.Compiler): Future[Unit] = {
+      import reflect.runtime.universe._
+      Impl.compileBody[In, Out, Unit, SynthGraph](this, typeTag[Unit])
+    }
 
     def execute(in: In)(implicit compiler: Code.Compiler): Out =
       synth.SynthGraph {
-        Impl.compileThunk[Unit](this, execute = true)
+        import reflect.runtime.universe._
+        Impl.compileThunk[Unit](this, typeTag[Unit], execute = true)
       }
-
-    def contextName: String = SynthGraph.name
-
-    def docBaseSymbol: String = SynthGraph.docBaseSymbol
 
     def prelude : String = "object Main {\n"
 
@@ -147,8 +156,12 @@ object Code {
   // ---- type: Action ----
 
   object Action extends Type {
-    final val id    = 2
-    final val name  = "Action"
+    final val id = 2
+
+    final val prefix  = "Action"
+
+    def humanName: String = prefix
+
     type Repr = Action
 
     def docBaseSymbol: String = s"$pkgAction$$$$Universe"
@@ -161,7 +174,8 @@ object Code {
   final case class Action(source: String) extends Code {
     type In     = String
     type Out    = Array[Byte]
-    def id: Int = Action.id
+
+    def tpe: Code.Type = Action
 
     def compileBody()(implicit compiler: Code.Compiler): Future[Unit] = future(blocking { execute("Unnamed"); () })
 
@@ -169,10 +183,6 @@ object Code {
       // Impl.execute[In, Out, Action](this, in)
       Impl.compileToJar(in, this, prelude = mkPrelude(in), postlude = postlude)
     }
-
-    def contextName: String = Action.name
-
-    def docBaseSymbol: String = Action.docBaseSymbol
 
     def updateSource(newText: String): Action = copy(source = newText)
 
@@ -226,17 +236,13 @@ trait Code extends Writable { me =>
   /** The interfacing output type */
   type Out
 
-  /** Identifier to distinguish types of code. */
-  def id: Int
+  def tpe: Code.Type
 
   /** Source code. */
   def source: String
 
   /** Creates a new code object with updated source code. */
   def updateSource(newText: String): Self
-
-  /** Human readable name. */
-  def contextName: String
 
   /** Generic source code prelude wrapping code,
     * containing package, class or object.
@@ -252,9 +258,6 @@ trait Code extends Writable { me =>
     * Should generally begin and end in a newline.
     */
   def postlude: String
-
-  /** Base package or class name for API documentation. */
-  def docBaseSymbol: String
 
   /** Compiles the code body without executing it. */
   def compileBody()(implicit compiler: Code.Compiler): Future[Unit]

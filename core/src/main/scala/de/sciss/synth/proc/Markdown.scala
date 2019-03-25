@@ -26,6 +26,9 @@ object Markdown extends ExprTypeImpl[String, Markdown] {
   final val typeId          = 29
   final val valueSerializer = Serializer.String
 
+  /** Boolean indicating whether view should go into edit mode by default. */
+  final val attrEditMode    = "edit-mode"
+
   protected def mkConst[S <: Sys[S]](id: S#Id, value: A)(implicit tx: S#Tx): Const[S] =
     new _Const[S](id, value)
 

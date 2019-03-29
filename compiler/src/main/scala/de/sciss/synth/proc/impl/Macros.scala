@@ -14,6 +14,7 @@
 package de.sciss.synth.proc
 package impl
 
+import de.sciss.lucre
 import de.sciss.lucre.stm.Sys
 import de.sciss.synth.SynthGraph
 
@@ -65,12 +66,32 @@ object Macros {
     // There is simply no way (?) to get hold of the `S` parameter in the macro implementation.
     reify {
       val ext                 = c.prefix.splice.asInstanceOf[MacroImplicits.ProcMacroOps[S]]
-      implicit val txc   = tx.splice // don't bloody annotate the type with `S#Tx`, it will break scalac
+      implicit val txc = tx.splice // don't bloody annotate the type with `S#Tx`, it will break scalac
       val p                   = ext.`this`
       p.graph()               = SynthGraphObj.newConst[S](SynthGraph(body.splice))
       val code                = Code.SynthGraph(sourceExpr.splice)
       val codeObj             = Code.Obj.newVar[S](Code.Obj.newConst[S](code))
       p.attr.put(Proc.attrSource, codeObj)
+    }
+  }
+
+  def widgetGraphWithSource[S <: Sys[S]](c: blackbox.Context)(body: c.Expr[lucre.swing.Widget])(tx: c.Expr[S#Tx])
+                                        (implicit tt: c.WeakTypeTag[S]): c.Expr[Unit] = {
+    import c.universe._
+
+    val source      = mkSource(c)("widget", body.tree)
+    val sourceExpr  = c.Expr[String](Literal(Constant(source)))
+    // N.B. the cast to `InMemory` doesn't seem to cause any problems, it's just to satisfy
+    // scalac at this point, although `ProcCompilerOps` has already put all type checks into place.
+    // There is simply no way (?) to get hold of the `S` parameter in the macro implementation.
+    reify {
+      val ext                 = c.prefix.splice.asInstanceOf[MacroImplicits.WidgetMacroOps[S]]
+      implicit val txc = tx.splice // don't bloody annotate the type with `S#Tx`, it will break scalac
+      val w                   = ext.`this`
+      w.graph()               = Widget.GraphObj.newConst[S](lucre.swing.Graph(body.splice))
+      val code                = Widget.Code(sourceExpr.splice)
+      val codeObj             = Code.Obj.newVar[S](Code.Obj.newConst[S](code))
+      w.attr.put(Widget.attrSource, codeObj)
     }
   }
 

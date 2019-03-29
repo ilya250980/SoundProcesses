@@ -13,6 +13,7 @@
 
 package de.sciss.synth.proc
 
+import de.sciss.lucre
 import de.sciss.lucre.stm.Sys
 import de.sciss.synth.proc.impl.Macros
 
@@ -32,6 +33,11 @@ object MacroImplicits {
 
   implicit final class ActionMacroOps(private val a: Action.type) extends AnyVal {
     def apply[S <: Sys[S]](body: Action.Universe[S] => Unit)(implicit tx: S#Tx): Action[S] =
-      macro Macros.actionWithSource[S]
+    macro Macros.actionWithSource[S]
+  }
+
+  implicit final class WidgetMacroOps[S <: Sys[S]](val `this`: Widget[S]) extends AnyVal {
+    def setGraph(body: lucre.swing.Widget)(implicit tx: S#Tx): Unit =
+      macro Macros.widgetGraphWithSource[S]
   }
 }

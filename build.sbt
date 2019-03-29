@@ -1,7 +1,7 @@
 lazy val baseName  = "SoundProcesses"
 lazy val baseNameL = baseName.toLowerCase
 
-lazy val projectVersion = "3.27.0"
+lazy val projectVersion = "3.27.1-SNAPSHOT"
 lazy val mimaVersion    = "3.27.0" // used for migration-manager
 
 lazy val commonSettings = Seq(
@@ -147,7 +147,7 @@ lazy val views = project.withId(s"$baseNameL-views").in(file("views"))
   )
 
 lazy val compiler = project.withId(s"$baseNameL-compiler").in(file("compiler"))
-  .dependsOn(core)
+  .dependsOn(core, views)
   .settings(commonSettings)
   .settings(
     description := "Compiler-support for Sound Processes",

@@ -26,11 +26,12 @@ import de.sciss.synth.proc.TimeRef
 import de.sciss.synth.proc.{UGenGraphBuilder => UGB}
 
 import scala.concurrent.stm.Ref
+import scala.collection.immutable.{Seq => ISeq}
 
 object Runner {
   private final class ExpandedRun[S <: Sys[S]](r: proc.Runner[S]) extends IAction[S] {
     def execute()(implicit tx: S#Tx): Unit =
-    r.run(TimeRef.undefined, ())
+      r.run(TimeRef.undefined, ())
 
     def dispose()(implicit tx: S#Tx): Unit = ()
   }
@@ -124,6 +125,40 @@ object Runner {
       new ExpandedProgress[S](rx, tx)
     }
   }
+
+  private type Msg = ISeq[proc.Runner.Message]
+
+  private final class ExpandedMessages[S <: Sys[S]](r: proc.Runner[S], tx0: S#Tx)
+                                                   (implicit protected val targets: ITargets[S])
+    extends IExpr[S, Msg] with IGenerator[S, Change[Msg]] {
+
+    private[this] val beforeRef = Ref(value(tx0))
+
+    private[this] val obs = r.messages.react { implicit tx => now =>
+      val before  = beforeRef.swap(now)(tx.peer)
+      val ch      = Change(before, now)
+      if (ch.isSignificant) fire(ch)
+    } (tx0)
+
+    def value(implicit tx: S#Tx): Msg = r.messages.current
+
+    def dispose()(implicit tx: S#Tx): Unit = obs.dispose()
+
+    def changed: IEvent[S, Change[Msg]] = this
+
+    private[lucre] def pullUpdate(pull: IPull[S])(implicit tx: S#Tx): Option[Change[Msg]] =
+      Some(pull.resolve[Change[Msg]])
+  }
+
+  final case class Messages(r: Runner) extends Ex[ISeq[proc.Runner.Message]] {
+    override def productPrefix: String = s"Runner$$Messages" // serialization
+
+    def expand[S <: Sys[S]](implicit ctx: Ex.Context[S], tx: S#Tx): IExpr[S, ISeq[proc.Runner.Message]] = {
+      import ctx.targets
+      val rx = r.expand[S]
+      new ExpandedMessages[S](rx, tx)
+    }
+  }
 }
 final case class Runner(key: String) extends Control {
 
@@ -137,6 +172,8 @@ final case class Runner(key: String) extends Control {
 
   /** Zero to one. Negative if unknown */
   def progress: Ex[Double] = Runner.Progress(this)
+
+  def messages: Ex[ISeq[proc.Runner.Message]] = Runner.Messages(this)
 
   protected def mkControl[S <: Sys[S]](implicit ctx: Ex.Context[S], tx: S#Tx): Repr[S] =
     tx.system match {

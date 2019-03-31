@@ -13,6 +13,9 @@
 
 package de.sciss.synth.proc
 
+import java.text.SimpleDateFormat
+import java.util.{Date, Locale}
+
 import de.sciss.lucre.event.Observable
 import de.sciss.lucre.stm
 import de.sciss.lucre.stm.{Cursor, Obj, Sys}
@@ -123,13 +126,18 @@ object Runner {
       TimelineRunnerImpl(obj)
   }
 
+  private lazy val fmtMessageDate = new SimpleDateFormat("[HH:mm''ss.SSS]", Locale.US)
+
   object Message {
     sealed trait Level
     case object Error   extends Level
     case object Warning extends Level
     case object Info    extends Level
   }
-  final case class Message(time: Long, level: Message.Level, text: String)
+  final case class Message(time: Long, level: Message.Level, text: String) {
+    override def toString: String =
+      f"${fmtMessageDate.format(new Date(time))} $level%-7s - $text"
+  }
 
   trait Messages[Tx] extends Observable[Tx, List[Message]] {
     def current(implicit tx: Tx): List[Message]

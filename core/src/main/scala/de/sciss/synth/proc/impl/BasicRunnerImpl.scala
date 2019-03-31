@@ -33,7 +33,7 @@ trait BasicRunnerImpl[S <: Sys[S]]
 
     def current(implicit tx: S#Tx): List[Runner.Message] = ref()
 
-    protected def current_=(value: List[Runner.Message])(implicit tx: S#Tx): Unit = {
+    def current_=(value: List[Runner.Message])(implicit tx: S#Tx): Unit = {
       ref() = value
       fire(value)
     }

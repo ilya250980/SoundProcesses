@@ -13,10 +13,35 @@
 
 package de.sciss.lucre.expr.graph
 
-import de.sciss.lucre.expr.Ex
+import java.net.InetAddress
+
+import de.sciss.lucre.expr.{Ex, ExTuple2, IExpr}
+import de.sciss.lucre.stm.Sys
+
+import scala.util.control.NonFatal
 
 object SocketAddress {
-  def apply(host: Ex[String], port: Ex[Int]): SocketAddress = ???
+  def apply(host: Ex[String], port: Ex[Int]): SocketAddress = Impl(host, port)
+
+  final case class LocalHost() extends Ex[String] {
+    override def productPrefix: String = s"SocketAddress$$LocalHost" // serialization
+
+    def expand[S <: Sys[S]](implicit ctx: Ex.Context[S], tx: S#Tx): IExpr[S, String] = {
+      val value = try {
+        InetAddress.getLocalHost.getHostName
+      } catch {
+        case NonFatal(_) => "localhost"
+      }
+      Constant(value).expand[S]
+    }
+  }
+
+  private final case class Impl(host: Ex[String], port: Ex[Int]) extends SocketAddress {
+    override def productPrefix: String = "SocketAddress" // serialization
+
+    def expand[S <: Sys[S]](implicit ctx: Ex.Context[S], tx: S#Tx): IExpr[S, (String, Int)] =
+      ExTuple2(host, port).expand[S]
+  }
 }
 trait SocketAddress extends Ex[(String, Int)] {
   def host: Ex[String]

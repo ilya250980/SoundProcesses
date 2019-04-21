@@ -17,6 +17,7 @@ import java.text.SimpleDateFormat
 import java.util.{Date, Locale}
 
 import de.sciss.lucre.event.Observable
+import de.sciss.lucre.expr.IControl
 import de.sciss.lucre.stm
 import de.sciss.lucre.stm.{Cursor, Obj, Sys}
 import de.sciss.lucre.synth.{Sys => SSys}
@@ -148,7 +149,7 @@ object Runner {
     def current(implicit tx: Tx): Double
   }
 }
-trait Runner[S <: Sys[S]] extends ViewBase[S, Unit] {
+trait Runner[S <: Sys[S]] extends ViewBase[S, Unit] with IControl[S] {
   // def factory: Runner.Factory
 
   def messages: Runner.Messages[S#Tx] // (implicit tx: S#Tx): Any

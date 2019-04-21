@@ -28,6 +28,8 @@ trait BasicRunnerImpl[S <: Sys[S]]
   implicit final def workspace : Workspace[S] = universe.workspace
   implicit final def cursor    : Cursor[S]    = universe.cursor
 
+  def initControl()(implicit tx: S#Tx): Unit = ()
+
   final object messages extends Runner.Messages[S#Tx] with ObservableImpl[S, List[Runner.Message]] {
     private[this] val ref = Ref(List.empty[Runner.Message])
 
@@ -46,7 +48,7 @@ object BasicRunnerImpl {
     // an aural-obj... a bit of a resource waste?
     val t = Transport[S](universe)
     t.addObject(obj)
-    new Impl(tx.newHandle(obj), t, universe).init(obj)
+    new Impl(tx.newHandle(obj), t, universe).initRunner(obj)
   }
 
   private final class Impl[S <: Sys[S]](val objH: stm.Source[S#Tx, Obj[S]],
@@ -67,7 +69,7 @@ object BasicRunnerImpl {
       def current(implicit tx: S#Tx): Double = -1
     }
 
-    def init(obj: Obj[S])(implicit tx: S#Tx): this.type = {
+    def initRunner(obj: Obj[S])(implicit tx: S#Tx): this.type = {
       val vOpt = t.getView(obj)
       vOpt.foreach(auralViewAdded)
       // no need to store the observer, as the transport

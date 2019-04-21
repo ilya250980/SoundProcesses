@@ -1,8 +1,8 @@
 lazy val baseName  = "SoundProcesses"
 lazy val baseNameL = baseName.toLowerCase
 
-lazy val projectVersion = "3.27.1"
-lazy val mimaVersion    = "3.27.0" // used for migration-manager
+lazy val projectVersion = "3.28.0-SNAPSHOT"
+lazy val mimaVersion    = "3.28.0" // used for migration-manager
 
 lazy val commonSettings = Seq(
   version            := projectVersion,
@@ -11,58 +11,48 @@ lazy val commonSettings = Seq(
   description        := "A framework for creating and managing ScalaCollider based sound processes",
   licenses           := Seq("LGPL v2.1+" -> url("http://www.gnu.org/licenses/lgpl-2.1.txt")),
   scalaVersion       := "2.12.8",
-  crossScalaVersions := Seq("2.12.8", "2.11.12", "2.13.0-M5"),
-  scalacOptions     ++= Seq(
-    "-deprecation", "-unchecked", "-feature", "-encoding", "utf8", "-Xfuture", "-Xlint", "-Xsource:2.13"
-  ),
+  crossScalaVersions := Seq("2.12.8", "2.11.12", "2.13.0-RC1"),
+  scalacOptions ++= {
+    // "-Xfatal-warnings" -- breaks for cross-scala-build and deprecations
+    // -stars-align produces wrong warnings with decomposing OSC messages
+    val ys = Seq("-deprecation", "-unchecked", "-feature", "-encoding", "utf8", "-Xlint:-stars-align,_", "-Xsource:2.13")
+    if (loggingEnabled || isSnapshot.value) ys else ys ++ Seq("-Xelide-below", "INFO")
+  },
   resolvers          += "Oracle Repository" at "http://download.oracle.com/maven",  // required for sleepycat
   parallelExecution in Test := false,
-  updateOptions      := updateOptions.value.withLatestSnapshots(false)
+  updateOptions      := updateOptions.value.withLatestSnapshots(false),
+  testOptions in Test += Tests.Argument("-oF"),
+  fork in run := true  // required for shutdown hook, and also the scheduled thread pool, it seems
 ) ++ publishSettings
 
 lazy val deps = new {
   val main = new {
-    val audioFile           = "1.5.1"
-    val audioWidgets        = "1.14.0"
-    val equal               = "0.1.3"
+    val audioFile           = "1.5.3"
+    val audioWidgets        = "1.14.1"
+    val equal               = "0.1.4"
     val fileUtil            = "1.1.3"
-    val lucre               = "3.11.1"
-    val lucreSwing          = "1.15.1"
+    val lucre               = "3.12.0-SNAPSHOT"
+    val lucreSwing          = "1.16.0-SNAPSHOT"
     val model               = "0.3.4"
     val numbers             = "0.2.0"
-    val scalaCollider       = "1.28.1"
-    val scalaColliderIf     = "0.9.0"
+    val scalaCollider       = "1.28.2"
+    val scalaColliderIf     = "0.9.1"
     val span                = "1.4.2"
-    val swingPlus           = "0.4.1"
-    val topology            = "1.1.1"
+    val swingPlus           = "0.4.2"
+    val topology            = "1.1.2"
     val ugens               = "1.19.3"
   }
   
   val test = new {
     val bdb                = "bdb"  // "bdb" or "bdb6" or "bdb7"
-    val scalaColliderSwing = "1.41.0"
-    val scalaTest          = "3.0.7"
+    val scalaColliderSwing = "1.41.1"
+    val scalaTest          = "3.0.8-RC2"
     val scopt              = "3.7.1"
     val submin             = "0.2.5"
   }
 }
 
 lazy val loggingEnabled = true
-
-scalacOptions in ThisBuild ++= {
-  // "-Xfatal-warnings" -- breaks for cross-scala-build and deprecations
-  // -stars-align produces wrong warnings with decomposing OSC messages
-  val xs = Seq("-deprecation", "-unchecked", "-feature", "-encoding", "utf8", "-Xfuture")
-  val ys = if (scalaVersion.value.startsWith("2.10")) xs else xs :+ "-Xlint:-stars-align,_"  // syntax not supported in Scala 2.10
-  if (loggingEnabled || isSnapshot.value) ys else ys ++ Seq("-Xelide-below", "INFO")
-}
-
-// SI-7481
-// scalacOptions += "-no-specialization"
-
-testOptions in Test += Tests.Argument("-oF")
-
-fork in run := true  // required for shutdown hook, and also the scheduled thread pool, it seems
 
 // ---- sub-projects ----
 

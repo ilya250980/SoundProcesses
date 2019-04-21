@@ -11,26 +11,24 @@
  *  contact@sciss.de
  */
 
-package de.sciss.lucre.swing
-package graph
+package de.sciss.lucre.expr.graph
 
-import de.sciss.lucre.event.{IEvent, IPull, ITargets}
 import de.sciss.lucre.event.impl.IGenerator
+import de.sciss.lucre.event.{IEvent, IPull, ITargets}
 import de.sciss.lucre.expr.{Act, Control, Ex, IAction, IExpr}
 import de.sciss.lucre.stm.Sys
 import de.sciss.lucre.synth
 import de.sciss.model.Change
 import de.sciss.synth.proc
 import de.sciss.synth.proc.Runner.Universe
-import de.sciss.synth.proc.TimeRef
-import de.sciss.synth.proc.{UGenGraphBuilder => UGB}
+import de.sciss.synth.proc.{TimeRef, UGenGraphBuilder => UGB}
 
-import scala.concurrent.stm.Ref
 import scala.collection.immutable.{Seq => ISeq}
+import scala.concurrent.stm.Ref
 
 object Runner {
   private final class ExpandedRun[S <: Sys[S]](r: proc.Runner[S]) extends IAction[S] {
-    def execute()(implicit tx: S#Tx): Unit =
+    def executeAction()(implicit tx: S#Tx): Unit =
       r.run(TimeRef.undefined, ())
 
     def dispose()(implicit tx: S#Tx): Unit = ()
@@ -46,7 +44,7 @@ object Runner {
   }
 
   private final class ExpandedStop[S <: Sys[S]](r: proc.Runner[S]) extends IAction[S] {
-    def execute()(implicit tx: S#Tx): Unit =
+    def executeAction()(implicit tx: S#Tx): Unit =
       r.stop()
 
     def dispose()(implicit tx: S#Tx): Unit = ()
@@ -189,7 +187,7 @@ final case class Runner(key: String) extends Control {
     import ctx.{cursor, workspace}
     val objOpt                  = ctx.selfOption.flatMap(self => self.attr.get(key))
     val obj                     = objOpt.getOrElse(throw UGB.MissingIn(UGB.AttributeKey(key)))
-    implicit val h: Universe[S]  = Universe[S]()
+    implicit val h: Universe[S] = Universe()
     val runOpt                  = proc.Runner[S](obj)
     runOpt.getOrElse(throw new Exception(s"No runner for ${obj.tpe}"))
   }

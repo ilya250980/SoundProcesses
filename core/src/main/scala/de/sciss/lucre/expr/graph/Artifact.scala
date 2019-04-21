@@ -11,14 +11,12 @@
  *  contact@sciss.de
  */
 
-package de.sciss.lucre.swing
-package graph
+package de.sciss.lucre.expr.graph
 
 import de.sciss.file._
 import de.sciss.lucre.artifact.{ArtifactLocation, Artifact => _Artifact}
 import de.sciss.lucre.aux.Aux
 import de.sciss.lucre.expr.ExOps._
-import de.sciss.lucre.expr.graph.Attr
 import de.sciss.lucre.expr.impl.CellViewImpl
 import de.sciss.lucre.expr.impl.CellViewImpl.AttrMapExprObs
 import de.sciss.lucre.expr.{CellView, Control, Ex, IExpr}

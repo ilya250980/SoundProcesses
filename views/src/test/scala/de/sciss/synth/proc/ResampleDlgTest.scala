@@ -57,7 +57,7 @@ object ResampleDlgTest extends AppLike {
       ggCancel.tooltip    = "Cancel Rendering"
       val ggRender        = Button(" Render ")
 
-      ggRender.clicked ---> Println("TODO: Render")
+      ggRender.clicked ---> PrintLn("TODO: Render")
 
       val lineIn    = FlowPanel(lbIn, ggIn)
       val lineOut   = FlowPanel(lbOut, ggOut)

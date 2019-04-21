@@ -84,7 +84,7 @@ object SoundProcesses {
     Timeline      .init()
     Markdown      .init()
     EnvSegment    .init()
-    lucre.swing.graph.Artifact.init()
+    lucre.expr.graph.Artifact.init()
   }
 
   /** Registers all known types. */

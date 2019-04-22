@@ -9,7 +9,11 @@ trait OscTest {
     val m = OscUdpNode(40001)
     m.dump = 1
 
+//    val value: Ex[Int] = 123
+
     val act = n.send(m.self, OscMessage("/test", 123))
 //    LoadBang() ---> act
+
+    m.received ---> PrintLn(m.message.name)
   }
 }

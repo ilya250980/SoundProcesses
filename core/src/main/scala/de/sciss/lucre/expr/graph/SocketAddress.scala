@@ -43,6 +43,7 @@ object SocketAddress {
       ExTuple2(host, port).expand[S]
   }
 }
+// XXX TODO --- should it be a non-ex, and we handle `Ex[SocketAddress]` like `Ex[OscMessage]` ?
 trait SocketAddress extends Ex[(String, Int)] {
   def host: Ex[String]
   def port: Ex[Int]

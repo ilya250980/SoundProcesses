@@ -62,7 +62,8 @@ sealed trait OscNode extends Control {
 
   def received: Trig
 
-  def packet: Ex[OscPacket]
+//  def packet: Ex[OscPacket]
+  def message: Ex[OscMessage]
 
   def sender: SocketAddress
 
@@ -163,20 +164,54 @@ object OscUdpNode {
     }
   }
 
+  private final class MessageExpanded[S <: Sys[S]](peer: Repr[S], tx0: S#Tx)(implicit protected val targets: ITargets[S])
+    extends IExpr[S, OscMessage] with IEventImpl[S, Change[OscMessage]] {
+
+    peer.received.--->(changed)(tx0)
+
+    private def convert(m: osc.Message): OscMessage =
+      new OscMessage(m.name, m.args: _*)
+
+    def value(implicit tx: S#Tx): OscMessage =
+      convert(peer.message)
+
+    private[lucre] def pullUpdate(pull: IPull[S])(implicit tx: S#Tx): Option[Change[OscMessage]] =
+      pull(peer.received).flatMap { ch =>
+        val mBefore = convert(ch.before ._1)
+        val mNow    = convert(ch.now    ._1)
+        val chNew   = Change(mBefore, mNow)
+        if (chNew.isSignificant) Some(chNew) else None
+      }
+
+    def dispose()(implicit tx: S#Tx): Unit =
+      peer.received.-/->(changed)
+
+    def changed: IEvent[S, Change[OscMessage]] = this
+  }
+
+  final case class Message(n: OscUdpNode) extends Ex[OscMessage] {
+    override def productPrefix = s"OscUdpNode$$Message"   // serialization
+
+    def expand[S <: Sys[S]](implicit ctx: Ex.Context[S], tx: S#Tx): IExpr[S, OscMessage] = {
+      import ctx.targets
+      new MessageExpanded(n.expand[S], tx)
+    }
+  }
+
   private final class Expanded[S <: Sys[S]](protected val peer: OscUdpNode, localPort: Int, localHost: String)
                                            (implicit protected val targets: ITargets[S],
                                             protected val cursor: stm.Cursor[S])
-    extends Repr[S] with IControlImpl[S] with IGenerator[S, Change[(osc.Packet, InetSocketAddress)]] {
+    extends Repr[S] with IControlImpl[S] with IGenerator[S, Change[(osc.Message, InetSocketAddress)]] {
 
-    private[this] val lastRef = Ref[(osc.Packet, InetSocketAddress)](
-      (osc.Bundle.now(), InetSocketAddress.createUnresolved("invalid", 0)))
+    private[this] val lastRef = Ref[(osc.Message, InetSocketAddress)](
+      (osc.Message(""), InetSocketAddress.createUnresolved("invalid", 0)))
 
-    def packet(implicit tx: S#Tx): osc.Packet         = lastRef()._1
-    def sender(implicit tx: S#Tx): InetSocketAddress  = lastRef()._2
+    def message (implicit tx: S#Tx): osc.Message        = lastRef()._1
+    def sender  (implicit tx: S#Tx): InetSocketAddress  = lastRef()._2
 
-    def received: IEvent[S, Change[(osc.Packet, InetSocketAddress)]] = this
+    def received: IEvent[S, Change[(osc.Message, InetSocketAddress)]] = this
 
-    private[lucre] def pullUpdate(pull: IPull[S])(implicit tx: S#Tx): Option[Change[(osc.Packet, InetSocketAddress)]] =
+    private[lucre] def pullUpdate(pull: IPull[S])(implicit tx: S#Tx): Option[Change[(osc.Message, InetSocketAddress)]] =
       Some(pull.resolve)
 
     private[this] var addrHaveWarned = false
@@ -186,10 +221,22 @@ object OscUdpNode {
         case iAddr: InetSocketAddress =>
           // XXX TODO --- should we use SoundProcesses.atomic()?
           cursor.step { implicit tx =>
-            val tupNow    = (p, iAddr)
-            val tupBefore = lastRef.swap(tupNow)
-            fire(Change(tupBefore, tupNow))
+            def fire1(m: osc.Message): Unit = {
+              val tupNow    = (m, iAddr)
+              val tupBefore = lastRef.swap(tupNow)
+              fire(Change(tupBefore, tupNow))
+            }
+
+            def fireAll(pp: osc.Packet): Unit =
+              p match {
+                case m: osc.Message => fire1(m)
+                case b: osc.Bundle  =>
+                  b.packets.foreach(fireAll)
+              }
+
+            fireAll(p)
           }
+
         case _ =>
           if (!addrHaveWarned) {
             addrHaveWarned = true
@@ -294,11 +341,9 @@ object OscUdpNode {
 
     def self: SocketAddress = SocketAddress(port = localPort, host = localHost)
 
-    def received: Trig = Received(this)
-
-    def packet: Ex[OscPacket] = ???
-
-    def sender: SocketAddress = Sender(this)
+    def received: Trig            = Received(this)
+    def sender  : SocketAddress   = Sender  (this)
+    def message : Ex[OscMessage]  = Message (this)
 
     protected def mkControl[S <: Sys[S]](implicit ctx: Ex.Context[S], tx: S#Tx): Repr[S] = {
       val localPortV = localPort.expand[S].value
@@ -309,10 +354,10 @@ object OscUdpNode {
   }
 
   trait Repr[S <: Sys[S]] extends IControl[S] {
-    def packet(implicit tx: S#Tx): osc.Packet
-    def sender(implicit tx: S#Tx): InetSocketAddress
+    def message(implicit tx: S#Tx): osc.Message
+    def sender (implicit tx: S#Tx): InetSocketAddress
 
-    def received: IEvent[S, Change[(osc.Packet, InetSocketAddress)]]
+    def received: IEvent[S, Change[(osc.Message, InetSocketAddress)]]
   }
 }
 trait OscUdpNode extends OscNode {

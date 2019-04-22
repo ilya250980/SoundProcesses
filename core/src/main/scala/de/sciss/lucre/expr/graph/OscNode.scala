@@ -18,7 +18,7 @@ import java.net.{InetAddress, InetSocketAddress}
 import de.sciss.lucre.event.impl.{IEventImpl, IGenerator}
 import de.sciss.lucre.event.{IEvent, IPull, ITargets}
 import de.sciss.lucre.expr.impl.IControlImpl
-import de.sciss.lucre.expr.{Act, Control, Ex, Graph, IControl, IExpr, ITrigger, Trig}
+import de.sciss.lucre.expr.{Act, Control, Ex, Graph, IAction, IControl, IExpr, ITrigger, Trig}
 import de.sciss.lucre.stm
 import de.sciss.lucre.stm.Sys
 import de.sciss.lucre.stm.TxnLike.{peer => txPeer}
@@ -58,14 +58,14 @@ sealed trait OscNode extends Control {
 //  def port      : Ex[Int]
 //  def transport : Ex[String]
 
-  def self: SocketAddress
+  def self: Ex[SocketAddress]
 
   def received: Trig
 
 //  def packet: Ex[OscPacket]
   def message: Ex[OscMessage]
 
-  def sender: SocketAddress
+  def sender: Ex[SocketAddress]
 
   /** Possible values: 0 (off), 1 (text), 2 (hex), 3 (both).
     * The dump mode affects both incoming and outgoing packets.
@@ -122,42 +122,40 @@ object OscUdpNode {
   }
 
   private final class SenderExpanded[S <: Sys[S]](peer: Repr[S], tx0: S#Tx)(implicit protected val targets: ITargets[S])
-    extends IExpr[S, (String, Int)] with IEventImpl[S, Change[(String, Int)]] {
+    extends IExpr[S, SocketAddress] with IEventImpl[S, Change[SocketAddress]] {
 
     peer.received.--->(changed)(tx0)
 
-    def value(implicit tx: S#Tx): (String, Int) = {
+    def value(implicit tx: S#Tx): SocketAddress = {
       val s = peer.sender
-      (s.getHostString, s.getPort)
+      SocketAddress(s.getHostString, s.getPort)
     }
 
-    private[lucre] def pullUpdate(pull: IPull[S])(implicit tx: S#Tx): Option[Change[(String, Int)]] = {
-      pull(peer.received).flatMap { ch =>
-        val addrBefore  = ch.before._2
-        val addrNow     = ch.now   ._2
-        val nameBefore  = addrBefore.getHostString
-        val portBefore  = addrBefore.getPort
-        val nameNow     = addrNow   .getHostString
-        val portNow     = addrNow   .getPort
-        val chTup       = Change((nameBefore, portBefore), (nameNow, portNow))
-        if (chTup.isSignificant) Some(chTup) else None
+    private[lucre] def pullUpdate(pull: IPull[S])(implicit tx: S#Tx): Option[Change[SocketAddress]] =
+      pull(peer.received) match {
+        case Some(ch) if ch.before._2 != ch.now._2 =>
+          val addrBefore  = ch.before._2
+          val addrNow     = ch.now   ._2
+          val nameBefore  = addrBefore.getHostString
+          val portBefore  = addrBefore.getPort
+          val nameNow     = addrNow   .getHostString
+          val portNow     = addrNow   .getPort
+          val chTup       = Change(SocketAddress(nameBefore, portBefore), SocketAddress(nameNow, portNow))
+          if (chTup.isSignificant) Some(chTup) else None
+
+        case _ => None
       }
-    }
 
     def dispose()(implicit tx: S#Tx): Unit =
       peer.received.-/->(changed)
 
-    def changed: IEvent[S, Change[(String, Int)]] = this
+    def changed: IEvent[S, Change[SocketAddress]] = this
   }
 
-  final case class Sender(n: OscUdpNode) extends SocketAddress {
+  final case class Sender(n: OscUdpNode) extends Ex[SocketAddress] {
     override def productPrefix = s"OscUdpNode$$Sender"   // serialization
 
-    def host: Ex[String] = ???  // XXX TODO --- should add `_1` ExOp
-
-    def port: Ex[Int] = ???  // XXX TODO --- should add `_2` ExOp
-
-    def expand[S <: Sys[S]](implicit ctx: Ex.Context[S], tx: S#Tx): IExpr[S, (String, Int)] = {
+    def expand[S <: Sys[S]](implicit ctx: Ex.Context[S], tx: S#Tx): IExpr[S, SocketAddress] = {
       val ns = n.expand[S]
       import ctx.targets
       new SenderExpanded(ns, tx)
@@ -176,11 +174,14 @@ object OscUdpNode {
       convert(peer.message)
 
     private[lucre] def pullUpdate(pull: IPull[S])(implicit tx: S#Tx): Option[Change[OscMessage]] =
-      pull(peer.received).flatMap { ch =>
-        val mBefore = convert(ch.before ._1)
-        val mNow    = convert(ch.now    ._1)
-        val chNew   = Change(mBefore, mNow)
-        if (chNew.isSignificant) Some(chNew) else None
+      pull(peer.received) match {
+        case Some(ch) =>
+          val mBefore = convert(ch.before ._1)
+          val mNow    = convert(ch.now    ._1)
+          val chNew   = Change(mBefore, mNow)
+          if (chNew.isSignificant) Some(chNew) else None
+
+        case None => None
       }
 
     def dispose()(implicit tx: S#Tx): Unit =
@@ -203,11 +204,15 @@ object OscUdpNode {
                                             protected val cursor: stm.Cursor[S])
     extends Repr[S] with IControlImpl[S] with IGenerator[S, Change[(osc.Message, InetSocketAddress)]] {
 
-    private[this] val lastRef = Ref[(osc.Message, InetSocketAddress)](
-      (osc.Message(""), InetSocketAddress.createUnresolved("invalid", 0)))
+    private[this] val dummySocket = InetSocketAddress.createUnresolved("invalid", 0)
 
-    def message (implicit tx: S#Tx): osc.Message        = lastRef()._1
-    def sender  (implicit tx: S#Tx): InetSocketAddress  = lastRef()._2
+    private[this] val lastRcvRef = Ref[(osc.Message, InetSocketAddress)](
+      (osc.Message(""), dummySocket))
+
+    private[this] val lastTrnsRef = Ref[(SocketAddress, InetSocketAddress)]((SocketAddress("invalid", 0), dummySocket))
+
+    def message (implicit tx: S#Tx): osc.Message        = lastRcvRef()._1
+    def sender  (implicit tx: S#Tx): InetSocketAddress  = lastRcvRef()._2
 
     def received: IEvent[S, Change[(osc.Message, InetSocketAddress)]] = this
 
@@ -223,7 +228,7 @@ object OscUdpNode {
           cursor.step { implicit tx =>
             def fire1(m: osc.Message): Unit = {
               val tupNow    = (m, iAddr)
-              val tupBefore = lastRef.swap(tupNow)
+              val tupBefore = lastRcvRef.swap(tupNow)
               fire(Change(tupBefore, tupNow))
             }
 
@@ -249,13 +254,43 @@ object OscUdpNode {
     private[this] var transmitter : osc.UDP.Transmitter .Undirected = _
     private[this] var receiver    : osc.UDP.Receiver    .Undirected = _
 
+    def send(target: SocketAddress, p: OscPacket)(implicit tx: S#Tx): Unit =
+      tx.afterCommit {
+        sendNow(target, p)
+      }
+
+    private def sendWith(target: InetSocketAddress, p: OscPacket): Unit = {
+      val p1: osc.Packet = p match {
+        case m: OscMessage =>
+          osc.Message(m.name, m.args: _*) // XXX TODO --- adjust args to codec
+
+        case _: OscBundle => ???
+      }
+      tryThunk("send from") {
+        val t = transmitter
+        if (t != null) t.send(p1, target)
+      }
+    }
+
+    private def sendNow(target: SocketAddress, p: OscPacket): Unit = {
+      val (lastTarget, lastSck) = lastTrnsRef.single.get
+      if (lastTarget == target) sendWith(lastSck, p)
+      else tryThunk("resolve target in") {
+        val res = new InetSocketAddress(target.host, target.port)
+        lastTrnsRef.single.set((target, res))
+        sendWith(res, p)
+      }
+    }
+
     override def dispose()(implicit tx: S#Tx): Unit = {
       super.dispose()
       tx.afterCommit {
-        val t = transmitter
-        if (t != null) tryThunk("close")(t.close())
+        // both share the same `SocketChannel`
+        // -- I think we get less warnings if we close the receiver first
         val r = receiver
         if (r != null) tryThunk("close")(r.close())
+        val t = transmitter
+        if (t != null) tryThunk("close")(t.close())
       }
     }
 
@@ -268,14 +303,40 @@ object OscUdpNode {
           ex.printStackTrace()
       }
 
+    private[this] var codec: osc.PacketCodec = _
+
     override def initControl()(implicit tx: S#Tx): Unit = {
       super.initControl()
+
+      // only create the transmitter and receiver here,
+      // as the constructors allocate the socket channel
+      // (even before `connect` which is actually a dummy here
+      // as no hard-wired targets are used).
       tx.afterCommit {
-        val t = transmitter
-        if (t != null) tryThunk("connect")(t.connect())
-        val r = receiver
-        if (r != null) tryThunk("connect")(r.connect())
+        val cfgB = osc.UDP.Config()
+        cfgB.codec = codec
+        tryThunk(s"resolve host $localHost of") {
+          cfgB.localAddress = InetAddress.getByName(localHost)
+        }
+        cfgB.localPort  = localPort
+        val cfg         = cfgB.build
+        tryThunk("initialize") {
+          val t       = osc.UDP.Transmitter(cfg)
+          t.connect()
+          transmitter = t
+          val r       = osc.UDP.Receiver(transmitter.channel, cfg)
+          r.action    = receiverFun
+          r.connect()
+          receiver    = r
+        }
       }
+
+//      tx.afterCommit {
+//        val t = transmitter
+//        if (t != null) tryThunk("connect")(t.connect())
+//        val r = receiver
+//        if (r != null) tryThunk("connect")(r.connect())
+//      }
     }
 
 //    private def dump(implicit tx: S#Tx): osc.Dump = dumpRef()
@@ -297,34 +358,16 @@ object OscUdpNode {
       val codecS: String = ctx.getProperty[Ex[String]](peer, OscNode.keyCodec)
         .fold(OscNode.defaultCodec)(_.expand[S].value)
 
-      val codec: osc.PacketCodec = codecS.toLowerCase match {
-        case "1.0"    => osc.PacketCodec().v1_0()
+      codec = codecS.toLowerCase match {
+        case "1.0"    => osc.PacketCodec().scsynth() // automatically encodes Long and Double in single precision
         case "1.1"    => osc.PacketCodec().v1_1()
-        case "1.0d"   => osc.PacketCodec().v1_0().doublePrecision()
+        case "1.0d"   => osc.PacketCodec().v1_0().booleansAsInts().doublePrecision()
         case "1.1d"   => osc.PacketCodec().v1_1().doublePrecision()
         case _ =>
           println(s"Warning: OSC codec '$codecS' not supported. Falling back to '1.0'")
           osc.PacketCodec()
       }
 
-      tx.afterCommit {
-        val cfgB = osc.UDP.Config()
-        cfgB.codec = codec
-        tryThunk(s"resolve host $localHost of") {
-          cfgB.localAddress = InetAddress.getByName(localHost)
-        }
-        cfgB.localPort  = localPort
-        val cfg         = cfgB.build
-        tryThunk("initialize") {
-          val t       = osc.UDP.Transmitter(cfg)
-          transmitter = t
-          val r       = osc.UDP.Receiver(transmitter.channel, cfg)
-          r.action    = receiverFun
-          receiver    = r
-        }
-      }
-
-      // after the creation of transmitter, receiver!
       initProperty(OscNode.keyDump, OscNode.defaultDump) { implicit tx => id =>
         dump_=(dumpModeSafe(id))
       }
@@ -332,18 +375,45 @@ object OscUdpNode {
     }
   }
 
+  private final class SendExpanded[S <: Sys[S]](peer: Repr[S], target: IExpr[S, SocketAddress],
+                                                p: IExpr[S, OscPacket], tx0: S#Tx)
+    extends IAction[S] {
+
+    private[this] val targetRef = Ref(target.value(tx0))
+
+    // under the assumption that `target` rarely or never changes, we cache it here
+    // to avoid having to call `target.value` for every `executeAction`
+    private[this] val obs = target.changed.react { implicit tx => ch =>
+      targetRef() = ch.now
+    } (tx0)
+
+    def executeAction()(implicit tx: S#Tx): Unit = {
+      peer.send(targetRef(), p.value)
+    }
+
+    def dispose()(implicit tx: S#Tx): Unit =
+      obs.dispose()
+  }
+
+  final case class Send(n: OscUdpNode, target: Ex[SocketAddress], p: Ex[OscPacket]) extends Act {
+    override def productPrefix = s"OscUdpNode$$Send"   // serialization
+
+    def expand[S <: Sys[S]](implicit ctx: Ex.Context[S], tx: S#Tx): IAction[S] =
+      new SendExpanded[S](n.expand[S], target.expand, p.expand, tx)
+  }
+
   private final case class Impl(localPort: Ex[Int], localHost: Ex[String]) extends OscUdpNode {
     override def productPrefix = "OscUdpNode"   // serialization
 
-    def send(target: Ex[SocketAddress], p: Ex[OscPacket]): Act = ???
+    def send(target: Ex[SocketAddress], p: Ex[OscPacket]): Act = Send(this, target, p)
 
     def reply(p: Ex[OscPacket]): Act = ???
 
-    def self: SocketAddress = SocketAddress(port = localPort, host = localHost)
+    def self: Ex[SocketAddress] = SocketAddress(port = localPort, host = localHost)
 
-    def received: Trig            = Received(this)
-    def sender  : SocketAddress   = Sender  (this)
-    def message : Ex[OscMessage]  = Message (this)
+    def received: Trig              = Received(this)
+    def sender  : Ex[SocketAddress] = Sender  (this)
+    def message : Ex[OscMessage]    = Message (this)
 
     protected def mkControl[S <: Sys[S]](implicit ctx: Ex.Context[S], tx: S#Tx): Repr[S] = {
       val localPortV = localPort.expand[S].value
@@ -357,6 +427,8 @@ object OscUdpNode {
     def message(implicit tx: S#Tx): osc.Message
     def sender (implicit tx: S#Tx): InetSocketAddress
 
+    def send(target: SocketAddress, p: OscPacket)(implicit tx: S#Tx): Unit
+
     def received: IEvent[S, Change[(osc.Message, InetSocketAddress)]]
   }
 }
@@ -365,6 +437,7 @@ trait OscUdpNode extends OscNode {
 
   def send(target: Ex[SocketAddress], p: Ex[OscPacket]): Act
 
+  /** Not yet implemented! */
   def reply(p: Ex[OscPacket]): Act
 }
 

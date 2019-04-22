@@ -146,7 +146,7 @@ object OscMessage {
   }
 }
 /** A simplified interface to OSC packets */
-case class OscMessage private[graph](name: String, args: Any*) extends OscPacket
+final case class OscMessage private[graph](name: String, args: Any*) extends OscPacket
 
 //object OscBundle {
 //  def apply(time: Long, packets: OscPacket*): Ex[OscBundle] = ...

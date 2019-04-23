@@ -1,7 +1,7 @@
 package de.sciss.synth.proc
 
-import de.sciss.lucre.expr.StringObj
-import de.sciss.lucre.stm.InMemory
+import de.sciss.lucre.expr.{Ex, StringObj}
+import de.sciss.lucre.synth.InMemory
 import de.sciss.lucre.{expr, swing}
 
 import scala.swing.Component
@@ -76,11 +76,12 @@ object ResampleDlgTest extends AppLike {
 
     type              S = InMemory
     implicit val sys: S = InMemory()
-    import Workspace.Implicits._
 
     val view = sys.step { implicit tx =>
-      val self = StringObj.newConst[S]("foo")
-      g.expand[S](self = Some(self))
+      implicit val u: Universe[S] = Universe.dummy
+      val self: StringObj[S] = StringObj.newConst("foo")
+      implicit val ctx: Ex.Context[S] = ExprContext(Some(tx.newHandle(self)))
+      g.expand[S]
     }
     view.component
   }

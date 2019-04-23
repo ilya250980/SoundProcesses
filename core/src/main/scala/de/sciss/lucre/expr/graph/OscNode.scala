@@ -17,7 +17,7 @@ import java.net.{InetAddress, InetSocketAddress}
 
 import de.sciss.lucre.event.impl.{IEventImpl, IGenerator}
 import de.sciss.lucre.event.{IEvent, IPull, ITargets}
-import de.sciss.lucre.expr.impl.IControlImpl
+import de.sciss.lucre.expr.impl.{IActionImpl, IControlImpl}
 import de.sciss.lucre.expr.{Act, Control, Ex, Graph, IAction, IControl, IExpr, ITrigger, Trig}
 import de.sciss.lucre.stm
 import de.sciss.lucre.stm.Sys
@@ -377,22 +377,19 @@ object OscUdpNode {
 
   private final class SendExpanded[S <: Sys[S]](peer: Repr[S], target: IExpr[S, SocketAddress],
                                                 p: IExpr[S, OscPacket], tx0: S#Tx)
-    extends IAction[S] {
+    extends IActionImpl[S] {
 
     private[this] val targetRef = Ref(target.value(tx0))
 
     // under the assumption that `target` rarely or never changes, we cache it here
     // to avoid having to call `target.value` for every `executeAction`
-    private[this] val obs = target.changed.react { implicit tx => ch =>
+    addDisposable(target.changed.react { implicit tx => ch =>
       targetRef() = ch.now
-    } (tx0)
+    } (tx0))(tx0)
 
     def executeAction()(implicit tx: S#Tx): Unit = {
       peer.send(targetRef(), p.value)
     }
-
-    def dispose()(implicit tx: S#Tx): Unit =
-      obs.dispose()
   }
 
   final case class Send(n: OscUdpNode, target: Ex[SocketAddress], p: Ex[OscPacket]) extends Act {

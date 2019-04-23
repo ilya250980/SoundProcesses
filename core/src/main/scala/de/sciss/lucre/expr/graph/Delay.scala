@@ -15,6 +15,7 @@ package de.sciss.lucre.expr.graph
 
 import de.sciss.lucre.event.impl.IGenerator
 import de.sciss.lucre.event.{IEvent, IPull, ITargets}
+import de.sciss.lucre.expr.impl.IActionImpl
 import de.sciss.lucre.expr.{Act, Ex, IAction, IExpr, ITrigger, Trig}
 import de.sciss.lucre.stm.Sys
 import de.sciss.lucre.stm.TxnLike.peer
@@ -30,7 +31,7 @@ object Delay {
 
   private final class Expanded[S <: Sys[S]](time: IExpr[S, Double])(implicit protected val targets: ITargets[S],
                                                                     scheduler: Scheduler[S])
-    extends Repr[S] with IGenerator[S, Unit] {
+    extends Repr[S] with IGenerator[S, Unit] with IActionImpl[S] {
 
     private[this] val token = Ref(-1)
 
@@ -53,17 +54,17 @@ object Delay {
     private[lucre] def pullUpdate(pull: IPull[S])(implicit tx: S#Tx): Option[Unit] =
       Trig.Some
 
-    def dispose()(implicit tx: S#Tx): Unit =
+    override def dispose()(implicit tx: S#Tx): Unit = {
+      super.dispose()
       cancel()
+    }
 
     def changed: IEvent[S, Unit] = this
   }
 
-  private final class CancelExpanded[S <: Sys[S]](d: Repr[S]) extends IAction[S] {
+  private final class CancelExpanded[S <: Sys[S]](d: Repr[S]) extends IActionImpl[S] {
     def executeAction()(implicit tx: S#Tx): Unit =
       d.cancel()
-
-    def dispose()(implicit tx: S#Tx): Unit = ()
   }
 
   final case class Cancel(d: Delay) extends Act {

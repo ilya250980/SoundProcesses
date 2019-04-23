@@ -15,6 +15,7 @@ package de.sciss.lucre.expr.graph
 
 import de.sciss.lucre.event.impl.IGenerator
 import de.sciss.lucre.event.{IEvent, IPull, ITargets}
+import de.sciss.lucre.expr.impl.IActionImpl
 import de.sciss.lucre.expr.{Act, Control, Ex, IAction, IExpr}
 import de.sciss.lucre.stm.Sys
 import de.sciss.lucre.synth
@@ -27,11 +28,9 @@ import scala.collection.immutable.{Seq => ISeq}
 import scala.concurrent.stm.Ref
 
 object Runner {
-  private final class ExpandedRun[S <: Sys[S]](r: proc.Runner[S]) extends IAction[S] {
+  private final class ExpandedRun[S <: Sys[S]](r: proc.Runner[S]) extends IActionImpl[S] {
     def executeAction()(implicit tx: S#Tx): Unit =
       r.run(TimeRef.undefined, ())
-
-    def dispose()(implicit tx: S#Tx): Unit = ()
   }
 
   final case class Run(r: Runner) extends Act {
@@ -43,11 +42,9 @@ object Runner {
     }
   }
 
-  private final class ExpandedStop[S <: Sys[S]](r: proc.Runner[S]) extends IAction[S] {
+  private final class ExpandedStop[S <: Sys[S]](r: proc.Runner[S]) extends IActionImpl[S] {
     def executeAction()(implicit tx: S#Tx): Unit =
       r.stop()
-
-    def dispose()(implicit tx: S#Tx): Unit = ()
   }
 
   final case class Stop(r: Runner) extends Act {

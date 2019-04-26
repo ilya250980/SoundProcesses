@@ -18,7 +18,7 @@ import java.net.{InetAddress, InetSocketAddress}
 import de.sciss.lucre.event.impl.{IEventImpl, IGenerator}
 import de.sciss.lucre.event.{IEvent, IPull, ITargets}
 import de.sciss.lucre.expr.impl.{IActionImpl, IControlImpl}
-import de.sciss.lucre.expr.{Act, Control, Ex, Graph, IAction, IControl, IExpr, ITrigger, Trig}
+import de.sciss.lucre.expr.{Act, Control, Ex, Graph, IAction, IControl, IExpr, ITrigger, Trig, TrigOps}
 import de.sciss.lucre.stm
 import de.sciss.lucre.stm.Sys
 import de.sciss.lucre.stm.TxnLike.{peer => txPeer}
@@ -75,6 +75,15 @@ sealed trait OscNode extends Control {
   def dump_=(x: Ex[Int]): scala.Unit = {
     val b = Graph.builder
     b.putProperty(this, OscNode.keyDump, x)
+  }
+
+  def select(name: Ex[String], args: CaseDef[_]*): Trig = {
+    val r = received
+    val m = message
+    val s = m.select(name, args: _*)
+    import TrigOps._
+    r ---> s
+    s
   }
 
   /** Describes the OSC tags supported. Possible values: `"1.0"` (OSC specification 1.0),

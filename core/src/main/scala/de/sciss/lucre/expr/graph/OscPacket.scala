@@ -20,6 +20,7 @@ import de.sciss.lucre.expr.Ex.Context
 import de.sciss.lucre.expr.{Act, Ex, ExSeq, IAction, IExpr, ITrigger, Trig}
 import de.sciss.lucre.stm.Sys
 import de.sciss.model.Change
+import de.sciss.synth.UGenSource.Vec
 
 import scala.collection.immutable.{Seq => ISeq}
 
@@ -90,17 +91,16 @@ object OscMessage {
     }
   }
 
+  // In theory we "should" mixin Caching because we have a side-effect in `pullUpdate`.
+  // However, we cannot really do anything useful with the `Var` assignments if we do not
+  // use the match trigger and eventually some other action / side-effect.
   private final class SelectExpanded[S <: Sys[S]](m: IExpr[S, OscMessage], name: IExpr[S, String],
-                                                  quotes  : ISeq[(Int, IExpr    [S, Any])],
-                                                  assigns : ISeq[(Int, IExpr.Var[S, Any])],
+                                                  args: Vec[CaseDef.Expanded[S, _]],
                                                   tx0: S#Tx)
                                                  (implicit protected val targets: ITargets[S])
     extends IAction[S] with ITrigger[S] with IGenerator[S, Unit] /* with Caching */ {
 
-//    private[this] val disposables = Ref(List.empty[Disposable[S#Tx]])
-//
-//    private def addDisposable(d: Disposable[S#Tx])(implicit tx: S#Tx): Unit =
-//      disposables.transform(d :: _)
+    private[this] val numArgs = args.size
 
     def executeAction()(implicit tx: S#Tx): Unit =
       fire(())
@@ -127,12 +127,28 @@ object OscMessage {
         val p: Parents[S] = pull.parents(this)
         if (p.exists(pull(_).isDefined)) {
           val mv = m    .value
+          val av = mv   .args
           val nv = name .value
-          (mv.name == nv) && quotes.isEmpty || {
-            quotes.forall { case (i, ex) => ??? }
-          }
+          val matches = (mv.name == nv) && av.size == numArgs && (numArgs == 0 || {
+            var i = 0
+            var ok = true
+            while (ok && i < numArgs) {
+              val a = args(i)
+              ok &= a.select(av(i))
+              i += 1
+            }
+            if (ok) {
+              i = 0
+              while (i < numArgs) {
+                val a = args(i)
+                a.commit()
+                i += 1
+              }
+            }
+            ok
+          })
+          if (matches) Trig.Some else None
 
-          ???
         } else None
       }
     }
@@ -150,14 +166,9 @@ object OscMessage {
       ctx.visit(ref, mkActTrig)
 
     private def mkActTrig[S <: Sys[S]](implicit ctx: Ex.Context[S], tx: S#Tx): IAction[S] with ITrigger[S] = {
-      var quotes  = List.empty[(Int, IExpr    [S, Any])]
-      var assigns = List.empty[(Int, IExpr.Var[S, Any])]
-      args.iterator.zipWithIndex.foreach {
-        case (Quote  (in), i) => quotes   ::= i -> in .expand[S]
-        case (v: Var[Any], i) => assigns  ::= i -> v  .expand[S]
-      }
+      val argsEx = args.iterator.map(_.expand[S]).toIndexedSeq
       import ctx.targets
-      new SelectExpanded(m.expand[S], name.expand[S], quotes.reverse, assigns.reverse, tx)
+      new SelectExpanded(m.expand[S], name.expand[S], argsEx, tx)
     }
   }
 
@@ -165,7 +176,7 @@ object OscMessage {
     def name: Ex[String]    = Name(m)
     def args: Ex[ISeq[Any]] = Args(m)
 
-    def select(name: Ex[String], args: CaseDef[_]*): Trig = Select(m, name, args: _*)
+    def select(name: Ex[String], args: CaseDef[_]*): Select = Select(m, name, args: _*)
   }
 
   private final class Expanded[S <: Sys[S]](name: IExpr[S, String], args: IExpr[S, ISeq[Any]], tx0: S#Tx)

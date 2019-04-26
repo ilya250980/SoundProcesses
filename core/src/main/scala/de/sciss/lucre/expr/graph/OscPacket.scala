@@ -189,7 +189,7 @@ object OscMessage {
     def value(implicit tx: S#Tx): OscMessage = {
       val nameV = name.value
       val argsV = args.value
-      OscMessage(nameV, argsV)
+      new OscMessage(nameV, argsV: _*)
     }
 
     def dispose()(implicit tx: S#Tx): Unit = {
@@ -230,9 +230,14 @@ object OscMessage {
       new Expanded(nameEx, argsEx, tx)
     }
   }
+
+  // ! important ! override `apply` and make private, so that use site will
+  // not accidentally create values, but lift string constants to `Ex[String]`.
+  // The `[OscMessage]` just makes the Scala compiler shut up about unused method.
+  private[OscMessage] def apply(name: String, args: Any*): OscMessage = new OscMessage(name, args: _*)
 }
 /** A simplified interface to OSC packets */
-final case class OscMessage private[graph](name: String, args: Any*) extends OscPacket
+final case class OscMessage(name: String, args: Any*) extends OscPacket
 
 //object OscBundle {
 //  def apply(time: Long, packets: OscPacket*): Ex[OscBundle] = ...

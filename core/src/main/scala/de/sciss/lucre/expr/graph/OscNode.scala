@@ -397,7 +397,8 @@ object OscUdpNode {
     } (tx0))(tx0)
 
     def executeAction()(implicit tx: S#Tx): Unit = {
-      peer.send(targetRef(), p.value)
+      val pv = p.value
+      peer.send(targetRef(), pv)
     }
   }
 

@@ -35,7 +35,7 @@ object SocketAddress {
       } catch {
         case NonFatal(_) => "localhost"
       }
-      Constant(value).expand[S]
+      Const(value).expand[S]
     }
   }
 

@@ -11,9 +11,17 @@ trait OscTest {
 
 //    val value: Ex[Int] = 123
 
-    val act = n.send(m.self, OscMessage("/test", 123))
+//    val act = n.send(m.self, OscMessage("/test", 123))
 //    LoadBang() ---> act
 
     m.received ---> PrintLn(m.message.name)
+
+    val ch    = Var[Int]()
+    val relay = Var[Boolean]()
+    val sel   = n.message.select("/iterate", ch, relay)
+
+    val text  = Const("Match!") ++ ch.toStr
+
+    sel ---> PrintLn(text)
   }
 }

@@ -13,9 +13,11 @@
 
 package de.sciss.lucre.expr.graph
 
+import de.sciss.lucre.event.IPush.Parents
+import de.sciss.lucre.event.impl.{IEventImpl, IGenerator}
 import de.sciss.lucre.event.{IEvent, IPull, ITargets}
-import de.sciss.lucre.event.impl.IEventImpl
-import de.sciss.lucre.expr.{Ex, ExSeq, IExpr}
+import de.sciss.lucre.expr.Ex.Context
+import de.sciss.lucre.expr.{Act, Ex, ExSeq, IAction, IExpr, ITrigger, Trig}
 import de.sciss.lucre.stm.Sys
 import de.sciss.model.Change
 
@@ -88,9 +90,82 @@ object OscMessage {
     }
   }
 
+  private final class SelectExpanded[S <: Sys[S]](m: IExpr[S, OscMessage], name: IExpr[S, String],
+                                                  quotes  : ISeq[(Int, IExpr    [S, Any])],
+                                                  assigns : ISeq[(Int, IExpr.Var[S, Any])],
+                                                  tx0: S#Tx)
+                                                 (implicit protected val targets: ITargets[S])
+    extends IAction[S] with ITrigger[S] with IGenerator[S, Unit] /* with Caching */ {
+
+//    private[this] val disposables = Ref(List.empty[Disposable[S#Tx]])
+//
+//    private def addDisposable(d: Disposable[S#Tx])(implicit tx: S#Tx): Unit =
+//      disposables.transform(d :: _)
+
+    def executeAction()(implicit tx: S#Tx): Unit =
+      fire(())
+
+    def addSource(tr: ITrigger[S])(implicit tx: S#Tx): Unit = {
+      // ok, this is a bit involved:
+      // we must either mixin the trait `Caching` or
+      // create an observer to not be eliminated from event
+      // reaction execution. If we don't do that, we'd only
+      // see activation when our trigger output is otherwise
+      // observed (e.g. goes into a `PrintLn`).
+      // What we do here is, first, wire the two events together,
+      // so that any instancing checking our trigger will observe it
+      // within the same event loop as the input trigger, and second,
+      // have the observation side effect (`activate`).
+      tr.changed ---> changed
+    }
+
+    def dispose()(implicit tx: S#Tx): Unit = ()
+
+    private[lucre] def pullUpdate(pull: IPull[S])(implicit tx: S#Tx) : Option[Unit] = {
+      if (pull.isOrigin(this)) Trig.Some
+      else {
+        val p: Parents[S] = pull.parents(this)
+        if (p.exists(pull(_).isDefined)) {
+          val mv = m    .value
+          val nv = name .value
+          (mv.name == nv) && quotes.isEmpty || {
+            quotes.forall { case (i, ex) => ??? }
+          }
+
+          ???
+        } else None
+      }
+    }
+
+    def changed: IEvent[S, Unit] = this
+  }
+
+  final case class Select(m: Ex[OscMessage], name: Ex[String], args: CaseDef[_]*) extends Act with Trig {
+    override def productPrefix: String = s"OscMessage$$Select" // serialization
+
+    // this acts now as a fast unique reference
+    @transient final private[this] lazy val ref = new AnyRef
+
+    def expand[S <: Sys[S]](implicit ctx: Context[S], tx: S#Tx): IAction[S] with ITrigger[S] =
+      ctx.visit(ref, mkActTrig)
+
+    private def mkActTrig[S <: Sys[S]](implicit ctx: Ex.Context[S], tx: S#Tx): IAction[S] with ITrigger[S] = {
+      var quotes  = List.empty[(Int, IExpr    [S, Any])]
+      var assigns = List.empty[(Int, IExpr.Var[S, Any])]
+      args.iterator.zipWithIndex.foreach {
+        case (Quote  (in), i) => quotes   ::= i -> in .expand[S]
+        case (v: Var[Any], i) => assigns  ::= i -> v  .expand[S]
+      }
+      import ctx.targets
+      new SelectExpanded(m.expand[S], name.expand[S], quotes.reverse, assigns.reverse, tx)
+    }
+  }
+
   implicit class Ops(private val m: Ex[OscMessage]) extends AnyVal {
     def name: Ex[String]    = Name(m)
     def args: Ex[ISeq[Any]] = Args(m)
+
+    def select(name: Ex[String], args: CaseDef[_]*): Trig = Select(m, name, args: _*)
   }
 
   private final class Expanded[S <: Sys[S]](name: IExpr[S, String], args: IExpr[S, ISeq[Any]], tx0: S#Tx)

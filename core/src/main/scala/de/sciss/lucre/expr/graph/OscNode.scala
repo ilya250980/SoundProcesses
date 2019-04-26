@@ -40,7 +40,7 @@ object OscNode {
 
     def expand[S <: Sys[S]](implicit ctx: Ex.Context[S], tx: S#Tx): IExpr[S, Int] = {
       val valueOpt = ctx.getProperty[Ex[Int]](n, keyDump)
-      valueOpt.getOrElse(Constant(defaultDump)).expand[S]
+      valueOpt.getOrElse(Const(defaultDump)).expand[S]
     }
   }
 
@@ -49,7 +49,7 @@ object OscNode {
 
     def expand[S <: Sys[S]](implicit ctx: Ex.Context[S], tx: S#Tx): IExpr[S, String] = {
       val valueOpt = ctx.getProperty[Ex[String]](n, keyCodec)
-      valueOpt.getOrElse(Constant(defaultCodec)).expand[S]
+      valueOpt.getOrElse(Const(defaultCodec)).expand[S]
     }
   }
 }
@@ -93,12 +93,12 @@ sealed trait OscNode extends Control {
 }
 
 object OscUdpNode {
-  def apply(localPort: Ex[Int] = Constant(0), localHost: Ex[String] = SocketAddress.LocalHost()): OscUdpNode =
+  def apply(localPort: Ex[Int] = Const(0), localHost: Ex[String] = SocketAddress.LocalHost()): OscUdpNode =
     Impl(localPort, localHost)
 
   private final class ReceivedExpanded[S <: Sys[S]](peer: Repr[S], tx0: S#Tx)
                                                    (implicit protected val targets: ITargets[S])
-    extends ITrigger[S] with IGenerator[S, Unit] {
+    extends ITrigger[S] with IEventImpl[S, Unit] {
 
     peer.received.--->(changed)(tx0)
 

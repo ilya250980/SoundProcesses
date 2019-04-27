@@ -2,7 +2,7 @@
 
 [![Gitter](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/Sciss/Mellite?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 [![Build Status](https://travis-ci.org/Sciss/SoundProcesses.svg?branch=master)](https://travis-ci.org/Sciss/SoundProcesses)
-[![Maven Central](https://maven-badges.herokuapp.com/maven-central/de.sciss/soundprocesses_2.11/badge.svg)](https://maven-badges.herokuapp.com/maven-central/de.sciss/soundprocesses_2.11)
+[![Maven Central](https://maven-badges.herokuapp.com/maven-central/de.sciss/soundprocesses_2.12/badge.svg)](https://maven-badges.herokuapp.com/maven-central/de.sciss/soundprocesses_2.12)
 
 ## statement
 
@@ -27,7 +27,7 @@ The following dependency is necessary:
 
     "de.sciss" %% "soundprocesses" % v
 
-The current version `v` is `"3.27.1"`.
+The current version `v` is `"3.28.0"`.
 
 The following sub modules are available:
 

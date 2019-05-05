@@ -158,7 +158,7 @@ object CodeImpl {
   /** Compiles a source code consisting of a body which is wrapped in its prelude/postlude,
     * and returns the raw jar file produced in the compilation.
     */
-  def compileToJar(name: String, code: Code.Action, prelude: String, postlude: String)
+  def compileToJar(name: String, code: Code, prelude: String, postlude: String)
                   (implicit compiler: Code.Compiler): Array[Byte] = {
     val impS    = importsPrelude(code, indent = 2)
     val source  =

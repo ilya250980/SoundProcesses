@@ -75,7 +75,7 @@ object Macros {
     }
   }
 
-  def widgetGraphWithSource[S <: Sys[S]](c: blackbox.Context)(body: c.Expr[lucre.swing.Widget])(tx: c.Expr[S#Tx])
+  def widgetGraphWithSource[S <: Sys[S]](c: blackbox.Context)(body: c.Expr[lucre.swing.graph.Widget])(tx: c.Expr[S#Tx])
                                         (implicit tt: c.WeakTypeTag[S]): c.Expr[Unit] = {
     import c.universe._
 

@@ -13,8 +13,7 @@
 
 package de.sciss.synth.proc
 
-import de.sciss.lucre.expr.Ex
-import de.sciss.lucre.expr.Ex.Context
+import de.sciss.lucre.expr.Context
 import de.sciss.lucre.expr.impl.ContextMixin
 import de.sciss.lucre.stm
 import de.sciss.lucre.stm.{Cursor, Obj, Sys}
@@ -24,7 +23,7 @@ object ExprContext {
                         (implicit universe: Universe[S]): Context[S] =
     new Impl[S](selfH)
 
-  def get[S <: Sys[S]](implicit ctx: Ex.Context[S]): ExprContext[S] = ctx match {
+  def get[S <: Sys[S]](implicit ctx: Context[S]): ExprContext[S] = ctx match {
     case ec: ExprContext[S] => ec
     case _ => sys.error("Trying to expand graph outside of SoundProcesses context")
   }
@@ -37,6 +36,6 @@ object ExprContext {
     implicit def workspace: Workspace [S] = universe.workspace
   }
 }
-trait ExprContext[S <: Sys[S]] extends Ex.Context[S] {
+trait ExprContext[S <: Sys[S]] extends Context[S] {
   implicit def universe: Universe[S]
 }

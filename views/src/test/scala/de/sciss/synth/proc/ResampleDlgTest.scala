@@ -1,6 +1,6 @@
 package de.sciss.synth.proc
 
-import de.sciss.lucre.expr.{Ex, StringObj}
+import de.sciss.lucre.expr.{Context, StringObj}
 import de.sciss.lucre.synth.InMemory
 import de.sciss.lucre.{expr, swing}
 
@@ -80,7 +80,7 @@ object ResampleDlgTest extends AppLike {
     val view = sys.step { implicit tx =>
       implicit val u: Universe[S] = Universe.dummy
       val self: StringObj[S] = StringObj.newConst("foo")
-      implicit val ctx: Ex.Context[S] = ExprContext(Some(tx.newHandle(self)))
+      implicit val ctx: Context[S] = ExprContext(Some(tx.newHandle(self)))
       g.expand[S]
     }
     view.component

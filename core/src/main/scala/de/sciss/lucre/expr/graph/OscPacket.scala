@@ -16,8 +16,7 @@ package de.sciss.lucre.expr.graph
 import de.sciss.lucre.event.IPush.Parents
 import de.sciss.lucre.event.impl.{IEventImpl, IGenerator}
 import de.sciss.lucre.event.{IEvent, IPull, ITargets}
-import de.sciss.lucre.expr.Ex.Context
-import de.sciss.lucre.expr.{Act, Ex, ExSeq, IAction, IExpr, ITrigger, Trig}
+import de.sciss.lucre.expr.{Context, ExSeq, IAction, IExpr, ITrigger}
 import de.sciss.lucre.stm.Sys
 import de.sciss.model.Change
 import de.sciss.synth.UGenSource.Vec
@@ -54,7 +53,7 @@ object OscMessage {
   final case class Name(m: Ex[OscMessage]) extends Ex[String] {
     override def productPrefix: String = s"OscMessage$$Name" // serialization
 
-    def expand[S <: Sys[S]](implicit ctx: Ex.Context[S], tx: S#Tx): IExpr[S, String] = {
+    def expand[S <: Sys[S]](implicit ctx: Context[S], tx: S#Tx): IExpr[S, String] = {
       import ctx.targets
       new NameExpanded(m.expand[S], tx)
     }
@@ -85,7 +84,7 @@ object OscMessage {
   final case class Args(m: Ex[OscMessage]) extends Ex[ISeq[Any]] {
     override def productPrefix: String = s"OscMessage$$Args" // serialization
 
-    def expand[S <: Sys[S]](implicit ctx: Ex.Context[S], tx: S#Tx): IExpr[S, ISeq[Any]] = {
+    def expand[S <: Sys[S]](implicit ctx: Context[S], tx: S#Tx): IExpr[S, ISeq[Any]] = {
       import ctx.targets
       new ArgsExpanded(m.expand[S], tx)
     }
@@ -165,7 +164,7 @@ object OscMessage {
     def expand[S <: Sys[S]](implicit ctx: Context[S], tx: S#Tx): IAction[S] with ITrigger[S] =
       ctx.visit(ref, mkActTrig)
 
-    private def mkActTrig[S <: Sys[S]](implicit ctx: Ex.Context[S], tx: S#Tx): IAction[S] with ITrigger[S] = {
+    private def mkActTrig[S <: Sys[S]](implicit ctx: Context[S], tx: S#Tx): IAction[S] with ITrigger[S] = {
       val argsEx = args.iterator.map(_.expand[S]).toIndexedSeq
       import ctx.targets
       new SelectExpanded(m.expand[S], name.expand[S], argsEx, tx)
@@ -223,7 +222,7 @@ object OscMessage {
   private final case class Impl(name: Ex[String], args: Ex[Any]*) extends Ex[OscMessage] {
     override def productPrefix: String = "OscMessage" // serialization
 
-    def expand[S <: Sys[S]](implicit ctx: Ex.Context[S], tx: S#Tx): IExpr[S, OscMessage] = {
+    def expand[S <: Sys[S]](implicit ctx: Context[S], tx: S#Tx): IExpr[S, OscMessage] = {
       import ctx.targets
       val nameEx = name.expand[S]
       val argsEx = ExSeq(args: _*).expand[S]

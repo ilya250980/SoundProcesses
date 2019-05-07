@@ -15,9 +15,9 @@ package de.sciss.lucre.expr.graph
 
 import java.net.InetAddress
 
-import de.sciss.lucre.event.{IEvent, IPull, ITargets}
 import de.sciss.lucre.event.impl.IEventImpl
-import de.sciss.lucre.expr.{Ex, IExpr}
+import de.sciss.lucre.event.{IEvent, IPull, ITargets}
+import de.sciss.lucre.expr.{Context, IExpr}
 import de.sciss.lucre.stm.Sys
 import de.sciss.model.Change
 
@@ -29,7 +29,7 @@ object SocketAddress {
   final case class LocalHost() extends Ex[String] {
     override def productPrefix: String = s"SocketAddress$$LocalHost" // serialization
 
-    def expand[S <: Sys[S]](implicit ctx: Ex.Context[S], tx: S#Tx): IExpr[S, String] = {
+    def expand[S <: Sys[S]](implicit ctx: Context[S], tx: S#Tx): IExpr[S, String] = {
       val value = try {
         InetAddress.getLocalHost.getHostName
       } catch {
@@ -83,7 +83,7 @@ object SocketAddress {
   private final case class Impl(host: Ex[String], port: Ex[Int]) extends Ex[SocketAddress] {
     override def productPrefix: String = "SocketAddress" // serialization
 
-    def expand[S <: Sys[S]](implicit ctx: Ex.Context[S], tx: S#Tx): IExpr[S, SocketAddress] = {
+    def expand[S <: Sys[S]](implicit ctx: Context[S], tx: S#Tx): IExpr[S, SocketAddress] = {
       import ctx.targets
       val hostEx = host.expand[S]
       val portEx = port.expand[S]

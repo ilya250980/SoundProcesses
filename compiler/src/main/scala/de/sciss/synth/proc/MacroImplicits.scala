@@ -37,7 +37,7 @@ object MacroImplicits {
   }
 
   implicit final class WidgetMacroOps[S <: Sys[S]](val `this`: Widget[S]) extends AnyVal {
-    def setGraph(body: lucre.swing.Widget)(implicit tx: S#Tx): Unit =
+    def setGraph(body: lucre.swing.graph.Widget)(implicit tx: S#Tx): Unit =
       macro Macros.widgetGraphWithSource[S]
   }
 }

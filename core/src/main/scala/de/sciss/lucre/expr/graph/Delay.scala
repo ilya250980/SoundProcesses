@@ -16,7 +16,7 @@ package de.sciss.lucre.expr.graph
 import de.sciss.lucre.event.impl.IGenerator
 import de.sciss.lucre.event.{IEvent, IPull, ITargets}
 import de.sciss.lucre.expr.impl.IActionImpl
-import de.sciss.lucre.expr.{Act, Ex, IAction, IExpr, ITrigger, Trig}
+import de.sciss.lucre.expr.{Context, IAction, IExpr, ITrigger}
 import de.sciss.lucre.stm.Sys
 import de.sciss.lucre.stm.TxnLike.peer
 import de.sciss.synth.proc.{ExprContext, Scheduler, TimeRef}
@@ -70,7 +70,7 @@ object Delay {
   final case class Cancel(d: Delay) extends Act {
     override def productPrefix: String = s"Delay$$Cancel" // serialization
 
-    def expand[S <: Sys[S]](implicit ctx: Ex.Context[S], tx: S#Tx): IAction[S] =
+    def expand[S <: Sys[S]](implicit ctx: Context[S], tx: S#Tx): IAction[S] =
       new CancelExpanded(d.expand[S])
   }
 
@@ -82,10 +82,10 @@ object Delay {
 
     def cancel: Act = Cancel(this)
 
-    def expand[S <: Sys[S]](implicit ctx: Ex.Context[S], tx: S#Tx): Repr[S] =
+    def expand[S <: Sys[S]](implicit ctx: Context[S], tx: S#Tx): Repr[S] =
       ctx.visit(ref, mkTrig)
 
-    private def mkTrig[S <: Sys[S]](implicit ctx: Ex.Context[S], tx: S#Tx): Repr[S] = {
+    private def mkTrig[S <: Sys[S]](implicit ctx: Context[S], tx: S#Tx): Repr[S] = {
       // Note: we can't just run `Universe()` because Sys is not synth.Sys,
       // and also we may want to preserve the possibility to provide custom schedulers
 //      println("EXPAND")
@@ -111,5 +111,5 @@ trait Delay extends Act with Trig {
 
   def cancel: Act
 
-  override def expand[S <: Sys[S]](implicit ctx: Ex.Context[S], tx: S#Tx): Delay.Repr[S]
+  override def expand[S <: Sys[S]](implicit ctx: Context[S], tx: S#Tx): Delay.Repr[S]
 }

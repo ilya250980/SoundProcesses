@@ -16,7 +16,7 @@ package de.sciss.lucre.expr.graph
 import de.sciss.lucre.event.impl.IGenerator
 import de.sciss.lucre.event.{IEvent, IPull, ITargets}
 import de.sciss.lucre.expr.impl.IActionImpl
-import de.sciss.lucre.expr.{Act, Control, Ex, IAction, IExpr}
+import de.sciss.lucre.expr.{Context, IAction, IExpr}
 import de.sciss.lucre.stm.Sys
 import de.sciss.lucre.synth
 import de.sciss.model.Change
@@ -36,7 +36,7 @@ object Runner {
   final case class Run(r: Runner) extends Act {
     override def productPrefix: String = s"Runner$$Run" // serialization
 
-    def expand[S <: Sys[S]](implicit ctx: Ex.Context[S], tx: S#Tx): IAction[S] = {
+    def expand[S <: Sys[S]](implicit ctx: Context[S], tx: S#Tx): IAction[S] = {
       val rx = r.expand[S]
       new ExpandedRun[S](rx)
     }
@@ -50,7 +50,7 @@ object Runner {
   final case class Stop(r: Runner) extends Act {
     override def productPrefix: String = s"Runner$$Stop" // serialization
 
-    def expand[S <: Sys[S]](implicit ctx: Ex.Context[S], tx: S#Tx): IAction[S] = {
+    def expand[S <: Sys[S]](implicit ctx: Context[S], tx: S#Tx): IAction[S] = {
       val rx = r.expand[S]
       new ExpandedStop[S](rx)
     }
@@ -82,7 +82,7 @@ object Runner {
   final case class State(r: Runner) extends Ex[Int] {
     override def productPrefix: String = s"Runner$$State" // serialization
 
-    def expand[S <: Sys[S]](implicit ctx: Ex.Context[S], tx: S#Tx): IExpr[S, Int] = {
+    def expand[S <: Sys[S]](implicit ctx: Context[S], tx: S#Tx): IExpr[S, Int] = {
       import ctx.targets
       val rx = r.expand[S]
       new ExpandedState[S](rx, tx)
@@ -114,7 +114,7 @@ object Runner {
   final case class Progress(r: Runner) extends Ex[Double] {
     override def productPrefix: String = s"Runner$$Progress" // serialization
 
-    def expand[S <: Sys[S]](implicit ctx: Ex.Context[S], tx: S#Tx): IExpr[S, Double] = {
+    def expand[S <: Sys[S]](implicit ctx: Context[S], tx: S#Tx): IExpr[S, Double] = {
       import ctx.targets
       val rx = r.expand[S]
       new ExpandedProgress[S](rx, tx)
@@ -148,7 +148,7 @@ object Runner {
   final case class Messages(r: Runner) extends Ex[ISeq[proc.Runner.Message]] {
     override def productPrefix: String = s"Runner$$Messages" // serialization
 
-    def expand[S <: Sys[S]](implicit ctx: Ex.Context[S], tx: S#Tx): IExpr[S, ISeq[proc.Runner.Message]] = {
+    def expand[S <: Sys[S]](implicit ctx: Context[S], tx: S#Tx): IExpr[S, ISeq[proc.Runner.Message]] = {
       import ctx.targets
       val rx = r.expand[S]
       new ExpandedMessages[S](rx, tx)
@@ -170,17 +170,17 @@ final case class Runner(key: String) extends Control {
 
   def messages: Ex[ISeq[proc.Runner.Message]] = Runner.Messages(this)
 
-  protected def mkControl[S <: Sys[S]](implicit ctx: Ex.Context[S], tx: S#Tx): Repr[S] =
+  protected def mkControl[S <: Sys[S]](implicit ctx: Context[S], tx: S#Tx): Repr[S] =
     tx.system match {
       case _: synth.Sys[_] =>
         // XXX TODO --- ugly ugly ugly
-        mkControlImpl[synth.NoSys](ctx.asInstanceOf[Ex.Context[synth.NoSys]], tx.asInstanceOf[synth.NoSys#Tx])
+        mkControlImpl[synth.NoSys](ctx.asInstanceOf[Context[synth.NoSys]], tx.asInstanceOf[synth.NoSys#Tx])
           .asInstanceOf[Repr[S]]
 
       case _ => throw new Exception("Need a SoundProcesses system")
     }
 
-  private def mkControlImpl[S <: synth.Sys[S]](implicit ctx: Ex.Context[S], tx: S#Tx): Repr[S] = {
+  private def mkControlImpl[S <: synth.Sys[S]](implicit ctx: Context[S], tx: S#Tx): Repr[S] = {
     import ctx.{cursor, workspace}
     val objOpt                  = ctx.selfOption.flatMap(self => self.attr.get(key))
     val obj                     = objOpt.getOrElse(throw UGB.MissingIn(UGB.AttributeKey(key)))

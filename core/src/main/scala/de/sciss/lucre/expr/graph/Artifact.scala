@@ -19,7 +19,7 @@ import de.sciss.lucre.aux.Aux
 import de.sciss.lucre.expr.ExOps._
 import de.sciss.lucre.expr.impl.CellViewImpl
 import de.sciss.lucre.expr.impl.CellViewImpl.AttrMapExprObs
-import de.sciss.lucre.expr.{CellView, Control, Ex, IExpr}
+import de.sciss.lucre.expr.{CellView, Context, IExpr}
 import de.sciss.lucre.stm
 import de.sciss.lucre.stm.{Disposable, Sys}
 import de.sciss.serial.{DataInput, Serializer}
@@ -106,7 +106,7 @@ object Artifact {
 final case class Artifact(key: String, default: Ex[File] = file(""))
   extends Attr.WithDefault[File] {
 
-  def expand[S <: Sys[S]](implicit ctx: Ex.Context[S], tx: S#Tx): IExpr[S, File] = {
+  def expand[S <: Sys[S]](implicit ctx: Context[S], tx: S#Tx): IExpr[S, File] = {
     val defaultEx = default.expand[S]
     Attr.resolveNested(key).fold(defaultEx) { attrView =>
       import ctx.targets

@@ -18,7 +18,7 @@ import java.net.{InetAddress, InetSocketAddress}
 import de.sciss.lucre.event.impl.{IEventImpl, IGenerator}
 import de.sciss.lucre.event.{IEvent, IPull, ITargets}
 import de.sciss.lucre.expr.impl.{IActionImpl, IControlImpl}
-import de.sciss.lucre.expr.{Act, Control, Ex, Graph, IAction, IControl, IExpr, ITrigger, Trig, TrigOps}
+import de.sciss.lucre.expr.{Context, Graph, IAction, IControl, IExpr, ITrigger, TrigOps}
 import de.sciss.lucre.stm
 import de.sciss.lucre.stm.Sys
 import de.sciss.lucre.stm.TxnLike.{peer => txPeer}
@@ -38,7 +38,7 @@ object OscNode {
   final case class Dump(n: OscNode) extends Ex[Int] {
     override def productPrefix: String = s"OscNode$$Dump" // serialization
 
-    def expand[S <: Sys[S]](implicit ctx: Ex.Context[S], tx: S#Tx): IExpr[S, Int] = {
+    def expand[S <: Sys[S]](implicit ctx: Context[S], tx: S#Tx): IExpr[S, Int] = {
       val valueOpt = ctx.getProperty[Ex[Int]](n, keyDump)
       valueOpt.getOrElse(Const(defaultDump)).expand[S]
     }
@@ -47,7 +47,7 @@ object OscNode {
   final case class Codec(n: OscNode) extends Ex[String] {
     override def productPrefix: String = s"OscNode$$Codec" // serialization
 
-    def expand[S <: Sys[S]](implicit ctx: Ex.Context[S], tx: S#Tx): IExpr[S, String] = {
+    def expand[S <: Sys[S]](implicit ctx: Context[S], tx: S#Tx): IExpr[S, String] = {
       val valueOpt = ctx.getProperty[Ex[String]](n, keyCodec)
       valueOpt.getOrElse(Const(defaultCodec)).expand[S]
     }
@@ -98,7 +98,7 @@ sealed trait OscNode extends Control {
     b.putProperty(this, OscNode.keyCodec, x)
   }
 
-  //  protected def mkControl[S <: Sys[S]](implicit ctx: Ex.Context[S], tx: S#Tx): Disposable[S#Tx] = ...
+  //  protected def mkControl[S <: Sys[S]](implicit ctx: Context[S], tx: S#Tx): Disposable[S#Tx] = ...
 }
 
 object OscUdpNode {
@@ -123,7 +123,7 @@ object OscUdpNode {
   final case class Received(n: OscUdpNode) extends Trig {
     override def productPrefix = s"OscUdpNode$$Received"   // serialization
 
-    def expand[S <: Sys[S]](implicit ctx: Ex.Context[S], tx: S#Tx): ITrigger[S] = {
+    def expand[S <: Sys[S]](implicit ctx: Context[S], tx: S#Tx): ITrigger[S] = {
       val ns = n.expand[S]
       import ctx.targets
       new ReceivedExpanded[S](ns, tx)
@@ -164,7 +164,7 @@ object OscUdpNode {
   final case class Sender(n: OscUdpNode) extends Ex[SocketAddress] {
     override def productPrefix = s"OscUdpNode$$Sender"   // serialization
 
-    def expand[S <: Sys[S]](implicit ctx: Ex.Context[S], tx: S#Tx): IExpr[S, SocketAddress] = {
+    def expand[S <: Sys[S]](implicit ctx: Context[S], tx: S#Tx): IExpr[S, SocketAddress] = {
       val ns = n.expand[S]
       import ctx.targets
       new SenderExpanded(ns, tx)
@@ -202,7 +202,7 @@ object OscUdpNode {
   final case class Message(n: OscUdpNode) extends Ex[OscMessage] {
     override def productPrefix = s"OscUdpNode$$Message"   // serialization
 
-    def expand[S <: Sys[S]](implicit ctx: Ex.Context[S], tx: S#Tx): IExpr[S, OscMessage] = {
+    def expand[S <: Sys[S]](implicit ctx: Context[S], tx: S#Tx): IExpr[S, OscMessage] = {
       import ctx.targets
       new MessageExpanded(n.expand[S], tx)
     }
@@ -363,7 +363,7 @@ object OscUdpNode {
     private def dumpModeSafe(id: Int): osc.Dump =
       osc.Dump(math.max(0, math.min(osc.Dump.Both.id, id)))
 
-    def initExpanded()(implicit tx: S#Tx, ctx: Ex.Context[S]): this.type = {
+    def initExpanded()(implicit tx: S#Tx, ctx: Context[S]): this.type = {
       val codecS: String = ctx.getProperty[Ex[String]](peer, OscNode.keyCodec)
         .fold(OscNode.defaultCodec)(_.expand[S].value)
 
@@ -405,7 +405,7 @@ object OscUdpNode {
   final case class Send(n: OscUdpNode, target: Ex[SocketAddress], p: Ex[OscPacket]) extends Act {
     override def productPrefix = s"OscUdpNode$$Send"   // serialization
 
-    def expand[S <: Sys[S]](implicit ctx: Ex.Context[S], tx: S#Tx): IAction[S] =
+    def expand[S <: Sys[S]](implicit ctx: Context[S], tx: S#Tx): IAction[S] =
       new SendExpanded[S](n.expand[S], target.expand, p.expand, tx)
   }
 
@@ -422,7 +422,7 @@ object OscUdpNode {
     def sender  : Ex[SocketAddress] = Sender  (this)
     def message : Ex[OscMessage]    = Message (this)
 
-    protected def mkControl[S <: Sys[S]](implicit ctx: Ex.Context[S], tx: S#Tx): Repr[S] = {
+    protected def mkControl[S <: Sys[S]](implicit ctx: Context[S], tx: S#Tx): Repr[S] = {
       val localPortV = localPort.expand[S].value
       val localHostV = localHost.expand[S].value
       import ctx.{cursor, targets}

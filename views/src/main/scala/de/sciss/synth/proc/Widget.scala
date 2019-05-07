@@ -17,7 +17,8 @@ import de.sciss.lucre.event.{Dummy, Event, EventLike, Publisher, Targets}
 import de.sciss.lucre.expr
 import de.sciss.lucre.expr.Expr
 import de.sciss.lucre.stm.{Copy, Elem, Obj, Sys}
-import de.sciss.lucre.swing.{Graph => _Graph, Widget => _Widget}
+import de.sciss.lucre.swing.{Graph => _Graph}
+import de.sciss.lucre.swing.graph.{Widget => _Widget}
 import de.sciss.serial.{DataInput, DataOutput, ImmutableSerializer, Serializer}
 import de.sciss.synth.UGenSource.Vec
 import de.sciss.synth.proc

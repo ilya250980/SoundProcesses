@@ -106,8 +106,10 @@ object Artifact {
 final case class Artifact(key: String, default: Ex[File] = file(""))
   extends Attr.WithDefault[File] {
 
-  def expand[S <: Sys[S]](implicit ctx: Context[S], tx: S#Tx): IExpr[S, File] = {
-    val defaultEx = default.expand[S]
+  type Repr[S <: Sys[S]] = IExpr[S, File]
+
+  protected def mkRepr[S <: Sys[S]](implicit ctx: Context[S], tx: S#Tx): Repr[S] = {
+    val defaultEx: Repr[S] = default.expand[S]
     Attr.resolveNested(key).fold(defaultEx) { attrView =>
       import ctx.targets
       new Attr.WithDefault.Expanded[S, File](attrView, defaultEx, tx)

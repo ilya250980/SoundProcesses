@@ -68,24 +68,20 @@ object Delay {
   }
 
   final case class Cancel(d: Delay) extends Act {
+    type Repr[S <: Sys[S]] = IAction[S]
+
     override def productPrefix: String = s"Delay$$Cancel" // serialization
 
-    def expand[S <: Sys[S]](implicit ctx: Context[S], tx: S#Tx): IAction[S] =
+    protected def mkRepr[S <: Sys[S]](implicit ctx: Context[S], tx: S#Tx): Repr[S] =
       new CancelExpanded(d.expand[S])
   }
 
   private final case class Impl(time: Ex[Double]) extends Delay {
     override def productPrefix: String = "Delay" // serialization
 
-    // this acts now as a fast unique reference
-    @transient final private[this] lazy val ref = new AnyRef
-
     def cancel: Act = Cancel(this)
 
-    def expand[S <: Sys[S]](implicit ctx: Context[S], tx: S#Tx): Repr[S] =
-      ctx.visit(ref, mkTrig)
-
-    private def mkTrig[S <: Sys[S]](implicit ctx: Context[S], tx: S#Tx): Repr[S] = {
+    protected def mkRepr[S <: Sys[S]](implicit ctx: Context[S], tx: S#Tx): Repr[S] = {
       // Note: we can't just run `Universe()` because Sys is not synth.Sys,
       // and also we may want to preserve the possibility to provide custom schedulers
 //      println("EXPAND")
@@ -106,10 +102,10 @@ object Delay {
   * the previous trigger is cancelled and the delay is rescheduled.
   */
 trait Delay extends Act with Trig {
+  type Repr[S <: Sys[S]] = Delay.Repr[S]
+
   /* *Delay time in seconds. */
   def time: Ex[Double]
 
   def cancel: Act
-
-  override def expand[S <: Sys[S]](implicit ctx: Context[S], tx: S#Tx): Delay.Repr[S]
 }

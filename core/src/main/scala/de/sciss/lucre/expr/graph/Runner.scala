@@ -24,7 +24,6 @@ import de.sciss.synth.proc
 import de.sciss.synth.proc.Runner.Universe
 import de.sciss.synth.proc.{TimeRef, UGenGraphBuilder => UGB}
 
-import scala.collection.immutable.{Seq => ISeq}
 import scala.concurrent.stm.Ref
 
 object Runner {
@@ -34,9 +33,11 @@ object Runner {
   }
 
   final case class Run(r: Runner) extends Act {
+    type Repr[S <: Sys[S]] = IAction[S]
+
     override def productPrefix: String = s"Runner$$Run" // serialization
 
-    def expand[S <: Sys[S]](implicit ctx: Context[S], tx: S#Tx): IAction[S] = {
+    protected def mkRepr[S <: Sys[S]](implicit ctx: Context[S], tx: S#Tx): Repr[S] = {
       val rx = r.expand[S]
       new ExpandedRun[S](rx)
     }
@@ -48,9 +49,11 @@ object Runner {
   }
 
   final case class Stop(r: Runner) extends Act {
+    type Repr[S <: Sys[S]] = IAction[S]
+
     override def productPrefix: String = s"Runner$$Stop" // serialization
 
-    def expand[S <: Sys[S]](implicit ctx: Context[S], tx: S#Tx): IAction[S] = {
+    protected def mkRepr[S <: Sys[S]](implicit ctx: Context[S], tx: S#Tx): Repr[S] = {
       val rx = r.expand[S]
       new ExpandedStop[S](rx)
     }
@@ -80,9 +83,11 @@ object Runner {
   }
 
   final case class State(r: Runner) extends Ex[Int] {
+    type Repr[S <: Sys[S]] = IExpr[S, Int]
+
     override def productPrefix: String = s"Runner$$State" // serialization
 
-    def expand[S <: Sys[S]](implicit ctx: Context[S], tx: S#Tx): IExpr[S, Int] = {
+    protected def mkRepr[S <: Sys[S]](implicit ctx: Context[S], tx: S#Tx): Repr[S] = {
       import ctx.targets
       val rx = r.expand[S]
       new ExpandedState[S](rx, tx)
@@ -112,16 +117,18 @@ object Runner {
   }
 
   final case class Progress(r: Runner) extends Ex[Double] {
+    type Repr[S <: Sys[S]] = IExpr[S, Double]
+
     override def productPrefix: String = s"Runner$$Progress" // serialization
 
-    def expand[S <: Sys[S]](implicit ctx: Context[S], tx: S#Tx): IExpr[S, Double] = {
+    protected def mkRepr[S <: Sys[S]](implicit ctx: Context[S], tx: S#Tx): Repr[S] = {
       import ctx.targets
       val rx = r.expand[S]
       new ExpandedProgress[S](rx, tx)
     }
   }
 
-  private type Msg = ISeq[proc.Runner.Message]
+  private type Msg = Seq[proc.Runner.Message]
 
   private final class ExpandedMessages[S <: Sys[S]](r: proc.Runner[S], tx0: S#Tx)
                                                    (implicit protected val targets: ITargets[S])
@@ -145,10 +152,12 @@ object Runner {
       Some(pull.resolve[Change[Msg]])
   }
 
-  final case class Messages(r: Runner) extends Ex[ISeq[proc.Runner.Message]] {
+  final case class Messages(r: Runner) extends Ex[Seq[proc.Runner.Message]] {
+    type Repr[S <: Sys[S]] = IExpr[S, Seq[proc.Runner.Message]]
+
     override def productPrefix: String = s"Runner$$Messages" // serialization
 
-    def expand[S <: Sys[S]](implicit ctx: Context[S], tx: S#Tx): IExpr[S, ISeq[proc.Runner.Message]] = {
+    protected def mkRepr[S <: Sys[S]](implicit ctx: Context[S], tx: S#Tx): Repr[S] = {
       import ctx.targets
       val rx = r.expand[S]
       new ExpandedMessages[S](rx, tx)
@@ -168,9 +177,9 @@ final case class Runner(key: String) extends Control {
   /** Zero to one. Negative if unknown */
   def progress: Ex[Double] = Runner.Progress(this)
 
-  def messages: Ex[ISeq[proc.Runner.Message]] = Runner.Messages(this)
+  def messages: Ex[Seq[proc.Runner.Message]] = Runner.Messages(this)
 
-  protected def mkControl[S <: Sys[S]](implicit ctx: Context[S], tx: S#Tx): Repr[S] =
+  protected def mkRepr[S <: Sys[S]](implicit ctx: Context[S], tx: S#Tx): Repr[S] =
     tx.system match {
       case _: synth.Sys[_] =>
         // XXX TODO --- ugly ugly ugly

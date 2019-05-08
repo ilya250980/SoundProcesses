@@ -21,8 +21,6 @@ import de.sciss.lucre.stm.Sys
 import de.sciss.model.Change
 import de.sciss.synth.UGenSource.Vec
 
-import scala.collection.immutable.{Seq => ISeq}
-
 sealed trait OscPacket
 
 object OscMessage {
@@ -51,9 +49,11 @@ object OscMessage {
   }
 
   final case class Name(m: Ex[OscMessage]) extends Ex[String] {
+    type Repr[S <: Sys[S]] = IExpr[S, String]
+
     override def productPrefix: String = s"OscMessage$$Name" // serialization
 
-    def expand[S <: Sys[S]](implicit ctx: Context[S], tx: S#Tx): IExpr[S, String] = {
+    protected def mkRepr[S <: Sys[S]](implicit ctx: Context[S], tx: S#Tx): Repr[S] = {
       import ctx.targets
       new NameExpanded(m.expand[S], tx)
     }
@@ -61,19 +61,19 @@ object OscMessage {
 
   private final class ArgsExpanded[S <: Sys[S]](peer: IExpr[S, OscMessage], tx0: S#Tx)
                                                (implicit protected val targets: ITargets[S])
-    extends IExpr[S, ISeq[Any]] with IEventImpl[S, Change[ISeq[Any]]] {
+    extends IExpr[S, Seq[Any]] with IEventImpl[S, Change[Seq[Any]]] {
 
     peer.changed.--->(changed)(tx0)
 
-    def value(implicit tx: S#Tx): ISeq[Any] =
+    def value(implicit tx: S#Tx): Seq[Any] =
       peer.value.args.toIndexedSeq
 
     def dispose()(implicit tx: S#Tx): Unit =
       peer.changed.-/->(changed)
 
-    def changed: IEvent[S, Change[ISeq[Any]]] = this
+    def changed: IEvent[S, Change[Seq[Any]]] = this
 
-    private[lucre] def pullUpdate(pull: IPull[S])(implicit tx: S#Tx): Option[Change[ISeq[Any]]] =
+    private[lucre] def pullUpdate(pull: IPull[S])(implicit tx: S#Tx): Option[Change[Seq[Any]]] =
       pull(peer.changed).flatMap { ch =>
         // XXX TODO --- map args here to valid types, e.g. Float -> Double
         val chArgs = Change(ch.before.args.toIndexedSeq, ch.now.args.toIndexedSeq)
@@ -81,10 +81,12 @@ object OscMessage {
       }
   }
 
-  final case class Args(m: Ex[OscMessage]) extends Ex[ISeq[Any]] {
+  final case class Args(m: Ex[OscMessage]) extends Ex[Seq[Any]] {
+    type Repr[S <: Sys[S]] = IExpr[S, Seq[Any]]
+
     override def productPrefix: String = s"OscMessage$$Args" // serialization
 
-    def expand[S <: Sys[S]](implicit ctx: Context[S], tx: S#Tx): IExpr[S, ISeq[Any]] = {
+    protected def mkRepr[S <: Sys[S]](implicit ctx: Context[S], tx: S#Tx): Repr[S] = {
       import ctx.targets
       new ArgsExpanded(m.expand[S], tx)
     }
@@ -156,15 +158,11 @@ object OscMessage {
   }
 
   final case class Select(m: Ex[OscMessage], name: Ex[String], args: CaseDef[_]*) extends Act with Trig {
+    type Repr[S <: Sys[S]] = IAction[S] with ITrigger[S]
+
     override def productPrefix: String = s"OscMessage$$Select" // serialization
 
-    // this acts now as a fast unique reference
-    @transient final private[this] lazy val ref = new AnyRef
-
-    def expand[S <: Sys[S]](implicit ctx: Context[S], tx: S#Tx): IAction[S] with ITrigger[S] =
-      ctx.visit(ref, mkActTrig)
-
-    private def mkActTrig[S <: Sys[S]](implicit ctx: Context[S], tx: S#Tx): IAction[S] with ITrigger[S] = {
+    protected def mkRepr[S <: Sys[S]](implicit ctx: Context[S], tx: S#Tx): Repr[S] = {
       val argsEx = args.iterator.map(_.expand[S]).toIndexedSeq
       import ctx.targets
       new SelectExpanded(m.expand[S], name.expand[S], argsEx, tx)
@@ -173,12 +171,12 @@ object OscMessage {
 
   implicit class Ops(private val m: Ex[OscMessage]) extends AnyVal {
     def name: Ex[String]    = Name(m)
-    def args: Ex[ISeq[Any]] = Args(m)
+    def args: Ex[Seq[Any]] = Args(m)
 
     def select(name: Ex[String], args: CaseDef[_]*): Select = Select(m, name, args: _*)
   }
 
-  private final class Expanded[S <: Sys[S]](name: IExpr[S, String], args: IExpr[S, ISeq[Any]], tx0: S#Tx)
+  private final class Expanded[S <: Sys[S]](name: IExpr[S, String], args: IExpr[S, Seq[Any]], tx0: S#Tx)
                                            (implicit protected val targets: ITargets[S])
     extends IExpr[S, OscMessage] with IEventImpl[S, Change[OscMessage]] {
 
@@ -220,13 +218,15 @@ object OscMessage {
   }
 
   private final case class Impl(name: Ex[String], args: Ex[Any]*) extends Ex[OscMessage] {
+    type Repr[S <: Sys[S]] = IExpr[S, OscMessage]
+
     override def productPrefix: String = "OscMessage" // serialization
 
-    def expand[S <: Sys[S]](implicit ctx: Context[S], tx: S#Tx): IExpr[S, OscMessage] = {
+    protected def mkRepr[S <: Sys[S]](implicit ctx: Context[S], tx: S#Tx): Repr[S] = {
       import ctx.targets
       val nameEx = name.expand[S]
       val argsEx = ExSeq(args: _*).expand[S]
-      new Expanded(nameEx, argsEx, tx)
+      new Expanded[S](nameEx, argsEx, tx)
     }
   }
 
@@ -244,5 +244,5 @@ final case class OscMessage(name: String, args: Any*) extends OscPacket
 trait OscBundle extends OscPacket {
   def time: Long
 
-  def packets: ISeq[OscPacket]
+  def packets: Seq[OscPacket]
 }

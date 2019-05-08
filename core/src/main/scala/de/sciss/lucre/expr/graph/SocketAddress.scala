@@ -25,9 +25,11 @@ object SocketAddress {
   def apply(host: Ex[String] = LocalHost(), port: Ex[Int]): Ex[SocketAddress] = Impl(host, port)
 
   final case class LocalHost() extends Ex[String] {
+    type Repr[S <: Sys[S]] = IExpr[S, String]
+
     override def productPrefix: String = s"SocketAddress$$LocalHost" // serialization
 
-    def expand[S <: Sys[S]](implicit ctx: Context[S], tx: S#Tx): IExpr[S, String] = {
+    protected def mkRepr[S <: Sys[S]](implicit ctx: Context[S], tx: S#Tx): Repr[S] = {
       val value = try {
         InetAddress.getLocalHost.getHostName
       } catch {
@@ -49,9 +51,11 @@ object SocketAddress {
   }
 
   private final case class Impl(host: Ex[String], port: Ex[Int]) extends Ex[SocketAddress] {
+    type Repr[S <: Sys[S]] = IExpr[S, SocketAddress]
+
     override def productPrefix: String = "SocketAddress" // serialization
 
-    def expand[S <: Sys[S]](implicit ctx: Context[S], tx: S#Tx): IExpr[S, SocketAddress] = {
+    protected def mkRepr[S <: Sys[S]](implicit ctx: Context[S], tx: S#Tx): Repr[S] = {
       import ctx.targets
       val hostEx = host.expand[S]
       val portEx = port.expand[S]

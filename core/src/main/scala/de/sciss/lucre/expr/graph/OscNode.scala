@@ -36,18 +36,22 @@ object OscNode {
   private[graph] final val defaultCodec    = "1.0"
 
   final case class Dump(n: OscNode) extends Ex[Int] {
+    type Repr[S <: Sys[S]] = IExpr[S, Int]
+
     override def productPrefix: String = s"OscNode$$Dump" // serialization
 
-    def expand[S <: Sys[S]](implicit ctx: Context[S], tx: S#Tx): IExpr[S, Int] = {
+    protected def mkRepr[S <: Sys[S]](implicit ctx: Context[S], tx: S#Tx): Repr[S] = {
       val valueOpt = ctx.getProperty[Ex[Int]](n, keyDump)
       valueOpt.getOrElse(Const(defaultDump)).expand[S]
     }
   }
 
   final case class Codec(n: OscNode) extends Ex[String] {
+    type Repr[S <: Sys[S]] = IExpr[S, String]
+
     override def productPrefix: String = s"OscNode$$Codec" // serialization
 
-    def expand[S <: Sys[S]](implicit ctx: Context[S], tx: S#Tx): IExpr[S, String] = {
+    protected def mkRepr[S <: Sys[S]](implicit ctx: Context[S], tx: S#Tx): Repr[S] = {
       val valueOpt = ctx.getProperty[Ex[String]](n, keyCodec)
       valueOpt.getOrElse(Const(defaultCodec)).expand[S]
     }
@@ -121,16 +125,19 @@ object OscUdpNode {
   }
 
   final case class Received(n: OscUdpNode) extends Trig {
+    type Repr[S <: Sys[S]] = ITrigger[S]
+
     override def productPrefix = s"OscUdpNode$$Received"   // serialization
 
-    def expand[S <: Sys[S]](implicit ctx: Context[S], tx: S#Tx): ITrigger[S] = {
+    protected def mkRepr[S <: Sys[S]](implicit ctx: Context[S], tx: S#Tx): Repr[S] = {
       val ns = n.expand[S]
       import ctx.targets
       new ReceivedExpanded[S](ns, tx)
     }
   }
 
-  private final class SenderExpanded[S <: Sys[S]](peer: Repr[S], tx0: S#Tx)(implicit protected val targets: ITargets[S])
+  private final class SenderExpanded[S <: Sys[S]](peer: Repr[S], tx0: S#Tx)
+                                                 (implicit protected val targets: ITargets[S])
     extends IExpr[S, SocketAddress] with IEventImpl[S, Change[SocketAddress]] {
 
     peer.received.--->(changed)(tx0)
@@ -162,9 +169,11 @@ object OscUdpNode {
   }
 
   final case class Sender(n: OscUdpNode) extends Ex[SocketAddress] {
+    type Repr[S <: Sys[S]] = IExpr[S, SocketAddress]
+
     override def productPrefix = s"OscUdpNode$$Sender"   // serialization
 
-    def expand[S <: Sys[S]](implicit ctx: Context[S], tx: S#Tx): IExpr[S, SocketAddress] = {
+    protected def mkRepr[S <: Sys[S]](implicit ctx: Context[S], tx: S#Tx): Repr[S] = {
       val ns = n.expand[S]
       import ctx.targets
       new SenderExpanded(ns, tx)
@@ -200,9 +209,11 @@ object OscUdpNode {
   }
 
   final case class Message(n: OscUdpNode) extends Ex[OscMessage] {
+    type Repr[S <: Sys[S]] = IExpr[S, OscMessage]
+
     override def productPrefix = s"OscUdpNode$$Message"   // serialization
 
-    def expand[S <: Sys[S]](implicit ctx: Context[S], tx: S#Tx): IExpr[S, OscMessage] = {
+    protected def mkRepr[S <: Sys[S]](implicit ctx: Context[S], tx: S#Tx): Repr[S] = {
       import ctx.targets
       new MessageExpanded(n.expand[S], tx)
     }
@@ -403,9 +414,11 @@ object OscUdpNode {
   }
 
   final case class Send(n: OscUdpNode, target: Ex[SocketAddress], p: Ex[OscPacket]) extends Act {
+    type Repr[S <: Sys[S]] = IAction[S]
+
     override def productPrefix = s"OscUdpNode$$Send"   // serialization
 
-    def expand[S <: Sys[S]](implicit ctx: Context[S], tx: S#Tx): IAction[S] =
+    protected def mkRepr[S <: Sys[S]](implicit ctx: Context[S], tx: S#Tx): Repr[S] =
       new SendExpanded[S](n.expand[S], target.expand, p.expand, tx)
   }
 
@@ -422,7 +435,7 @@ object OscUdpNode {
     def sender  : Ex[SocketAddress] = Sender  (this)
     def message : Ex[OscMessage]    = Message (this)
 
-    protected def mkControl[S <: Sys[S]](implicit ctx: Context[S], tx: S#Tx): Repr[S] = {
+    protected def mkRepr[S <: Sys[S]](implicit ctx: Context[S], tx: S#Tx): Repr[S] = {
       val localPortV = localPort.expand[S].value
       val localHostV = localHost.expand[S].value
       import ctx.{cursor, targets}

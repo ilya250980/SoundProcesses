@@ -17,6 +17,7 @@ import de.sciss.file.File
 import de.sciss.lucre
 import de.sciss.lucre.artifact.Artifact
 import de.sciss.lucre.event.{Pull, Targets}
+import de.sciss.lucre.expr.graph.{Ex, AudioCue => _AudioCue}
 import de.sciss.lucre.expr.{DoubleObj, LongExtensions, LongObj, Type, Expr => _Expr}
 import de.sciss.lucre.stm.{Copy, Elem, Sys}
 import de.sciss.lucre.{expr, stm}
@@ -24,6 +25,7 @@ import de.sciss.model.Change
 import de.sciss.serial.{DataInput, DataOutput, ImmutableSerializer}
 import de.sciss.synth.io.AudioFileSpec
 import de.sciss.synth.proc
+import de.sciss.synth.proc.ExOps.audioFileSpecOps
 
 import scala.annotation.switch
 
@@ -409,6 +411,27 @@ object AudioCue {
 
     /** A simple forward to `spec.sampleRate` */
     def sampleRate(implicit tx: S#Tx): Double = spec.sampleRate
+  }
+
+  implicit final class ExOps(private val x: Ex[AudioCue]) extends AnyVal {
+    def artifact: Ex[File]          = _AudioCue.Artifact(x)
+    def spec    : Ex[AudioFileSpec] = _AudioCue.Spec    (x)
+    def offset  : Ex[Long]          = _AudioCue.Offset  (x)
+    def gain    : Ex[Double]        = _AudioCue.Gain    (x)
+
+    /** A simple forward to `spec.numChannels` */
+    def numChannels : Ex[Int]     = spec.numChannels
+
+    /** A simple forward to `spec.numFrames` */
+    def numFrames   : Ex[Long]    = spec.numFrames
+
+    /** A simple forward to `spec.sampleRate` */
+    def sampleRate  : Ex[Double]  = spec.sampleRate
+
+    /** A utility method that reports the offset with respect to the file's sample rate.
+      * That is, it multiplies `offset` by the factor `this.sampleRate / TimeRef.SampleRate`
+      */
+    def fileOffset: Ex[Long] = _AudioCue.FileOffset(x) // (offset / TimeRef.SampleRate * sampleRate + 0.5).toLong
   }
 }
 

@@ -15,11 +15,9 @@ package de.sciss.lucre.expr.graph
 
 import java.net.InetAddress
 
-import de.sciss.lucre.event.impl.IEventImpl
-import de.sciss.lucre.event.{IEvent, IPull, ITargets}
+import de.sciss.lucre.aux.Aux
 import de.sciss.lucre.expr.{Context, IExpr}
 import de.sciss.lucre.stm.Sys
-import de.sciss.model.Change
 
 import scala.util.control.NonFatal
 
@@ -39,45 +37,15 @@ object SocketAddress {
     }
   }
 
-  private final class Expanded[S <: Sys[S]](host: IExpr[S, String], port: IExpr[S, Int], tx0: S#Tx)
-                                           (implicit protected val targets: ITargets[S])
-    extends IExpr[S, SocketAddress] with IEventImpl[S, Change[SocketAddress]] {
+  final case class Apply private[graph] () extends BinaryOp.Op[String, Int, SocketAddress] {
+    def apply(host: String, port: Int): SocketAddress =
+      SocketAddress(host, port)
 
-    host.changed.--->(changed)(tx0)
-    port.changed.--->(changed)(tx0)
+    override def productPrefix: String = s"SocketAddress$$$name"
 
-    def value(implicit tx: S#Tx): SocketAddress = {
-      val hostV = host.value
-      val portV = port.value
-      new SocketAddress(hostV, portV)
-    }
+    def name: String = "Apply"
 
-    def dispose()(implicit tx: S#Tx): Unit = {
-      host.changed.-/->(changed)
-      port.changed.-/->(changed)
-    }
-
-    def changed: IEvent[S, Change[SocketAddress]] = this
-
-    private[lucre] def pullUpdate(pull: IPull[S])(implicit tx: S#Tx): Option[Change[SocketAddress]] = {
-      val hostEvt = host.changed
-      val portEvt = port.changed
-      val hostOpt = if (pull.contains(hostEvt)) pull(hostEvt) else None
-      val portOpt = if (pull.contains(portEvt)) pull(portEvt) else None
-      val hostCh  = hostOpt.getOrElse {
-        val hostV = host.value
-        Change(hostV, hostV)
-      }
-      val portCh = portOpt.getOrElse {
-        val portV = port.value
-        Change(portV, portV)
-      }
-      val mBefore = new SocketAddress(hostCh.before, portCh.before)
-      val mNow    = new SocketAddress(hostCh.now   , portCh.now   )
-      val ch      = Change(mBefore, mNow)
-
-      if (ch.isSignificant) Some(ch) else None
-    }
+    def aux: List[Aux] = Nil
   }
 
   private final case class Impl(host: Ex[String], port: Ex[Int]) extends Ex[SocketAddress] {
@@ -87,7 +55,7 @@ object SocketAddress {
       import ctx.targets
       val hostEx = host.expand[S]
       val portEx = port.expand[S]
-      new Expanded(hostEx, portEx, tx)
+      new BinaryOp.Expanded(Apply(), hostEx, portEx, tx)
     }
   }
 }

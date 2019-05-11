@@ -116,7 +116,8 @@ final case class Artifact(key: String, default: Ex[File] = file(""))
     }
   }
 
-  def update(in: Ex[File]): Control = Attr.Update(in, key)
+  def update(in: Ex[File]): Control = Attr.Update (in, key)
+  def set   (in: Ex[File]): Act     = Attr.Set    (in, key)
 
   implicit def bridge: Attr.Bridge[File] = Artifact.Bridge
 

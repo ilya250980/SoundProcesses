@@ -16,6 +16,7 @@ package de.sciss.synth.proc
 import java.util.concurrent.ScheduledExecutorService
 
 import de.sciss.lucre
+import de.sciss.lucre.expr.LucreExpr
 import de.sciss.lucre.stm
 import de.sciss.lucre.stm.Sys
 import de.sciss.lucre.synth.impl.NodeImpl
@@ -67,7 +68,7 @@ object SoundProcesses {
   }
 
   private[this] lazy val _init: Unit = {
-    lucre.expr    .init()
+    LucreExpr     .init()
     Action        .init()
     AudioCue      .init()
     Code          .init()

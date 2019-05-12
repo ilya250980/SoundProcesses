@@ -78,8 +78,8 @@ object Widget extends Obj.Type {
       proc.Code.addType(this)
       proc.Code.registerImports(id, Vec(
         "de.sciss.numbers.Implicits._",
-        "de.sciss.lucre.expr.ExOps._",
-        "de.sciss.synth.proc.ExOps._",
+        "de.sciss.lucre.expr.ExImport._",
+        "de.sciss.synth.proc.ExImport._",
         "de.sciss.file._",
         "de.sciss.lucre.expr.graph._",
         "de.sciss.lucre.swing.graph._"
@@ -158,7 +158,6 @@ object Widget extends Obj.Type {
 
     private val emptyGraph =
       _Graph {
-        import lucre.expr.ExOps._
         import lucre.swing.graph._
         Label("")
       }

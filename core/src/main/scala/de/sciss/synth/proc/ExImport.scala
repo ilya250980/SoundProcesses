@@ -18,7 +18,7 @@ import de.sciss.lucre.expr.impl.{ExAttrBridgeImpl => Impl}
 import de.sciss.synth.io.AudioFileSpec
 import de.sciss.synth.{Curve, proc}
 
-object ExOps {
+object ExImport {
   implicit val audioCueExAttrBridge   : Attr.Bridge[AudioCue   ] = new Impl(AudioCue   .Obj)
   implicit val codeExAttrBridge       : Attr.Bridge[Code       ] = new Impl(Code       .Obj)
   implicit val colorExAttrBridge      : Attr.Bridge[Color      ] = new Impl(Color      .Obj)
@@ -34,3 +34,4 @@ object ExOps {
     def sampleRate  : Ex[Double ] = _AudioFileSpec.SampleRate (x)
   }
 }
+

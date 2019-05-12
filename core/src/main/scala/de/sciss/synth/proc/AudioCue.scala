@@ -25,7 +25,7 @@ import de.sciss.model.Change
 import de.sciss.serial.{DataInput, DataOutput, ImmutableSerializer}
 import de.sciss.synth.io.AudioFileSpec
 import de.sciss.synth.proc
-import de.sciss.synth.proc.ExOps.audioFileSpecOps
+import de.sciss.synth.proc.ExImport.audioFileSpecOps
 
 import scala.annotation.switch
 

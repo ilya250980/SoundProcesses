@@ -18,7 +18,7 @@ import java.net.{InetAddress, InetSocketAddress}
 import de.sciss.lucre.event.impl.{IEventImpl, IGenerator}
 import de.sciss.lucre.event.{IEvent, IPull, ITargets}
 import de.sciss.lucre.expr.impl.{IActionImpl, IControlImpl}
-import de.sciss.lucre.expr.{Context, Graph, IAction, IControl, IExpr, ITrigger, TrigOps}
+import de.sciss.lucre.expr.{Context, Graph, IAction, IControl, IExpr, ITrigger}
 import de.sciss.lucre.stm
 import de.sciss.lucre.stm.Sys
 import de.sciss.lucre.stm.TxnLike.{peer => txPeer}
@@ -85,7 +85,6 @@ sealed trait OscNode extends Control {
     val r = received
     val m = message
     val s = m.select(name, args: _*)
-    import TrigOps._
     r ---> s
     s
   }

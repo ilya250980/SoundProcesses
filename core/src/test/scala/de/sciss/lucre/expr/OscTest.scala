@@ -7,7 +7,6 @@ object OscTest extends App {
   type S = InMemory
 
   val g = Graph {
-    import ExOps._
     import graph._
     val n = OscUdpNode(40000)
     val m = OscUdpNode(40001)

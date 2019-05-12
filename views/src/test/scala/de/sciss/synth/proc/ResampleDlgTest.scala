@@ -8,7 +8,6 @@ import scala.swing.Component
 
 object ResampleDlgTest extends AppLike {
   protected def mkView(): Component = {
-    import expr.ExOps._
     import expr.graph._
     import swing.graph._
     val g = swing.Graph {

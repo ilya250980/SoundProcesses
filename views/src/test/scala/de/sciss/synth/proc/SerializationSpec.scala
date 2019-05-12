@@ -26,7 +26,7 @@ class SerializationSpec extends fixture.FlatSpec with Matchers {
     val (wH, gIn) = cursor.step { implicit tx =>
       val w = Widget[S]
       val g = WGraph {
-        import expr.ExOps._
+        import expr.ExImport._
         import wgraph._
         val sl      = Slider()
         sl.min      = 1

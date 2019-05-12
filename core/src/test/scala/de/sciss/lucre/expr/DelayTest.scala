@@ -7,7 +7,6 @@ object DelayTest extends App {
   type S = InMemory
 
   val g = Graph {
-    import ExOps._
     import graph._
 
     val b = LoadBang()

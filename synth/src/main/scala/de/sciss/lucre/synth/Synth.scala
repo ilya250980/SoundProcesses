@@ -11,12 +11,12 @@
  *  contact@sciss.de
  */
 
-package de.sciss.lucre
-package synth
+package de.sciss.lucre.synth
 
-import collection.immutable.{Seq => ISeq}
-import de.sciss.synth.{Synth => SSynth, SynthDef => SSynthDef, UGenGraph, addToHead, AddAction, ControlSet, SynthGraph}
-import impl.{SynthImpl => Impl}
+import de.sciss.lucre.synth.impl.{SynthImpl => Impl}
+import de.sciss.synth.{AddAction, ControlSet, SynthGraph, UGenGraph, addToHead, Synth => SSynth, SynthDef => SSynthDef}
+
+import scala.collection.immutable.{Seq => ISeq}
 
 object Synth {
   def apply(server: Server, graph: SynthGraph, nameHint: Option[String] = None)(implicit tx: Txn): Synth = {

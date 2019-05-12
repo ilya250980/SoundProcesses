@@ -11,12 +11,12 @@
  *  contact@sciss.de
  */
 
-package de.sciss.lucre.synth
-package impl
+package de.sciss.lucre.synth.impl
 
-import de.sciss.synth.{FillRange, Buffer => SBuffer}
+import de.sciss.lucre.synth.{Buffer, Server, Txn}
 import de.sciss.synth.io.{AudioFileType, SampleFormat}
 import de.sciss.synth.message.BufferGen
+import de.sciss.synth.{FillRange, Buffer => SBuffer}
 
 final case class BufferImpl(server: Server, peer: SBuffer)
                            (val numFrames: Int, val numChannels: Int, closeOnDisposal: Boolean)

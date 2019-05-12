@@ -11,11 +11,11 @@
  *  contact@sciss.de
  */
 
-package de.sciss.lucre.synth
-package impl
+package de.sciss.lucre.synth.impl
 
 import de.sciss.lucre.event.impl.ReactionMapImpl
 import de.sciss.lucre.stm
+import de.sciss.lucre.synth.InMemory
 
 import scala.concurrent.stm.InTxn
 

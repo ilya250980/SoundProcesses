@@ -11,12 +11,12 @@
  *  contact@sciss.de
  */
 
-package de.sciss.synth.proc
-package gui
+package de.sciss.synth.proc.gui
 
 import de.sciss.lucre.stm
 import de.sciss.lucre.stm.Sys
 import de.sciss.lucre.swing.View
+import de.sciss.synth.proc.Universe
 
 trait UniverseView[S <: Sys[S]] extends View.Cursor[S] {
   implicit val universe: Universe[S]

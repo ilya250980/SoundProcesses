@@ -11,14 +11,14 @@
  *  contact@sciss.de
  */
 
-package de.sciss.synth.proc
-package impl
+package de.sciss.synth.proc.impl
 
 import de.sciss.lucre.event.impl.ObservableImpl
 import de.sciss.lucre.stm
 import de.sciss.lucre.stm.{Disposable, Folder, Obj}
 import de.sciss.lucre.synth.Sys
 import de.sciss.synth.proc.AuralObj.Container
+import de.sciss.synth.proc.{AuralObj, Runner, TimeRef, Transport}
 
 import scala.concurrent.stm.Ref
 

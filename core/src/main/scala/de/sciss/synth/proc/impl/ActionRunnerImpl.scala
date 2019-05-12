@@ -11,8 +11,7 @@
  *  contact@sciss.de
  */
 
-package de.sciss.synth.proc
-package impl
+package de.sciss.synth.proc.impl
 
 import de.sciss.lucre.event.impl.DummyObservableImpl
 import de.sciss.lucre.stm
@@ -20,6 +19,7 @@ import de.sciss.lucre.stm.{Obj, Sys}
 import de.sciss.synth.proc
 import de.sciss.synth.proc.Implicits._
 import de.sciss.synth.proc.Runner.{Prepared, Running, Stopped}
+import de.sciss.synth.proc.{Action, ObjViewBase, Runner, TimeRef}
 
 object ActionRunnerImpl {
   def apply[S <: Sys[S]](obj: Action[S])(implicit tx: S#Tx, universe: Runner.Universe[S]): Runner[S] =

@@ -11,22 +11,20 @@
  *  contact@sciss.de
  */
 
-package de.sciss.synth.proc
-package impl
+package de.sciss.synth.proc.impl
 
+import de.sciss.lucre.stm.Disposable
+import de.sciss.lucre.synth.{Server, Txn}
 import de.sciss.osc.Dump
-
-import scala.concurrent.stm.{Ref, TxnExecutor}
-import collection.immutable.{IndexedSeq => Vec}
+import de.sciss.synth.proc.{AuralSystem, SoundProcesses, logAural => logA}
 import de.sciss.synth.{Client, ServerConnection, Server => SServer}
 
-import TxnExecutor.{defaultAtomic => atomic}
-import de.sciss.lucre.synth.{Server, Txn}
-import de.sciss.lucre.stm.Disposable
-import de.sciss.synth.proc.{logAural => logA}
+import scala.collection.immutable.{IndexedSeq => Vec}
+import scala.concurrent.stm.Ref
+import scala.concurrent.stm.TxnExecutor.{defaultAtomic => atomic}
 
 object AuralSystemImpl {
-  import AuralSystem.Client
+  import de.sciss.synth.proc.AuralSystem.Client
 
   var dumpOSC = false
 
@@ -46,6 +44,7 @@ object AuralSystemImpl {
     } else {
       new Impl
     }
+
 
   /* There is a bug in Scala-STM which means
    * that calling atomic from within Txn.afterCommit

@@ -11,13 +11,11 @@
  *  contact@sciss.de
  */
 
-package de.sciss.synth
-package proc
-package graph
-package impl
+package de.sciss.synth.proc.graph.impl
 
 import de.sciss.lucre.synth.{DynamicUser, Node, Txn}
 import de.sciss.osc
+import de.sciss.synth.message
 
 import scala.concurrent.stm.Ref
 

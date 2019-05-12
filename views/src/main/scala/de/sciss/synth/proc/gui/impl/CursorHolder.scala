@@ -11,9 +11,7 @@
  *  contact@sciss.de
  */
 
-package de.sciss.synth.proc
-package gui
-package impl
+package de.sciss.synth.proc.gui.impl
 
 import de.sciss.lucre.stm.{Cursor, Sys}
 

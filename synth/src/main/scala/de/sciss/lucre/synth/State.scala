@@ -19,7 +19,7 @@ object State {
   def apply(owner: Any, name: String, init: Boolean): State = new Impl(owner, name, init)
 
   private final class Impl(val owner: Any, val name: String, init: Boolean) extends State {
-    val value = Ref(init)
+    val value: Ref[Boolean] = Ref(init)
 
     def swap(newValue: Boolean)(implicit tx: Txn): Boolean = value.swap(newValue)(tx.peer)
 

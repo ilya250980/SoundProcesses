@@ -11,15 +11,16 @@
  *  contact@sciss.de
  */
 
-package de.sciss.synth.proc
-package impl
+package de.sciss.synth.proc.impl
 
 import de.sciss.lucre.event.impl.ObservableImpl
 import de.sciss.lucre.stm.TxnLike
 import de.sciss.lucre.synth.{AudioBus, BusNodeSetter, DynamicUser, NodeRef, Resource, Synth, Sys, Txn}
 import de.sciss.synth
 import de.sciss.synth.Ops.stringToControl
+import de.sciss.synth.proc.AuralAttribute
 import de.sciss.synth.proc.AuralAttribute.{Scalar, Stream, Value}
+import de.sciss.synth.proc.graph.Attribute
 import de.sciss.synth.{ControlSet, SynthGraph}
 
 import scala.concurrent.stm.{Ref, TMap}
@@ -32,7 +33,7 @@ final class AuralAttributeTargetImpl[S <: Sys[S]](target: NodeRef.Full[S], val k
   import TxnLike.peer
   import targetBus.{numChannels, server}
 
-  private def ctlName   = graph.Attribute.controlName(key)
+  private def ctlName   = Attribute.controlName(key)
 
   private[this] val map       = TMap.empty[AuralAttribute[S], Connected]
   private[this] val stateRef  = Ref[State](Empty)

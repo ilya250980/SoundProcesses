@@ -11,12 +11,12 @@
  *  contact@sciss.de
  */
 
-package de.sciss.synth
-package proc
-package graph
+package de.sciss.synth.proc.graph
 
+import de.sciss.synth.proc.UGenGraphBuilder
 import de.sciss.synth.proc.UGenGraphBuilder.Input
 import de.sciss.synth.ugen.Flatten
+import de.sciss.synth.{GE, HasSideEffect, Lazy}
 
 /** A graph element that executes an action upon receiving a trigger.
   *

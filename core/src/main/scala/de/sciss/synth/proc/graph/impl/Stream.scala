@@ -11,14 +11,13 @@
  *  contact@sciss.de
  */
 
-package de.sciss.synth.proc
-package graph
-package impl
+package de.sciss.synth.proc.graph.impl
 
 import de.sciss.lucre.synth.Server
 import de.sciss.synth
 import de.sciss.synth.Ops.stringToControl
 import de.sciss.synth.UGenInLike
+import de.sciss.synth.proc.UGenGraphBuilder
 import de.sciss.synth.proc.UGenGraphBuilder.Input
 
 object Stream {

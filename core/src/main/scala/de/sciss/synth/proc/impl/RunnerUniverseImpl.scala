@@ -11,8 +11,7 @@
  *  contact@sciss.de
  */
 
-package de.sciss.synth.proc
-package impl
+package de.sciss.synth.proc.impl
 
 import de.sciss.lucre.event.impl.ObservableImpl
 import de.sciss.lucre.stm
@@ -20,6 +19,7 @@ import de.sciss.lucre.stm.TxnLike.peer
 import de.sciss.lucre.stm.{Cursor, Disposable, Obj, Workspace}
 import de.sciss.lucre.synth.{Sys => SSys}
 import de.sciss.synth.proc.Runner.{Factory, Universe}
+import de.sciss.synth.proc.{Action, AuralSystem, GenContext, Proc, Runner, Scheduler, Timeline}
 
 import scala.collection.immutable.{IndexedSeq => Vec}
 import scala.concurrent.stm.{Ref, TMap}

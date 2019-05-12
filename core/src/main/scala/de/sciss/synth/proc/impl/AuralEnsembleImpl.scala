@@ -11,14 +11,14 @@
  *  contact@sciss.de
  */
 
-package de.sciss.synth.proc
-package impl
+package de.sciss.synth.proc.impl
 
 import de.sciss.equal.Implicits._
 import de.sciss.lucre.stm
 import de.sciss.lucre.stm.{Disposable, Folder, Obj}
 import de.sciss.lucre.synth.Sys
 import de.sciss.model.Change
+import de.sciss.synth.proc.{AuralContext, AuralObj, Ensemble, Runner, TimeRef, Transport, logTransport}
 
 object AuralEnsembleImpl {
   def apply[S <: Sys[S]](obj: Ensemble[S])

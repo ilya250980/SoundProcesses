@@ -11,8 +11,7 @@
  *  contact@sciss.de
  */
 
-package de.sciss.lucre
-package synth
+package de.sciss.lucre.synth
 
 import de.sciss.lucre.stm.Disposable
 

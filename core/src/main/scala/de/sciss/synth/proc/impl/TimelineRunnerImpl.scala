@@ -11,16 +11,16 @@
  *  contact@sciss.de
  */
 
-package de.sciss.synth.proc
-package impl
+package de.sciss.synth.proc.impl
 
 import de.sciss.lucre.event.impl.DummyObservableImpl
 import de.sciss.lucre.expr.BooleanObj
 import de.sciss.lucre.stm
-import de.sciss.lucre.stm.{Disposable, Obj}
 import de.sciss.lucre.stm.TxnLike.peer
+import de.sciss.lucre.stm.{Disposable, Obj}
 import de.sciss.lucre.synth.Sys
 import de.sciss.synth.proc.Runner.Universe
+import de.sciss.synth.proc.{AuralObj, ObjViewBase, Runner, TimeRef, Timeline, Transport}
 
 import scala.concurrent.stm.Ref
 

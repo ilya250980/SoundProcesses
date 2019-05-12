@@ -11,12 +11,12 @@
  *  contact@sciss.de
  */
 
-package de.sciss.synth
-package proc
-package graph
+package de.sciss.synth.proc.graph
 
+import de.sciss.synth.proc.UGenGraphBuilder
 import de.sciss.synth.proc.UGenGraphBuilder.{Input, MissingIn}
 import de.sciss.synth.ugen.ControlProxy
+import de.sciss.synth.{GE, Rate, UGenIn, UGenInLike, control, scalar, ugen}
 
 object BufferOut {
   def ir(artifact: String, action: String, numFrames: GE, numChannels: GE = 1): BufferOut =

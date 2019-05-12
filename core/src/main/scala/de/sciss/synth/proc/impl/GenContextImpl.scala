@@ -11,12 +11,12 @@
  *  contact@sciss.de
  */
 
-package de.sciss.synth.proc
-package impl
+package de.sciss.synth.proc.impl
 
 import de.sciss.lucre.stm
 import de.sciss.lucre.stm.TxnLike.peer
 import de.sciss.lucre.stm.{IdentifierMap, Sys, Workspace}
+import de.sciss.synth.proc.GenContext
 
 import scala.concurrent.stm.TMap
 

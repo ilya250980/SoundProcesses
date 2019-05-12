@@ -11,8 +11,7 @@
  *  contact@sciss.de
  */
 
-package de.sciss.synth.proc
-package impl
+package de.sciss.synth.proc.impl
 
 import de.sciss.lucre.bitemp.BiGroup
 import de.sciss.lucre.data.SkipOctree
@@ -23,6 +22,7 @@ import de.sciss.lucre.stm.{DummySerializerFactory, Obj}
 import de.sciss.lucre.synth.Sys
 import de.sciss.serial.Serializer
 import de.sciss.synth.proc.AuralObj.Container
+import de.sciss.synth.proc.{AuralContext, AuralObj, Timeline}
 
 object AuralTimelineImpl {
    private type Leaf[S <: Sys[S]] = AuralTimelineBase.Leaf[S, AuralObj[S]]
@@ -31,7 +31,7 @@ object AuralTimelineImpl {
 
   def apply[S <: Sys[S]](timeline: Timeline[S])(implicit tx: S#Tx, context: AuralContext[S]): AuralObj.Timeline[S] = {
     val system  = tx.system
-    val res     = prepare[S, system.I](timeline, system)  // IntelliJ highlight bug
+    val res     = prepare[S, system.I](timeline, system)
     res.init(timeline)
   }
 
@@ -46,7 +46,7 @@ object AuralTimelineImpl {
 
   private def prepare[S <: Sys[S], I1 <: stm.Sys[I1]](timeline: Timeline[S], system: S { type I = I1 })
                                                      (implicit tx: S#Tx, context: AuralContext[S]): Impl[S, I1] = {
-    implicit val iSys: S#Tx => I1#Tx = system.inMemoryTx _
+    implicit val iSys: S#Tx => I1#Tx = system.inMemoryTx
     implicit val itx: I1#Tx = iSys(tx)
     implicit val pointView: (Leaf[S], I1#Tx) => LongPoint2D = (l, _) => spanToPoint(l._1)
     implicit val dummyKeySer: Serializer[I1#Tx, I1#Acc, Leaf[S]] =

@@ -11,13 +11,12 @@
  *  contact@sciss.de
  */
 
-package de.sciss
-package synth
-package proc
+package de.sciss.synth.proc
 
 import de.sciss.lucre.confluent
 import de.sciss.lucre.stm.DataStore
 import de.sciss.lucre.synth.{InMemory, Sys}
+import de.sciss.synth.proc
 import de.sciss.synth.proc.impl.{ConfluentImpl => Impl}
 
 object Confluent {

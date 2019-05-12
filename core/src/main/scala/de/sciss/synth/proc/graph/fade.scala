@@ -11,13 +11,15 @@
  *  contact@sciss.de
  */
 
-package de.sciss.synth
-package proc
-package graph
+package de.sciss.synth.proc.graph
 
 import de.sciss.synth.Ops.stringToControl
 import de.sciss.synth.proc.UGenGraphBuilder.Input
+import de.sciss.synth.proc.{ObjKeys, UGenGraphBuilder}
 import de.sciss.synth.ugen._
+import de.sciss.synth.{Curve, GE, Rate, UGenInLike, audio, control}
+
+import scala.Predef.{any2stringadd => _, _}
 
 private[graph] object fade {
   abstract class Base extends GE.Lazy {

@@ -11,11 +11,12 @@
  *  contact@sciss.de
  */
 
-package de.sciss.lucre.synth
-package impl
+package de.sciss.lucre.synth.impl
+
+import de.sciss.lucre.synth.{Node, Resource, Server, Synth, SynthDef, Txn}
+import de.sciss.synth.{AddAction, ControlSet, Synth => SSynth}
 
 import scala.collection.immutable.{Seq => ISeq}
-import de.sciss.synth.{Synth => SSynth, AddAction, ControlSet}
 
 final case class SynthImpl(peer: SSynth, definition: SynthDef) extends NodeImpl with Synth {
   override def toString = s"Synth(id=${peer.id}, def=${definition.name})"

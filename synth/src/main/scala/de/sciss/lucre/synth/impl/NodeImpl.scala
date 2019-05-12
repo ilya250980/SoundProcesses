@@ -11,11 +11,11 @@
  *  contact@sciss.de
  */
 
-package de.sciss.lucre.synth
-package impl
+package de.sciss.lucre.synth.impl
 
 import java.util.concurrent.{Executors, ScheduledExecutorService}
 
+import de.sciss.lucre.synth.{AudioBus, AudioBusNodeSetter, BusNodeSetter, ControlBus, ControlBusNodeSetter, Group, Node, Txn, log}
 import de.sciss.synth.{ControlABusMap, ControlFillRange, ControlKBusMap, ControlSet}
 
 import scala.collection.immutable.{IndexedSeq => Vec}

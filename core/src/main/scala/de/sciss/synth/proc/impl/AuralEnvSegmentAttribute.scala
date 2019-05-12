@@ -11,8 +11,7 @@
  *  contact@sciss.de
  */
 
-package de.sciss.synth.proc
-package impl
+package de.sciss.synth.proc.impl
 
 import de.sciss.equal.Implicits._
 import de.sciss.lucre.bitemp.BiPin
@@ -23,6 +22,7 @@ import de.sciss.lucre.synth.{Bus, Synth, Sys}
 import de.sciss.synth.proc.AuralAttribute.{Factory, GraphemeAware, Observer}
 import de.sciss.synth.proc.graph.{Duration, Offset}
 import de.sciss.synth.proc.impl.AuralAttributeImpl.ExprImpl
+import de.sciss.synth.proc.{AuralAttribute, AuralContext, ControlValuesView, EnvSegment, Grapheme, StartLevelViewFactory, TimeRef}
 import de.sciss.synth.ugen.ControlValues
 import de.sciss.synth.{Curve, SynthGraph, addToHead, ugen, ControlSet => CS}
 

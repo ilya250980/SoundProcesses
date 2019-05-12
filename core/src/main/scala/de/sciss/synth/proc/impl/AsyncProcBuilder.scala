@@ -11,10 +11,10 @@
  *  contact@sciss.de
  */
 
-package de.sciss.synth.proc
-package impl
+package de.sciss.synth.proc.impl
 
 import de.sciss.lucre.synth.Sys
+import de.sciss.synth.proc.Proc
 
 /** An object used in the preparatory phase of playing a process. It allows
   * the addition of asynchronous processors.

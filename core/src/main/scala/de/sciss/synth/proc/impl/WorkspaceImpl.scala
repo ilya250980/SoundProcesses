@@ -11,8 +11,7 @@
  *  contact@sciss.de
  */
 
-package de.sciss.synth.proc
-package impl
+package de.sciss.synth.proc.impl
 
 import java.io.{File, FileInputStream, FileNotFoundException, FileOutputStream, IOException}
 import java.util.Properties
@@ -23,11 +22,11 @@ import de.sciss.lucre.synth.{InMemory => InMem, Sys => SSys}
 import de.sciss.lucre.{confluent, stm}
 import de.sciss.serial.{DataInput, DataOutput, Serializer}
 import de.sciss.synth.proc
-import de.sciss.synth.proc.{Confluent => Cf, Durable => Dur}
+import de.sciss.synth.proc.{Cursors, log, Confluent => Cf, Durable => Dur}
 
-import scala.language.existentials
 import scala.collection.immutable.{IndexedSeq => Vec}
 import scala.concurrent.stm.{Ref, Txn}
+import scala.language.existentials
 import scala.util.Try
 
 object WorkspaceImpl {
@@ -148,7 +147,7 @@ object WorkspaceImpl {
   private def applyConfluent(dir: File, ds: DataStore.Factory /* config: BerkeleyDB.Config */): proc.Workspace.Confluent = {
     type S    = Cf
     val fact  = openDataStore(dir, ds = ds /* config = config */, confluent = true)
-    implicit val system: S = Confluent(fact)
+    implicit val system: S = Cf(fact)
 
     val (access, cursors) = system.rootWithDurable[Data[S], Cursors[S, S#D]] { implicit tx =>
       val data: Data[S] = new Data[S] {

@@ -11,8 +11,9 @@
  *  contact@sciss.de
  */
 
-package de.sciss.synth.proc
-package impl
+package de.sciss.synth.proc.impl
+
+import de.sciss.synth.proc.Code
 
 import scala.concurrent.stm.{InTxn, TMap, TSet}
 

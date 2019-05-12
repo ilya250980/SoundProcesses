@@ -11,14 +11,14 @@
  *  contact@sciss.de
  */
 
-package de.sciss.synth
-package proc
-package graph
+package de.sciss.synth.proc.graph
 
 import de.sciss.synth.Ops.stringToControl
 import de.sciss.synth.UGenSource._
+import de.sciss.synth.proc.UGenGraphBuilder
 import de.sciss.synth.proc.UGenGraphBuilder.Input
 import de.sciss.synth.ugen.UGenInGroup
+import de.sciss.synth.{AudioRated, GE, UGen, UGenIn, UGenInLike, UGenSource, WritesBus, audio}
 
 object ScanIn {
   /* private[proc] */ def controlName (key: String): String =
@@ -64,6 +64,7 @@ final case class ScanIn(key: String /*, default: Double = 0.0 */)
 
   protected def mkUGen(ctlName: String, numCh: Int): UGenInLike =
     if (numCh == 1) {
+
       ctlName.ar(0.0f).expand
     } else if (numCh > 1) {
       ctlName.ar(Vector.fill(numCh)(0.0f)).expand

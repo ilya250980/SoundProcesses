@@ -11,11 +11,11 @@
  *  contact@sciss.de
  */
 
-package de.sciss.synth
-package proc
+package de.sciss.synth.proc
 
 import de.sciss.lucre.stm.{DataStore, DurableLike}
 import de.sciss.lucre.synth.{InMemory, Sys}
+import de.sciss.synth.proc
 import de.sciss.synth.proc.impl.{DurableImpl => Impl}
 
 import scala.language.implicitConversions

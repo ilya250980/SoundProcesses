@@ -11,14 +11,14 @@
  *  contact@sciss.de
  */
 
-package de.sciss.synth
-package proc
-package impl
+package de.sciss.synth.proc.impl
 
 import java.{util => ju}
 
 import de.sciss.synth
+import de.sciss.synth.proc.graph
 import de.sciss.synth.ugen.{BinaryOpUGen, Constant, UnaryOpUGen}
+import de.sciss.synth.{GE, Lazy, MaybeRate, Rate, SynthGraph, UGenSpec, UndefinedRate}
 
 import scala.collection.immutable.{IndexedSeq => Vec}
 

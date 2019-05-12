@@ -11,13 +11,13 @@
  *  contact@sciss.de
  */
 
-package de.sciss.synth
-package proc
-package graph
+package de.sciss.synth.proc.graph
 
+import de.sciss.synth.proc.UGenGraphBuilder
 import de.sciss.synth.proc.UGenGraphBuilder.Input
 import de.sciss.synth.proc.graph.BufferGen.Command
 import de.sciss.synth.ugen.ControlProxy
+import de.sciss.synth.{GE, ScalarRated, UGenInLike, message}
 
 object BufferGen {
   // alias these

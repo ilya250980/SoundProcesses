@@ -11,8 +11,7 @@
  *  contact@sciss.de
  */
 
-package de.sciss.synth.proc
-package impl
+package de.sciss.synth.proc.impl
 
 import de.sciss.lucre.bitemp.impl.BiGroupImpl
 import de.sciss.lucre.bitemp.impl.BiGroupImpl.TreeImpl
@@ -21,6 +20,7 @@ import de.sciss.lucre.stm.impl.ObjSerializer
 import de.sciss.lucre.stm.{Copy, Elem, NoSys, Obj, Sys}
 import de.sciss.lucre.{event => evt}
 import de.sciss.serial.{DataInput, Serializer}
+import de.sciss.synth.proc.Timeline
 
 object TimelineImpl {
   def apply[S <: Sys[S]]()(implicit tx: S#Tx): Timeline.Modifiable[S] =

@@ -11,16 +11,15 @@
  *  contact@sciss.de
  */
 
-package de.sciss.synth.proc
-package impl
+package de.sciss.synth.proc.impl
 
 import de.sciss.lucre.synth.{Server, Sys}
 import de.sciss.synth.NestedUGenGraphBuilder.ExpIfCase
-import de.sciss.synth.proc.{UGenGraphBuilder => UGB}
+import de.sciss.synth.proc.{Proc, logAural, UGenGraphBuilder => UGB}
 import de.sciss.synth.{NestedUGenGraphBuilder, SynthGraph}
 
 object UGenGraphBuilderImpl {
-  import UGenGraphBuilder.{Complete, Context, Incomplete, MissingIn, State}
+  import UGB.{Complete, Context, Incomplete, MissingIn, State}
 
   /** '''Note''': The resulting object is mutable, therefore must not be shared across threads and also must be
     * created and consumed within the same transaction. That is to say, to be transactionally safe, it may only
@@ -41,7 +40,7 @@ object UGenGraphBuilderImpl {
 
   // ---- impl ----
 
-  private final class IncompleteImpl[S <: Sys[S]](g: SynthGraph, val rejectedInputs: Set[UGenGraphBuilder.Key])
+  private final class IncompleteImpl[S <: Sys[S]](g: SynthGraph, val rejectedInputs: Set[UGB.Key])
     extends Incomplete[S] {
 
     override def toString = s"UGenGraphBuilder.Incomplete@${hashCode.toHexString}"

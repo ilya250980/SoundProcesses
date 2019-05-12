@@ -11,14 +11,14 @@
  *  contact@sciss.de
  */
 
-package de.sciss.synth.proc
-package gui
+package de.sciss.synth.proc.gui
 
-import impl.{TransportViewImpl => Impl}
-import de.sciss.lucre.synth.Sys
-import de.sciss.lucre.swing.View
-import de.sciss.lucre.stm
 import de.sciss.audiowidgets.TimelineModel
+import de.sciss.lucre.stm
+import de.sciss.lucre.swing.View
+import de.sciss.lucre.synth.Sys
+import de.sciss.synth.proc.Transport
+import de.sciss.synth.proc.gui.impl.{TransportViewImpl => Impl}
 
 object TransportView {
   /** Creates a new transport view.

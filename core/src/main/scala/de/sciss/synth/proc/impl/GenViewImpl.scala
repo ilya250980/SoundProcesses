@@ -11,12 +11,12 @@
  *  contact@sciss.de
  */
 
-package de.sciss.synth.proc
-package impl
+package de.sciss.synth.proc.impl
 
 import de.sciss.lucre.stm.Obj
 import de.sciss.lucre.synth.{Sys => SSys}
 import de.sciss.synth.proc.GenView.Factory
+import de.sciss.synth.proc.{GenView, Universe}
 
 object GenViewImpl {
   private val sync = new AnyRef

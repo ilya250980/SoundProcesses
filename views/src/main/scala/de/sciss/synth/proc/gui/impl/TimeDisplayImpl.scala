@@ -11,9 +11,7 @@
  *  contact@sciss.de
  */
 
-package de.sciss.synth.proc
-package gui
-package impl
+package de.sciss.synth.proc.gui.impl
 
 import java.awt.{Color, Cursor}
 
@@ -21,6 +19,7 @@ import de.sciss.audiowidgets.impl.ActionGoToTime
 import de.sciss.audiowidgets.{AxisFormat, LCDColors, LCDFont, LCDPanel, TimelineModel}
 import de.sciss.desktop.impl.DynamicComponentImpl
 import de.sciss.model.Change
+import de.sciss.synth.proc.gui.TimeDisplay
 import javax.swing.UIManager
 
 import scala.swing.Swing._

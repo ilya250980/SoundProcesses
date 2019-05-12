@@ -216,7 +216,7 @@ object Bus {
   private final class PlainAudioBusHolder(server: Server, val peer: SAudioBus)
     extends BusHolder[SAudioBus] {
 
-    protected val useCount = Ref(0)
+    protected val useCount: Ref[Int] = Ref(0)
 
     protected def remove()(implicit tx: Txn): Unit =
       server.freeAudioBus(peer.index, peer.numChannels)
@@ -225,7 +225,7 @@ object Bus {
   private final class PlainControlBusHolder(server: Server, val peer: SControlBus)
     extends BusHolder[SControlBus] {
 
-    protected val useCount = Ref(0)
+    protected val useCount: Ref[Int] = Ref(0)
 
     protected def remove()(implicit tx: Txn): Unit =
       server.freeControlBus(peer.index, peer.numChannels)

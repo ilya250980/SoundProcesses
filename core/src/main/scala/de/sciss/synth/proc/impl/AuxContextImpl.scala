@@ -11,11 +11,11 @@
  *  contact@sciss.de
  */
 
-package de.sciss.synth.proc
-package impl
+package de.sciss.synth.proc.impl
 
 import de.sciss.lucre.stm
 import de.sciss.lucre.stm.{Disposable, IdentifierMap}
+import de.sciss.synth.proc.AuxContext
 
 /** Building block for things like AuralContext. */
 trait AuxContextImpl[S <: stm.Sys[S]] {

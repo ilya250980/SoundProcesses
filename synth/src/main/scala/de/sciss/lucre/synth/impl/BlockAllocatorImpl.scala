@@ -11,11 +11,12 @@
  *  contact@sciss.de
  */
 
-package de.sciss.lucre.synth
-package impl
+package de.sciss.lucre.synth.impl
 
-import collection.immutable.{SortedMap => ISortedMap}
-import annotation.tailrec
+import de.sciss.lucre.synth.{BlockAllocator, logAlloc}
+
+import scala.annotation.tailrec
+import scala.collection.immutable.{SortedMap => ISortedMap}
 import scala.concurrent.stm.{InTxn, Ref}
 
 object BlockAllocatorImpl {

@@ -11,8 +11,7 @@
  *  contact@sciss.de
  */
 
-package de.sciss.synth.proc
-package gui
+package de.sciss.synth.proc.gui
 
 import de.sciss.audiowidgets.TimelineModel
 import de.sciss.synth.proc.gui.impl.{TimeDisplayImpl => Impl}

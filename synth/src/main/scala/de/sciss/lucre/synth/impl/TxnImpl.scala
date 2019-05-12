@@ -11,9 +11,9 @@
  *  contact@sciss.de
  */
 
-package de.sciss.lucre.synth
-package impl
+package de.sciss.lucre.synth.impl
 
+import de.sciss.lucre.synth.{Resource, Server, Sys, Txn, log}
 import de.sciss.synth.UGenSource.Vec
 
 import scala.concurrent.stm.{InTxn, Txn => ScalaTxn}

@@ -11,8 +11,9 @@
  *  contact@sciss.de
  */
 
-package de.sciss.lucre.synth
-package impl
+package de.sciss.lucre.synth.impl
+
+import de.sciss.lucre.synth.{Resource, Txn, log}
 
 import scala.concurrent.stm.Ref
 

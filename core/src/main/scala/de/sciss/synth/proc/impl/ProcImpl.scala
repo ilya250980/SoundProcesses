@@ -11,9 +11,7 @@
  *  contact@sciss.de
  */
 
-package de.sciss.synth
-package proc
-package impl
+package de.sciss.synth.proc.impl
 
 import de.sciss.lucre.data.SkipList
 import de.sciss.lucre.event.Targets
@@ -21,6 +19,7 @@ import de.sciss.lucre.stm.impl.ObjSerializer
 import de.sciss.lucre.stm.{Copy, Elem, NoSys, Obj, Sys}
 import de.sciss.lucre.{event => evt}
 import de.sciss.serial.{DataInput, DataOutput, Serializer}
+import de.sciss.synth.proc.{Output, Outputs, Proc, SynthGraphObj}
 
 import scala.collection.immutable.{IndexedSeq => Vec}
 
@@ -104,7 +103,7 @@ object ProcImpl {
     def copy[Out <: Sys[Out]]()(implicit tx: S#Tx, txOut: Out#Tx, context: Copy[S, Out]): Elem[Out] =
       new Impl[Out] { out =>
         protected val targets: Targets[Out]                     = Targets[Out]
-        val graph :SynthGraphObj.Var[Out]                       = context(proc.graph)
+        val graph     : SynthGraphObj.Var[Out]                  = context(proc.graph)
         val outputsMap: SkipList.Map[Out, String, Output[Out]]  = SkipList.Map.empty
 
         context.defer(proc, out) {

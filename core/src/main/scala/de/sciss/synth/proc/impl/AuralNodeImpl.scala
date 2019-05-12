@@ -11,11 +11,11 @@
  *  contact@sciss.de
  */
 
-package de.sciss.synth.proc
-package impl
+package de.sciss.synth.proc.impl
 
 import de.sciss.lucre.stm.TxnLike
 import de.sciss.lucre.synth.{Bus, BusNodeSetter, DynamicUser, Group, Node, Resource, Server, Synth, Sys, Txn}
+import de.sciss.synth.proc.{AuralNode, TimeRef}
 import de.sciss.synth.{AddAction, ControlSet, NestedUGenGraphBuilder, addBefore, addToHead, addToTail, audio, control}
 
 import scala.collection.immutable.{Seq => ISeq}
@@ -127,7 +127,6 @@ object AuralNodeImpl {
     extends AuralNode.Builder[S] {
 
     import TxnLike.peer
-
     import tree.{main => graphMain}
 
     private[this] val users       = Ref(users0)

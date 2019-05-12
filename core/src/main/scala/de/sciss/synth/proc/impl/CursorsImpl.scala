@@ -11,8 +11,7 @@
  *  contact@sciss.de
  */
 
-package de.sciss.synth.proc
-package impl
+package de.sciss.synth.proc.impl
 
 import de.sciss.lucre.confluent.Cursor.Data
 import de.sciss.lucre.confluent.{Sys => KSys}
@@ -21,6 +20,7 @@ import de.sciss.lucre.expr.StringObj
 import de.sciss.lucre.stm.{Copy, Elem, Sys, DurableLike => DSys}
 import de.sciss.lucre.{confluent, stm, event => evt}
 import de.sciss.serial.{DataInput, DataOutput, Serializer, Writable}
+import de.sciss.synth.proc.{Confluent, Cursors, Durable, log}
 
 object CursorsImpl {
   private final val COOKIE = 0x43737273 // "Csrs"

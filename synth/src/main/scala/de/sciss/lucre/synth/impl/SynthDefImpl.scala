@@ -11,11 +11,11 @@
  *  contact@sciss.de
  */
 
-package de.sciss.lucre.synth
-package impl
+package de.sciss.lucre.synth.impl
 
 import java.io.File
 
+import de.sciss.lucre.synth.{Server, SynthDef, Txn}
 import de.sciss.synth.message.SynthDefLoad
 import de.sciss.synth.{SynthDef => SSynthDef}
 

@@ -11,11 +11,11 @@
  *  contact@sciss.de
  */
 
-package de.sciss.synth.proc
-package impl
+package de.sciss.synth.proc.impl
 
 import de.sciss.lucre.synth.{Buffer, ControlBus, Resource, Synth, Txn}
 import de.sciss.synth.Ops.stringToControl
+import de.sciss.synth.proc.AudioCue
 import de.sciss.synth.{ControlSet, SynthGraph, addToHead}
 
 object AudioArtifactScalarWriter {

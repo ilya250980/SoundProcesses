@@ -11,8 +11,7 @@
  *  contact@sciss.de
  */
 
-package de.sciss.synth.proc
-package impl
+package de.sciss.synth.proc.impl
 
 import de.sciss.lucre.bitemp.BiGroup
 import de.sciss.lucre.bitemp.impl.BiGroupImpl
@@ -24,7 +23,7 @@ import de.sciss.lucre.stm
 import de.sciss.lucre.stm.{Disposable, IdentifierMap, Obj, TxnLike}
 import de.sciss.lucre.synth.Sys
 import de.sciss.span.{Span, SpanLike}
-import de.sciss.synth.proc.{logAural => logA}
+import de.sciss.synth.proc.{Runner, TimeRef, Timeline, ViewBase, logAural => logA}
 
 import scala.collection.immutable.{IndexedSeq => Vec, Set => ISet}
 import scala.concurrent.stm.TSet

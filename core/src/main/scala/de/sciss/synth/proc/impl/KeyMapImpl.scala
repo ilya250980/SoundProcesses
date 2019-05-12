@@ -11,9 +11,7 @@
  *  contact@sciss.de
  */
 
-package de.sciss.synth
-package proc
-package impl
+package de.sciss.synth.proc.impl
 
 import de.sciss.lucre.data.SkipList
 import de.sciss.lucre.stm.{Disposable, Sys}

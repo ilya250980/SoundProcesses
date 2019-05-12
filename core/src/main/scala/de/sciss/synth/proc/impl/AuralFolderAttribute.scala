@@ -11,8 +11,7 @@
  *  contact@sciss.de
  */
 
-package de.sciss.synth.proc
-package impl
+package de.sciss.synth.proc.impl
 
 import de.sciss.equal.Implicits._
 import de.sciss.lucre.event.impl.ObservableImpl
@@ -21,6 +20,7 @@ import de.sciss.lucre.stm.{Disposable, Folder, Obj, TxnLike}
 import de.sciss.lucre.synth.Sys
 import de.sciss.synth.proc.AuralAttribute.{Factory, Observer, Target}
 import de.sciss.synth.proc.Runner.{Prepared, Preparing, Running, Stopped}
+import de.sciss.synth.proc.{AuralAttribute, AuralContext, Runner, TimeRef}
 
 import scala.annotation.tailrec
 import scala.concurrent.stm.Ref

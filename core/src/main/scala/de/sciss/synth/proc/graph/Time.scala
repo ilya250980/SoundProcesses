@@ -11,11 +11,10 @@
  *  contact@sciss.de
  */
 
-package de.sciss.synth
-package proc
-package graph
+package de.sciss.synth.proc.graph
 
 import de.sciss.synth.Ops.stringToControl
+import de.sciss.synth.{GE, ScalarRated, UGenInLike, inf}
 
 object Time {
   private[proc] final val key = "$time"

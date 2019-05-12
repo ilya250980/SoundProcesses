@@ -11,22 +11,22 @@
  *  contact@sciss.de
  */
 
-package de.sciss.synth.proc
-package gui
-package impl
+package de.sciss.synth.proc.gui.impl
 
 import java.awt.event.{ActionEvent, ActionListener, InputEvent}
-import javax.swing.event.{ChangeEvent, ChangeListener}
-import javax.swing.{AbstractAction, ButtonModel, JComponent, KeyStroke, Timer}
 
 import de.sciss.audiowidgets.{TimelineModel, Transport => GUITransport}
 import de.sciss.desktop.Implicits._
 import de.sciss.desktop.{FocusType, KeyStrokes}
 import de.sciss.lucre.stm.{Cursor, Disposable}
-import de.sciss.lucre.swing.deferTx
+import de.sciss.lucre.swing.LucreSwing.deferTx
 import de.sciss.lucre.swing.impl.ComponentHolder
 import de.sciss.lucre.synth.Sys
 import de.sciss.span.Span
+import de.sciss.synth.proc.gui.{TimeDisplay, TransportView}
+import de.sciss.synth.proc.{TimeRef, Transport}
+import javax.swing.event.{ChangeEvent, ChangeListener}
+import javax.swing.{AbstractAction, ButtonModel, JComponent, KeyStroke, Timer}
 
 import scala.concurrent.stm.Ref
 import scala.swing.Swing.HStrut

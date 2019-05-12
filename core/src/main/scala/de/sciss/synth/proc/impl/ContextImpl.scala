@@ -11,15 +11,14 @@
  *  contact@sciss.de
  */
 
-package de.sciss.synth.proc
-package impl
+package de.sciss.synth.proc.impl
 
 import de.sciss.lucre.stm.{Disposable, IdentifierMap, Obj, Sys}
 
 import scala.concurrent.stm.Ref
 
 final class ContextEntry[S <: Sys[S]](val data: Disposable[S#Tx]) {
-  val count = Ref(0)
+  val count: Ref[Int] = Ref(0)
 }
 
 trait ContextImpl[S <: Sys[S]] {

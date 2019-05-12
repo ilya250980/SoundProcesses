@@ -11,8 +11,7 @@
  *  contact@sciss.de
  */
 
-package de.sciss.synth.proc
-package impl
+package de.sciss.synth.proc.impl
 
 import de.sciss.lucre.event.Targets
 import de.sciss.lucre.expr.{BooleanObj, LongObj}
@@ -20,6 +19,7 @@ import de.sciss.lucre.stm.impl.ObjSerializer
 import de.sciss.lucre.stm.{Copy, Elem, Folder, NoSys, Obj, Sys}
 import de.sciss.lucre.{event => evt}
 import de.sciss.serial.{DataInput, DataOutput, Serializer}
+import de.sciss.synth.proc.Ensemble
 
 object EnsembleImpl {
   def apply[S <: Sys[S]](folder: Folder /* Elem.Obj */[S], offset: LongObj[S], playing: BooleanObj[S])

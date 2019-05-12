@@ -11,14 +11,14 @@
  *  contact@sciss.de
  */
 
-package de.sciss.synth.proc
-package impl
+package de.sciss.synth.proc.impl
 
 import de.sciss.lucre.event.impl.DummyObservableImpl
 import de.sciss.lucre.stm
 import de.sciss.lucre.stm.{Folder, Obj}
 import de.sciss.lucre.synth.Sys
 import de.sciss.synth.proc.AuralObj.Factory
+import de.sciss.synth.proc.{Action, AuralContext, AuralObj, Ensemble, Proc, Runner, TimeRef, Timeline}
 
 object AuralObjImpl {
   private val sync = new AnyRef

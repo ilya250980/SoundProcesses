@@ -11,8 +11,7 @@
  *  contact@sciss.de
  */
 
-package de.sciss.synth.proc
-package impl
+package de.sciss.synth.proc.impl
 
 import java.io.{File, RandomAccessFile}
 import java.nio.ByteBuffer
@@ -25,6 +24,7 @@ import de.sciss.processor.impl.ProcessorImpl
 import de.sciss.synth.Ops.stringToControl
 import de.sciss.synth.io.{AudioFileType, SampleFormat}
 import de.sciss.synth.proc.Runner.{Prepared, Preparing, Running, Stopped}
+import de.sciss.synth.proc.{AuralObj, AuralSystem, Bounce, Runner, Scheduler, TimeRef, Transport, Universe, logTransport, showTransportLog}
 import de.sciss.synth.{Client, SynthGraph, addToTail, Server => SServer}
 import de.sciss.{osc, synth}
 

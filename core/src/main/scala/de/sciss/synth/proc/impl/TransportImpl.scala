@@ -11,8 +11,7 @@
  *  contact@sciss.de
  */
 
-package de.sciss.synth.proc
-package impl
+package de.sciss.synth.proc.impl
 
 import de.sciss.lucre.event.impl.ObservableImpl
 import de.sciss.lucre.stm
@@ -20,7 +19,7 @@ import de.sciss.lucre.stm.{IdentifierMap, Obj, TxnLike}
 import de.sciss.lucre.synth.{Server, Sys, Txn}
 import de.sciss.span.Span
 import de.sciss.synth.proc.Transport.AuralStarted
-import de.sciss.synth.proc.{logTransport => logT}
+import de.sciss.synth.proc.{AuralContext, AuralObj, AuralSystem, Scheduler, SoundProcesses, TimeRef, Transport, Universe, logTransport => logT}
 
 import scala.concurrent.stm.{Ref, TSet}
 
@@ -57,7 +56,7 @@ object TransportImpl {
     extends Transport[S] with ObservableImpl[S, Transport.Update[S]] with AuralSystem.Client {
 
     import TxnLike.peer
-    import universe.{cursor, auralSystem}
+    import universe.{auralSystem, cursor}
 
     def scheduler: Scheduler[S] = universe.scheduler
 

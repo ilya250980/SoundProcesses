@@ -11,8 +11,7 @@
  *  contact@sciss.de
  */
 
-package de.sciss.synth.proc
-package impl
+package de.sciss.synth.proc.impl
 
 import java.util.concurrent.TimeUnit
 
@@ -22,7 +21,7 @@ import de.sciss.lucre.stm.Sys
 import de.sciss.serial.ImmutableSerializer
 import de.sciss.synth.proc
 import de.sciss.synth.proc.Scheduler.Entry
-import proc.{logTransport => logT}
+import proc.{Scheduler, SoundProcesses, TimeRef, logTransport => logT}
 
 import scala.concurrent.stm.{InTxn, Ref, TMap, TxnLocal}
 import scala.util.control.NonFatal
@@ -45,7 +44,7 @@ object SchedulerImpl {
   // what a mess, Scala
   private def mkPriorityQueue[S <: Sys[S], I1 <: Sys[I1]](system: S { type I = I1 })
                                                          (implicit tx: S#Tx): SkipList.Map[I1, Long, Set[Int]] = {
-    implicit val iSys   : S#Tx => I1#Tx = system.inMemoryTx _
+    implicit val iSys   : S#Tx => I1#Tx = system.inMemoryTx
     implicit val itx    : I1#Tx         = iSys(tx)
     implicit val setSer: ImmutableSerializer[Set[Int]] = ImmutableSerializer.set
     SkipList.Map.empty[I1, Long, Set[Int]]()
@@ -61,7 +60,7 @@ object SchedulerImpl {
 
     def isInf: Boolean = targetTime == Long.MaxValue
 
-    import TimeRef.{framesAndSecs => fas}
+    import de.sciss.synth.proc.TimeRef.{framesAndSecs => fas}
     override def toString = s"[issueTime = ${fas(issueTime)}, targetTime = ${fas(targetTime)}]"
   }
 

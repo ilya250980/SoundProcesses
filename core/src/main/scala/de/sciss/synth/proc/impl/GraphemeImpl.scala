@@ -11,9 +11,7 @@
  *  contact@sciss.de
  */
 
-package de.sciss.synth
-package proc
-package impl
+package de.sciss.synth.proc.impl
 
 import de.sciss.lucre.bitemp.impl.BiPinImpl
 import de.sciss.lucre.bitemp.impl.BiPinImpl.Tree
@@ -22,9 +20,10 @@ import de.sciss.lucre.stm.impl.ObjSerializer
 import de.sciss.lucre.stm.{Copy, Elem, NoSys, Obj, Sys}
 import de.sciss.lucre.{event => evt}
 import de.sciss.serial.{DataInput, Serializer}
+import de.sciss.synth.proc.Grapheme
 
 object GraphemeImpl {
-  import Grapheme.Modifiable
+  import de.sciss.synth.proc.Grapheme.Modifiable
 
   def read[S <: Sys[S]](in: DataInput, access: S#Acc)(implicit tx: S#Tx): Grapheme[S] =
     serializer[S].read(in, access)

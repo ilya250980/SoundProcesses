@@ -11,17 +11,16 @@
  *  contact@sciss.de
  */
 
-package de.sciss.synth.proc
-package impl
+package de.sciss.synth.proc.impl
 
 import de.sciss.lucre.bitemp.BiPin
 import de.sciss.lucre.data.SkipList
 import de.sciss.lucre.event.impl.ObservableImpl
 import de.sciss.lucre.stm
-import de.sciss.lucre.stm.{TxnLike, Disposable, Obj}
+import de.sciss.lucre.stm.{Disposable, Obj, TxnLike}
 import de.sciss.lucre.synth.Sys
 import de.sciss.span.{Span, SpanLike}
-import de.sciss.synth.proc.{logAural => logA}
+import de.sciss.synth.proc.{Grapheme, ObjViewBase, Runner, TimeRef, logAural => logA}
 
 import scala.collection.immutable.{IndexedSeq => Vec}
 import scala.concurrent.stm.Ref

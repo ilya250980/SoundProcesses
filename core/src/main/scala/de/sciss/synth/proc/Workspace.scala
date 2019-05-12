@@ -39,7 +39,7 @@ object Workspace {
   type Transports  [S <: SSys[S]] = stm.List.Modifiable[S, Transport[S] /* , Unit */] // Transport.Update[ S, Proc[ S ]]]
 
   def read (dir: File, ds: DataStore.Factory /* config: BerkeleyDB.Config */): Workspace[~] forSome { type ~ <: SSys[~] } =
-    Impl.read(dir, ds)
+    Impl.read(dir, ds)  // IntelliJ highlight bug
 
   object Confluent {
     def read (dir: File, ds: DataStore.Factory /* config: BerkeleyDB.Config */): Confluent = Impl.readConfluent (dir, ds)

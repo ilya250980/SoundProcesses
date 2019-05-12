@@ -11,13 +11,12 @@
  *  contact@sciss.de
  */
 
-package de.sciss.synth.proc
-package graph
-package impl
+package de.sciss.synth.proc.graph.impl
 
 import de.sciss.lucre.stm
 import de.sciss.lucre.stm.Obj
 import de.sciss.lucre.synth.{Node, Sys, Txn}
+import de.sciss.synth.proc.{AuralContext, SoundProcesses}
 import de.sciss.synth.{GE, proc}
 import de.sciss.{osc, synth}
 

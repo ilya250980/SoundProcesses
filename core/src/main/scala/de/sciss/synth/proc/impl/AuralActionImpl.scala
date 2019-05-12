@@ -11,12 +11,12 @@
  *  contact@sciss.de
  */
 
-package de.sciss.synth.proc
-package impl
+package de.sciss.synth.proc.impl
 
 import de.sciss.lucre.stm
 import de.sciss.lucre.stm.{Obj, Sys}
 import de.sciss.lucre.synth.{Sys => SSys}
+import de.sciss.synth.proc.{Action, AuralContext, AuralObj, Universe}
 
 object AuralActionImpl extends AuralObj.Factory {
   type Repr[S <: Sys[S]]  = Action[S]

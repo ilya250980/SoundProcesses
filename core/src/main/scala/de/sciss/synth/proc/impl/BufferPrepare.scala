@@ -11,8 +11,7 @@
  *  contact@sciss.de
  */
 
-package de.sciss.synth.proc
-package impl
+package de.sciss.synth.proc.impl
 
 import java.io.File
 
@@ -21,11 +20,12 @@ import de.sciss.lucre.synth.{Buffer, NodeRef, Sys, Txn}
 import de.sciss.osc
 import de.sciss.processor.impl.ProcessorImpl
 import de.sciss.synth.io.AudioFileSpec
+import de.sciss.synth.proc.graph
 
+import scala.concurrent.duration.Duration
+import scala.concurrent.stm.Ref
+import scala.concurrent.stm.TxnExecutor.{defaultAtomic => atomic}
 import scala.concurrent.{Await, TimeoutException, blocking, duration}
-import duration.Duration
-import scala.concurrent.stm.{Ref, TxnExecutor}
-import TxnExecutor.{defaultAtomic => atomic}
 
 object BufferPrepare {
 
@@ -50,7 +50,7 @@ object BufferPrepare {
     if (numFrL > 0x3FFFFFFF) sys.error(s"File $f is too large ($numFrL frames) for an in-memory buffer")
     val res = new Impl[S](path = f.getAbsolutePath, numFrames = numFrL.toInt, off0 = offset,
       numChannels = spec.numChannels, buf = buf, key = key)
-    import SoundProcesses.executionContext
+    import de.sciss.synth.proc.SoundProcesses.executionContext
     tx.afterCommit(res.start())
     res
   }

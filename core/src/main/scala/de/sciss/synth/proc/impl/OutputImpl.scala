@@ -11,14 +11,13 @@
  *  contact@sciss.de
  */
 
-package de.sciss.synth
-package proc
-package impl
+package de.sciss.synth.proc.impl
 
 import de.sciss.lucre.event.impl.ConstObjImpl
 import de.sciss.lucre.stm.impl.ObjSerializer
 import de.sciss.lucre.stm.{Copy, Elem, NoSys, Obj, Sys}
 import de.sciss.serial.{DataInput, DataOutput, Serializer}
+import de.sciss.synth.proc.{Output, Proc}
 
 object OutputImpl {
   private final val SER_VERSION = 0x5370  // was "Sn"

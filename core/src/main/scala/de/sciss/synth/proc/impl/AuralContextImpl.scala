@@ -11,11 +11,11 @@
  *  contact@sciss.de
  */
 
-package de.sciss.synth.proc
-package impl
+package de.sciss.synth.proc.impl
 
 import de.sciss.lucre.stm.IdentifierMap
 import de.sciss.lucre.synth.{Server, Sys}
+import de.sciss.synth.proc.{AuralContext, Universe, logAural}
 
 object AuralContextImpl {
   def apply[S <: Sys[S]](server: Server)

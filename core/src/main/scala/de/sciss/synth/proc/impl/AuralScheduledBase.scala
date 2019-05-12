@@ -11,8 +11,7 @@
  *  contact@sciss.de
  */
 
-package de.sciss.synth.proc
-package impl
+package de.sciss.synth.proc.impl
 
 import de.sciss.lucre.bitemp.impl.BiGroupImpl
 import de.sciss.lucre.event.impl.ObservableImpl
@@ -20,8 +19,8 @@ import de.sciss.lucre.geom.LongPoint2D
 import de.sciss.lucre.stm.{Disposable, TxnLike}
 import de.sciss.lucre.synth.Sys
 import de.sciss.span.{Span, SpanLike}
-import de.sciss.synth.proc.Runner.{Running, Prepared, Preparing, Stopped}
-import de.sciss.synth.proc.{logAural => logA}
+import de.sciss.synth.proc.Runner.{Prepared, Preparing, Running, Stopped}
+import de.sciss.synth.proc.{AuralContext, ObjViewBase, Runner, TimeRef, ViewBase, logAural => logA}
 
 import scala.concurrent.stm.Ref
 
@@ -489,7 +488,7 @@ trait AuralScheduledBase[S <: Sys[S], Target, Elem <: ViewBase[S, Target]]
 
   private final def elemAddedPlay(play: IPlaying, vid: ViewId, span: SpanLike, obj: Model)
                                  (implicit tx: S#Tx): Unit = {
-    import Implicits.SpanComparisons
+    import de.sciss.synth.proc.Implicits.SpanComparisons
 
     // calculate current frame
     val timeRef       = play.shiftTo(sched.time)

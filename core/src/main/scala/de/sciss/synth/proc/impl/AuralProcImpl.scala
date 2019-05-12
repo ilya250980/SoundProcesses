@@ -11,8 +11,7 @@
  *  contact@sciss.de
  */
 
-package de.sciss.synth.proc
-package impl
+package de.sciss.synth.proc.impl
 
 import de.sciss.equal.Implicits._
 import de.sciss.file._
@@ -27,12 +26,12 @@ import de.sciss.span.Span
 import de.sciss.synth.ControlSet
 import de.sciss.synth.io.AudioFileType
 import de.sciss.synth.proc.AuralObj.{TargetPlaying, TargetPrepared, TargetState, TargetStop}
-import de.sciss.synth.proc.Runner.{Running, Prepared, Preparing, Stopped}
 import de.sciss.synth.proc.Implicits._
+import de.sciss.synth.proc.Runner.{Prepared, Preparing, Running, Stopped}
 import de.sciss.synth.proc.TimeRef.SampleRate
 import de.sciss.synth.proc.UGenGraphBuilder.{Complete, Incomplete, MissingIn}
 import de.sciss.synth.proc.graph.impl.{ActionResponder, StopSelfResponder}
-import de.sciss.synth.proc.{UGenGraphBuilder => UGB, logAural => logA}
+import de.sciss.synth.proc.{Action, AudioCue, AuralAttribute, AuralContext, AuralNode, AuralObj, AuralOutput, FadeSpec, Gen, GenView, ObjKeys, Output, Proc, Runner, SoundProcesses, TimeRef, graph, UGenGraphBuilder => UGB, logAural => logA}
 
 import scala.concurrent.Future
 import scala.concurrent.stm.{Ref, TMap, TxnLocal}

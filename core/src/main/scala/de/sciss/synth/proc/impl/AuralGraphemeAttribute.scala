@@ -11,8 +11,7 @@
  *  contact@sciss.de
  */
 
-package de.sciss.synth.proc
-package impl
+package de.sciss.synth.proc.impl
 
 import de.sciss.lucre.data.SkipList
 import de.sciss.lucre.stm
@@ -20,6 +19,7 @@ import de.sciss.lucre.stm.{DummySerializerFactory, Obj, TxnLike}
 import de.sciss.lucre.synth.Sys
 import de.sciss.serial.Serializer
 import de.sciss.synth.proc.AuralAttribute.{Factory, GraphemeAware, Observer}
+import de.sciss.synth.proc.{AuralAttribute, AuralContext, Grapheme}
 
 import scala.annotation.tailrec
 import scala.collection.immutable.{IndexedSeq => Vec}
@@ -33,14 +33,14 @@ object AuralGraphemeAttribute extends Factory {
   def apply[S <: Sys[S]](key: String, grapheme: Grapheme[S], observer: Observer[S])
                         (implicit tx: S#Tx, context: AuralContext[S]): AuralAttribute[S] = {
     val system  = tx.system
-    val res     = prepare[S, system.I](key, grapheme, observer, system) // IntelliJ highlight error
+    val res     = prepare[S, system.I](key, grapheme, observer, system)
     res.init(grapheme)
   }
 
   private def prepare[S <: Sys[S], I1 <: stm.Sys[I1]](key: String, value: Grapheme[S],
                                                       observer: Observer[S], system: S { type I = I1 })
                                                      (implicit tx: S#Tx, context: AuralContext[S]): AuralGraphemeAttribute[S, I1] = {
-    implicit val iSys: S#Tx => I1#Tx = system.inMemoryTx _
+    implicit val iSys: S#Tx => I1#Tx = system.inMemoryTx
     implicit val itx: I1#Tx = iSys(tx)
     implicit val dummyKeySer: Serializer[I1#Tx, I1#Acc, Vec[AuralAttribute[S]]] =
         DummySerializerFactory[I1].dummySerializer

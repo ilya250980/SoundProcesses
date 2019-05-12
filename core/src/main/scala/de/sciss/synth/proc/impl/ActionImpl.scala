@@ -11,8 +11,7 @@
  *  contact@sciss.de
  */
 
-package de.sciss.synth.proc
-package impl
+package de.sciss.synth.proc.impl
 
 import java.text.SimpleDateFormat
 import java.util.{Date, Locale}
@@ -23,6 +22,7 @@ import de.sciss.lucre.stm.{Copy, Cursor, Elem, IdPeek, NoSys, Obj, Sys, TxnLike,
 import de.sciss.lucre.{stm, event => evt}
 import de.sciss.serial.{DataInput, DataOutput, Serializer}
 import de.sciss.synth.proc
+import de.sciss.synth.proc.{Action, AuralSystem, Code, GenContext, Runner, Scheduler, Universe}
 
 import scala.annotation.switch
 import scala.collection.mutable
@@ -108,7 +108,7 @@ object ActionImpl {
     // for simplicity use the main SP context!
 
     // import compiler.executionContext
-    import SoundProcesses.executionContext
+    import de.sciss.synth.proc.SoundProcesses.executionContext
     val actFut = jarFut.map { jar =>
       if (DEBUG) println(s"ActionImpl: compileToFunction completed. jar-size = ${jar.length}")
       cursor.step { implicit tx =>

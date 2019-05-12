@@ -11,18 +11,20 @@
  *  contact@sciss.de
  */
 
-package de.sciss.synth.proc
-package impl
+package de.sciss.synth.proc.impl
 
-import scala.concurrent.stm.{TxnExecutor, Ref}
-import collection.immutable.{IndexedSeq => Vec}
-import TxnExecutor.{defaultAtomic => atomic}
-import de.sciss.lucre.stm.{TxnLike, Disposable}
-import de.sciss.osc
 import java.net.SocketAddress
 
+import de.sciss.lucre.stm.{Disposable, TxnLike}
+import de.sciss.osc
+import de.sciss.synth.proc.{SensorSystem, SoundProcesses}
+
+import scala.collection.immutable.{IndexedSeq => Vec}
+import scala.concurrent.stm.Ref
+import scala.concurrent.stm.TxnExecutor.{defaultAtomic => atomic}
+
 object SensorSystemImpl {
-  import SensorSystem.{Client, Server}
+  import de.sciss.synth.proc.SensorSystem.{Client, Server}
 
   // var dumpOSC = false
 

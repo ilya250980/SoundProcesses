@@ -11,12 +11,12 @@
  *  contact@sciss.de
  */
 
-package de.sciss.synth
-package proc
-package graph
+package de.sciss.synth.proc.graph
 
+import de.sciss.synth.proc.UGenGraphBuilder
 import de.sciss.synth.proc.UGenGraphBuilder.Input
 import de.sciss.synth.ugen.{AudioControlProxy, ControlProxy, ControlValues}
+import de.sciss.synth.{GE, Rate, UGenInLike, audio, control, scalar}
 
 import scala.collection.immutable.{IndexedSeq => Vec}
 

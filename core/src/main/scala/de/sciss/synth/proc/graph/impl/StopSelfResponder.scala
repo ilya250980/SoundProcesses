@@ -11,14 +11,13 @@
  *  contact@sciss.de
  */
 
-package de.sciss.synth
-package proc
-package graph
-package impl
+package de.sciss.synth.proc.graph.impl
 
 import de.sciss.lucre.stm
-import de.sciss.lucre.synth.{Sys, Txn, Node}
+import de.sciss.lucre.synth.{Node, Sys, Txn}
 import de.sciss.osc
+import de.sciss.synth.proc.graph.StopSelf
+import de.sciss.synth.proc.{SoundProcesses, ViewBase}
 
 final class StopSelfResponder[S <: Sys[S]](view: ViewBase[S, Nothing], protected val synth: Node)
                                           (implicit cursor: stm.Cursor[S])

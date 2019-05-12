@@ -11,12 +11,12 @@
  *  contact@sciss.de
  */
 
-package de.sciss.synth.proc
-package impl
+package de.sciss.synth.proc.impl
 
 import de.sciss.lucre.stm
 import de.sciss.lucre.stm.{Disposable, Folder, Obj}
 import de.sciss.lucre.synth.Sys
+import de.sciss.synth.proc.{AuralContext, AuralObj, TimeRef, Transport}
 
 object AuralFolderImpl {
   def apply[S <: Sys[S]](folder: Folder[S])(implicit tx: S#Tx, context: AuralContext[S]): AuralObj.Folder[S] = {

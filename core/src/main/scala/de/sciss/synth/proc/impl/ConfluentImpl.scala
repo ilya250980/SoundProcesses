@@ -11,13 +11,13 @@
  *  contact@sciss.de
  */
 
-package de.sciss.synth.proc
-package impl
+package de.sciss.synth.proc.impl
 
 import de.sciss.lucre.stm.DataStore
 import de.sciss.lucre.synth.InMemory
 import de.sciss.lucre.synth.impl.TxnFullImpl
 import de.sciss.lucre.{confluent, stm}
+import de.sciss.synth.proc.{Confluent, Durable, log}
 
 import scala.concurrent.stm.InTxn
 

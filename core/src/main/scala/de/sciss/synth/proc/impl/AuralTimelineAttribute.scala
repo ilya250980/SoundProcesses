@@ -11,8 +11,7 @@
  *  contact@sciss.de
  */
 
-package de.sciss.synth.proc
-package impl
+package de.sciss.synth.proc.impl
 
 import de.sciss.lucre.bitemp.BiGroup
 import de.sciss.lucre.data.SkipOctree
@@ -22,6 +21,7 @@ import de.sciss.lucre.stm.{DummySerializerFactory, Obj, TxnLike}
 import de.sciss.lucre.synth.Sys
 import de.sciss.serial.Serializer
 import de.sciss.synth.proc.AuralAttribute.{Factory, Observer}
+import de.sciss.synth.proc.{AuralAttribute, AuralContext, Timeline}
 
 import scala.annotation.tailrec
 import scala.collection.immutable.{IndexedSeq => Vec}
@@ -46,7 +46,7 @@ object AuralTimelineAttribute extends Factory {
   private def prepare[S <: Sys[S], I1 <: stm.Sys[I1]](key: String, value: Timeline[S],
                                                       observer: Observer[S], system: S { type I = I1 })
                    (implicit tx: S#Tx, context: AuralContext[S]): AuralTimelineAttribute[S, I1] = {
-    implicit val iSys: S#Tx => I1#Tx  = system.inMemoryTx _
+    implicit val iSys: S#Tx => I1#Tx  = system.inMemoryTx
     implicit val itx: I1#Tx = iSys(tx)
     implicit val pointView: (Leaf[S], I1#Tx) => LongPoint2D = (l, _) => spanToPoint(l._1)
     implicit val dummyKeySer: Serializer[I1#Tx, I1#Acc, Leaf[S]] =

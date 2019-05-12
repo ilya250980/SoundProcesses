@@ -11,21 +11,20 @@
  *  contact@sciss.de
  */
 
-package de.sciss.lucre.synth
-package impl
+package de.sciss.lucre.synth.impl
 
 import java.io.{ByteArrayOutputStream, DataOutputStream}
 
 import de.sciss.lucre.stm.TxnLike.{peer => txPeer}
+import de.sciss.lucre.synth.{BlockAllocator, Group, NodeIdAllocator, NodeRef, Server, SynthDef, Txn, log}
 import de.sciss.osc
 import de.sciss.osc.TimeTag
 import de.sciss.synth.{AllocatorExhausted, ControlABusMap, ControlSet, UGenGraph, addToHead, message, Client => SClient, Server => SServer}
 import de.sciss.topology.Topology
 
 import scala.annotation.tailrec
-import scala.collection.{IndexedSeq => SIndexedSeq}
 import scala.collection.immutable.{IndexedSeq => Vec}
-import scala.collection.mutable
+import scala.collection.{mutable, IndexedSeq => SIndexedSeq}
 import scala.concurrent.stm.{Ref, TMap}
 import scala.concurrent.{ExecutionContext, Future, Promise}
 
@@ -483,7 +482,7 @@ object ServerImpl {
 
         val name  = mkSynthDefName(nameHint)
         val peer  = de.sciss.synth.SynthDef(name, graph)
-        val rd    = impl.SynthDefImpl(server, peer)
+        val rd    = SynthDefImpl(server, peer)
         val lru   = synthDefLRU.transformAndGet((equ, rd) +: _)
         if (lru.size == maxDefs) {
           val init :+ Tuple2(lastEqu, lastDf) = lru

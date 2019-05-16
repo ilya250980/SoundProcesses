@@ -13,11 +13,14 @@
 
 package de.sciss.lucre.expr.graph
 
+import de.sciss.file.File
 import de.sciss.lucre.event.ITargets
 import de.sciss.lucre.expr.graph.impl.MappedIExpr
 import de.sciss.lucre.expr.{Context, IExpr}
 import de.sciss.lucre.stm.Sys
-import de.sciss.synth.io.{AudioFileSpec => _AudioFileSpec}
+import de.sciss.synth.io.{AudioFile, AudioFileSpec => _AudioFileSpec}
+
+import scala.util.Try
 
 object AudioFileSpec {
   private final class NumChannelsExpanded[S <: Sys[S]](in: IExpr[S, _AudioFileSpec], tx0: S#Tx)
@@ -71,6 +74,31 @@ object AudioFileSpec {
     protected def mkRepr[S <: Sys[S]](implicit ctx: Context[S], tx: S#Tx): Repr[S] = {
       import ctx.targets
       new SampleRateExpanded(in.expand[S], tx)
+    }
+  }
+
+  def read(in: Ex[File]): Ex[Option[_AudioFileSpec]] = Read(in)
+
+  private final class ReadExpanded[S <: Sys[S]](in: IExpr[S, File], tx0: S#Tx)
+                                               (implicit targets: ITargets[S])
+    extends MappedIExpr[S, File, Option[_AudioFileSpec]](in, tx0) {
+
+    protected def mapValue(inValue: File): Option[_AudioFileSpec] =
+      Try(
+        AudioFile.readSpec(inValue)
+      ).toOption
+  }
+
+  def Empty(): Ex[_AudioFileSpec] = Const(_AudioFileSpec(numChannels = 0, sampleRate = 0.0))
+
+  final case class Read(in: Ex[File]) extends Ex[Option[_AudioFileSpec]] {
+    override def productPrefix: String = s"AudioFileSpec$$Read" // serialization
+
+    type Repr[S <: Sys[S]] = IExpr[S, Option[_AudioFileSpec]]
+
+    protected def mkRepr[S <: Sys[S]](implicit ctx: Context[S], tx: S#Tx): Repr[S] = {
+      import ctx.targets
+      new ReadExpanded(in.expand[S], tx)
     }
   }
 }

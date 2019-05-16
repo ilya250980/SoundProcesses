@@ -14,10 +14,12 @@
 package de.sciss.lucre.expr.graph
 
 import de.sciss.file.File
-import de.sciss.lucre.event.ITargets
+import de.sciss.lucre.event.{IEvent, IPull, ITargets}
+import de.sciss.lucre.event.impl.IEventImpl
 import de.sciss.lucre.expr.graph.impl.MappedIExpr
 import de.sciss.lucre.expr.{Context, IExpr}
 import de.sciss.lucre.stm.Sys
+import de.sciss.model.Change
 import de.sciss.synth.io.{AudioFileSpec => _AudioFileSpec}
 import de.sciss.synth.proc.{AudioCue => _AudioCue}
 
@@ -107,6 +109,67 @@ object AudioCue {
     protected def mkRepr[S <: Sys[S]](implicit ctx: Context[S], tx: S#Tx): Repr[S] = {
       import ctx.targets
       new FileOffsetExpanded(in.expand[S], tx)
+    }
+  }
+
+  private final class ApplyExpanded[S <: Sys[S]](artifact : IExpr[S, File],
+                                                 spec     : IExpr[S, _AudioFileSpec],
+                                                 offset   : IExpr[S, Long],
+                                                 gain     : IExpr[S, Double], tx0: S#Tx)
+                                                (implicit protected val targets: ITargets[S])
+    extends IExpr[S, _AudioCue] with IEventImpl[S, Change[_AudioCue]] {
+
+    artifact.changed.--->(this)(tx0)
+    spec    .changed.--->(this)(tx0)
+    offset  .changed.--->(this)(tx0)
+    gain    .changed.--->(this)(tx0)
+
+    def value(implicit tx: S#Tx): _AudioCue =
+      _AudioCue(artifact.value, spec.value, offset.value, gain.value)
+
+    private[lucre] def pullUpdate(pull: IPull[S])(implicit tx: S#Tx): Option[Change[_AudioCue]] = {
+      def pullCh[A](ex: IExpr[S, A]): Change[A] = {
+        val evt = ex.changed
+        def default: Change[A] = {
+          val v = ex.value; Change(v, v)
+        }
+        if (pull.contains(evt)) pull(evt).getOrElse(default) else default
+      }
+
+      val aCh = pullCh(artifact)
+      val sCh = pullCh(spec    )
+      val oCh = pullCh(offset  )
+      val gCh = pullCh(gain    )
+      val ch  = Change(
+        _AudioCue(aCh.before, sCh.before, oCh.before, gCh.before),
+        _AudioCue(aCh.now   , sCh.now   , oCh.now   , gCh.now   )
+      )
+      if (ch.isSignificant) Some(ch) else None
+    }
+
+    def changed: IEvent[S, Change[_AudioCue]] = this
+
+    def dispose()(implicit tx: S#Tx): Unit = {
+      artifact.changed.-/->(this)
+      spec    .changed.-/->(this)
+      offset  .changed.-/->(this)
+      gain    .changed.-/->(this)
+    }
+  }
+
+  def apply(artifact: Ex[File], spec: Ex[_AudioFileSpec],
+            offset: Ex[Long] = 0L, gain: Ex[Double] = 1.0): Ex[_AudioCue] =
+    Apply(artifact, spec, offset, gain)
+
+  private final case class Apply(artifact: Ex[File], spec: Ex[_AudioFileSpec],
+                                 offset: Ex[Long], gain: Ex[Double]) extends Ex[_AudioCue] {
+    override def productPrefix: String = "AudioCue" // serialization
+
+    type Repr[S <: Sys[S]] = IExpr[S, _AudioCue]
+
+    protected def mkRepr[S <: Sys[S]](implicit ctx: Context[S], tx: S#Tx): Repr[S] = {
+      import ctx.targets
+      new ApplyExpanded(artifact.expand[S], spec.expand[S], offset.expand[S], gain.expand[S], tx)
     }
   }
 }

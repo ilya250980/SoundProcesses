@@ -69,10 +69,10 @@ object WorkspaceImpl {
     }
     val res: Workspace[~] forSome { type ~ <: SSys[~] } = {
       if (confluent) {
-        val _res: Workspace[~] forSome { type ~ <: SSys[~] } = readConfluent(dir, ds)
+        val _res: Workspace[~] forSome { type ~ <: SSys[~] } = readConfluent(dir, ds) // IntelliJ highlight bug
         _res
       } else {
-        val _res: Workspace[~] forSome { type ~ <: SSys[~] } = readDurable(dir, ds)
+        val _res: Workspace[~] forSome { type ~ <: SSys[~] } = readDurable  (dir, ds) // IntelliJ highlight bug
         _res
       }
     }
@@ -112,7 +112,7 @@ object WorkspaceImpl {
 
     val access = system.root[Data[S]] { implicit tx =>
       val data: Data[S] = new Data[S] {
-        val root: Folder[S] = Folder(tx)
+        val root: Folder[S] = Folder()(tx)
       }
       data
     }
@@ -151,7 +151,7 @@ object WorkspaceImpl {
 
     val (access, cursors) = system.rootWithDurable[Data[S], Cursors[S, S#D]] { implicit tx =>
       val data: Data[S] = new Data[S] {
-        val root: Folder[S] = Folder(tx)
+        val root: Folder[S] = Folder()(tx)
       }
       data
 
@@ -171,7 +171,7 @@ object WorkspaceImpl {
 
     val access = system.root[Data[S]] { implicit tx =>
       val data: Data[S] = new Data[S] {
-        val root: Folder[S] = Folder(tx)
+        val root: Folder[S] = Folder()(tx)
       }
       data
     }

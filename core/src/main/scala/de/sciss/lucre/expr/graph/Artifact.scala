@@ -30,16 +30,40 @@ object Artifact {
 
   def init(): Unit = _init
 
-  private final object Bridge extends Attr.Bridge[File] with Aux.Factory {
+  private final object Bridge extends Obj.Bridge[File] with Aux.Factory {
+    final val id = 2000
+
+    type Repr[S <: Sys[S]] = _Artifact[S]
 
     def readIdentifiedAux(in: DataInput): Aux = this
 
+    def mkObj[S <: Sys[S]](f: File)(implicit tx: S#Tx): _Artifact[S] = {
+      val loc = defaultLocation(f)
+      makeArtifact(loc, f)
+    }
+
+    implicit def reprSerializer[S <: Sys[S]]: Serializer[S#Tx, S#Acc, _Artifact[S]] =
+      _Artifact.serializer
+
     def cellView[S <: Sys[S]](obj: stm.Obj[S], key: String)(implicit tx: S#Tx): CellView.Var[S, Option[File]] =
       new CellViewImpl(tx.newHandle(obj.attr), key = key)
-
-    final val id = 2000
   }
-  
+
+  private def tryRelativize[S <: Sys[S]](loc: ArtifactLocation[S], f: File)(implicit tx: S#Tx): Try[_Artifact.Child] =
+    Try(_Artifact.relativize(loc.directory, f))
+
+  private def defaultLocation[S <: Sys[S]](f: File)(implicit tx: S#Tx): ArtifactLocation[S] =
+    ArtifactLocation.newVar(f.absolute.parent)
+
+  private def makeArtifact[S <: Sys[S]](loc: ArtifactLocation[S], f: File)(implicit tx: S#Tx): _Artifact[S] = {
+    val art = tryRelativize(loc, f).toOption.fold[_Artifact[S]]({ // Try#fold not available in Scala 2.11
+      _Artifact(defaultLocation(f), f)
+    }) { child =>
+      _Artifact(loc, child)
+    }
+    art
+  }
+
   private final class CellViewImpl[S <: Sys[S]](attrH: stm.Source[S#Tx, stm.Obj.AttrMap[S]], key: String)
     extends CellView.Var[S, Option[File]] with CellViewImpl.Basic[S#Tx, Option[File]] {
 
@@ -58,22 +82,11 @@ object Artifact {
         case None     => attr.remove(key)
       }
 
-    private def tryRelativize(loc: ArtifactLocation[S], f: File)(implicit tx: S#Tx): Try[_Artifact.Child] =
-      Try(_Artifact.relativize(loc.directory, f))
-
     def lift(v: Option[File])(implicit tx: S#Tx): Repr =
       v match {
         case Some(f) if f.path.nonEmpty =>
-          def defaultLoc(): ArtifactLocation[S] = ArtifactLocation.newVar(f.absolute.parent)
-
-          val loc = repr.fold[ArtifactLocation[S]]({
-            defaultLoc()
-          })(_.location)
-          val art = tryRelativize(loc, f).toOption.fold[_Artifact[S]]({ // Try#fold not available in Scala 2.11
-            _Artifact(defaultLoc(), f)
-          }) { child =>
-            _Artifact(loc, child)
-          }
+          val loc = repr.fold[ArtifactLocation[S]](defaultLocation(f))(_.location)
+          val art = makeArtifact(loc, f)
           Some(art)
 
         case _ => None
@@ -118,7 +131,7 @@ final case class Artifact(key: String, default: Ex[File] = file(""))
   def update(in: Ex[File]): Control = Attr.Update (in, key)
   def set   (in: Ex[File]): Act     = Attr.Set    (in, key)
 
-  implicit def bridge: Attr.Bridge[File] = Artifact.Bridge
+  implicit def bridge: Obj.Bridge[File] = Artifact.Bridge
 
   def aux: List[Aux] = Nil
 }

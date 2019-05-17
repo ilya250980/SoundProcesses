@@ -87,7 +87,7 @@ lazy val synth = project.withId("lucresynth").in(file("synth"))
 lazy val testSettings = Seq(
   libraryDependencies += {
     if (scalaVersion.value == "2.13.0-RC2") {
-      "org.scalatest" % "scalatest_2.13.0-RC1" % deps.test.scalaTest % Test
+      "org.scalatest" % "scalatest_2.13.0-RC1" % deps.test.scalaTest % Test exclude("org.scala-lang.modules", "scala-xml_2.13.0-RC1")
     } else {
       "org.scalatest" %% "scalatest" % deps.test.scalaTest % Test
     }
@@ -116,9 +116,15 @@ lazy val core = project.withId(s"$baseNameL-core").in(file("core"))
       "de.sciss"          %% "equal"                        % deps.main.equal,
       "org.scala-lang"    %  "scala-compiler"               % scalaVersion.value % Provided,
       "de.sciss"          %% s"lucre-${deps.test.bdb}"      % deps.main.lucre              % Test,
-      "com.github.scopt"  %% "scopt"                        % deps.test.scopt              % Test,
       "de.sciss"          %% "scalacolliderswing-plotting"  % deps.test.scalaColliderSwing % Test
     ),
+    libraryDependencies += {
+      if (scalaVersion.value == "2.13.0-RC2") {
+        "com.github.scopt" % "scopt_2.13.0-RC1" % deps.test.scopt % Test
+      } else {
+        "com.github.scopt" %% "scopt" % deps.test.scopt % Test
+      }
+    },
     mimaPreviousArtifacts := Set("de.sciss" %% s"$baseNameL-core" % mimaVersion)
   )
 

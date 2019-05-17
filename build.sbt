@@ -11,7 +11,7 @@ lazy val commonSettings = Seq(
   description        := "A framework for creating and managing ScalaCollider based sound processes",
   licenses           := Seq("LGPL v2.1+" -> url("http://www.gnu.org/licenses/lgpl-2.1.txt")),
   scalaVersion       := "2.12.8",
-  crossScalaVersions := Seq("2.12.8", "2.11.12", "2.13.0-RC1"),
+  crossScalaVersions := Seq("2.12.8", "2.11.12", "2.13.0-RC2"),
   scalacOptions ++= {
     // "-Xfatal-warnings" -- breaks for cross-scala-build and deprecations
     // -stars-align produces wrong warnings with decomposing OSC messages
@@ -35,8 +35,8 @@ lazy val deps = new {
     val lucreSwing          = "1.17.0-SNAPSHOT"
     val model               = "0.3.4"
     val numbers             = "0.2.0"
-    val scalaCollider       = "1.28.2"
-    val scalaColliderIf     = "0.9.1"
+    val scalaCollider       = "1.28.3"
+    val scalaColliderIf     = "0.9.2"
     val span                = "1.4.2"
     val swingPlus           = "0.4.2"
     val topology            = "1.1.2"
@@ -45,7 +45,7 @@ lazy val deps = new {
   
   val test = new {
     val bdb                = "bdb"  // "bdb" or "bdb6" or "bdb7"
-    val scalaColliderSwing = "1.41.1"
+    val scalaColliderSwing = "1.41.2"
     val scalaTest          = "3.0.8-RC2"
     val scopt              = "3.7.1"
     val submin             = "0.2.5"
@@ -86,7 +86,11 @@ lazy val synth = project.withId("lucresynth").in(file("synth"))
 
 lazy val testSettings = Seq(
   libraryDependencies += {
-    "org.scalatest" %% "scalatest" % deps.test.scalaTest % Test
+    if (scalaVersion.value == "2.13.0-RC2") {
+      "org.scalatest" % "scalatest_2.13.0-RC1" % deps.test.scalaTest % Test
+    } else {
+      "org.scalatest" %% "scalatest" % deps.test.scalaTest % Test
+    }
   }
 )
 

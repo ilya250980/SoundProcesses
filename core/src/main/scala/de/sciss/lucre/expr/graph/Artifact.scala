@@ -42,8 +42,8 @@ object Artifact {
 //      makeArtifact(loc, f)
 //    }
 
-    implicit def reprSerializer[S <: Sys[S]]: Serializer[S#Tx, S#Acc, _Artifact[S]] =
-      _Artifact.serializer
+//    implicit def reprSerializer[S <: Sys[S]]: Serializer[S#Tx, S#Acc, _Artifact[S]] =
+//      _Artifact.serializer
 
     def cellView[S <: Sys[S]](obj: stm.Obj[S], key: String)(implicit tx: S#Tx): CellView.Var[S, Option[File]] =
       new CellViewImpl(tx.newHandle(obj.attr), key = key)

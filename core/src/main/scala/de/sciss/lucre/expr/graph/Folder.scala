@@ -17,7 +17,7 @@ import de.sciss.lucre.aux.{Aux, ProductWithAux}
 import de.sciss.lucre.event.impl.IGenerator
 import de.sciss.lucre.event.{Caching, IEvent, IPull, ITargets}
 import de.sciss.lucre.expr.graph.impl.ObjImplBase
-import de.sciss.lucre.expr.impl.{IActionImpl, CellViewImpl => _CellViewImpl}
+import de.sciss.lucre.expr.impl.{IActionImpl, ITriggerConsumer, CellViewImpl => _CellViewImpl}
 import de.sciss.lucre.expr.{CellView, Context, IAction, IExpr}
 import de.sciss.lucre.stm
 import de.sciss.lucre.stm.Obj.AttrMap
@@ -33,6 +33,53 @@ object Folder {
     Aux.addFactory(Bridge)
 
   def init(): Unit = _init
+
+  def apply(): Ex[Folder] with Obj.Make[Folder] = Apply()
+
+  private object Empty extends Folder {
+    private[graph] def peer[S <: Sys[S]](implicit tx: S#Tx): Option[Peer[S]] = None
+  }
+
+  private final class ApplyExpanded[S <: Sys[S]](implicit protected val targets: ITargets[S])
+    extends IExpr[S, Folder]
+      with IAction[S]
+      with IGenerator       [S, Change[Folder]]
+      with ITriggerConsumer [S, Change[Folder]]
+      with Caching {
+
+    private[this] val ref = Ref[Folder](Empty)
+
+    def value(implicit tx: S#Tx): Folder = ref()
+
+    def executeAction()(implicit tx: S#Tx): Unit =
+      trigReceived().foreach(fire)
+
+    private def make()(implicit tx: S#Tx): Folder = {
+      val peer = stm.Folder[S]
+      new Impl(tx.newHandle(peer), tx.system)
+    }
+
+    protected def trigReceived()(implicit tx: S#Tx): Option[Change[Folder]] = {
+      val now     = make()
+      val before  = ref.swap(now) // needs caching
+      Some(Change(before, now))
+    }
+
+    def changed: IEvent[S, Change[Folder]] = this
+  }
+
+  private final case class Apply() extends Ex[Folder] with Act with Obj.Make[Folder] {
+    override def productPrefix: String = "Folder" // serialization
+
+    type Repr[S <: Sys[S]] = IExpr[S, Folder] with IAction[S]
+
+    def make: Act = this
+
+    protected def mkRepr[S <: Sys[S]](implicit ctx: Context[S], tx: S#Tx): Repr[S] = {
+      import ctx.targets
+      new ApplyExpanded[S]
+    }
+  }
 
   private final class Impl[S <: Sys[S]](in: stm.Source[S#Tx, stm.Folder[S]], system: S)
     extends ObjImplBase[S, stm.Folder](in, system) with Folder {
@@ -142,8 +189,8 @@ object Folder {
 
     def readIdentifiedAux(in: DataInput): Aux = this
 
-    implicit def reprSerializer[S <: Sys[S]]: Serializer[S#Tx, S#Acc, stm.Folder[S]] =
-      stm.Folder.serializer
+//    implicit def reprSerializer[S <: Sys[S]]: Serializer[S#Tx, S#Acc, stm.Folder[S]] =
+//      stm.Folder.serializer
 
     def cellView[S <: Sys[S]](obj: stm.Obj[S], key: String)(implicit tx: S#Tx): CellView.Var[S, Option[Folder]] =
       new CellViewImpl(tx.newHandle(obj), key)
@@ -250,32 +297,32 @@ object Folder {
   }
 
   private final class AppendExpanded[S <: Sys[S], A](in: IExpr[S, Folder], elem: IExpr[S, A])
-                                                    (implicit bridge: Obj.Bridge[A])
+                                                    (implicit source: Obj.Source[A])
     extends IActionImpl[S] {
 
     def executeAction()(implicit tx: S#Tx): Unit = {
       in.value.peer.foreach { f =>
         val v   = elem.value
-        val obj = bridge.mkObj(v)
+        val obj = source.toObj(v)
         f.addLast(obj)
       }
     }
   }
 
   private final class PrependExpanded[S <: Sys[S], A](in: IExpr[S, Folder], elem: IExpr[S, A])
-                                                    (implicit bridge: Obj.Bridge[A])
+                                                    (implicit source: Obj.Source[A])
     extends IActionImpl[S] {
 
     def executeAction()(implicit tx: S#Tx): Unit = {
       in.value.peer.foreach { f =>
         val v   = elem.value
-        val obj = bridge.mkObj(v)
+        val obj = source.toObj(v)
         f.addHead(obj)
       }
     }
   }
 
-  final case class Append[A](in: Ex[Folder], elem: Ex[A])(implicit bridge: Obj.Bridge[A])
+  final case class Append[A](in: Ex[Folder], elem: Ex[A])(implicit source: Obj.Source[A])
     extends Act with ProductWithAux {
 
     override def productPrefix: String = s"Folder$$Append" // serialization
@@ -285,10 +332,10 @@ object Folder {
     protected def mkRepr[S <: Sys[S]](implicit ctx: Context[S], tx: S#Tx): Repr[S] =
       new AppendExpanded(in.expand[S], elem.expand[S])
 
-    def aux: List[Aux] = bridge :: Nil
+    def aux: List[Aux] = source :: Nil
   }
 
-  final case class Prepend[A](in: Ex[Folder], elem: Ex[A])(implicit bridge: Obj.Bridge[A])
+  final case class Prepend[A](in: Ex[Folder], elem: Ex[A])(implicit source: Obj.Source[A])
     extends Act with ProductWithAux {
 
     override def productPrefix: String = s"Folder$$Prepend" // serialization
@@ -298,13 +345,13 @@ object Folder {
     protected def mkRepr[S <: Sys[S]](implicit ctx: Context[S], tx: S#Tx): Repr[S] =
       new PrependExpanded(in.expand[S], elem.expand[S])
 
-    def aux: List[Aux] = bridge :: Nil
+    def aux: List[Aux] = source :: Nil
   }
 
   implicit final class Ops(private val f: Ex[Folder]) extends AnyVal {
-    def prepend[A](elem: Ex[A])(implicit bridge: Obj.Bridge[A]): Act = Prepend(f, elem)
-    def append [A](elem: Ex[A])(implicit bridge: Obj.Bridge[A]): Act = Append (f, elem)
-    def +=     [A](elem: Ex[A])(implicit bridge: Obj.Bridge[A]): Act = append(elem)
+    def prepend[A](elem: Ex[A])(implicit source: Obj.Source[A]): Act = Prepend(f, elem)
+    def append [A](elem: Ex[A])(implicit source: Obj.Source[A]): Act = Append (f, elem)
+    def +=     [A](elem: Ex[A])(implicit source: Obj.Source[A]): Act = append(elem)
 
     def size    : Ex[Int    ] = Size    (f)
     def isEmpty : Ex[Boolean] = IsEmpty (f)

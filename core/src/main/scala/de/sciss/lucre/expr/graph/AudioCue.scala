@@ -27,7 +27,7 @@ object AudioCue {
   private final class ArtifactExpanded[S <: Sys[S]](in: IExpr[S, _AudioCue], tx0: S#Tx)(implicit targets: ITargets[S])
     extends MappedIExpr[S, _AudioCue, File](in, tx0) {
 
-    protected def mapValue(inValue: _AudioCue): File = inValue.artifact
+    protected def mapValue(inValue: _AudioCue)(implicit tx: S#Tx): File = inValue.artifact
   }
 
   final case class Artifact(in: Ex[_AudioCue]) extends Ex[File] {
@@ -44,7 +44,7 @@ object AudioCue {
   private final class SpecExpanded[S <: Sys[S]](in: IExpr[S, _AudioCue], tx0: S#Tx)(implicit targets: ITargets[S])
     extends MappedIExpr[S, _AudioCue, _AudioFileSpec](in, tx0) {
 
-    protected def mapValue(inValue: _AudioCue): _AudioFileSpec = inValue.spec
+    protected def mapValue(inValue: _AudioCue)(implicit tx: S#Tx): _AudioFileSpec = inValue.spec
   }
 
   final case class Spec(in: Ex[_AudioCue]) extends Ex[_AudioFileSpec] {
@@ -61,7 +61,7 @@ object AudioCue {
   private final class OffsetExpanded[S <: Sys[S]](in: IExpr[S, _AudioCue], tx0: S#Tx)(implicit targets: ITargets[S])
     extends MappedIExpr[S, _AudioCue, Long](in, tx0) {
 
-    protected def mapValue(inValue: _AudioCue): Long = inValue.offset
+    protected def mapValue(inValue: _AudioCue)(implicit tx: S#Tx): Long = inValue.offset
   }
 
   final case class Offset(in: Ex[_AudioCue]) extends Ex[Long] {
@@ -78,7 +78,7 @@ object AudioCue {
   private final class GainExpanded[S <: Sys[S]](in: IExpr[S, _AudioCue], tx0: S#Tx)(implicit targets: ITargets[S])
     extends MappedIExpr[S, _AudioCue, Double](in, tx0) {
 
-    protected def mapValue(inValue: _AudioCue): Double = inValue.gain
+    protected def mapValue(inValue: _AudioCue)(implicit tx: S#Tx): Double = inValue.gain
   }
 
   final case class Gain(in: Ex[_AudioCue]) extends Ex[Double] {
@@ -95,7 +95,7 @@ object AudioCue {
   private final class FileOffsetExpanded[S <: Sys[S]](in: IExpr[S, _AudioCue], tx0: S#Tx)(implicit targets: ITargets[S])
     extends MappedIExpr[S, _AudioCue, Long](in, tx0) {
 
-    protected def mapValue(inValue: _AudioCue): Long = inValue.fileOffset
+    protected def mapValue(inValue: _AudioCue)(implicit tx: S#Tx): Long = inValue.fileOffset
   }
 
   /** A utility method that reports the offset with respect to the file's sample rate.

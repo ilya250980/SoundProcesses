@@ -27,7 +27,7 @@ object AudioFileSpec {
                                                       (implicit targets: ITargets[S])
     extends MappedIExpr[S, _AudioFileSpec, Int](in, tx0) {
 
-    protected def mapValue(inValue: _AudioFileSpec): Int = inValue.numChannels
+    protected def mapValue(inValue: _AudioFileSpec)(implicit tx: S#Tx): Int = inValue.numChannels
   }
 
   final case class NumChannels(in: Ex[_AudioFileSpec]) extends Ex[Int] {
@@ -45,7 +45,7 @@ object AudioFileSpec {
                                                     (implicit targets: ITargets[S])
     extends MappedIExpr[S, _AudioFileSpec, Long](in, tx0) {
 
-    protected def mapValue(inValue: _AudioFileSpec): Long = inValue.numFrames
+    protected def mapValue(inValue: _AudioFileSpec)(implicit tx: S#Tx): Long = inValue.numFrames
   }
 
   final case class NumFrames(in: Ex[_AudioFileSpec]) extends Ex[Long] {
@@ -63,7 +63,7 @@ object AudioFileSpec {
                                                     (implicit targets: ITargets[S])
     extends MappedIExpr[S, _AudioFileSpec, Double](in, tx0) {
 
-    protected def mapValue(inValue: _AudioFileSpec): Double = inValue.sampleRate
+    protected def mapValue(inValue: _AudioFileSpec)(implicit tx: S#Tx): Double = inValue.sampleRate
   }
 
   final case class SampleRate(in: Ex[_AudioFileSpec]) extends Ex[Double] {
@@ -83,7 +83,7 @@ object AudioFileSpec {
                                                (implicit targets: ITargets[S])
     extends MappedIExpr[S, File, Option[_AudioFileSpec]](in, tx0) {
 
-    protected def mapValue(inValue: File): Option[_AudioFileSpec] =
+    protected def mapValue(inValue: File)(implicit tx: S#Tx): Option[_AudioFileSpec] =
       Try(
         AudioFile.readSpec(inValue)
       ).toOption

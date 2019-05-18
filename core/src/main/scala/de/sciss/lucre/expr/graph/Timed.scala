@@ -24,7 +24,7 @@ object Timed {
                                                   (implicit targets: ITargets[S])
     extends MappedIExpr[S, Timed[A], SpanLike](in, tx0) {
 
-    protected def mapValue(inValue: Timed[A]): SpanLike = inValue.span
+    protected def mapValue(inValue: Timed[A])(implicit tx: S#Tx): SpanLike = inValue.span
   }
 
   final case class Span[A](in: Ex[Timed[A]]) extends Ex[SpanLike] {
@@ -42,7 +42,7 @@ object Timed {
                                                    (implicit targets: ITargets[S])
     extends MappedIExpr[S, Timed[A], A](in, tx0) {
 
-    protected def mapValue(inValue: Timed[A]): A = inValue.value
+    protected def mapValue(inValue: Timed[A])(implicit tx: S#Tx): A = inValue.value
   }
 
   final case class Value[A](in: Ex[Timed[A]]) extends Ex[A] {

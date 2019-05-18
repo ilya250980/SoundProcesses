@@ -137,8 +137,8 @@ object Folder {
 
     type Repr[S <: Sys[S]] = stm.Folder[S]
 
-    def mkObj[S <: Sys[S]](value: Folder)(implicit tx: S#Tx): stm.Folder[S] =
-      stm.Folder()
+//    def mkObj[S <: Sys[S]](value: Folder)(implicit tx: S#Tx): stm.Folder[S] =
+//      stm.Folder()
 
     def readIdentifiedAux(in: DataInput): Aux = this
 

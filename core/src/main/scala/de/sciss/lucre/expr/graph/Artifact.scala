@@ -37,10 +37,10 @@ object Artifact {
 
     def readIdentifiedAux(in: DataInput): Aux = this
 
-    def mkObj[S <: Sys[S]](f: File)(implicit tx: S#Tx): _Artifact[S] = {
-      val loc = defaultLocation(f)
-      makeArtifact(loc, f)
-    }
+//    def mkObj[S <: Sys[S]](f: File)(implicit tx: S#Tx): _Artifact[S] = {
+//      val loc = defaultLocation(f)
+//      makeArtifact(loc, f)
+//    }
 
     implicit def reprSerializer[S <: Sys[S]]: Serializer[S#Tx, S#Acc, _Artifact[S]] =
       _Artifact.serializer

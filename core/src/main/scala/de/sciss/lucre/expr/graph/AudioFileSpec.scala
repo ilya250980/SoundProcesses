@@ -89,7 +89,18 @@ object AudioFileSpec {
       ).toOption
   }
 
-  def Empty(): Ex[_AudioFileSpec] = Const(_AudioFileSpec(numChannels = 0, sampleRate = 0.0))
+  // Note: we cannot serializer `_AudioFileSpec` without further ado, because we have
+  // singleton objects like `AIFF`.
+//  def Empty(): Ex[_AudioFileSpec] = Const(_AudioFileSpec(numChannels = 0, sampleRate = 0.0))
+
+  final case class Empty() extends Ex[_AudioFileSpec] {
+    override def productPrefix: String = s"AudioFileSpec$$Empty" // serialization
+
+    type Repr[S <: Sys[S]] = IExpr[S, _AudioFileSpec]
+
+    protected def mkRepr[S <: Sys[S]](implicit ctx: Context[S], tx: S#Tx): Repr[S] =
+      new Const.Expanded(_AudioFileSpec(numChannels = 0, sampleRate = 0.0))
+  }
 
   final case class Read(in: Ex[File]) extends Ex[Option[_AudioFileSpec]] {
     override def productPrefix: String = s"AudioFileSpec$$Read" // serialization

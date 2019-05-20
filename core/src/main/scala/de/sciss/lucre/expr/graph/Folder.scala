@@ -16,8 +16,8 @@ package de.sciss.lucre.expr.graph
 import de.sciss.lucre.aux.{Aux, ProductWithAux}
 import de.sciss.lucre.event.impl.IGenerator
 import de.sciss.lucre.event.{Caching, IEvent, IPull, ITargets}
-import de.sciss.lucre.expr.graph.impl.ObjImplBase
-import de.sciss.lucre.expr.impl.{IActionImpl, ITriggerConsumer, CellViewImpl => _CellViewImpl}
+import de.sciss.lucre.expr.graph.impl.{ExpandedObjMakeImpl, ObjImplBase}
+import de.sciss.lucre.expr.impl.{IActionImpl, CellViewImpl => _CellViewImpl}
 import de.sciss.lucre.expr.{CellView, Context, IAction, IExpr}
 import de.sciss.lucre.stm
 import de.sciss.lucre.stm.Obj.AttrMap
@@ -40,32 +40,15 @@ object Folder {
     private[graph] def peer[S <: Sys[S]](implicit tx: S#Tx): Option[Peer[S]] = None
   }
 
-  private final class ApplyExpanded[S <: Sys[S]](implicit protected val targets: ITargets[S])
-    extends IExpr[S, Folder]
-      with IAction[S]
-      with IGenerator       [S, Change[Folder]]
-      with ITriggerConsumer [S, Change[Folder]]
-      with Caching {
+  private final class ApplyExpanded[S <: Sys[S]](implicit targets: ITargets[S])
+    extends ExpandedObjMakeImpl[S, Folder] {
 
-    private[this] val ref = Ref[Folder](Empty)
+    protected def empty: Folder = Empty
 
-    def value(implicit tx: S#Tx): Folder = ref()
-
-    def executeAction()(implicit tx: S#Tx): Unit =
-      trigReceived().foreach(fire)
-
-    private def make()(implicit tx: S#Tx): Folder = {
-      val peer = stm.Folder[S]
+    protected def make()(implicit tx: S#Tx): Folder = {
+      val peer = stm.Folder[S]()
       new Impl(tx.newHandle(peer), tx.system)
     }
-
-    protected def trigReceived()(implicit tx: S#Tx): Option[Change[Folder]] = {
-      val now     = make()
-      val before  = ref.swap(now) // needs caching
-      Some(Change(before, now))
-    }
-
-    def changed: IEvent[S, Change[Folder]] = this
   }
 
   private final case class Apply() extends Ex[Folder] with Act with Obj.Make[Folder] {

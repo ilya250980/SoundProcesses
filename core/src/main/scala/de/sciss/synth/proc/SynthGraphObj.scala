@@ -15,12 +15,13 @@ package de.sciss.synth.proc
 
 import java.util
 
-import de.sciss.lucre.event.{Event, Dummy, EventLike, Targets}
+import de.sciss.lucre.event.{Dummy, Event, EventLike, Targets}
+import de.sciss.lucre.expr
 import de.sciss.lucre.expr.Expr
 import de.sciss.lucre.stm.{Copy, Elem, Obj, Sys}
-import de.sciss.lucre.expr
 import de.sciss.model.Change
 import de.sciss.serial.{DataInput, DataOutput, ImmutableSerializer}
+import de.sciss.synth.proc.Implicits._
 import de.sciss.synth.ugen.{Constant, ControlProxyLike}
 import de.sciss.synth.{Lazy, MaybeRate, SynthGraph, proc}
 
@@ -267,11 +268,29 @@ object SynthGraphObj extends expr.impl.ExprTypeImpl[SynthGraph, SynthGraphObj] {
       graph.ScanOut(out)
     }
 
+  private val tapeSynthGraphSource =
+    """val sig   = VDiskIn.ar("sig")
+      |val gain  = "gain".kr(1.0)
+      |val mute  = "mute".kr(0)
+      |val env   = FadeInOut.ar
+      |val amp   = env * ((1 - mute) * gain)
+      |val out   = sig * amp
+      |// (out \ 0).poll(label = "disk")
+      |ScanOut(out)
+      |""".stripMargin
+
   private val emptySynthGraph = SynthGraph {}
 
   def tape   [S <: Sys[S]](implicit tx: S#Tx): _Ex[S] = apply(tapeCookie   )
   // def tapeOld[S <: Sys[S]](implicit tx: S#Tx): Ex[S] = apply(oldTapeCookie)
   def empty  [S <: Sys[S]](implicit tx: S#Tx): _Ex[S] = apply(emptyCookie  )
+
+  def tapeSource[S <: Sys[S]](implicit tx: S#Tx): Code.Obj[S] = {
+    val v     = Code.SynthGraph(tapeSynthGraphSource)
+    val res   = Code.Obj.newVar[S](v)
+    res.name  = "tape"
+    res
+  }
 
   private def apply[S <: Sys[S]](cookie: Int)(implicit tx: S#Tx): _Ex[S] = {
     val id = tx.newId()

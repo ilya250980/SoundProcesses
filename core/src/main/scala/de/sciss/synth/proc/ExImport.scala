@@ -13,9 +13,9 @@
 
 package de.sciss.synth.proc
 
-import de.sciss.lucre.expr.graph.{Ex, Obj, AudioFileSpec => _AudioFileSpec}
+import de.sciss.lucre.expr.graph.{AudioFileSpec, Ex, Obj}
 import de.sciss.lucre.expr.impl.{ExObjBridgeImpl => Impl}
-import de.sciss.synth.io.AudioFileSpec
+import de.sciss.synth.io.{AudioFileSpec => _AudioFileSpec}
 import de.sciss.synth.{Curve, proc}
 
 object ExImport {
@@ -26,12 +26,13 @@ object ExImport {
   implicit val envSegmentExAttrBridge : Obj.Bridge[EnvSegment ] = new Impl(EnvSegment .Obj)
   implicit val fadeSpecExAttrBridge   : Obj.Bridge[FadeSpec   ] = new Impl(FadeSpec   .Obj)
 
-  type AudioCue = proc.AudioCue
+  type AudioCue       = proc.AudioCue
+  type AudioFileSpec  = _AudioFileSpec
 
   implicit final class audioFileSpecOps(private val x: Ex[AudioFileSpec]) extends AnyVal {
-    def numChannels : Ex[Int    ] = _AudioFileSpec.NumChannels(x)
-    def numFrames   : Ex[Long   ] = _AudioFileSpec.NumFrames  (x)
-    def sampleRate  : Ex[Double ] = _AudioFileSpec.SampleRate (x)
+    def numChannels : Ex[Int    ] = AudioFileSpec.NumChannels(x)
+    def numFrames   : Ex[Long   ] = AudioFileSpec.NumFrames  (x)
+    def sampleRate  : Ex[Double ] = AudioFileSpec.SampleRate (x)
   }
 }
 

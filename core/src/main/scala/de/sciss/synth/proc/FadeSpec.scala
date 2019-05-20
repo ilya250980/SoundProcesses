@@ -14,7 +14,9 @@
 package de.sciss.synth.proc
 
 import de.sciss.lucre.event.{Pull, Targets}
+import de.sciss.lucre.expr.graph.Ex
 import de.sciss.lucre.expr.{DoubleObj, LongObj, Type, Expr => _Expr}
+import de.sciss.lucre.expr.graph.{FadeSpec => _FadeSpec}
 import de.sciss.lucre.stm.{Copy, Elem, Sys}
 import de.sciss.lucre.{expr, stm}
 import de.sciss.serial.{DataInput, DataOutput, ImmutableSerializer}
@@ -180,5 +182,11 @@ object FadeSpec {
     }
   }
   trait Obj[S <: Sys[S]] extends _Expr[S, FadeSpec]
+
+  implicit final class ExOps(private val x: Ex[FadeSpec]) extends AnyVal {
+    def numFrames : Ex[Long]   = _FadeSpec.NumFrames(x)
+    def curve     : Ex[Curve]  = _FadeSpec.Curve    (x)
+    def floor     : Ex[Double] = _FadeSpec.Floor    (x)
+  }
 }
 final case class FadeSpec(numFrames: Long, curve: Curve = linear, floor: Float = 0f)

@@ -283,7 +283,7 @@ object OscUdpNode {
         case m: OscMessage =>
           osc.Message(m.name, m.args: _*) // XXX TODO --- adjust args to codec
 
-        case _: OscBundle => ???
+//        case _: OscBundle => ...
       }
       tryThunk("send from") {
         val t = transmitter
@@ -426,7 +426,7 @@ object OscUdpNode {
 
     def send(target: Ex[SocketAddress], p: Ex[OscPacket]): Act = Send(this, target, p)
 
-    def reply(p: Ex[OscPacket]): Act = ???
+//    def reply(p: Ex[OscPacket]): Act = ...
 
     def self: Ex[SocketAddress] = SocketAddress(port = localPort, host = localHost)
 
@@ -456,8 +456,8 @@ trait OscUdpNode extends OscNode {
 
   def send(target: Ex[SocketAddress], p: Ex[OscPacket]): Act
 
-  /** Not yet implemented! */
-  def reply(p: Ex[OscPacket]): Act
+//  /** Not yet implemented! */
+//  def reply(p: Ex[OscPacket]): Act
 }
 
 object OscTcpClient {

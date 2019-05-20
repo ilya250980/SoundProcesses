@@ -238,11 +238,8 @@ object OscMessage {
 /** A simplified interface to OSC packets */
 final case class OscMessage(name: String, args: Any*) extends OscPacket
 
-//object OscBundle {
-//  def apply(time: Long, packets: OscPacket*): Ex[OscBundle] = ...
+//trait OscBundle extends OscPacket {
+//  def time: Long
+//
+//  def packets: Seq[OscPacket]
 //}
-trait OscBundle extends OscPacket {
-  def time: Long
-
-  def packets: Seq[OscPacket]
-}

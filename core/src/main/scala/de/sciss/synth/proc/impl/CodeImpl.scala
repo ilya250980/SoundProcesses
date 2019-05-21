@@ -17,6 +17,7 @@ import java.io.{ByteArrayInputStream, ByteArrayOutputStream}
 
 import de.sciss.serial.{DataInput, DataOutput, ImmutableSerializer}
 import de.sciss.synth.proc.Code
+import de.sciss.synth.proc.Code.Import
 
 import scala.collection.immutable.{IndexedSeq => Vec, Seq => ISeq}
 import scala.concurrent.{Future, blocking}
@@ -108,34 +109,39 @@ object CodeImpl {
 
   private val sync = new AnyRef
 
-  private var importsMap = Map[Int, Vec[String]](
+  import Import._
+
+  private var importsMap = Map[Int, Vec[Import]](
     Code.SynthGraph.id -> Vec(
-      "de.sciss.synth.{Buffer => _, _}",
-      "de.sciss.synth.ugen.{DiskIn => _, VDiskIn => _, BufChannels => _, BufRateScale => _, BufSampleRate => _, _}",
-      "de.sciss.synth.proc.graph._",
-      "de.sciss.synth.proc.graph.Ops._"
+      Import("de.sciss.synth", List(Ignore("Buffer"), Wildcard)),
+      Import("de.sciss.synth.ugen", List(Ignore("DiskIn"), Ignore("VDiskIn"), Ignore("BufChannels"),
+        Ignore("BufRateScale"), Ignore("BufSampleRate"), Wildcard)),
+      Import("de.sciss.synth.proc.graph", All),
+      Import("de.sciss.synth.proc.graph.Ops", All)
     ),
     Code.Action.id -> Vec(     // what should go inside?
-      "scala.util.{Try, Success, Failure}",
-      "de.sciss.file._",
-      "de.sciss.lucre.artifact.{Artifact, ArtifactLocation}",
-      "de.sciss.lucre.expr.{Expr, BooleanObj, IntObj, LongObj, DoubleObj, StringObj, IntVector, DoubleVector, SpanObj, SpanLikeObj}",
-      "de.sciss.lucre.expr.Ops._",
-      "de.sciss.lucre.stm.{Obj, Folder}",
-      "de.sciss.numbers.Implicits._",
-      "de.sciss.osc",
-      "de.sciss.span._",
-      "de.sciss.synth.io",
-      "de.sciss.synth.proc._",
-      "de.sciss.synth.proc.Implicits._"
+      Import("scala.util", List(Name("Try"), Name("Success"), Name("Failure"))),
+      Import("de.sciss.file", All),
+      Import("de.sciss.lucre.artifact", List(Name("Artifact"), Name("ArtifactLocation"))),
+      Import("de.sciss.lucre.expr", List(Name("Expr"), Name("BooleanObj"), Name("IntObj"), Name("LongObj"),
+        Name("DoubleObj"), Name("StringObj"), Name("IntVector"), Name("DoubleVector"), Name("SpanObj"),
+        Name("SpanLikeObj"))),
+      Import("de.sciss.lucre.expr.Ops", All),
+      Import("de.sciss.lucre.stm", List(Name("Obj"), Name("Folder"))),
+      Import("de.sciss.numbers.Implicits", All),
+      Import("de.sciss", Name("osc") :: Nil),
+      Import("de.sciss.span", All),
+      Import("de.sciss.synth", Name("io") :: Nil),
+      Import("de.sciss.synth.proc", All),
+      Import("de.sciss.synth.proc.Implicits", All)
     )
   )
 
-  def registerImports(id: Int, imports: Seq[String]): Unit = sync.synchronized {
+  def registerImports(id: Int, imports: Seq[Import]): Unit = sync.synchronized {
     importsMap += id -> importsMap.get(id).fold(imports.toIndexedSeq)(_ ++ imports)
   }
 
-  def getImports(id: Int): Vec[String] = importsMap(id)
+  def getImports(id: Int): Vec[Import] = importsMap(id)
 
   // ---- internals ----
 
@@ -176,7 +182,7 @@ object CodeImpl {
   private val pkgCode = "de.sciss.synth.proc.impl.CodeImpl"
 
   def importsPrelude(code: Code, indent: Int = 0): String =
-    importsMap(code.tpe.id).map(i => s"${"  " * indent}import $i\n").mkString
+    importsMap(code.tpe.id).iterator.map(i => s"${"  " * indent}${i.sourceString}\n").mkString
 
   // note: synchronous.
   def compileThunk[A](code: Code, tt: reflect.runtime.universe.TypeTag[A], execute: Boolean)

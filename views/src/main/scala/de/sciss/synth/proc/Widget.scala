@@ -22,6 +22,7 @@ import de.sciss.lucre.swing.{Graph => _Graph}
 import de.sciss.serial.{DataInput, DataOutput, ImmutableSerializer, Serializer}
 import de.sciss.synth.UGenSource.Vec
 import de.sciss.synth.proc
+import de.sciss.synth.proc.Code.Import
 import de.sciss.synth.proc.impl.{CodeImpl, WidgetImpl => Impl}
 import de.sciss.{lucre, model}
 
@@ -76,16 +77,17 @@ object Widget extends Obj.Type {
 
     private[this] lazy val _init: Unit = {
       proc.Code.addType(this)
+      import Import._
       proc.Code.registerImports(id, Vec(
-        "de.sciss.numbers.Implicits._",
-        "de.sciss.lucre.expr.ExImport._",
-        "de.sciss.synth.proc.ExImport._",
-        "de.sciss.file._",
-        "de.sciss.lucre.expr.graph._",
-        "de.sciss.lucre.swing.graph._"
+        Import("de.sciss.numbers.Implicits", All),
+        Import("de.sciss.lucre.expr.ExImport", All),
+        Import("de.sciss.synth.proc.ExImport", All),
+        Import("de.sciss.file", All),
+        Import("de.sciss.lucre.expr.graph", All),
+        Import("de.sciss.lucre.swing.graph", All)
       ))
       proc.Code.registerImports(proc.Code.Action.id, Vec(
-        "de.sciss.synth.proc.Widget"
+        Import("de.sciss.synth.proc", Name("Widget") :: Nil)
       ))
     }
 

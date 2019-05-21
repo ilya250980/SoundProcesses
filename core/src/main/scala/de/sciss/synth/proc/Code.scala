@@ -41,15 +41,54 @@ object Code {
   final case class CompilationFailed() extends Exception
   final case class CodeIncomplete   () extends Exception
 
+  object Import {
+    sealed trait Selector {
+      def sourceString: String
+    }
+    sealed trait Simple extends Selector
+    case object Wildcard extends Simple {
+      def sourceString = "_"
+    }
+    sealed trait Named extends Selector {
+      /** Name under which the import is known in this source. */
+      def name: String
+    }
+    final case class Name(name: String) extends Named with Simple {
+      def sourceString: String = name
+    }
+    final case class Rename(from: String, to: String) extends Named {
+      def name        : String = to
+      def sourceString: String = s"$from => $to"
+    }
+    final case class Ignore(name: String) extends Selector {
+      def sourceString: String = s"$name => _"
+    }
+
+    val All: List[Selector] = Wildcard :: Nil
+  }
+  final case class Import(prefix: String, selectors: List[Import.Selector]) {
+    require (selectors.nonEmpty)
+
+    /** The full expression, such as `scala.collection.immutable.{IndexedSeq => Vec}` */
+    def expr: String = selectors match {
+//      case Nil                            => prefix
+      case (single: Import.Simple) :: Nil => s"$prefix.${single.sourceString}"
+      case _                              => selectors.iterator.map(_.sourceString).mkString(s"$prefix.{", ", ", "}")
+    }
+
+    /** The equivalent source code, such as `import scala.collection.immutable.{IndexedSeq => Vec}` */
+    def sourceString: String = s"import $expr"
+  }
+
   implicit def serializer: ImmutableSerializer[Code] = Impl.serializer
 
   def read(in: DataInput): Code = serializer.read(in)
 
   def future[A](fun: => A)(implicit compiler: Code.Compiler): Future[A] = Impl.future(fun)
 
-  def registerImports(id: Int, imports: Seq[String]): Unit = Impl.registerImports(id, imports)
+  def registerImports(id: Int, imports: Seq[Import]): Unit = Impl.registerImports(id, imports)
 
-  def getImports(id: Int): Vec[String] = Impl.getImports(id)
+  def getImports(id: Int): Vec[Import] = Impl.getImports(id)
 
   /** Generates the import statements prelude for a given code object. */
   def importsPrelude(code: Code, indent: Int = 0): String = Impl.importsPrelude(code, indent = indent)

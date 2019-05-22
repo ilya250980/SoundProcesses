@@ -40,13 +40,13 @@ lazy val deps = new {
     val span                = "1.4.2"
     val swingPlus           = "0.4.2"
     val topology            = "1.1.2"
-    val ugens               = "1.19.3"
+    val ugens               = "1.19.4"
   }
   
   val test = new {
     val bdb                = "bdb"  // "bdb" or "bdb6" or "bdb7"
     val scalaColliderSwing = "1.41.2"
-    val scalaTest          = "3.0.8-RC2"
+    val scalaTest          = "3.0.8-RC4"
     val scopt              = "3.7.1"
     val submin             = "0.2.5"
   }
@@ -86,11 +86,11 @@ lazy val synth = project.withId("lucresynth").in(file("synth"))
 
 lazy val testSettings = Seq(
   libraryDependencies += {
-    if (scalaVersion.value == "2.13.0-RC2") {
-      "org.scalatest" % "scalatest_2.13.0-RC1" % deps.test.scalaTest % Test exclude("org.scala-lang.modules", "scala-xml_2.13.0-RC1")
-    } else {
+    // if (scalaVersion.value == "2.13.0-RC2") {
+    //   "org.scalatest" % "scalatest_2.13.0-RC1" % deps.test.scalaTest % Test exclude("org.scala-lang.modules", "scala-xml_2.13.0-RC1")
+    // } else {
       "org.scalatest" %% "scalatest" % deps.test.scalaTest % Test
-    }
+    // }
   }
 )
 

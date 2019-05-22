@@ -182,7 +182,7 @@ object Code {
           |val sig = in
           |ScanOut(sig)
           |""".stripMargin
-      ),
+      )
     )
 
     type Repr = SynthGraph

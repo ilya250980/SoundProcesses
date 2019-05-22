@@ -83,12 +83,14 @@ object MkSynthGraphSource {
     def mkStdLine(elem: Product): GraphLine = {
       val elemName  = elem.productPrefix
       val argVals   = elem.productIterator.toIndexedSeq
+      val isStdPkg  = elem.getClass.getName.startsWith("de.sciss.synth.ugen")
 
-      val line = ugenMap.get(elemName).fold[GraphLine] {
+      def mkUnknownLine(): GraphLine = {
         val ins = argVals.map(ArgAssign(None, UGenSpec.SignalShape.Generic, _))
-
         new StdGraphLine(elemName = elemName, constructor = "apply", args = ins)
-      } { spec =>
+      }
+
+      val line = if (!isStdPkg) mkUnknownLine() else ugenMap.get(elemName).fold(mkUnknownLine()) { spec =>
         val (rate: MaybeRate, rateMethod: UGenSpec.RateMethod, argVals1: Vec[Any]) = spec.rates match {
           case UGenSpec.Rates.Implied(r, m) => (r, m, argVals)
           case UGenSpec.Rates.Set(_) =>

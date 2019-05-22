@@ -107,12 +107,20 @@ object Code {
 
   def types: ISeq[Code.Type] = Impl.types
 
+  case class Example(name: String, mnemonic: Char, code: String)
+
   trait Type {
     def id: Int
 
     def prefix        : String
     def humanName     : String
     def docBaseSymbol : String
+
+    /** Default source code to paste for new objects. */
+    def defaultSource : String =
+      s"// $humanName source code\n"
+
+    def examples: ISeq[Example] = Nil
 
     type Repr <: Code
 
@@ -162,6 +170,21 @@ object Code {
     final val prefix    = "Proc"
     final val humanName = "Synth Graph"
 
+    override def examples: ISeq[Example] = List(
+      Example("Direct Out", 'd',
+        """val n = WhiteNoise.ar("amp".ar(0.25))
+          |val sig = SplayAz.ar(2, n)
+          |Out.ar(0, sig)
+          |""".stripMargin
+      ),
+      Example("Filter", 'f',
+        """val in = ScanIn()
+          |val sig = in
+          |ScanOut(sig)
+          |""".stripMargin
+      ),
+    )
+
     type Repr = SynthGraph
 
     def docBaseSymbol: String = "de.sciss.synth.ugen"
@@ -200,6 +223,21 @@ object Code {
     final val prefix  = "Action"
 
     def humanName: String = prefix
+
+    override def examples: ISeq[Example] = List(
+      Example("Hello World", 'h',
+        """println("Hello World!")
+          |""".stripMargin
+      ),
+      Example("Attributes", 'a',
+        """for {
+          |  i <- self.attr.$[IntObj]("int")
+          |} {
+          |  println(s"Value is $i")
+          |}
+          |""".stripMargin
+      )
+    )
 
     type Repr = Action
 

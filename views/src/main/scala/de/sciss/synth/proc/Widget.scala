@@ -22,10 +22,11 @@ import de.sciss.lucre.swing.{Graph => _Graph}
 import de.sciss.serial.{DataInput, DataOutput, ImmutableSerializer, Serializer}
 import de.sciss.synth.UGenSource.Vec
 import de.sciss.synth.proc
-import de.sciss.synth.proc.Code.Import
+import de.sciss.synth.proc.Code.{Example, Import}
 import de.sciss.synth.proc.impl.{CodeImpl, WidgetImpl => Impl}
 import de.sciss.{lucre, model}
 
+import scala.collection.immutable.{Seq => ISeq}
 import scala.concurrent.Future
 
 object Widget extends Obj.Type {
@@ -72,6 +73,17 @@ object Widget extends Obj.Type {
     final val prefix    = "Widget"
     final val humanName = "Widget Graph"
     type Repr           = Code
+
+    override def examples: ISeq[Example] = List(
+      Example("Hello World", 'h',
+        """val b = Bang()
+          |b ---> PrintLn("Hello World!")
+          |b
+        """.stripMargin
+      )
+    )
+
+    override def defaultSource: String = s"${super.defaultSource}Empty()\n"
 
     def docBaseSymbol: String = "de.sciss.lucre.swing.graph"
 
@@ -161,7 +173,7 @@ object Widget extends Obj.Type {
     private val emptyGraph =
       _Graph {
         import lucre.swing.graph._
-        Label("")
+        Empty()
       }
 
     def empty[S <: Sys[S]](implicit tx: S#Tx): _Ex[S] = apply(emptyCookie)

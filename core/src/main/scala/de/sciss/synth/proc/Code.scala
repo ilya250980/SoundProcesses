@@ -182,6 +182,16 @@ object Code {
           |val sig = in
           |ScanOut(sig)
           |""".stripMargin
+      ),
+      Example("Analog Bubbles", 'a',
+        """// James McCartney, SuperCollider 2
+          |val pitch = LFSaw.kr(0.4)                // LFO
+          |  .mulAdd(24, LFSaw.kr(List(8, 7.23))    // ... creating
+          |  .mulAdd(3, 80))                        // ... a glissando
+          |val osc = SinOsc.ar(pitch.midiCps) * 0.1 // sine wave
+          |val verb = CombN.ar(osc, 0.2, 0.2, 4)    // echoing
+          |Out.ar(0, verb)
+          |""".stripMargin
       )
     )
 
@@ -233,7 +243,7 @@ object Code {
         """for {
           |  i <- self.attr.$[IntObj]("int")
           |} {
-          |  println(s"Value is $i")
+          |  println(s"Value is ${i.value}")
           |}
           |""".stripMargin
       )

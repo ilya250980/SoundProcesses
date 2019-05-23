@@ -44,7 +44,10 @@ trait Scheduler[S <: Sys[S]] {
     */
   def time(implicit tx: S#Tx): Long
 
-  /** Performs a tagged transaction step. */
+  /** Performs a tagged transaction step.
+    *
+    * @see [[de.sciss.lucre.stm.Cursor.stepTag]]
+    */
   def stepTag[A](fun: S#Tx => A): A
 
   /** Schedules the execution of a function at a given time. Time is given

@@ -16,11 +16,11 @@ package de.sciss.synth.proc
 import de.sciss.lucre.expr.Context
 import de.sciss.lucre.expr.impl.ContextMixin
 import de.sciss.lucre.stm
-import de.sciss.lucre.stm.{Cursor, Obj, Sys}
+import de.sciss.lucre.stm.{Cursor, Obj, Sys, UndoManager}
 
 object ExprContext {
   def apply[S <: Sys[S]](selfH: Option[stm.Source[S#Tx, Obj[S]]] = None)
-                        (implicit universe: Universe[S]): Context[S] =
+                        (implicit universe: Universe[S], undoManager: UndoManager[S]): Context[S] =
     new Impl[S](selfH)
 
   def get[S <: Sys[S]](implicit ctx: Context[S]): ExprContext[S] = ctx match {
@@ -29,7 +29,7 @@ object ExprContext {
   }
 
   private final class Impl[S <: Sys[S]](protected val selfH: Option[stm.Source[S#Tx, Obj[S]]])
-                                       (implicit val universe: Universe[S])
+                                       (implicit val universe: Universe[S], val undoManager: UndoManager[S])
     extends ContextMixin[S] with ExprContext[S] {
 
     implicit def cursor   : Cursor    [S] = universe.cursor

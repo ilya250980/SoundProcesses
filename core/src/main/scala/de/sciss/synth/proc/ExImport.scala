@@ -35,5 +35,9 @@ object ExImport {
     def numFrames   : Ex[Long   ] = AudioFileSpec.NumFrames  (x)
     def sampleRate  : Ex[Double ] = AudioFileSpec.SampleRate (x)
   }
+
+//  implicit final class procTrigOps(private val x: Trig) extends AnyVal {
+//    def delay(time: Ex[Double]): Delay
+//  }
 }
 

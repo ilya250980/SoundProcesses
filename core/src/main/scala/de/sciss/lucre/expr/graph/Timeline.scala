@@ -241,7 +241,7 @@ object Timeline {
   final case class Add[A](in: Ex[Timeline], span: Ex[SpanLike], elem: Ex[A])(implicit source: Obj.Source[A])
     extends Act with ProductWithAux {
 
-    override def productPrefix: String = s"Timeline$$Put" // serialization
+    override def productPrefix: String = s"Timeline$$Add" // serialization
 
     type Repr[S <: Sys[S]] = IAction[S]
 

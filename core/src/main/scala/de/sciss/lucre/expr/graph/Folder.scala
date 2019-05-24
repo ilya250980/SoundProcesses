@@ -25,6 +25,7 @@ import de.sciss.lucre.stm.TxnLike.peer
 import de.sciss.lucre.stm.{Disposable, Sys}
 import de.sciss.model.Change
 import de.sciss.serial.{DataInput, Serializer}
+import de.sciss.synth.proc.edit.EditFolder
 
 import scala.concurrent.stm.Ref
 
@@ -287,7 +288,7 @@ object Folder {
       in.value.peer.foreach { f =>
         val v   = elem.value
         val obj = source.toObj(v)
-        f.addLast(obj)
+        EditFolder.append(f, obj)
       }
     }
   }

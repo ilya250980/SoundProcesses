@@ -1,5 +1,6 @@
 package de.sciss.lucre.expr
 
+import de.sciss.lucre.stm.UndoManager
 import de.sciss.lucre.synth.InMemory
 import de.sciss.synth.proc.{ExprContext, Universe}
 
@@ -33,8 +34,9 @@ object OscTest extends App {
   implicit val system: S = InMemory()
 
   system.step { implicit tx =>
-    implicit val u  : Universe[S] = Universe.dummy
-    implicit val ctx: Context [S] = ExprContext()
+    implicit val u    : Universe    [S] = Universe.dummy
+    implicit val undo : UndoManager [S] = UndoManager()
+    implicit val ctx  : Context     [S] = ExprContext()
     g.expand[S].initControl()
   }
 }

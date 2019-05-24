@@ -1,6 +1,7 @@
 package de.sciss.synth.proc
 
 import de.sciss.lucre.expr.{Context, StringObj}
+import de.sciss.lucre.stm.UndoManager
 import de.sciss.lucre.synth.InMemory
 import de.sciss.lucre.{expr, swing}
 
@@ -75,6 +76,7 @@ object ResampleDlgTest extends AppLike {
 
     type              S = InMemory
     implicit val sys: S = InMemory()
+    implicit val undo: UndoManager[S] = UndoManager()
 
     val view = sys.step { implicit tx =>
       implicit val u: Universe[S] = Universe.dummy

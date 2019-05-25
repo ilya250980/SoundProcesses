@@ -14,6 +14,7 @@
 package de.sciss.synth.proc
 
 import de.sciss.lucre.bitemp.BiGroup
+import de.sciss.lucre.event.EventLike
 import de.sciss.lucre.stm.{Obj, Sys}
 import de.sciss.serial.{DataInput, Serializer}
 import de.sciss.synth.proc.impl.{TimelineImpl => Impl}
@@ -21,7 +22,7 @@ import de.sciss.synth.proc.impl.{TimelineImpl => Impl}
 object Timeline extends Obj.Type {
   final val typeId = 0x10006
 
-  type Update[S <: Sys[S]]          = BiGroup.Update[S, Obj[S]]
+  type Update[S <: Sys[S]]          = BiGroup.Update[S, Obj[S], Timeline[S]]
   val  Update: BiGroup.Update.type  = BiGroup.Update
 
   def apply[S <: Sys[S]]()(implicit tx: S#Tx): Modifiable[S] = Impl[S]
@@ -32,7 +33,9 @@ object Timeline extends Obj.Type {
     def read[S <: Sys[S]](in: DataInput, access: S#Acc)(implicit tx: S#Tx): Modifiable[S] =
       serializer[S].read(in, access)
   }
-  trait Modifiable[S <: Sys[S]] extends Timeline[S] with BiGroup.Modifiable[S, Obj[S]]
+  trait Modifiable[S <: Sys[S]] extends Timeline[S] with BiGroup.Modifiable[S, Obj[S]] {
+    override def changed: EventLike[S, BiGroup.Update[S, Obj[S], Modifiable[S]]]
+  }
 
   implicit def serializer[S <: Sys[S]]: Serializer[S#Tx, S#Acc, Timeline[S]] = Impl.serializer[S]
 
@@ -58,4 +61,6 @@ object Timeline extends Obj.Type {
 }
 trait Timeline[S <: Sys[S]] extends BiGroup[S, Obj[S]] {
   override def modifiableOption: Option[Timeline.Modifiable[S]]
+
+  override def changed: EventLike[S, BiGroup.Update[S, Obj[S], Timeline[S]]]
 }

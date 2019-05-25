@@ -62,7 +62,7 @@ object TimelineImpl {
   // ---- impl ----
 
   private abstract class Impl[S <: Sys[S]](protected val targets: evt.Targets[S])
-    extends BiGroupImpl.Impl[S, Obj] with Timeline.Modifiable[S] { in =>
+    extends BiGroupImpl.Impl[S, Obj, Impl[S]] with Timeline.Modifiable[S] { in =>
 
     // type A = Obj[S]
 
@@ -71,7 +71,7 @@ object TimelineImpl {
     def copy[Out <: Sys[Out]]()(implicit tx: S#Tx, txOut: Out#Tx, context: Copy[S, Out]): Elem[Out] =
       new Impl(Targets[Out]) { out =>
         val tree: TreeImpl[Out, Obj] = newTree()
-        context.defer(in, out)(BiGroupImpl.copyTree(in.tree, out.tree, out))
+        context.defer(in, out)(BiGroupImpl.copyTree[S, Out, Obj, Impl[Out]](in.tree, out.tree, out))
         // .connect()
       }
 

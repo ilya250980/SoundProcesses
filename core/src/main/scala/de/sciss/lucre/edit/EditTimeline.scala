@@ -57,11 +57,15 @@ object EditTimeline {
                         (implicit tx: S#Tx): Split[S] =
     UndoManager.find[S].fold(
       splitImpl(tl, span, elem, time)
-    ) { undo =>
+    ) { implicit undo =>
       undo.capture("Split Object") {
-        splitImpl(tl, span, elem, time)
+        splitUndo(tl, span, elem, time)
       }
     }
+
+  def splitUndo[S <: Sys[S]](tl: Timeline.Modifiable[S], span: SpanLikeObj[S], elem: Obj[S], time: Long)
+                            (implicit tx: S#Tx, undoManager: UndoManager[S]): Split[S] =
+    splitImpl(tl, span, elem, time)
 
   // ---- private: add ----
 

@@ -146,15 +146,20 @@ object Timeline {
     def executeAction()(implicit tx: S#Tx): Unit =
       trigReceived() // .foreach(fire) --- we don't need to fire, there is nobody listening;
 
+    private def findSpan(tl: proc.Timeline[S])(implicit tx: S#Tx): Option[SpanLikeObj[S]] = {
+      val spanV = span.value
+
+      ???
+    }
+
     private def make()(implicit tx: S#Tx): SplitPair = {
       val opt = for {
         tl      <- in.value.peer
         tlm     <- tl.modifiableOption
+        spanObj <- findSpan(tl)
         elemObj <- elem.value.peer[S]
       } yield {
-        val spanV     = span.value
         val timeV     = time.value
-        val spanObj   = SpanLikeObj.newVar[S](spanV)
         val split     = EditTimeline.split(tlm, spanObj, elemObj, timeV)
         val leftObj   = Obj.wrap[S](tx.newHandle(split.leftObj  ), tx.system)
         val rightObj  = Obj.wrap[S](tx.newHandle(split.rightObj ), tx.system)

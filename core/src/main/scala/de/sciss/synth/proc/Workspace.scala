@@ -31,7 +31,7 @@ object Workspace {
   final val ext = "mllt"
 
   type Group       [S <: Sys[S]] = BiGroup.Modifiable   [S, Proc[S] /* , Proc.Update[S] */]
-  type GroupUpdate [S <: Sys[S]] = BiGroup.Update       [S, Proc[S] /* , Proc.Update[S] */]
+  type GroupUpdate [S <: Sys[S]] = BiGroup.Update       [S, Proc[S], BiGroup[S, Proc[S]]]
 
   type Groups      [S <: Sys[S]] = stm.List.Modifiable[S, Group[S] /* , GroupUpdate[S] */]
   type GroupsUpdate[S <: Sys[S]] = stm.List.Update    [S, Group[S] /* , GroupUpdate[S] */]

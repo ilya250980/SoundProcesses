@@ -75,7 +75,7 @@ object FadeSpec {
     }
   }
 
-  private[graph] final case class ApplyOp[S <: Sys[S]]()
+  private[lucre] final case class ApplyOp[S <: Sys[S]]()
     extends TernaryOp.Op[Long, _Curve, Double, _FadeSpec] {
 
     override def productPrefix: String = s"FadeSpec$$ApplyOp" // serialization

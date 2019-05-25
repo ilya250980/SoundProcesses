@@ -110,7 +110,7 @@ object AudioCue {
     }
   }
 
-  private[graph] final case class ApplyOp[S <: Sys[S]]()
+  private[lucre] final case class ApplyOp[S <: Sys[S]]()
     extends QuaternaryOp.Op[File, _AudioFileSpec, Long, Double, _AudioCue] {
 
     override def productPrefix: String = s"AudioCue$$ApplyOp" // serialization

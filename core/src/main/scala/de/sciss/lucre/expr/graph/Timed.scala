@@ -63,4 +63,4 @@ object Timed {
     def value : Ex[A]         = Value (t)
   }
 }
-final case class Timed[+A] private[graph] (span: SpanLike, value: A)
+final case class Timed[+A] private[lucre] (span: SpanLike, value: A)

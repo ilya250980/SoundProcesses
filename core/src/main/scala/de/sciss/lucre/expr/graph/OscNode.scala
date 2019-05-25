@@ -29,11 +29,11 @@ import scala.concurrent.stm.Ref
 import scala.util.control.NonFatal
 
 object OscNode {
-  private[graph] final val keyDump         = "dump"
-  private[graph] final val keyCodec        = "codec"
+  private[lucre] final val keyDump         = "dump"
+  private[lucre] final val keyCodec        = "codec"
 
-  private[graph] final val defaultDump     = osc.Dump.Off.id
-  private[graph] final val defaultCodec    = "1.0"
+  private[lucre] final val defaultDump     = osc.Dump.Off.id
+  private[lucre] final val defaultCodec    = "1.0"
 
   final case class Dump(n: OscNode) extends Ex[Int] {
     type Repr[S <: Sys[S]] = IExpr[S, Int]

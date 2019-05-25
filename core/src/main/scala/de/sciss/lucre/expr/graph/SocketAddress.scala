@@ -39,7 +39,7 @@ object SocketAddress {
     }
   }
 
-  final case class Apply private[graph] () extends BinaryOp.Op[String, Int, SocketAddress] {
+  final case class Apply private[lucre] () extends BinaryOp.Op[String, Int, SocketAddress] {
     def apply(host: String, port: Int): SocketAddress =
       SocketAddress(host, port)
 
@@ -63,4 +63,4 @@ object SocketAddress {
     }
   }
 }
-final case class SocketAddress private[graph] (host: String, port: Int)
+final case class SocketAddress private[lucre] (host: String, port: Int)

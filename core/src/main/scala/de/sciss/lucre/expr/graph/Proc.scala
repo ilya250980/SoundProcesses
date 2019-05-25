@@ -62,14 +62,17 @@ object Proc {
     }
   }
 
+  private[lucre] def wrap[S <: Sys[S]](peer: stm.Source[S#Tx, proc.Proc[S]], system: S): Proc =
+    new Impl[S](peer, system)
+
   private final class Impl[S <: Sys[S]](in: stm.Source[S#Tx, proc.Proc[S]], system: S)
     extends ObjImplBase[S, proc.Proc](in, system) with Proc {
 
     override type Peer[~ <: Sys[~]] = proc.Proc[~]
   }
 
-  private object Empty extends Proc {
-    private[graph] def peer[S <: Sys[S]](implicit tx: S#Tx): Option[Peer[S]] = None
+  private[lucre] object Empty extends Proc {
+    private[lucre] def peer[S <: Sys[S]](implicit tx: S#Tx): Option[Peer[S]] = None
   }
 
   private final class ApplyExpanded[S <: Sys[S]](implicit targets: ITargets[S])

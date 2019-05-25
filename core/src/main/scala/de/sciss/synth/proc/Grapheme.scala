@@ -14,6 +14,7 @@
 package de.sciss.synth.proc
 
 import de.sciss.lucre.bitemp.BiPin
+import de.sciss.lucre.event.EventLike
 import de.sciss.lucre.stm.{Obj, Sys}
 import de.sciss.serial.{DataInput, Serializer}
 import de.sciss.synth.proc.impl.{GraphemeImpl => Impl}
@@ -23,7 +24,9 @@ object Grapheme extends Obj.Type {
 
   implicit def serializer[S <: Sys[S]]: Serializer[S#Tx, S#Acc, Grapheme[S]] = Impl.serializer[S]
 
-  trait Modifiable[S <: Sys[S]] extends Grapheme[S] with BiPin.Modifiable[S, Obj[S]]
+  trait Modifiable[S <: Sys[S]] extends Grapheme[S] with BiPin.Modifiable[S, Obj[S]] {
+    override def changed: EventLike[S, BiPin.Update[S, Obj[S], Modifiable[S]]]
+  }
 
   def apply[S <: Sys[S]]()(implicit tx: S#Tx): Modifiable[S] = Impl.modifiable[S]
 
@@ -65,4 +68,6 @@ trait Grapheme[S <: Sys[S]] extends BiPin[S, Obj[S]] {
 
   def firstEvent(implicit tx: S#Tx): Option[Long]
   def lastEvent (implicit tx: S#Tx): Option[Long]
+
+  override def changed: EventLike[S, BiPin.Update[S, Obj[S], Grapheme[S]]]
 }

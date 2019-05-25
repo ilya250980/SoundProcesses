@@ -61,7 +61,7 @@ object GraphemeImpl {
   // ---- actual implementation ----
 
   private abstract class Impl[S <: Sys[S]](protected val targets: evt.Targets[S])
-    extends BiPinImpl.Impl[S, Obj] with Grapheme.Modifiable[S] {
+    extends BiPinImpl.Impl[S, Obj, Impl[S]] with Grapheme.Modifiable[S] {
     in =>
 
     final def tpe: Obj.Type = Grapheme
@@ -73,7 +73,7 @@ object GraphemeImpl {
     final def copy[Out <: Sys[Out]]()(implicit tx: S#Tx, txOut: Out#Tx, context: Copy[S, Out]): Elem[Out] =
       new Impl[Out](evt.Targets[Out]) { out =>
         val tree: Tree[Out, A] = out.newTree()
-        context.defer[PinAux](in, out)(BiPinImpl.copyTree(in.tree, out.tree, out))
+        context.defer[PinAux](in, out)(BiPinImpl.copyTree[S, Out, Obj, Impl[Out]](in.tree, out.tree, out))
         // out.connect()
       }
 

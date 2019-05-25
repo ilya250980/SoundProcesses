@@ -41,7 +41,7 @@ trait AuralFolderLikeImpl[S <: Sys[S], Repr <: Obj[S], View <: AuralObj.FolderLi
 
   private[this] val currentStateRef = Ref[Runner.State](Runner.Stopped)
 
-  final protected def processFolderUpdate(fUpd: stm.List.Update[S, Obj[S]])(implicit tx: S#Tx): Unit =
+  final protected def processFolderUpdate(fUpd: stm.Folder.Update[S])(implicit tx: S#Tx): Unit =
     fUpd.changes.foreach {
       case Folder.Added  (_, elem) => transport.addObject   (elem)
       case Folder.Removed(_, elem) => transport.removeObject(elem)

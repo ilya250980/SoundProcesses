@@ -35,7 +35,7 @@ object Ensemble extends Obj.Type {
   final case class Update[S <: Sys[S]](ensemble: Ensemble[S], changes: List[Change[S]])
 
   sealed trait Change[S]
-  final case class Folder [S <: Sys[S]](peer: stm.List.Update[S, Obj[S]] /* SCALAC BUG: proc.Folder.Update[S] */) extends Change[S]
+  final case class Folder [S <: Sys[S]](peer: stm.Folder.Update[S])  extends Change[S]
   final case class Offset [S <: Sys[S]](peer: model.Change[Long   ]) extends Change[S]
   final case class Playing[S <: Sys[S]](peer: model.Change[Boolean]) extends Change[S]
 

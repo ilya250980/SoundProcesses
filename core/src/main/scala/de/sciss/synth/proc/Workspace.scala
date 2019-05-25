@@ -16,11 +16,9 @@ package de.sciss.synth.proc
 import java.io.File
 
 import de.sciss.lucre
-import de.sciss.lucre.bitemp.BiGroup
 import de.sciss.lucre.stm
-import de.sciss.lucre.stm.{DataStore, Sys}
+import de.sciss.lucre.stm.DataStore
 import de.sciss.lucre.synth.{Sys => SSys}
-import de.sciss.serial.Serializer
 import de.sciss.synth.proc
 import de.sciss.synth.proc.impl.{WorkspaceImpl => Impl}
 
@@ -29,14 +27,6 @@ import scala.language.existentials
 object Workspace {
   /** File name extension (excluding leading period) */
   final val ext = "mllt"
-
-  type Group       [S <: Sys[S]] = BiGroup.Modifiable   [S, Proc[S] /* , Proc.Update[S] */]
-  type GroupUpdate [S <: Sys[S]] = BiGroup.Update       [S, Proc[S], BiGroup[S, Proc[S]]]
-
-  type Groups      [S <: Sys[S]] = stm.List.Modifiable[S, Group[S] /* , GroupUpdate[S] */]
-  type GroupsUpdate[S <: Sys[S]] = stm.List.Update    [S, Group[S] /* , GroupUpdate[S] */]
-
-  type Transports  [S <: SSys[S]] = stm.List.Modifiable[S, Transport[S] /* , Unit */] // Transport.Update[ S, Proc[ S ]]]
 
   def read (dir: File, ds: DataStore.Factory /* config: BerkeleyDB.Config */): Workspace[~] forSome { type ~ <: SSys[~] } =
     Impl.read(dir, ds)  // IntelliJ highlight bug
@@ -71,10 +61,10 @@ object Workspace {
     type S = lucre.synth.InMemory
   }
 
-  object Serializers {
-    implicit def group[S <: Sys[S]]: Serializer[S#Tx, S#Acc, Group[S]] =
-      BiGroup.Modifiable.serializer[S, Proc[S] /* , Proc.Update[S] */ ] // (_.changed)
-  }
+//  object Serializers {
+//    implicit def group[S <: Sys[S]]: Serializer[S#Tx, S#Acc, Group[S]] =
+//      BiGroup.Modifiable.serializer[S, Proc[S] /* , Proc.Update[S] */ ] // (_.changed)
+//  }
 
   val Implicits: stm.Workspace.Implicits.type = stm.Workspace.Implicits
 

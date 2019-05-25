@@ -127,6 +127,37 @@ object Timeline {
     def aux: List[Aux] = source :: Nil
   }
 
+  private final class RemoveExpanded[S <: Sys[S]](in: IExpr[S, Timeline], span: IExpr[S, _SpanLike],
+                                                  elem: IExpr[S, Obj])
+    extends IActionImpl[S] {
+
+    private def findSpan(tl: proc.Timeline[S], elemObj: stm.Obj[S])(implicit tx: S#Tx): Option[SpanLikeObj[S]] = {
+      val spanV = span.value
+      tl.recoverSpan(spanV, elemObj)
+    }
+
+    def executeAction()(implicit tx: S#Tx): Unit =
+      for {
+        tl      <- in.value.peer
+        tlm     <- tl.modifiableOption
+        elemObj <- elem.value.peer[S]
+        spanObj <- findSpan(tl, elemObj)
+      } {
+        EditTimeline.unlinkAndRemove(tlm, spanObj, elemObj)
+      }
+  }
+
+  final case class Remove(in: Ex[Timeline], span: Ex[_SpanLike], elem: Ex[Obj])
+    extends Act {
+
+    override def productPrefix: String = s"Timeline$$Remove" // serialization
+
+    type Repr[S <: Sys[S]] = IAction[S]
+
+    protected def mkRepr[S <: Sys[S]](implicit ctx: Context[S], tx: S#Tx): Repr[S] =
+      new RemoveExpanded(in.expand[S], span.expand[S], elem.expand[S])
+  }
+
   private type SplitPair = (Timed[Obj], Timed[Obj])
 
   private final class SplitExpanded[S <: Sys[S]](in: IExpr[S, Timeline], span: IExpr[S, _SpanLike],
@@ -234,11 +265,9 @@ object Timeline {
   }
 
   implicit final class Ops(private val tl: Ex[Timeline]) extends AnyVal {
-    def add [A](span: Ex[_SpanLike], elem: Ex[A])(implicit source: Obj.Source[A]): Act = Add(tl, span, elem)
-    def +=  [A](tup: (Ex[_SpanLike], Ex[A]))     (implicit source: Obj.Source[A]): Act = add(tup._1, tup._2)
-
-    def split(span: Ex[_SpanLike], elem: Ex[Obj], time: Ex[Long]): Split =
-      Split(tl, span, elem, time)
+    def add   [A](span: Ex[_SpanLike], elem: Ex[A  ])(implicit source: Obj.Source[A]): Act   = Add   (tl, span, elem)
+    def remove   (span: Ex[_SpanLike], elem: Ex[Obj])                                : Act   = Remove(tl, span, elem)
+    def split    (span: Ex[_SpanLike], elem: Ex[Obj], time: Ex[Long])                : Split = Split (tl, span, elem, time)
   }
 }
 trait Timeline extends Obj {

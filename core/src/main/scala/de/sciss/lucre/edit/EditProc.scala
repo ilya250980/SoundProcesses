@@ -32,4 +32,40 @@ object EditProc {
         EditAttrMap.put(sink.attr, key = key, value = source)
     }
   }
+
+  def hasLink[S <: Sys[S]](source: Output[S], sink: Proc[S], key: String = Proc.mainIn)
+                           (implicit tx: S#Tx): Boolean = {
+    sink.attr.get(key) match {
+      case Some(`source`) => true
+
+      case Some(f: Folder[S]) =>
+        val idx = f.indexOf(source)
+        idx >= 0
+
+      case _ => false
+    }
+  }
+
+  def removeLink[S <: Sys[S]](source: Output[S], sink: Proc[S], key: String = Proc.mainIn)
+                             (implicit tx: S#Tx): Boolean = {
+    val a = sink.attr
+    a.get(key) match {
+      case Some(`source`) =>
+        EditAttrMap.remove(a, key)
+        true
+
+      case Some(f: Folder[S]) =>
+        val idx = f.indexOf(source)
+        idx >= 0 && {
+          EditFolder.removeAt(f, idx)
+          if (f.isEmpty) {
+            EditAttrMap.remove(a, key)
+          }
+          true
+        }
+
+      case _ =>
+        false
+    }
+  }
 }

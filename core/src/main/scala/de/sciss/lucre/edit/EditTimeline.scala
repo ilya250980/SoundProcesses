@@ -17,9 +17,9 @@ import de.sciss.lucre.bitemp.BiGroup
 import de.sciss.lucre.expr.{LongObj, SpanLikeObj}
 import de.sciss.lucre.stm.UndoManager.{CannotRedoException, CannotUndoException}
 import de.sciss.lucre.stm.impl.BasicUndoableEdit
-import de.sciss.lucre.stm.{Folder, Obj, Sys, UndoManager}
+import de.sciss.lucre.stm.{Obj, Sys, UndoManager}
 import de.sciss.span.{Span, SpanLike}
-import de.sciss.synth.proc.{AudioCue, ObjKeys, Proc, Timeline}
+import de.sciss.synth.proc.{AudioCue, ObjKeys, Output, Proc, Timeline}
 
 object EditTimeline {
   def add[S <: Sys[S]](tl: Timeline.Modifiable[S], span: SpanLikeObj[S], elem: Obj[S])
@@ -49,6 +49,48 @@ object EditTimeline {
     val edit = new Remove(tl, span, elem, tx)
     undo.addEdit(edit)
   }
+
+  /** Try to remove links from `elem` to other processes on the timeline.
+    * That has to rely on heuristics -- check global processes and objects
+    * overlapping with `span` on the timeline.
+    */
+  def unlink[S <: Sys[S]](tl: Timeline.Modifiable[S], span: SpanLike, source: Output[S])
+                         (implicit tx: S#Tx): Unit =
+    UndoManager.find[S].fold[Unit](
+      unlinkImpl(tl, span, source)
+    ) { implicit undo =>
+      undo.capture("Unlink Object") {
+        unlinkUndo(tl, span, source)
+      }
+    }
+
+  def unlinkUndo[S <: Sys[S]](tl: Timeline.Modifiable[S], span: SpanLike, source: Output[S])
+                             (implicit tx: S#Tx, undo: UndoManager[S]): Unit =
+    unlinkImpl(tl, span, source)
+
+  def unlinkAndRemove[S <: Sys[S]](tl: Timeline.Modifiable[S], span: SpanLikeObj[S], elem: Obj[S])
+                         (implicit tx: S#Tx): Unit = {
+    def removeOnly(): Unit = remove(tl, span, elem)
+    elem match {
+      case p: Proc[S] =>
+        p.outputs.get(Proc.mainOut) match {
+          case Some(out) =>
+            def run(): Unit = {
+              unlink(tl, span.value, out)
+              removeOnly()
+            }
+
+            UndoManager.find[S].fold(run()) { undo =>
+              undo.capture("Unlink Object")(run())
+            }
+
+          case None => removeOnly()
+        }
+
+      case _ => removeOnly()
+    }
+  }
+
 
   final case class Split[S <: Sys[S]](leftSpan  : SpanLikeObj[S], leftObj : Obj[S],
                                       rightSpan : SpanLikeObj[S], rightObj: Obj[S])
@@ -190,26 +232,17 @@ object EditTimeline {
       case (pLeft: Proc[S], pRight: Proc[S]) =>
         (pLeft.outputs.get(Proc.mainOut), pRight.outputs.get(Proc.mainOut)) match {
           case (Some(outLeft), Some(outRight)) =>
-            val (it, _) = tl.eventsAt(BiGroup.MinCoordinate)
-            it.foreach {
-              case (Span.All, vec) =>
-                vec.foreach { entry =>
-                  entry.value match {
-                    case sink: Proc[S] =>
-                      val hasLink = sink.attr.get(Proc.mainIn).exists {
-                        case `outLeft` => true
-                        case outF: Folder[S] =>
-                          outF.iterator.contains(outLeft)
-                        case _        => false
-                      }
-                      if (hasLink) {
-                        EditProc.addLink(outRight, sink)
-                      }
-
-                    case _ =>
+            // XXX TODO --- could add search for all objects whose span overlaps
+            tl.get(Span.All).foreach { entry =>
+              entry.value match {
+                case sink: Proc[S] =>
+                  val hasLink = EditProc.hasLink(outLeft, sink)
+                  if (hasLink) {
+                    EditProc.addLink(outRight, sink)
                   }
-                }
-              case _ =>
+
+                case _ =>
+              }
             }
 
           case _ =>
@@ -286,6 +319,27 @@ object EditTimeline {
       }
     }
   }
+
+  // ---- private: unlink ----
+
+  private def unlinkImpl[S <: Sys[S]](tl: Timeline.Modifiable[S], span: SpanLike, source: Output[S])
+                                     (implicit tx: S#Tx): Boolean = {
+    val it0: Iterator[BiGroup.Entry[S, Obj[S]]] = tl.get(Span.All).iterator ++ tl.intersect(span).flatMap(_._2)
+    val it = it0.collect {
+      case BiGroup.Entry(_, p: Proc[S]) if EditProc.hasLink(source, p) => p
+    }
+    val res = it.hasNext
+    it.foreach {
+      EditProc.removeLink(source, _)
+    }
+    res
+  }
+
+//  private final class Unlink[S <: Sys[S]](tl0: Timeline.Modifiable[S], span0: SpanLikeObj[S], elem0: Obj[S], tx0: S#Tx)
+//    extends BasicUndoableEdit[S] {
+//  }
+
+  // ---- aux ----
 
   /* Queries the audio region's grapheme segment start and audio element. */
   private def getAudioRegion[S <: Sys[S]](proc: Proc[S])(implicit tx: S#Tx): Option[AudioCue.Obj[S]] =

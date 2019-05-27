@@ -11,7 +11,7 @@ import org.scalatest.FunSpec
 /*
   To run only this suite:
 
-  test-only de.sciss.synth.proc.SynthGraphSerializationSpec
+  testOnly de.sciss.synth.proc.SynthGraphSerializationSpec
 
  */
 class SynthGraphSerializationSpec extends FunSpec {

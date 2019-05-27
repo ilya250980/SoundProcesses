@@ -11,7 +11,7 @@ import org.scalatest.{Matchers, Outcome, fixture}
 /*
  To test only this suite:
 
- test-only de.sciss.synth.proc.TimelineSerializationSpec
+ testOnly de.sciss.synth.proc.TimelineSerializationSpec
 
  */
 class TimelineSerializationSpec extends fixture.FlatSpec with Matchers {

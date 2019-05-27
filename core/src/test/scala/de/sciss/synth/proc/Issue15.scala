@@ -11,7 +11,7 @@ import de.sciss.span.Span
 /*
   To run only this suite:
 
-  test-only de.sciss.synth.proc.Issue15
+  testOnly de.sciss.synth.proc.Issue15
 
   */
 class Issue15 extends ConfluentEventSpec {

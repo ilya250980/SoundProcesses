@@ -1,4 +1,4 @@
-package de.sciss.synth.proc
+package de.sciss.synth.proc.tests
 
 import de.sciss.file._
 import de.sciss.lucre.artifact.{Artifact, ArtifactLocation}
@@ -6,6 +6,7 @@ import de.sciss.lucre.stm.store.BerkeleyDB
 import de.sciss.processor.Processor
 import de.sciss.span.Span
 import de.sciss.synth.io.{AudioFile, AudioFileSpec}
+import de.sciss.synth.proc.{AudioCue, Bounce, Durable, Proc, TimeRef, Timeline, UGenGraphBuilder, Universe, graph, showTransportLog}
 import de.sciss.synth.{SynthGraph, freeSelf, ugen}
 
 import scala.concurrent.ExecutionContext

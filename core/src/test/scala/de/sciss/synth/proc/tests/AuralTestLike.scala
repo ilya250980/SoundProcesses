@@ -1,4 +1,4 @@
-package de.sciss.synth.proc
+package de.sciss.synth.proc.tests
 
 import de.sciss.lucre.expr.{DoubleObj, SpanLikeObj}
 import de.sciss.lucre.stm
@@ -7,6 +7,7 @@ import de.sciss.lucre.stm.{Folder, Obj}
 import de.sciss.lucre.synth.{Server, Sys}
 import de.sciss.span.{Span, SpanLike}
 import de.sciss.synth.SynthGraph
+import de.sciss.synth.proc.{AuralContext, AuralObj, AuralSystem, Confluent, Durable, Output, Proc, SoundProcesses, SynthGraphObj, TimeRef, Timeline, Universe, showAuralLog, showTransportLog}
 
 import scala.concurrent.stm.Txn
 import scala.language.implicitConversions

@@ -1,4 +1,4 @@
-package de.sciss.synth.proc
+package de.sciss.synth.proc.tests
 
 import de.sciss.file._
 import de.sciss.lucre.artifact.{Artifact, ArtifactLocation}
@@ -9,6 +9,7 @@ import de.sciss.span.Span
 import de.sciss.synth
 import de.sciss.synth.io.AudioFile
 import de.sciss.synth.proc.Implicits._
+import de.sciss.synth.proc.{Action, AudioCue, AuralContext, EnvSegment, Grapheme, Proc, SynthGraphObj, Timeline, Transport, graph}
 
 object AuralTests2 extends AuralTestLike.Factory {
   def main(args: Array[String]): Unit = init(args)

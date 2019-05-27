@@ -1,6 +1,7 @@
-package de.sciss.synth.proc
+package de.sciss.synth.proc.tests
 
-import de.sciss.lucre.synth.{Txn, AudioBus, Bus, InMemory}
+import de.sciss.lucre.synth.{AudioBus, Bus, InMemory, Txn}
+import de.sciss.synth.proc.AuralSystem
 import de.sciss.synth.{AudioBus => SAudioBus}
 
 // XXX TODO --- make this a ScalaTest instance

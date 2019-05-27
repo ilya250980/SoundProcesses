@@ -10,7 +10,7 @@ import de.sciss.synth.io.AudioFileSpec
 /*
   To run only this suite:
 
-  test-only de.sciss.synth.proc.AttributesSpec
+  testOnly de.sciss.synth.proc.AttributesSpec
 
   */
 class AttributesSpec extends ConfluentEventSpec {

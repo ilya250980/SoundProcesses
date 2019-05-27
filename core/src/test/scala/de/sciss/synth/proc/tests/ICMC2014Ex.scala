@@ -1,4 +1,4 @@
-package de.sciss.synth.proc
+package de.sciss.synth.proc.tests
 
 import de.sciss.lucre.expr
 import de.sciss.lucre.expr.{LongObj, SpanObj}

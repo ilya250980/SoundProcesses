@@ -7,7 +7,7 @@ import scala.concurrent.ExecutionContext
 
 /*
 
-test-only de.sciss.synth.proc.AuralSpecs
+testOnly de.sciss.synth.proc.AuralSpecs
 
  */
 class AuralSpecs extends BounceSpec {
@@ -94,7 +94,7 @@ class AuralSpecs extends BounceSpec {
 //      Thread.sleep(100000)
       assertSameSignal(arr0, man)
       assertSameSignal(arr1, man)
-      assert(true)
+//      assert(true)
     } (global)
   }
 }

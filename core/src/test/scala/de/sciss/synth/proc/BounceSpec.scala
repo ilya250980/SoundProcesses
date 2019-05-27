@@ -119,14 +119,16 @@ abstract class BounceSpec extends fixture.AsyncFlatSpec with Matchers {
     println(s) // arr.mkString("Vector(", ",", ")"))
   }
 
-  final def mkSine(freq: Double, startFrame: Int, len: Int, sampleRate: Double = sampleRate): Array[Float] = {
+  final def mkSine(freq: Double, startFrame: Int, len: Int, sampleRate: Double = sampleRate,
+                   amp: Double = 1.0): Array[Float] = {
     val freqN = 2 * math.Pi * freq / sampleRate
-    Array.tabulate(len)(i => math.sin((startFrame + i) * freqN).toFloat)
+    Array.tabulate(len)(i => (math.sin((startFrame + i) * freqN) * amp).toFloat)
   }
 
-  final def mkLFPulse(freq: Double, startFrame: Int, len: Int, sampleRate: Double = sampleRate): Array[Float] = {
+  final def mkLFPulse(freq: Double, startFrame: Int, len: Int, sampleRate: Double = sampleRate,
+                      amp: Double = 1.0): Array[Float] = {
     val period = sampleRate / freq
-    Array.tabulate(len)(i => if ((((startFrame + i) / period) % 1.0) < 0.5) 1f else 0f)
+    Array.tabulate(len)(i => if ((((startFrame + i) / period) % 1.0) < 0.5) amp.toFloat else 0f)
   }
 
   final def mulScalar(in: Array[Float], f: Float, start: Int = 0, len: Int = -1): Unit = {
@@ -149,13 +151,16 @@ abstract class BounceSpec extends fixture.AsyncFlatSpec with Matchers {
     }
   }
 
-  final def add(a: Array[Float], b: Array[Float], start: Int = 0, len: Int = -1): Unit = {
-    val len0 = if (len < 0) math.min(a.length, b.length) - start else len
-    var i = start
-    val j = start + len0
+  /** Adds `b` to `a` */
+  final def add(a: Array[Float], b: Array[Float], aOff: Int = 0, bOff: Int = 0, len: Int = -1): Unit = {
+    val len0 = if (len < 0) math.min(a.length, b.length) - math.max(aOff, bOff) else len
+    var i = aOff
+    val j = aOff + len0
+    var k = bOff
     while (i < j) {
-      a(i) += b(i)
+      a(i) += b(k)
       i += 1
+      k += 1
     }
   }
 
@@ -214,16 +219,18 @@ abstract class BounceSpec extends fixture.AsyncFlatSpec with Matchers {
   final def action(config: Bounce.ConfigBuilder[S], frame: Long)(fun: S#Tx => Unit): Unit =
     config.actions = config.actions ++ (Scheduler.Entry[S](time = frame, fun = fun) :: Nil)
 
-  final def bounce(config: Bounce.Config[S], timeOut: Duration = 20.seconds)
+  final def bounce(config: Bounce.Config[S], timeOut: Duration = 20.seconds, debugKeep: Boolean = false)
                   (implicit universe: Universe[S]): Future[Array[Array[Float]]] = {
     requireOutsideTxn()
     val b = Bounce[S]()
+
     val p = b(config)
     // Important: don't use the single threaded SP context,
     // as bounce will block and hang
     import ExecutionContext.Implicits.global
     p.start()(global)
     p.map { f =>
+      if (debugKeep) println(s"Bounce file: $f")
       try {
         val a = AudioFile.openRead(f)
         require(a.numFrames < 0x7FFFFFFF)
@@ -232,7 +239,7 @@ abstract class BounceSpec extends fixture.AsyncFlatSpec with Matchers {
         a.close()
         buf
       } finally {
-        f.delete()
+        if (!debugKeep) f.delete()
       }
     } (global)
   }

@@ -1,8 +1,9 @@
-package de.sciss.synth.proc
+package de.sciss.synth.proc.tests
 
 import de.sciss.lucre.expr.IntObj
 import de.sciss.lucre.synth.InMemory
 import de.sciss.synth.SynthGraph
+import de.sciss.synth.proc.{Grapheme, Proc, SoundProcesses, TimeRef, Transport, Universe, Workspace, showAuralLog}
 
 object Issue35 {
   type S = InMemory

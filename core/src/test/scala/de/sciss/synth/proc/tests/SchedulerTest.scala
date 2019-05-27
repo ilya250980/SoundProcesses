@@ -1,6 +1,7 @@
-package de.sciss.synth.proc
+package de.sciss.synth.proc.tests
 
 import de.sciss.lucre.synth.InMemory
+import de.sciss.synth.proc.{Scheduler, TimeRef, showTransportLog}
 
 // TODO - could be rather easily converted into a unit test
 object SchedulerTest extends App {

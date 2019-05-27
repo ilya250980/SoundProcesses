@@ -1,8 +1,8 @@
-package de.sciss.synth.proc
+package de.sciss.synth.proc.tests
 
+import de.sciss.lucre.synth.{InMemory, Server, Synth}
 import de.sciss.synth
-import synth.SynthGraph
-import de.sciss.lucre.synth.{InMemory, Synth, Server}
+import de.sciss.synth.SynthGraph
 
 object NewTxnTest extends App {
   val sys = InMemory()

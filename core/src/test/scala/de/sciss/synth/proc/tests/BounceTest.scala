@@ -1,4 +1,4 @@
-package de.sciss.synth.proc
+package de.sciss.synth.proc.tests
 
 import de.sciss.lucre.stm
 import de.sciss.lucre.stm.store.BerkeleyDB
@@ -6,6 +6,7 @@ import de.sciss.lucre.synth.{InMemory, Sys}
 import de.sciss.processor.Processor
 import de.sciss.span.Span
 import de.sciss.synth.proc.Implicits._
+import de.sciss.synth.proc.{Bounce, Durable, Proc, SoundProcesses, TimeRef, Timeline, Universe, showTransportLog}
 import de.sciss.synth.{SynthGraph, ugen}
 
 import scala.concurrent.ExecutionContext

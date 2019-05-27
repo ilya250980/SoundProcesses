@@ -1,4 +1,4 @@
-package de.sciss.synth.proc
+package de.sciss.synth.proc.tests
 
 import de.sciss.file._
 import de.sciss.lucre.artifact.{Artifact, ArtifactLocation}
@@ -10,6 +10,7 @@ import de.sciss.span.Span
 import de.sciss.synth.Curve.{exponential, linear}
 import de.sciss.synth.io.{AudioFile, AudioFileType}
 import de.sciss.synth.proc.Implicits._
+import de.sciss.synth.proc.{Action, AudioCue, AuralContext, AuralObj, Ensemble, FadeSpec, Grapheme, Implicits, ObjKeys, Proc, SynthGraphObj, TimeRef, Timeline, Transport, graph, showTransportLog}
 import de.sciss.{numbers, synth}
 
 object AuralTests1 extends AuralTestLike.Factory {

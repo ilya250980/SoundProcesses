@@ -12,7 +12,7 @@
 ///*
 //  To run only this suite:
 //
-//  test-only de.sciss.synth.proc.GraphemeSpec
+//  testOnly de.sciss.synth.proc.GraphemeSpec
 //
 // */
 //class GraphemeSpec extends ConfluentEventSpec {

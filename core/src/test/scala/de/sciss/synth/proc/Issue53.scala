@@ -1,9 +1,7 @@
 package de.sciss.synth.proc
 
-import de.sciss.file._
 import de.sciss.lucre.stm.Folder
 import de.sciss.span.Span
-import de.sciss.synth.io.{AudioFile, AudioFileSpec}
 import de.sciss.synth.proc.graph.{ScanInFix, ScanOut}
 import de.sciss.synth.ugen
 
@@ -79,7 +77,7 @@ class Issue53 extends BounceSpec {
     }
 
     val c = config(List(tlH), Span(0L, at2))
-    c.server.nrtOutputPath    = File.createTemp(suffix = ".aif", deleteOnExit = false).getPath
+//    c.server.nrtOutputPath    = File.createTemp(suffix = ".aif", deleteOnExit = false).getPath
 //    c.server.nrtHeaderFormat  = AudioFileType.IRCAM
     c.client.latency  = 0.2
     c.realtime = true
@@ -94,7 +92,7 @@ class Issue53 extends BounceSpec {
 
     import ExecutionContext.Implicits.global
     // showTransportLog = true
-    val r = bounce(c, debugKeep = true)
+    val r = bounce(c)
     r.map { case Array(observed0) =>
       val sig1 = mkLFPulse(freq1, startFrame = 1, len = at1f - at0f, amp = 0.5)
       val sig2 = mkSine   (freq2, startFrame = 1, len = at1f - at0f, amp = 0.5)
@@ -107,11 +105,11 @@ class Issue53 extends BounceSpec {
       add(expected, sig2, aOff = 0 /*at0f*/)
       add(expected, sig3, aOff = at1f - at0f)
 
-      {
-        val af = AudioFile.openWrite(userHome / "bla.aif", AudioFileSpec(sampleRate = sampleRate, numChannels = 1))
-        af.write(Array(expected))
-        af.close()
-      }
+//      {
+//        val af = AudioFile.openWrite(userHome / "bla.aif", AudioFileSpec(sampleRate = sampleRate, numChannels = 1))
+//        af.write(Array(expected))
+//        af.close()
+//      }
 
       val observed = observed0.dropWhile(_ == 0f)
 

@@ -2,7 +2,7 @@ package de.sciss
 package synth
 package proc
 
-import de.sciss.lucre.synth.{Server, Txn}
+import de.sciss.lucre.synth.Server
 import de.sciss.span.Span
 import de.sciss.synth.message.{GroupDumpTree, Responder, Status, StatusReply}
 
@@ -56,19 +56,22 @@ class Issue28 extends BounceSpec {
 //    implicit val universe: Universe[S] = cursor.step { implicit tx => Universe.dummy }
 
     def runTL(s: Server)(implicit tx: S#Tx): Unit = {
-      // println("Here [1]")
+//      println("Here [1]")
       val t   = Transport[S](universe)
       val tl  = tlH()
       t.addObject(tl)
       t.play()
-      universe.scheduler.schedule(5.0.seconds) { implicit tx =>
-        // println("Here [2]")
+      universe.scheduler.schedule(6.0.seconds) { implicit tx =>
+//        println("Here [2]")
         // t.dispose()
         tx.afterCommit {
           Responder.once(s.peer) {
             case m: StatusReply =>
               s.peer.quit()
-              res.complete(Success(m))
+              // there is a weird thing, where peer.quit
+              // may cause a second status reply to come in,
+              // despite `Responder.once`, so make it a "try"
+              res.tryComplete(Success(m))
           }
           s ! GroupDumpTree(1 -> false)
           s ! Status
@@ -76,18 +79,11 @@ class Issue28 extends BounceSpec {
       }
     }
 
-    cursor.step { implicit tx =>
-      universe.auralSystem.addClient(new AuralSystem.Client {
-        def auralStarted(s: Server)(implicit itx: Txn): Unit = itx.afterCommit {
-          cursor.step { implicit tx =>
-            runTL(s)
-          }
-//          implicit val tx: S#Tx = cursor.wrap(itx.peer)
-        }
-
-        def auralStopped()(implicit tx: Txn): Unit = ()
-      })
-      universe.auralSystem.start()
+    runServer() { s =>
+      cursor.step { implicit tx =>
+        runTL(s)
+        res.future
+      }
     }
 
     res.future.map { status =>

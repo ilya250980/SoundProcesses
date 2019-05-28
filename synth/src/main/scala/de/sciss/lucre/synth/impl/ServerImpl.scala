@@ -35,7 +35,8 @@ object ServerImpl {
   /** If `true`, checks against bundle size overflow (64K) and prints the bundle before crashing. */
   var VERIFY_BUNDLE_SIZE  = true
   /** If `true`, applies a few optimizations to messages within a bundle, in order to reduce its size */
-  var USE_COMPRESSION     = true
+//  var USE_COMPRESSION     = true
+  val USE_COMPRESSION     = false
   /** If `true`, check that wire-buffers are not exceeded before sending synth def */
   var VERIFY_WIRE_BUFFERS = true
   /** If `true` debug sending out stuff */
@@ -111,36 +112,52 @@ object ServerImpl {
         val append  = p match {
           case m: message.NodeSet =>
             val id = m.id
-            val i = setMap.getOrElse(id, -1)
-            val res = i < 0
+            val si = setMap.getOrElse(id, -1)
+            val res = si < 0
             if (res) {
               setMap += id -> outOff
             } else {
-              out(i) = (out(i): @unchecked) match {  // unfortunately those case classes do not have `copy` methods...
-                case n: message.NodeSet =>
-                  message.NodeSet(id, compressControlSet(n.pairs, m.pairs): _*)
-                case n: message.SynthNew =>
-                  message.SynthNew(n.defName, id, n.addAction, n.targetId,
-                    compressControlSet(n.controls, m.pairs): _*)
+              val hcs @ message.HasControlSet(controls0) = out(si)
+              out(si) = hcs.updateControls(compressControlSet(controls0, m.pairs))
+            }
+            // SP issue 53 -- if an n_set overrides an n_mapan,
+            // we have to eliminate the latter
+            val mi = mapanMap.getOrElse(id, -1)
+            if (mi >= 0) {
+              val message.NodeMapan(_, mappings0 @ _*) = out(mi)
+              var mappings = mappings0
+              m.pairs.foreach { cs =>
+                val mj = mappings.indexWhere(_.key == cs.key)
+                if (mj >= 0) {
+                  mappings = mappings.patch(mj, Nil, 1)
+                }
+              }
+              if (mappings ne mappings0) {  // did eliminate
+                if (mappings.isEmpty) {     // could have become empty; then remove...
+                  System.arraycopy(out, mi + 1, out, mi, outOff - (mi + 1))
+                  outOff -= 1
+                } else {                    // ...otherwise update in place
+                  out(mi) = message.NodeMapan(id, mappings: _*)
+                }
               }
             }
             res
 
           case m: message.NodeMapan =>
             val id = m.id
-            val i = mapanMap.getOrElse(id, -1)
-            val res = i < 0
+            val mi = mapanMap.getOrElse(id, -1)
+            val res = mi < 0
             if (res) {
               mapanMap += id -> outOff
             } else {
-              var message.NodeMapan(_, mappings @ _*) = out(i)
+              var message.NodeMapan(_, mappings @ _*) = out(mi)
               m.mappings.foreach {
                 case c @ ControlABusMap.Single(key, _) =>
-                  val j = mappings.indexWhere {
+                  val mj = mappings.indexWhere {
                     case ControlABusMap.Single(`key`, _) => true
                     case _ => false
                   }
-                  mappings = if (j < 0) mappings :+ c else mappings.updated(j, c)
+                  mappings = if (mj < 0) mappings :+ c else mappings.updated(mj, c)
 
                 case c @ ControlABusMap.Multi(key, _, numChannels) =>
                   val j = mappings.indexWhere {
@@ -149,7 +166,28 @@ object ServerImpl {
                   }
                   mappings = if (j < 0) mappings :+ c else mappings.updated(j, c)
               }
-              out(i) = message.NodeMapan(id, mappings: _*)
+              out(mi) = message.NodeMapan(id, mappings: _*)
+            }
+            // SP issue 53 -- if an n_mapan overrides an n_set,
+            // we have to eliminate the latter
+            val si = setMap.getOrElse(id, -1)
+            if (si >= 0) {
+              val hcs @ message.HasControlSet(controls0) = out(si)
+              var controls  = controls0
+              m.mappings.foreach { cs =>
+                val sj = controls.indexWhere(_.key == cs.key)
+                if (sj >= 0) {
+                  controls = controls.patch(sj, Nil, 1)
+                }
+              }
+              if (controls ne controls0) {  // did eliminate
+                if (controls.isEmpty) {     // could have become empty; then remove...
+                  System.arraycopy(out, si + 1, out, si, outOff - (si + 1))
+                  outOff -= 1
+                } else {                    // ...otherwise update in place
+                  out(si) = hcs.updateControls(controls)
+                }
+              }
             }
             res
 
@@ -158,17 +196,17 @@ object ServerImpl {
             if (res) {  // predecessor was not n_after
               nAfterIdx = outOff
 
-              //              // more ambitious:
-              //              // collapse a single `/n_after` with an immediate
-              //              // preceding `/s_new`.
-              //              val g = m.groups
-              //              if (g.size == 1) {
-              //                val (id, after) = g.head
-              //                val newIdx = setMap.getOrElse(id, -1)
-              //                if (newIdx >= 0) {
-              //                  ...
-              //                }
-              //              }
+              // // more ambitious:
+              // // collapse a single `/n_after` with an immediate
+              // // preceding `/s_new`.
+              // val g = m.groups
+              // if (g.size == 1) {
+              //   val (id, after) = g.head
+              //   val newIdx = setMap.getOrElse(id, -1)
+              //   if (newIdx >= 0) {
+              //     ...
+              //   }
+              // }
 
             } else {
               val message.NodeAfter(groups @ _*) = out(nAfterIdx)
@@ -178,7 +216,7 @@ object ServerImpl {
 
           case m: message.NodeFree =>
             val res = nFreeIdx != outOff - 1
-            if (res) {  // predecessor was not n_after
+            if (res) {  // predecessor was not n_free
               nFreeIdx = outOff
             } else {
               val message.NodeFree(ids @ _*) = out(nFreeIdx)

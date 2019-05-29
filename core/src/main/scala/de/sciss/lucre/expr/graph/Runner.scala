@@ -79,7 +79,7 @@ object Runner {
     def changed: IEvent[S, Change[Int]] = this
 
     private[lucre] def pullUpdate(pull: IPull[S])(implicit tx: S#Tx): Option[Change[Int]] =
-      Some(pull.resolve[Change[Int]])
+      Some(pull.resolve)
   }
 
   final case class State(r: Runner) extends Ex[Int] {
@@ -113,7 +113,7 @@ object Runner {
     def changed: IEvent[S, Change[Double]] = this
 
     private[lucre] def pullUpdate(pull: IPull[S])(implicit tx: S#Tx): Option[Change[Double]] =
-      Some(pull.resolve[Change[Double]])
+      Some(pull.resolve)
   }
 
   final case class Progress(r: Runner) extends Ex[Double] {
@@ -149,7 +149,7 @@ object Runner {
     def changed: IEvent[S, Change[Msg]] = this
 
     private[lucre] def pullUpdate(pull: IPull[S])(implicit tx: S#Tx): Option[Change[Msg]] =
-      Some(pull.resolve[Change[Msg]])
+      Some(pull.resolve)
   }
 
   final case class Messages(r: Runner) extends Ex[Seq[proc.Runner.Message]] {

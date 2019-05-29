@@ -16,7 +16,7 @@ package de.sciss.lucre.expr.graph
 import de.sciss.lucre.aux.{Aux, ProductWithAux}
 import de.sciss.lucre.edit.EditTimeline
 import de.sciss.lucre.event.impl.IGenerator
-import de.sciss.lucre.event.{Caching, IEvent, ITargets}
+import de.sciss.lucre.event.{Caching, IEvent, IPush, ITargets}
 import de.sciss.lucre.expr.graph.impl.{ExpandedObjMakeImpl, MappedIExpr, ObjCellViewImpl, ObjImplBase}
 import de.sciss.lucre.expr.impl.{IActionImpl, ITriggerConsumer}
 import de.sciss.lucre.expr.{CellView, Context, IAction, IExpr, SpanLikeObj}
@@ -172,7 +172,8 @@ object Timeline {
 
     private[this] val ref = Ref[SplitPair](empty)
 
-    def value(implicit tx: S#Tx): SplitPair = ref()
+    def value(implicit tx: S#Tx): SplitPair =
+      IPush.tryPull(this).fold(ref())(_.now)
 
     def executeAction()(implicit tx: S#Tx): Unit =
       trigReceived() // .foreach(fire) --- we don't need to fire, there is nobody listening;

@@ -103,7 +103,7 @@ object ServerImpl {
       var outOff  = 0
 
       var setMap    = Map.empty[Int, Int] // node-id to out-offset containing either n_set or s_new
-      var mapanMap  = Map.empty[Int, Int] // node-id to out-offset containing n_mapan
+      var mapAnMap  = Map.empty[Int, Int] // node-id to out-offset containing n_mapan
       var nAfterIdx = -2
       var nFreeIdx  = -2
 
@@ -122,7 +122,7 @@ object ServerImpl {
             }
             // SP issue 53 -- if an n_set overrides an n_mapan,
             // we have to eliminate the latter
-            val mi = mapanMap.getOrElse(id, -1)
+            val mi = mapAnMap.getOrElse(id, -1)
             if (mi >= 0) {
               val message.NodeMapan(_, mappings0 @ _*) = out(mi)
               var mappings = mappings0
@@ -145,10 +145,10 @@ object ServerImpl {
 
           case m: message.NodeMapan =>
             val id = m.id
-            val mi = mapanMap.getOrElse(id, -1)
+            val mi = mapAnMap.getOrElse(id, -1)
             val res = mi < 0
             if (res) {
-              mapanMap += id -> outOff
+              mapAnMap += id -> outOff
             } else {
               var message.NodeMapan(_, mappings @ _*) = out(mi)
               m.mappings.foreach {
@@ -228,14 +228,14 @@ object ServerImpl {
             val id = m.id
             // setMap   -= id
             setMap   += id -> outOff
-            mapanMap -= id
+            mapAnMap -= id
             true
 
           case m: message.GroupNew =>
             m.groups.foreach { g =>
               val id = g.groupId
               setMap   -= id
-              mapanMap -= id
+              mapAnMap -= id
             }
             true
 
@@ -283,7 +283,7 @@ object ServerImpl {
             if (res.isEmpty) sys.error(s"Cannot encode packet -- too large ($sz1)")
             val a1  = fun(res)
             val a2  = combine(a, a1)
-            val newBuilder = Vec.newBuilder[osc.Packet]
+            val newBuilder = Vector.newBuilder[osc.Packet]
             newBuilder += next
             loop(a2, 16 + addSize + sz1, newBuilder)
           } else {
@@ -292,7 +292,7 @@ object ServerImpl {
           }
         }
 
-      loop(init, 16 + addSize, Vec.newBuilder[osc.Packet])
+      loop(init, 16 + addSize, Vector.newBuilder[osc.Packet])
     }
 
     def ! (p0: osc.Packet): Unit = {
@@ -305,6 +305,8 @@ object ServerImpl {
         case b: osc.Bundle if VERIFY_BUNDLE_SIZE =>
           val sz0 = Server.codec.encodedBundleSize(b)
           if (sz0 <= MaxOnlinePacketSize) {
+            val ts = osc.TimeTag.millis(System.currentTimeMillis()).toString
+            println("--- " + ts)
             peer ! b
           } else {
             // Since the bundle is synchronous, it is not trivial to split it
@@ -318,17 +320,21 @@ object ServerImpl {
             // damage can be done, but it may result in a short noticable bit
             // of silence. That's as good as it gets, I suppose...
             Console.err.println(s"WARNING: Bundle size $sz0 exceeds $MaxOnlinePacketSize. Splitting into multiple bundles")
-            val gid   = peer.defaultGroup.id
-            val iter  =
+            val gid = peer.defaultGroup.id
+            val iterator =
               Iterator.single(message.NodeRun(gid -> false)) ++ b.packets.iterator ++
               Iterator.single(message.NodeRun(gid -> true ))
 
-            splitAndSend[Unit, Unit](init = (), it = iter, addSize = 0) { packets =>
+            splitAndSend[Unit, Unit](init = (), it = iterator, addSize = 0) { packets =>
+              val ts = osc.TimeTag.millis(System.currentTimeMillis()).toString
+              println("--- " + ts)
               peer ! osc.Bundle(b.timeTag, packets: _*)
             } ((_, _) => ())
           }
 
         case _ =>
+          val ts = osc.TimeTag.millis(System.currentTimeMillis()).toString
+          println("--- " + ts)
           peer ! p
       }
     }
@@ -356,8 +362,10 @@ object ServerImpl {
     private def perform_!!(tt: TimeTag, packets: Seq[osc.Packet]): Future[Unit] = {
       val syncMsg = peer.syncMsg()
       val syncId  = syncMsg.id
-      val bndlS   = osc.Bundle(tt, packets :+ syncMsg: _*)
-      peer.!!(bndlS) {
+      val bundleS = osc.Bundle(tt, packets :+ syncMsg: _*)
+      val ts = osc.TimeTag.millis(System.currentTimeMillis()).toString
+      println("--- " + ts)
+      peer.!!(bundleS) {
         case message.Synced(`syncId`) =>
       }
     }
@@ -423,8 +431,8 @@ object ServerImpl {
       addBundle(b)
     }
 
-    def !! (bndl: osc.Bundle): Future[Unit] = {
-      addBundle(bndl)
+    def !! (bundle: osc.Bundle): Future[Unit] = {
+      addBundle(bundle)
       Future.successful(())
     }
 
@@ -490,8 +498,8 @@ object ServerImpl {
     final private[this] val ugenGraphMap  = TMap      .empty[ SIndexedSeq[Byte], SynthDef]
     final private[this] val synthDefLRU   = Ref(Vector.empty[(SIndexedSeq[Byte], SynthDef)])
 
-    // limit on number of online defs XXX TODO -- head room rather arbitrary
-    final private[this] val maxDefs       = math.max(128, server.config.maxSynthDefs - 128)
+    // limit on number of online definitions XXX TODO -- head room rather arbitrary
+    final private[this] val maxDefinitions  = math.max(128, server.config.maxSynthDefs - 128)
 
     final private[this] val topologyRef = Ref[T](Topology.empty[NodeRef, NodeRef.Edge])
 
@@ -522,7 +530,7 @@ object ServerImpl {
         val peer  = de.sciss.synth.SynthDef(name, graph)
         val rd    = SynthDefImpl(server, peer)
         val lru   = synthDefLRU.transformAndGet((equ, rd) +: _)
-        if (lru.size == maxDefs) {
+        if (lru.size == maxDefinitions) {
           val init :+ Tuple2(lastEqu, lastDf) = lru
           log(s"purging synth-def ${lastDf.name}")
           lastDf.dispose()
@@ -678,9 +686,9 @@ object ServerImpl {
         sendAdvance(stamp)
 
       } else {
-        val bndl  = osc.Bundle(timeTag, messages: _*)
-        val fut   = server.!!(bndl)
-        val futR  = fut.recover {
+        val bundle  = osc.Bundle(timeTag, messages: _*)
+        val fut     = server.!!(bundle)
+        val futR    = fut.recover {
           case message.Timeout() =>
             log("TIMEOUT while sending OSC bundle!")
         }
@@ -688,14 +696,19 @@ object ServerImpl {
       }
     }
 
-    final def send(bundles: Txn.Bundles, systemTimeNanos: Long): Future[Unit] = {
+    private[this] val latencyNanoSec = (clientConfig.latency * 1000000000L).toLong
+
+    final def send(bundles: Txn.Bundles, systemTimeNanoSec: Long): Future[Unit] = {
+      println("// send")
+
+      assert (bundles.size % 2 == 0)
+      assert (bundles.grouped(2).forall { case Seq(a, b) => (a.stamp % 2) == 0 && (b.stamp % 2) == 1 })
+
       // this time-tag is used for the first synchronous bundle (index 1 in bundles)
-      val ttLatency = if (systemTimeNanos == 0L /* || tail.nonEmpty */) TimeTag.now else {
-        // ttLatency
-        val latencyNanos    = (clientConfig.latency * 1000000000L).toLong
-        val targetNanos     = systemTimeNanos + latencyNanos
-        val secsSince1900   =  targetNanos / 1000000000L + SECONDS_FROM_1900_TO_1970
-        val secsFractional = ((targetNanos % 1000000000L) << 32) / 1000000000L
+      val ttLatency = if (systemTimeNanoSec == 0L /* tail.nonEmpty */ || latencyNanoSec == 0L) TimeTag.now else {
+        val targetNanoSec   = systemTimeNanoSec + latencyNanoSec
+        val secsSince1900   =  targetNanoSec / 1000000000L + SECONDS_FROM_1900_TO_1970
+        val secsFractional  = ((targetNanoSec % 1000000000L) << 32) / 1000000000L
         TimeTag((secsSince1900 << 32) | secsFractional)
       }
 
@@ -709,7 +722,7 @@ object ServerImpl {
         var i = now.size
         val futuresLater = later.map { m =>
           val p   = Promise[Unit]()
-          val tt  = if (i == 1) ttLatency else TimeTag.now
+          val tt  = if (i == 1) ttLatency else TimeTag.now // XXX TODO this looks very wrong; what was the reasoning?
           val sch = new Scheduled(m, tt, p)
           bundleWaiting += m.depStamp -> (bundleWaiting.getOrElse(m.depStamp, Vector.empty) :+ sch)
           i += 1
@@ -717,7 +730,7 @@ object ServerImpl {
         }
         i = 0
         val futuresNow = now.map { m =>
-          val tt  = if (i == 1) ttLatency else TimeTag.now
+          val tt = if (i == 1) ttLatency else TimeTag.now // XXX TODO this looks very wrong; what was the reasoning?
           i += 1
           sendNow(m, tt)
         }

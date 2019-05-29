@@ -26,7 +26,12 @@ object Txn {
 
   type Message = osc.Message with message.Send
 
-  /** A data type encapsulating an outgoing OSC bundle for this transaction. */
+  /** A data type encapsulating an outgoing OSC bundle for this transaction.
+    *
+    * @param  stamp the logical time stamp, with even values indicating
+    *               asynchronous messages, and odd values indicating
+    *               synchronous messages
+    */
   final class Bundle(val stamp: Int, val messages: Vec[Message]) {
     def append(msg: Message): Bundle = new Bundle(stamp, messages :+ msg)
 

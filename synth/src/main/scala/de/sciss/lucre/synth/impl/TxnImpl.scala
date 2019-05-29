@@ -16,7 +16,7 @@ package de.sciss.lucre.synth.impl
 import de.sciss.lucre.synth.{Resource, Server, Sys, Txn, log}
 import de.sciss.synth.UGenSource.Vec
 
-import scala.concurrent.stm.{InTxn, Txn => ScalaTxn}
+import scala.concurrent.stm.{InTxn, Ref, Txn => ScalaTxn}
 
 object TxnImpl {
   var timeoutFun: () => Unit = () => ()
@@ -27,14 +27,21 @@ object TxnImpl {
 sealed trait TxnImpl extends Txn { tx =>
   import TxnImpl._
 
+  // note: they will always be added in pairs (async -> sync),
+  // possibly with empty bundles as placeholders
   private var bundlesMap = Map.empty[Server, Txn.Bundles]
 
   final protected def flush(): Unit =
     bundlesMap.foreach { case (server, bundles) =>
       log(s"flush $server -> ${bundles.size} bundles")
+      val ms1 = systemTimeNanoSec / 1000 / 1000
+      val ts1 = if (ms1 == 0) "<now>" else de.sciss.osc.TimeTag.millis(ms1).toString
+      val ts2 = de.sciss.osc.TimeTag.millis(System.currentTimeMillis()).toString
+      println(s":::: flush $ts1 vs $ts2")
       server.send(bundles, systemTimeNanoSec: Long)
     }
 
+  // indicate that we have bundles to flush after the transaction commits
   protected def markBundlesDirty(): Unit
 
   final def addMessage(resource: Resource, m: Txn.Message, dependencies: Seq[Resource]): Unit = {
@@ -45,7 +52,7 @@ sealed trait TxnImpl extends Txn { tx =>
     if (resourceStampOld < 0) sys.error(s"Already disposed : $resource")
 
     implicit val itx: InTxn     = peer
-    val txnStampRef             = server.messageTimeStamp
+    val txnStampRef: Ref[Int]   = server.messageTimeStamp
     val txnStamp                = txnStampRef.get
     val payOld: Vec[Txn.Bundle] = bundlesMap.getOrElse(server, noBundles)
     val szOld                   = payOld.size

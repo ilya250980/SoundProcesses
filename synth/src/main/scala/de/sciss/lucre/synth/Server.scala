@@ -116,7 +116,7 @@ trait Server {
   def removeEdge(edge: NodeRef.Edge)(implicit tx: Txn): Unit
 
   /** Requires that `bundles` is non-empty. */
-  private[synth] def send(bundles: Txn.Bundles, systemTimeNanos: Long): Future[Unit]
+  private[synth] def send(bundles: Txn.Bundles, systemTimeNanoSec: Long): Future[Unit]
 
   private[synth] def messageTimeStamp: Ref[Int]
 
@@ -126,7 +126,7 @@ trait Server {
     * use counter is increment. Otherwise produces a fresh synth def and
     * stores it in the cache.
     *
-    * If the number of synth defs on the server would exceed the maximum,
+    * If the number of synth definitions on the server would exceed the maximum,
     * a number of synth-def disposals are issued for those that have a
     * use count of zero.
     */

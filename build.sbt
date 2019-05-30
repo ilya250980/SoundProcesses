@@ -1,7 +1,7 @@
 lazy val baseName  = "SoundProcesses"
 lazy val baseNameL = baseName.toLowerCase
 
-lazy val projectVersion = "3.29.1-SNAPSHOT"
+lazy val projectVersion = "3.29.1"
 lazy val mimaVersion    = "3.29.0" // used for migration-manager
 
 lazy val commonSettings = Seq(
@@ -31,8 +31,8 @@ lazy val deps = new {
     val audioWidgets        = "1.14.1"
     val equal               = "0.1.4"
     val fileUtil            = "1.1.3"
-    val lucre               = "3.13.1-SNAPSHOT"
-    val lucreSwing          = "1.17.1-SNAPSHOT"
+    val lucre               = "3.13.1"
+    val lucreSwing          = "1.17.1"
     val model               = "0.3.4"
     val numbers             = "0.2.0"
     val scalaCollider       = "1.28.4"

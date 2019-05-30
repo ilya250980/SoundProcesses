@@ -16,9 +16,8 @@ import org.scalatest.{Assertion, FutureOutcome, Matchers, compatible, fixture}
 import scala.collection.immutable.{Iterable => IIterable}
 import scala.concurrent.duration._
 import scala.concurrent.stm.Txn
-import scala.concurrent.{ExecutionContext, Future}
+import scala.concurrent.{ExecutionContext, Future, Promise}
 import scala.language.implicitConversions
-import scala.sys.process.Process
 import scala.util.Try
 
 abstract class BounceSpec extends fixture.AsyncFlatSpec with Matchers {
@@ -35,7 +34,10 @@ abstract class BounceSpec extends fixture.AsyncFlatSpec with Matchers {
 
   SoundProcesses.init()
 
-  def isLinux: Boolean = sys.props("os.name").contains("Linux")
+  def isLinux: Boolean = {
+    val n = sys.props("os.name")
+    n.contains("Linux")
+  }
 
 //  def hasJack(): Boolean = {
 //    import sys.process._
@@ -233,34 +235,42 @@ abstract class BounceSpec extends fixture.AsyncFlatSpec with Matchers {
   final def action(config: Bounce.ConfigBuilder[S], frame: Long)(fun: S#Tx => Unit): Unit =
     config.actions = config.actions ++ (Scheduler.Entry[S](time = frame, fun = fun) :: Nil)
 
-  final def runServer(config: Server.ConfigBuilder = Server.Config())(fun: Server => Future[Any])
-                     (implicit universe: FixtureParam): Unit = {
+  final def runServer[A](config: Server.ConfigBuilder = Server.Config())(fun: Server => Future[A])
+                     (implicit universe: FixtureParam): Future[A] = {
     import universe.cursor
+    val p = Promise[A]()
     cursor.step { implicit tx =>
       val jackOption = mkJack(config)
 
       universe.auralSystem.addClient(new AuralSystem.Client {
         def auralStarted(s: Server)(implicit itx: LTxn): Unit = itx.afterCommit {
-          fun(s).onComplete { _ =>
+          p.completeWith(fun(s).andThen { case _ =>
             jackOption.foreach(_.destroy())
-          }
+          })
         }
 
         def auralStopped()(implicit tx: LTxn): Unit = ()
       })
 
       universe.auralSystem.start(config)
+      p.future
     }
   }
 
+  def jackName: String = {
+    getClass.getSimpleName.filter(_.isLetterOrDigit)
+  }
+
   private def mkJack(config: Server.ConfigBuilder): Option[Process] = {
-    if (isLinux) None else {
+    if (!isLinux) None else {
       val sr0       = config.sampleRate
       val sr        = if (sr0 == 0) sampleRate else sr0
-      val jackName  = "unit_tests"
-      config.deviceName = Some(s"$jackName:scsynth")
-      val args      = List("jackd", "-n", jackName, "-d", "dummy", "-r", sr.toString)
-      Some(Process(args).run())
+      val n         = jackName
+      config.deviceName = Some(s"$n:scsynth")
+      val args      = List("jackd", "-n", n, "-d", "dummy", "-r", sr.toString)
+      val pb        = new ProcessBuilder(args: _*)
+      val res       = pb.start()
+      Some(res)
     }
   }
 
@@ -270,15 +280,16 @@ abstract class BounceSpec extends fixture.AsyncFlatSpec with Matchers {
     val jackOption = mkJack(config.server)
     val b = Bounce[S]()
 
-    val p = b(config)
+    val processor = b(config)
     // Important: don't use the single threaded SP context,
     // as bounce will block and hang
     import ExecutionContext.Implicits.global
-    p.start()(global)
-    val fDone = p.map { f =>
+    processor.start()(global)
+    val fDone = processor.map { f =>
       if (debugKeep) println(s"Bounce file: $f")
       try {
         val a = AudioFile.openRead(f)
+        // println(s"NUM-FRAMES = ${a.numFrames}; FILE-LENGTh =  ${f.length()}")
         require(a.numFrames < 0x7FFFFFFF)
         val buf = a.buffer(a.numFrames.toInt)
         a.read(buf)
@@ -290,7 +301,13 @@ abstract class BounceSpec extends fixture.AsyncFlatSpec with Matchers {
     } (global)
 
     fDone.andThen { case _ =>
-      jackOption.foreach(_.destroy())
+      jackOption.foreach { process =>
+        process.destroy()
+        // tricky: if we run multiple tests,
+        // we may otherwise run into
+        // '`unit_tests' server already active'
+        Thread.sleep(1000)
+      }
     } (global)
   }
 }

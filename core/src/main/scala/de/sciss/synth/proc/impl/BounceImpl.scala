@@ -22,7 +22,7 @@ import de.sciss.lucre.synth.{Buffer, Server, Synth, Sys, Txn}
 import de.sciss.processor.Processor
 import de.sciss.processor.impl.ProcessorImpl
 import de.sciss.synth.Ops.stringToControl
-import de.sciss.synth.io.{AudioFileType, SampleFormat}
+import de.sciss.synth.io.{AudioFile, AudioFileType, SampleFormat}
 import de.sciss.synth.proc.Runner.{Prepared, Preparing, Running, Stopped}
 import de.sciss.synth.proc.{AuralObj, AuralSystem, Bounce, Runner, Scheduler, TimeRef, Transport, Universe, logTransport, showTransportLog}
 import de.sciss.synth.{Client, SynthGraph, addToTail, Server => SServer}
@@ -32,6 +32,7 @@ import scala.annotation.tailrec
 import scala.concurrent.duration.Duration
 import scala.concurrent.{Await, Future, Promise, blocking}
 import scala.util.Success
+import scala.util.control.NonFatal
 
 object BounceImpl {
   var DEBUG = false
@@ -210,19 +211,48 @@ final class BounceImpl[S <: Sys[S] /*, I <: stm.Sys[I] */](val parentUniverse: U
 
         transport.play()
         scheduler.schedule(scheduler.time + span.length) { implicit tx =>
-          transport.stop()
-          synRec  .free()
-          // synMute .free()
-          buf.dispose()
-          tx.afterCommit {
-            val syncMsg = server.peer.syncMsg()
-            val SyncId  = syncMsg.id
-            val futSync = server.peer.!!(syncMsg) {
-              case de.sciss.synth.message.Synced(SyncId) =>
-            }
-            p.tryCompleteWith(futSync)
-            // p.tryComplete(Success(()))
+          if (DEBUG) {
+            tx.afterCommit(println("Bounce: scheduled stop"))
           }
+          synRec.dispose()
+          synRec.onEndTxn { implicit tx =>
+            if (DEBUG) {
+              tx.afterCommit(println("Bounce: recorder stopped"))
+            }
+            buf.dispose()
+            tx.afterCommit {
+              val syncMsg = server.peer.syncMsg()
+              val SyncId  = syncMsg.id
+              val futSync = server.peer.!!(syncMsg) {
+                case de.sciss.synth.message.Synced(SyncId) =>
+                  // Gosh, this is nasty. File system may take
+                  // a moment to reflect updated AIFF headers.
+                  if (span.nonEmpty) {
+                    try {
+                      var tryCount = 0
+                      while ({
+                        val spec = AudioFile.readSpec(resultFile)
+                        spec.numFrames == 0 && tryCount < 40 && {
+                          Thread.sleep(100)
+                          tryCount += 1
+                          true
+                        }
+                      }) ()
+
+                      if (DEBUG) {
+                        println(s"Bounce: waited ${tryCount * 100}ms for file to have valid header.")
+                      }
+
+                    } catch {
+                      case NonFatal(_) =>
+                    }
+                  }
+              }
+              p.tryCompleteWith(futSync)
+              // p.tryComplete(Success(()))
+            }
+          }
+          transport.stop()
         }
         scheduleProgress.apply(tx)
       }

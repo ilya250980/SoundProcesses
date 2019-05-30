@@ -49,10 +49,10 @@ object NodeImpl {
 trait NodeImpl extends ResourceImpl with Node {
   import NodeImpl._
 
-  private[this] val onEndRef = Ref(EmptyOnEnd)
+  private[this] val onEndFuns = Ref(EmptyOnEnd)
 
   peer.onEnd {
-    val onEnd = onEndRef.single.swap(EmptyOnEnd)
+    val onEnd = onEndFuns.single.swap(EmptyOnEnd)
     if (onEnd.nonEmpty) {
       spawn { implicit itx =>
         implicit val ptx: Txn = Txn.wrap(itx)
@@ -77,10 +77,10 @@ trait NodeImpl extends ResourceImpl with Node {
     })
 
   final def onEndTxn(fun: Txn => Unit)(implicit tx: Txn): Unit =
-    onEndRef.transform(e => e.copy(inTxn = e.inTxn :+ fun))(tx.peer)
+    onEndFuns.transform(e => e.copy(inTxn = e.inTxn :+ fun))(tx.peer)
 
   final def onEnd(code: => Unit)(implicit tx: Txn): Unit =
-    onEndRef.transform(e => e.copy(direct = e.direct :+ (() => code)))(tx.peer)
+    onEndFuns.transform(e => e.copy(direct = e.direct :+ (() => code)))(tx.peer)
 
   final def read(assoc: (AudioBus, String))(implicit tx: Txn): AudioBusNodeSetter = {
     val (rb, name) = assoc
@@ -159,7 +159,7 @@ trait NodeImpl extends ResourceImpl with Node {
       tx.addMessage(this, peer.freeMsg)
       setOnline(value = false)
       if (!server.isRealtime) {
-        val functions = onEndRef.swap(EmptyOnEnd)(tx.peer)
+        val functions = onEndFuns.swap(EmptyOnEnd)(tx.peer)
         if (functions.nonEmpty) processOnEnd(functions)
       }
     }

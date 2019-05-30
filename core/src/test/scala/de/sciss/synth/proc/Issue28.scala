@@ -52,7 +52,7 @@ class Issue28 extends BounceSpec {
       tx.newHandle(tl)
     }
 
-    val res = Promise[StatusReply]()
+    val pStatus = Promise[StatusReply]()
 //    implicit val universe: Universe[S] = cursor.step { implicit tx => Universe.dummy }
 
     def runTL(s: Server)(implicit tx: S#Tx): Unit = {
@@ -71,7 +71,7 @@ class Issue28 extends BounceSpec {
               // there is a weird thing, where peer.quit
               // may cause a second status reply to come in,
               // despite `Responder.once`, so make it a "try"
-              res.tryComplete(Success(m))
+              pStatus.tryComplete(Success(m))
           }
           s ! GroupDumpTree(1 -> false)
           s ! Status
@@ -79,14 +79,14 @@ class Issue28 extends BounceSpec {
       }
     }
 
-    runServer() { s =>
+    val res = runServer() { s =>
       cursor.step { implicit tx =>
         runTL(s)
-        res.future
+        pStatus.future
       }
     }
 
-    res.future.map { status =>
+    res.map { status =>
       assert(status.numGroups === 2)
       assert(status.numSynths === 1)    // only global should be left
     }

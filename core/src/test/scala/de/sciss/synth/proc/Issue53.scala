@@ -1,8 +1,10 @@
 package de.sciss.synth.proc
 
 import de.sciss.lucre.stm.Folder
+import de.sciss.lucre.synth.impl.ServerImpl
 import de.sciss.span.Span
 import de.sciss.synth.proc.graph.{ScanInFix, ScanOut}
+import de.sciss.synth.proc.impl.BounceImpl
 import de.sciss.synth.ugen
 
 import scala.concurrent.ExecutionContext
@@ -82,6 +84,9 @@ class Issue53 extends BounceSpec {
     c.client.latency  = 0.2
     c.realtime = true
 
+//    BounceImpl.DEBUG  = true
+//    ServerImpl.DEBUG  = true
+//    ServerImpl.USE_COMPRESSION = true
 //    c.beforePlay = { case (_tx, s) =>
 //      implicit val tx: S#Tx = _tx
 //      s.peer.dumpOSC()
@@ -94,6 +99,7 @@ class Issue53 extends BounceSpec {
     // showTransportLog = true
     val r = bounce(c)
     r.map { case Array(observed0) =>
+
       val sig1 = mkLFPulse(freq1, startFrame = 1, len = at1f - at0f, amp = 0.5)
       val sig2 = mkSine   (freq2, startFrame = 1, len = at1f - at0f, amp = 0.5)
 //      val sig3 = mkSine   (freq3, startFrame = 1, len = atHf, amp = 0.5)

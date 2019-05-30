@@ -34,10 +34,6 @@ sealed trait TxnImpl extends Txn { tx =>
   final protected def flush(): Unit =
     bundlesMap.foreach { case (server, bundles) =>
       log(s"flush $server -> ${bundles.size} bundles")
-      val ms1 = systemTimeNanoSec / 1000 / 1000
-      val ts1 = if (ms1 == 0) "<now>" else de.sciss.osc.TimeTag.millis(ms1).toString
-      val ts2 = de.sciss.osc.TimeTag.millis(System.currentTimeMillis()).toString
-      println(s":::: flush $ts1 vs $ts2")
       server.send(bundles, systemTimeNanoSec: Long)
     }
 

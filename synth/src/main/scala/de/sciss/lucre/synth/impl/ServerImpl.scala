@@ -35,8 +35,8 @@ object ServerImpl {
   /** If `true`, checks against bundle size overflow (64K) and prints the bundle before crashing. */
   var VERIFY_BUNDLE_SIZE  = true
   /** If `true`, applies a few optimizations to messages within a bundle, in order to reduce its size */
-//  var USE_COMPRESSION     = true
-  val USE_COMPRESSION     = false
+  var USE_COMPRESSION     = true
+//  val USE_COMPRESSION     = false
   /** If `true`, check that wire-buffers are not exceeded before sending synth def */
   var VERIFY_WIRE_BUFFERS = true
   /** If `true` debug sending out stuff */
@@ -79,7 +79,15 @@ object ServerImpl {
       res
     }
 
-    private def compress(b: osc.Bundle): osc.Bundle = {
+    private def compress(b: osc.Bundle): osc.Bundle = try {
+      compressImpl(b)
+    } catch {
+      case ex: Throwable =>
+        ex.printStackTrace()
+        throw ex
+    }
+
+    private def compressImpl(b: osc.Bundle): osc.Bundle = {
       val in  = b.packets
       val num = in.length
       if (num < 10) return b   // don't bother
@@ -133,12 +141,23 @@ object ServerImpl {
                 }
               }
               if (mappings ne mappings0) {  // did eliminate
-                if (mappings.isEmpty) {     // could have become empty; then remove...
-                  System.arraycopy(out, mi + 1, out, mi, outOff - (mi + 1))
-                  outOff -= 1
-                } else {                    // ...otherwise update in place
+                // N.B.: We cannot remove the message,
+                // because it does not suffice to copy `out`
+                // and decrease `nAfterIdx` and `nFreeIdx`,
+                // but we would have to go throughout `setMap`
+                // and `mapAnMap`; that's too much work, so
+                // in that case let's just leave the "empty" n_mapan
+                // message in there!
+
+                // if (mappings.isEmpty) {     // could have become empty; then remove...
+                //   System.arraycopy(out, mi + 1, out, mi, outOff - (mi + 1))
+                //   outOff -= 1
+                //   if (nAfterIdx > mi) nAfterIdx -= 1
+                //   if (nFreeIdx  > mi) nFreeIdx  -= 1
+                //
+                // } else {                    // ...otherwise update in place
                   out(mi) = message.NodeMapan(id, mappings: _*)
-                }
+                // }
               }
             }
             res
@@ -181,12 +200,16 @@ object ServerImpl {
                 }
               }
               if (controls ne controls0) {  // did eliminate
-                if (controls.isEmpty) {     // could have become empty; then remove...
-                  System.arraycopy(out, si + 1, out, si, outOff - (si + 1))
-                  outOff -= 1
-                } else {                    // ...otherwise update in place
+                // N.B.: see above
+                //
+                // if (controls.isEmpty) {     // could have become empty; then remove...
+                //   System.arraycopy(out, si + 1, out, si, outOff - (si + 1))
+                //   if (nAfterIdx > mi) nAfterIdx -= 1
+                //   if (nFreeIdx  > mi) nFreeIdx  -= 1
+                //   outOff -= 1
+                // } else {                    // ...otherwise update in place
                   out(si) = hcs.updateControls(controls)
-                }
+                // }
               }
             }
             res
@@ -305,8 +328,7 @@ object ServerImpl {
         case b: osc.Bundle if VERIFY_BUNDLE_SIZE =>
           val sz0 = Server.codec.encodedBundleSize(b)
           if (sz0 <= MaxOnlinePacketSize) {
-            val ts = osc.TimeTag.millis(System.currentTimeMillis()).toString
-            println("--- " + ts)
+            if (DEBUG) printSystemTime()
             peer ! b
           } else {
             // Since the bundle is synchronous, it is not trivial to split it
@@ -326,15 +348,13 @@ object ServerImpl {
               Iterator.single(message.NodeRun(gid -> true ))
 
             splitAndSend[Unit, Unit](init = (), it = iterator, addSize = 0) { packets =>
-              val ts = osc.TimeTag.millis(System.currentTimeMillis()).toString
-              println("--- " + ts)
+              if (DEBUG) printSystemTime()
               peer ! osc.Bundle(b.timeTag, packets: _*)
             } ((_, _) => ())
           }
 
         case _ =>
-          val ts = osc.TimeTag.millis(System.currentTimeMillis()).toString
-          println("--- " + ts)
+          if (DEBUG) printSystemTime()
           peer ! p
       }
     }
@@ -359,12 +379,16 @@ object ServerImpl {
       }
     }
 
+    private def printSystemTime(): Unit = {
+      val ts = osc.TimeTag.millis(System.currentTimeMillis()).toString
+      println("--- " + ts)
+    }
+
     private def perform_!!(tt: TimeTag, packets: Seq[osc.Packet]): Future[Unit] = {
       val syncMsg = peer.syncMsg()
       val syncId  = syncMsg.id
       val bundleS = osc.Bundle(tt, packets :+ syncMsg: _*)
-      val ts = osc.TimeTag.millis(System.currentTimeMillis()).toString
-      println("--- " + ts)
+      if (DEBUG) printSystemTime()
       peer.!!(bundleS) {
         case message.Synced(`syncId`) =>
       }
@@ -641,9 +665,14 @@ object ServerImpl {
     final private[this] var bundleSentTime  = TimeTag.now
 
     final private[this] class Scheduled(bundle: Txn.Bundle, timeTag: TimeTag, promise: Promise[Unit],
-                                        noWarn: Boolean) {
+                                        asap: Boolean) {
+
+      // makes MiMa happy
+      def this(bundle: Txn.Bundle, timeTag: TimeTag, promise: Promise[Unit]) =
+        this(bundle, timeTag, promise, asap = false)
+
       def apply(): Future[Unit] = {
-        val fut = sendNow(bundle, timeTag, noWarn = noWarn)
+        val fut = sendNow(bundle, timeTag, asap = asap)
         promise.completeWith(fut)
         fut
       }
@@ -698,16 +727,17 @@ object ServerImpl {
 //      }
 //    }
 
-    final private[this] def sendNow(bundle: Txn.Bundle, timeTag0: TimeTag, noWarn: Boolean): Future[Unit] = {
-      val timeTag = if (!useLatency || timeTag0 == TimeTag.now || {
+    final private[this] def sendNow(bundle: Txn.Bundle, timeTag0: TimeTag, asap: Boolean): Future[Unit] = {
+      val systemMilliSec = System.currentTimeMillis()
+      val timeTag1 = if (!useLatency || timeTag0 == TimeTag.now || {
         // if the bundle time lies in the past, we reset to time-tag now
         // ; XXX TODO --- this might be problematic when the server is located
         // on another network node ; as a quick and dirty work around we
         // require that at least 'latency' has to have past
-        timeTag0.toMillis + latencyMilliSec >= System.currentTimeMillis()
+        timeTag0.toMillis + latencyMilliSec >= systemMilliSec
       }) timeTag0 else TimeTag.now
 
-      bundleSentTime = timeTag
+      bundleSentTime = timeTag1
 
       import bundle.{messages, stamp}
       if (messages.isEmpty) return sendAdvance(stamp)
@@ -722,24 +752,29 @@ object ServerImpl {
       val isSync = (stamp & 1) == 1
       if (DEBUG) println(s"SEND NOW $messages - isSync? $isSync; stamp = $stamp")
 
-//      lazy val mkBundle: osc.Bundle = {
-//        val m1 =
-////          if (noWarn) {
-////            val head +: tail = messages
-////            message.Error.BundleOff +: head +: message.Error.BundleOn +: tail
-////          } else
-//            messages
-//        osc.Bundle(timeTag, m1: _*)
-//      }
+      def mkBundle(): osc.Bundle = {
+        // until ScalaCollider supports booting with `-V -1`
+        // (reduced verbosity, suppressing "late" messages),
+        // we avoid getting "late" messages by increasing the
+        // scheduling time of 'noWarn' bundles if necessary.
+        val timeTag2 = if (!asap || timeTag1 == TimeTag.now || {
+          timeTag1.toMillis >= systemMilliSec + latencyMilliSec
+        }) timeTag1 else {
+          val _tt = TimeTag.millis(systemMilliSec + latencyMilliSec)
+          bundleSentTime = _tt
+          _tt
+        }
+        osc.Bundle(timeTag2, messages: _*)
+      }
 
       if (isSync) {
-        val p = if (messages.size == 1 && timeTag == TimeTag.now) messages.head
-        else osc.Bundle(timeTag, messages: _*)
+        val p = if (messages.size == 1 && timeTag1 == TimeTag.now) messages.head
+        else mkBundle()
         server ! p
         sendAdvance(stamp)
 
       } else {
-        val bundle  = osc.Bundle(timeTag, messages: _*)
+        val bundle  = mkBundle()
         val fut     = server.!!(bundle)
         val futR    = fut.recover {
           case message.Timeout() =>
@@ -754,10 +789,15 @@ object ServerImpl {
     private[this] val useLatency      = latencyNanoSec > 0
 
     final def send(bundles: Txn.Bundles, systemTimeNanoSec: Long): Future[Unit] = {
-      println("// send")
+      if (DEBUG) {
+        val ms1 = systemTimeNanoSec / 1000 / 1000
+        val ts1 = if (ms1 == 0) "<now>" else de.sciss.osc.TimeTag.millis(ms1).toString
+        val ts2 = de.sciss.osc.TimeTag.millis(System.currentTimeMillis()).toString
+        println(s":::: send $ts1 vs $ts2")
+      }
 
-      assert (bundles.size % 2 == 0)
-      assert (bundles.grouped(2).forall { case Seq(a, b) => (a.stamp % 2) == 0 && (b.stamp % 2) == 1 })
+//      assert (bundles.size % 2 == 0)
+//      assert (bundles.grouped(2).forall { case Seq(a, b) => (a.stamp % 2) == 0 && (b.stamp % 2) == 1 })
 
       // this time-tag is used for the first synchronous bundle (index 1 in bundles)
       lazy val ttLatency = {
@@ -769,6 +809,9 @@ object ServerImpl {
 
       val res = sync.synchronized {
         /*
+
+        old code:
+
         val (now, later) = bundles.partition(bundleReplySeen >= _.depStamp)
 
         // it is important to process the 'later' bundles first,
@@ -795,7 +838,7 @@ object ServerImpl {
 
         val futures = bundles.map { m =>
           val isSync = (m.stamp & 1) == 1
-          val (tt, noWarn) = if (useLatency) {
+          val (tt, asap) = if (useLatency) {
             if (isSync && systemTimeNanoSec != 0L) {
               (ttLatency, false)
             } else {
@@ -806,11 +849,11 @@ object ServerImpl {
           }
 
           if (m.depStamp <= bundleReplySeen) {
-            sendNow(m, tt, noWarn = noWarn)
+            sendNow(m, tt, asap = asap)
 
           } else {
             val p   = Promise[Unit]()
-            val sch = new Scheduled(m, tt, p, noWarn = noWarn)
+            val sch = new Scheduled(m, tt, p, asap = asap)
             bundleWaiting += m.depStamp -> (bundleWaiting.getOrElse(m.depStamp, Vector.empty) :+ sch)
             p.future
           }

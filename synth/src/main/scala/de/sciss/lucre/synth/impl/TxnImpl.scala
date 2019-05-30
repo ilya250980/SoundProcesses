@@ -105,7 +105,7 @@ sealed trait TxnImpl extends Txn { tx =>
     } else {
       if (resourceStampNew == txnStamp) {
         // append to back
-        val vm      = Vector(m)
+        val vm      = Vector.empty :+ m
         val payNew  = if (msgAsync) {
           val b1 = new Txn.Bundle(txnStartStamp     , vm)
           val b2 = new Txn.Bundle(txnStartStamp + 1 , Vector.empty)

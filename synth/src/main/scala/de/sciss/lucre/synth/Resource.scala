@@ -40,6 +40,7 @@ trait Resource extends Disposable[Txn] {
 
   def server: Server
 
+  // logical time stamp of last modification; initially zero, negative when disposed
   private[synth] def timeStamp                    (implicit tx: Txn): TimeStamp
   private[synth] def timeStamp_=(value: TimeStamp)(implicit tx: Txn): Unit
 }

@@ -118,6 +118,7 @@ trait Server {
   /** Requires that `bundles` is non-empty. */
   private[synth] def send(bundles: Txn.Bundles, systemTimeNanoSec: Long): Future[Unit]
 
+  // for use by transaction; not mutated by the server itself
   private[synth] def messageTimeStamp: Ref[Int]
 
   /** Acquires a synth def to be used in this transaction on the server.

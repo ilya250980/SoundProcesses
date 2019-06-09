@@ -1,10 +1,8 @@
 package de.sciss.synth.proc
 
 import de.sciss.lucre.stm.Folder
-import de.sciss.lucre.synth.impl.ServerImpl
 import de.sciss.span.Span
 import de.sciss.synth.proc.graph.{ScanInFix, ScanOut}
-import de.sciss.synth.proc.impl.BounceImpl
 import de.sciss.synth.ugen
 
 import scala.concurrent.ExecutionContext

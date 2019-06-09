@@ -1,7 +1,7 @@
 lazy val baseName  = "SoundProcesses"
 lazy val baseNameL = baseName.toLowerCase
 
-lazy val projectVersion = "3.29.1"
+lazy val projectVersion = "3.29.2"
 lazy val mimaVersion    = "3.29.0" // used for migration-manager
 
 lazy val commonSettings = Seq(
@@ -11,7 +11,7 @@ lazy val commonSettings = Seq(
   description        := "A framework for creating and managing ScalaCollider based sound processes",
   licenses           := Seq("LGPL v2.1+" -> url("http://www.gnu.org/licenses/lgpl-2.1.txt")),
   scalaVersion       := "2.12.8",
-  crossScalaVersions := Seq("2.12.8", "2.11.12", "2.13.0-RC2"),
+  crossScalaVersions := Seq("2.12.8", "2.11.12", "2.13.0"),
   scalacOptions ++= {
     // "-Xfatal-warnings" -- breaks for cross-scala-build and deprecations
     // -stars-align produces wrong warnings with decomposing OSC messages
@@ -28,15 +28,15 @@ lazy val commonSettings = Seq(
 lazy val deps = new {
   val main = new {
     val audioFile           = "1.5.3"
-    val audioWidgets        = "1.14.1"
+    val audioWidgets        = "1.14.3"
     val equal               = "0.1.4"
     val fileUtil            = "1.1.3"
     val lucre               = "3.13.1"
-    val lucreSwing          = "1.17.1"
+    val lucreSwing          = "1.17.2"
     val model               = "0.3.4"
     val numbers             = "0.2.0"
     val scalaCollider       = "1.28.4"
-    val scalaColliderIf     = "0.9.2"
+    val scalaColliderIf     = "0.9.3"
     val span                = "1.4.2"
     val swingPlus           = "0.4.2"
     val topology            = "1.1.2"
@@ -45,9 +45,9 @@ lazy val deps = new {
   
   val test = new {
     val bdb                = "bdb"  // "bdb" or "bdb6" or "bdb7"
-    val scalaColliderSwing = "1.41.2"
-    val scalaTest          = "3.0.8-RC4"
-    val scopt              = "3.7.1"
+    val scalaColliderSwing = "1.41.3"
+    val scalaTest          = "3.0.8-RC5"
+    val scallop            = "3.3.0"
     val submin             = "0.2.5"
   }
 }
@@ -86,11 +86,11 @@ lazy val synth = project.withId("lucresynth").in(file("synth"))
 
 lazy val testSettings = Seq(
   libraryDependencies += {
-    // if (scalaVersion.value == "2.13.0-RC2") {
-    //   "org.scalatest" % "scalatest_2.13.0-RC1" % deps.test.scalaTest % Test exclude("org.scala-lang.modules", "scala-xml_2.13.0-RC1")
-    // } else {
+    if (scalaVersion.value == "2.13.0") {
+      "org.scalatest" % "scalatest_2.13.0-RC3" % deps.test.scalaTest % Test exclude("org.scala-lang.modules", "scala-xml_2.13.0-RC3")
+    } else {
       "org.scalatest" %% "scalatest" % deps.test.scalaTest % Test
-    // }
+    }
   }
 )
 
@@ -119,10 +119,10 @@ lazy val core = project.withId(s"$baseNameL-core").in(file("core"))
       "de.sciss"          %% "scalacolliderswing-plotting"  % deps.test.scalaColliderSwing % Test
     ),
     libraryDependencies += {
-      if (scalaVersion.value == "2.13.0-RC2") {
-        "com.github.scopt" % "scopt_2.13.0-RC1" % deps.test.scopt % Test
+      if (scalaVersion.value == "2.13.0") {
+        "org.rogach" % "scallop_2.13.0-RC3" % deps.test.scallop % Test
       } else {
-        "com.github.scopt" %% "scopt" % deps.test.scopt % Test
+        "org.rogach" %% "scallop" % deps.test.scallop % Test
       }
     },
     mimaPreviousArtifacts := Set("de.sciss" %% s"$baseNameL-core" % mimaVersion)

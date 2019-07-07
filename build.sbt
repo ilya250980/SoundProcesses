@@ -1,7 +1,7 @@
 lazy val baseName  = "SoundProcesses"
 lazy val baseNameL = baseName.toLowerCase
 
-lazy val projectVersion = "3.29.2"
+lazy val projectVersion = "3.29.3"
 lazy val mimaVersion    = "3.29.0" // used for migration-manager
 
 lazy val commonSettings = Seq(
@@ -40,14 +40,14 @@ lazy val deps = new {
     val span                = "1.4.2"
     val swingPlus           = "0.4.2"
     val topology            = "1.1.2"
-    val ugens               = "1.19.4"
+    val ugens               = "1.19.5"
   }
   
   val test = new {
     val bdb                = "bdb"  // "bdb" or "bdb6" or "bdb7"
-    val scalaColliderSwing = "1.41.3"
-    val scalaTest          = "3.0.8-RC5"
-    val scallop            = "3.3.0"
+    val scalaColliderSwing = "1.41.4"
+    val scalaTest          = "3.0.8"
+    val scallop            = "3.3.1"
     val submin             = "0.2.5"
   }
 }
@@ -86,11 +86,7 @@ lazy val synth = project.withId("lucresynth").in(file("synth"))
 
 lazy val testSettings = Seq(
   libraryDependencies += {
-    if (scalaVersion.value == "2.13.0") {
-      "org.scalatest" % "scalatest_2.13.0-RC3" % deps.test.scalaTest % Test exclude("org.scala-lang.modules", "scala-xml_2.13.0-RC3")
-    } else {
-      "org.scalatest" %% "scalatest" % deps.test.scalaTest % Test
-    }
+    "org.scalatest" %% "scalatest" % deps.test.scalaTest % Test
   }
 )
 
@@ -108,23 +104,17 @@ lazy val core = project.withId(s"$baseNameL-core").in(file("core"))
     ),
     buildInfoPackage := "de.sciss.synth.proc",
     libraryDependencies ++= Seq(
-      "de.sciss"      %% "span"                     % deps.main.span,              // sbt bug
+      "de.sciss"          %% "span"                         % deps.main.span,              // sbt bug
       "de.sciss"          %% "lucre-confluent"              % deps.main.lucre,
       "de.sciss"          %% "lucre-expr"                   % deps.main.lucre,
       "de.sciss"          %% "scalacollider-if"             % deps.main.scalaColliderIf,
       "de.sciss"          %% "fileutil"                     % deps.main.fileUtil,
       "de.sciss"          %% "equal"                        % deps.main.equal,
-      "org.scala-lang"    %  "scala-compiler"               % scalaVersion.value % Provided,
-      "de.sciss"          %% s"lucre-${deps.test.bdb}"      % deps.main.lucre              % Test,
-      "de.sciss"          %% "scalacolliderswing-plotting"  % deps.test.scalaColliderSwing % Test
+      "org.scala-lang"    %  "scala-compiler"               % scalaVersion.value            % Provided,
+      "de.sciss"          %% s"lucre-${deps.test.bdb}"      % deps.main.lucre               % Test,
+      "de.sciss"          %% "scalacolliderswing-plotting"  % deps.test.scalaColliderSwing  % Test,
+      "org.rogach"        %% "scallop"                      % deps.test.scallop             % Test
     ),
-    libraryDependencies += {
-      if (scalaVersion.value == "2.13.0") {
-        "org.rogach" % "scallop_2.13.0-RC3" % deps.test.scallop % Test
-      } else {
-        "org.rogach" %% "scallop" % deps.test.scallop % Test
-      }
-    },
     mimaPreviousArtifacts := Set("de.sciss" %% s"$baseNameL-core" % mimaVersion)
   )
 

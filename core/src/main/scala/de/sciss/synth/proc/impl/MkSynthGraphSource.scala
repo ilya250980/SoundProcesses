@@ -284,7 +284,7 @@ object MkSynthGraphSource {
       val invoke = if (line.elemName == "BinaryOpUGen") {
         line.args.head.value match {
           case op: BinaryOpUGen.Op =>
-            val opS = uncapitalize(op.name)
+            val opS = op.methodName // uncapitalize(op.name)
             val Seq(_, a, b) = args
             //            val a = if ((opS == "min" || opS == "max") && line.args(1).value.isInstanceOf[Constant])
             //              s"Constant(${a0}f)"
@@ -294,7 +294,7 @@ object MkSynthGraphSource {
       } else if (line.elemName == "UnaryOpUGen") {
         line.args.head.value match {
           case op: UnaryOpUGen.Op =>
-            val opS = uncapitalize(op.name)
+            val opS = op.methodName //uncapitalize(op.name)
             val Seq(_, a) = args
             s"$a.$opS"
         }

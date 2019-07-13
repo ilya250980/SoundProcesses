@@ -172,8 +172,8 @@ object MkSynthGraphSource {
         case single :: Nil if single != "unnamed" => line.valName = Some(single)
         case _ =>
           val nameUp0 = line match {
-            case std: StdGraphLine if std.elemName == "BinaryOpUGen" =>
-              val x = std.args.head.value.getClass.getName
+            case std: StdGraphLine if std.elemName == "BinaryOpUGen" || std.elemName == "UnaryOpUGen" =>
+              val x = std.args.head.value.getClass.getName  // selector's class name
               x.substring(0, x.length - 1)
             case other => other.elemName
           }

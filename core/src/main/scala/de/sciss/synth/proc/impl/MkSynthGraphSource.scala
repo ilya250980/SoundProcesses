@@ -273,6 +273,11 @@ object MkSynthGraphSource {
 
           case r: Rate => r.toString
 
+          // for stuff we currently don't support, but should work: ControlProxy
+          case p: Product =>
+            p.productIterator.map(mkString).mkString(s"${p.productPrefix}(", ", ", ") /* could not parse! */")
+
+          // give up
           case other =>
             s"$other /* could not parse! */"
         }

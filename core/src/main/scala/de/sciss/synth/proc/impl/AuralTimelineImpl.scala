@@ -22,27 +22,19 @@ import de.sciss.lucre.stm.{DummySerializerFactory, Obj}
 import de.sciss.lucre.synth.Sys
 import de.sciss.serial.Serializer
 import de.sciss.synth.proc.AuralObj.Container
-import de.sciss.synth.proc.{AuralContext, AuralObj, Timeline}
+import de.sciss.synth.proc.{AuralContext, AuralObj, Runner, Timeline}
 
 object AuralTimelineImpl {
    private type Leaf[S <: Sys[S]] = AuralTimelineBase.Leaf[S, AuralObj[S]]
 
   import AuralTimelineBase.spanToPoint
 
-  def apply[S <: Sys[S]](timeline: Timeline[S])(implicit tx: S#Tx, context: AuralContext[S]): AuralObj.Timeline[S] = {
+  def apply[S <: Sys[S]](timeline: Timeline[S], attr: Runner.Attr)
+                        (implicit tx: S#Tx, context: AuralContext[S]): AuralObj.Timeline[S] = {
     val system  = tx.system
-    val res     = prepare[S, system.I](timeline, system)
+    val res     = prepare[S, system.I](timeline, system)  // XXX TODO: should we pass on `attr`?
     res.init(timeline)
   }
-
-//  /** An empty view that does not listen for events on the timeline. */
-//  def empty[S <: Sys[S]](timeline: Timeline[S])
-//                        (implicit tx: S#Tx, context: AuralContext[S]): AuralObj.Timeline.Manual[S] = {
-//    println("WARNING: AuralTimelineImpl.empty -- doesn't make any sense; aural views are constructed nevertheless")
-//    val system = tx.system
-//    val res = prepare[S, system.I](timeline, system)
-//    res.init(null)
-//  }
 
   private def prepare[S <: Sys[S], I1 <: stm.Sys[I1]](timeline: Timeline[S], system: S { type I = I1 })
                                                      (implicit tx: S#Tx, context: AuralContext[S]): Impl[S, I1] = {

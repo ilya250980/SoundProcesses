@@ -190,6 +190,8 @@ trait Runner[S <: Sys[S]] extends ViewBase[S, Unit] with IControl[S] {
 
   val universe: Runner.Universe[S]
 
+  def runWith(timeRef: TimeRef.Option, attr: Runner.Attr)(implicit tx: S#Tx): Unit
+
   protected def disposeData()(implicit tx: S#Tx): Unit
 
   // this is implemented so there is no chance of forgetting

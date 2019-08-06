@@ -113,9 +113,9 @@ object BasicRunnerImpl {
       }
     }
 
-    def prepare(timeRef: TimeRef.Option, attr: Runner.Attr)(implicit tx: S#Tx): Unit = {
+    def prepare(timeRef: TimeRef.Option)(implicit tx: S#Tx): Unit = {
       targetState() = Runner.Preparing
-      auralRef().foreach(_.prepare(TimeRef.undefined, attr = attr))
+      auralRef().foreach(_.prepare(TimeRef.undefined))
     }
 
     def run(timeRef: TimeRef.Option, target: Unit)(implicit tx: S#Tx): Unit = {

@@ -16,26 +16,26 @@ package de.sciss.synth.proc.impl
 import de.sciss.lucre.stm
 import de.sciss.lucre.stm.{Obj, Sys}
 import de.sciss.lucre.synth.{Sys => SSys}
-import de.sciss.synth.proc.{Action, AuralContext, AuralObj, Universe}
+import de.sciss.synth.proc.{Action, AuralContext, AuralObj, Runner, TimeRef, Universe}
 
 object AuralActionImpl extends AuralObj.Factory {
   type Repr[S <: Sys[S]]  = Action[S]
   def tpe: Obj.Type       = Action
 
-  def apply[S <: SSys[S]](obj: Action[S])(implicit tx: S#Tx, context: AuralContext[S]): AuralObj.Action[S] = {
+  def apply[S <: SSys[S]](obj: Action[S], attr: Runner.Attr)
+                         (implicit tx: S#Tx, context: AuralContext[S]): AuralObj.Action[S] = {
     val objH = tx.newHandle(obj)
-    new Impl(objH)
+    new Impl(objH, attr.getOrElse("value", ()))
   }
 
-  private final class Impl[S <: SSys[S]](val objH: stm.Source[S#Tx, Action[S]])(implicit context: AuralContext[S])
+  private final class Impl[S <: SSys[S]](val objH: stm.Source[S#Tx, Action[S]], invokeValue: Any)
+                                        (implicit context: AuralContext[S])
     extends ActionRunnerImpl.Base[S, Unit] with AuralObj.Action[S] {
 
-//    implicit protected def genContext: GenContext[S] = context.genContext
-//    implicit protected def scheduler : Scheduler [S] = context.scheduler
-
-//    def handler: Runner.Handler[S] = context.handler
-
     implicit def universe: Universe[S] = context.universe
+
+    def run(timeRef: TimeRef.Option, target: Unit)(implicit tx: S#Tx): Unit =
+      execute(invokeValue = invokeValue)
 
     override def toString = s"AuralAction@${hashCode().toHexString}"
 

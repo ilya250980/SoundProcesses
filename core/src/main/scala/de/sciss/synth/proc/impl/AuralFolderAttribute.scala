@@ -164,10 +164,10 @@ final class AuralFolderAttribute[S <: Sys[S]](val key: String, val objH: stm.Sou
 
   def state(implicit tx: S#Tx): Runner.State = internalRef().external
 
-  def prepare(timeRef: TimeRef.Option, attr: Runner.Attr)(implicit tx: S#Tx): Unit = {
+  def prepare(timeRef: TimeRef.Option)(implicit tx: S#Tx): Unit = {
     if (state != Stopped) return
     val tForce    = timeRef.force
-    val newState  = prepareNoFire(tForce) // XXX TODO --- should we pass on `attr`?
+    val newState  = prepareNoFire(tForce)
     fire(newState.external)
   }
 

@@ -66,7 +66,7 @@ object AuralObjImpl {
 
       // def latencyEstimate(implicit tx: S#Tx): Long = 0L
 
-      def prepare(timeRef: TimeRef.Option, attr: Runner.Attr)(implicit tx: S#Tx): Unit = () // Generic.dummyPrep
+      def prepare(timeRef: TimeRef.Option)(implicit tx: S#Tx): Unit = () // Generic.dummyPrep
 
       def dispose()(implicit tx: S#Tx): Unit = ()
 

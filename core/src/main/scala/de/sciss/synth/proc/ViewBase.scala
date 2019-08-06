@@ -22,12 +22,8 @@ trait ViewBase[S <: Sys[S], -Target] extends Observable[S#Tx, Runner.State] with
   /** Prepares the view to be able to `run`.
     *
     * @param  timeRef   an optional context of temporal position
-    * @param  attr      an optional map for preparation/run parameters, such as attributes
-    *                   referred to by key from the object. Entries in that map should take
-    *                   precedence over attribute found in the object's own attribute map.
-    *                   The attributes are preserved for the subsequent `run` invocation.
     */
-  def prepare(timeRef: TimeRef.Option, attr: Runner.Attr = Map.empty)(implicit tx: S#Tx): Unit
+  def prepare(timeRef: TimeRef.Option)(implicit tx: S#Tx): Unit
 
   /** Runs the view, whatever that means for the particular object. If the object is not
     * prepared and needs preparing, the view will take care of running the `prepare` step

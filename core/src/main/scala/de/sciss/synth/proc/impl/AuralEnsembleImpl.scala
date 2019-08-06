@@ -21,11 +21,11 @@ import de.sciss.model.Change
 import de.sciss.synth.proc.{AuralContext, AuralObj, Ensemble, Runner, TimeRef, Transport, logTransport}
 
 object AuralEnsembleImpl {
-  def apply[S <: Sys[S]](obj: Ensemble[S])
+  def apply[S <: Sys[S]](obj: Ensemble[S], attr: Runner.Attr)
                         (implicit tx: S#Tx, context: AuralContext[S]): AuralObj.Ensemble[S] = {
     val transport = Transport[S](context)
     val ensemble  = obj
-    ensemble.folder.iterator.foreach(transport.addObject)
+    ensemble.folder.iterator.foreach(transport.addObject) // XXX TODO --- should we pass `attr`?
     new Impl(tx.newHandle(obj), transport).init(ensemble)
   }
   

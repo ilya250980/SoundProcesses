@@ -135,7 +135,8 @@ object AuralAttributeImpl {
 
     final def targetOption(implicit tx: S#Tx): Option[Target[S]] = playRef().map(_.target)
 
-    final def prepare(timeRef: TimeRef.Option, attr: Map[String, Any])(implicit tx: S#Tx): Unit = state = Prepared
+    final def prepare(timeRef: TimeRef.Option)(implicit tx: S#Tx): Unit =
+      state = Prepared
 
     final def run(timeRef: TimeRef.Option, target: Target[S])(implicit tx: S#Tx): Unit /* Instance */ = {
       state = Running
@@ -393,7 +394,7 @@ object AuralAttributeImpl {
 
     def state(implicit tx: S#Tx): State = Stopped
 
-    def prepare(timeRef: TimeRef.Option, attr: Runner.Attr)(implicit tx: S#Tx): Unit = ()
+    def prepare(timeRef: TimeRef.Option)(implicit tx: S#Tx): Unit = ()
 
     def run(timeRef: TimeRef.Option, target: Target[S])(implicit tx: S#Tx): Unit = ()
 

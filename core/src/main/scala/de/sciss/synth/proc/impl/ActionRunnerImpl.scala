@@ -18,11 +18,8 @@ import de.sciss.lucre.stm
 import de.sciss.lucre.stm.{Obj, Sys}
 import de.sciss.synth.proc
 import de.sciss.synth.proc.Implicits._
-import de.sciss.synth.proc.Runner.{Prepared, Running, Stopped}
+import de.sciss.synth.proc.Runner.{Attr, Prepared, Running, Stopped}
 import de.sciss.synth.proc.{Action, ObjViewBase, Runner, TimeRef}
-import de.sciss.lucre.stm.TxnLike.peer
-
-import scala.concurrent.stm.Ref
 
 /** The action runner supports passing a value in by
   * using the entry `"value"` in the `prepare` method's `attr` argument.
@@ -32,32 +29,35 @@ object ActionRunnerImpl {
     new Impl(tx.newHandle(obj), universe)
 
   abstract class Base[S <: Sys[S], Target] extends ObjViewBase[S, Target] with BasicViewBaseImpl[S, Target] {
-    implicit def universe: proc.Universe[S]
+    // ---- abstract ----
 
-    private[this] val invokeValueRef = Ref((): Any)
+    implicit def universe: proc.Universe[S]
 
     override def objH: stm.Source[S#Tx, Action[S]]
 
+//    protected def invokeValue(implicit tx: S#Tx): Any
+
+    // ---- impl ----
+
     final def tpe: Obj.Type = Action
 
-    final def prepare(timeRef: TimeRef.Option, attr: Runner.Attr)(implicit tx: S#Tx): Unit = {
+    final def prepare(timeRef: TimeRef.Option)(implicit tx: S#Tx): Unit = {
       state = Prepared
-      if (attr.nonEmpty) invokeValueRef() = attr.getOrElse("value", ())
     }
 
-    final def stop()(implicit tx: S#Tx): Unit = {
+    final def stop()(implicit tx: S#Tx): Unit =
       state = Stopped
-      invokeValueRef() = ()
-    }
 
-    def run(timeRef: TimeRef.Option, target: Target)(implicit tx: S#Tx): Unit = {
+//    def run(timeRef: TimeRef.Option, target: Target)(implicit tx: S#Tx): Unit =
+
+    final protected def execute(invokeValue: Any)(implicit tx: S#Tx): Unit = {
       state = Running
       val action = objH()
       if (!action.muted) {
-        val au = Action.Universe[S](action, value = invokeValueRef())
+        val au = Action.Universe[S](action, value = invokeValue)
         action.execute(au)
       }
-      stop()
+      state = Stopped
     }
   }
 
@@ -67,6 +67,12 @@ object ActionRunnerImpl {
     override def toString = s"Runner.Action${hashCode().toHexString}"
 
     protected def disposeData()(implicit tx: S#Tx): Unit = ()
+
+    def runWith(timeRef: TimeRef.Option, attr: Attr)(implicit tx: S#Tx): Unit =
+      execute(attr.getOrElse("value", ()))
+
+    def run(timeRef: TimeRef.Option, target: Unit)(implicit tx: S#Tx): Unit =
+      execute(())
 
     object progress extends Runner.Progress[S#Tx] with DummyObservableImpl[S] {
       def current(implicit tx: S#Tx): Double = -1

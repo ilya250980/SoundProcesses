@@ -16,12 +16,13 @@ package de.sciss.synth.proc.impl
 import de.sciss.lucre.stm
 import de.sciss.lucre.stm.{Disposable, Folder, Obj}
 import de.sciss.lucre.synth.Sys
-import de.sciss.synth.proc.{AuralContext, AuralObj, TimeRef, Transport}
+import de.sciss.synth.proc.{AuralContext, AuralObj, Runner, TimeRef, Transport}
 
 object AuralFolderImpl {
-  def apply[S <: Sys[S]](folder: Folder[S])(implicit tx: S#Tx, context: AuralContext[S]): AuralObj.Folder[S] = {
+  def apply[S <: Sys[S]](folder: Folder[S], attr: Runner.Attr)
+                        (implicit tx: S#Tx, context: AuralContext[S]): AuralObj.Folder[S] = {
     val transport = Transport[S](context)
-    folder.iterator.foreach(transport.addObject)
+    folder.iterator.foreach(transport.addObject)  // XXX TODO: should we pass `attr`?
     new Impl(tx.newHandle(folder), transport).init(folder)
   }
 

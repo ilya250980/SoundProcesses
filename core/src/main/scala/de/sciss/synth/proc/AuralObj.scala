@@ -32,7 +32,8 @@ object AuralObj {
 
     type Repr[~ <: Sys[~]] <: Obj[~]
 
-    def apply[S <: SSys[S]](obj: Repr[S])(implicit tx: S#Tx, context: AuralContext[S]): AuralObj[S]
+    def apply[S <: SSys[S]](obj: Repr[S], attr: Runner.Attr = Map.empty)
+                           (implicit tx: S#Tx, context: AuralContext[S]): AuralObj[S]
   }
 
   def addFactory(f: Factory): Unit = Impl.addFactory(f)
@@ -73,8 +74,9 @@ object AuralObj {
 
     def tpe: Obj.Type = _Proc
 
-    def apply[S <: SSys[S]](obj: _Proc[S])(implicit tx: S#Tx, context: AuralContext[S]): AuralObj.Proc[S] =
-      AuralProcImpl(obj)
+    def apply[S <: SSys[S]](obj: _Proc[S], attr: Runner.Attr)
+                           (implicit tx: S#Tx, context: AuralContext[S]): AuralObj.Proc[S] =
+      AuralProcImpl(obj, attr)
 
     sealed trait Update[S <: Sys[S]] {
       def proc: Proc[S]
@@ -154,16 +156,11 @@ object AuralObj {
 
     def tpe: Obj.Type = _Timeline
 
-    def apply[S <: SSys[S]](obj: _Timeline[S])(implicit tx: S#Tx, context: AuralContext[S]): AuralObj.Timeline[S] =
-      AuralTimelineImpl(obj)
-
-//    /** Creates an empty view that can be manually populated by calling `addObject`. */
-//    def empty[S <: SSys[S]](obj: _Timeline[S])(implicit tx: S#Tx, context: AuralContext[S]): Manual[S] =
-//      AuralTimelineImpl.empty(obj)
+    def apply[S <: SSys[S]](obj: _Timeline[S], attr: Runner.Attr)
+                           (implicit tx: S#Tx, context: AuralContext[S]): AuralObj.Timeline[S] =
+      AuralTimelineImpl(obj, attr)
 
     trait Manual[S <: Sys[S]] extends Timeline[S] {
-      // def addObject   (timed: _Timeline.Timed[S])(implicit tx: S#Tx): Unit
-      // def removeObject(timed: _Timeline.Timed[S])(implicit tx: S#Tx): Unit
       def addObject   (id: S#Id, span: SpanLikeObj[S], obj: Obj[S])(implicit tx: S#Tx): Unit
       def removeObject(id: S#Id, span: SpanLikeObj[S], obj: Obj[S])(implicit tx: S#Tx): Unit
     }
@@ -187,8 +184,9 @@ object AuralObj {
 
     def tpe: Obj.Type = _Ensemble
 
-    def apply[S <: SSys[S]](obj: _Ensemble[S])(implicit tx: S#Tx, context: AuralContext[S]): AuralObj.Ensemble[S] =
-      AuralEnsembleImpl(obj)
+    def apply[S <: SSys[S]](obj: _Ensemble[S], attr: Runner.Attr)
+                           (implicit tx: S#Tx, context: AuralContext[S]): AuralObj.Ensemble[S] =
+      AuralEnsembleImpl(obj, attr)
   }
   trait Ensemble[S <: Sys[S]] extends FolderLike[S, Ensemble[S]] {
     override def objH: stm.Source[S#Tx, _Ensemble[S]]
@@ -201,8 +199,9 @@ object AuralObj {
 
     def tpe: Obj.Type = _Folder
 
-    def apply[S <: SSys[S]](obj: _Folder[S])(implicit tx: S#Tx, context: AuralContext[S]): AuralObj.Folder[S] =
-      AuralFolderImpl(obj)
+    def apply[S <: SSys[S]](obj: _Folder[S], attr: Runner.Attr)
+                           (implicit tx: S#Tx, context: AuralContext[S]): AuralObj.Folder[S] =
+      AuralFolderImpl(obj, attr)
   }
   trait Folder[S <: Sys[S]] extends FolderLike[S, Folder[S]] {
     override def objH: stm.Source[S#Tx, _Folder[S]]
@@ -215,8 +214,9 @@ object AuralObj {
 
     def tpe: Obj.Type = _Action
 
-    def apply[S <: SSys[S]](obj: _Action[S])(implicit tx: S#Tx, context: AuralContext[S]): AuralObj.Action[S] =
-      AuralActionImpl(obj)
+    def apply[S <: SSys[S]](obj: _Action[S], attr: Runner.Attr)
+                           (implicit tx: S#Tx, context: AuralContext[S]): AuralObj.Action[S] =
+      AuralActionImpl(obj, attr)
   }
   trait Action[S <: Sys[S]] extends AuralObj[S] {
     override def objH: stm.Source[S#Tx, _Action[S]]

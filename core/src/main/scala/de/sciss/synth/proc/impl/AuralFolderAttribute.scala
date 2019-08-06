@@ -75,14 +75,14 @@ final class AuralFolderAttribute[S <: Sys[S]](val key: String, val objH: stm.Sou
 
   def tpe: Obj.Type = Folder
 
-  private[this] val childAttrRef    = Ref.make[Vector[Elem]]
-
   import AuralFolderAttribute.{IPlaying, IPreparing, IStopped, InternalState}
 
-  private[this] val _IStopped = IStopped[S]()
-  private[this] val internalRef = Ref[InternalState[S]](_IStopped)
+  private[this] val childAttrRef  = Ref.make[Vector[Elem]]
+  private[this] val _IStopped     = IStopped[S]()
+  private[this] val internalRef   = Ref[InternalState[S]](_IStopped)
+  private[this] val prefChansRef  = Ref(-2)    // -2 = cache invalid
+
   private[this] var obs: Disposable[S#Tx] = _
-  private[this] val prefChansRef = Ref(-2)    // -2 = cache invalid
 
   def targetOption(implicit tx: S#Tx): Option[Target[S]] = internalRef() match {
     case IPlaying(_, _, target) => Some(target)
@@ -164,10 +164,10 @@ final class AuralFolderAttribute[S <: Sys[S]](val key: String, val objH: stm.Sou
 
   def state(implicit tx: S#Tx): Runner.State = internalRef().external
 
-  def prepare(timeRef: TimeRef.Option)(implicit tx: S#Tx): Unit = {
+  def prepare(timeRef: TimeRef.Option, attr: Runner.Attr)(implicit tx: S#Tx): Unit = {
     if (state != Stopped) return
     val tForce    = timeRef.force
-    val newState  = prepareNoFire(tForce)
+    val newState  = prepareNoFire(tForce) // XXX TODO --- should we pass on `attr`?
     fire(newState.external)
   }
 

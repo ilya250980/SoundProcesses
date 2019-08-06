@@ -19,7 +19,8 @@ For tutorials, see the [Mellite website](https://www.sciss.de/mellite/tutorials.
 
 ## building
 
-SoundProcesses builds with sbt and Scala 2.13, 2.12, 2.11. The dependencies should be downloaded automatically from maven central repository.
+SoundProcesses builds with sbt and Scala 2.13, 2.12 (last version to support Scala 2.11 was 3.31.0).
+The dependencies should be downloaded automatically from maven central repository.
 
 ## linking
 
@@ -27,7 +28,7 @@ The following dependency is necessary:
 
     "de.sciss" %% "soundprocesses" % v
 
-The current version `v` is `"3.30.0"`.
+The current version `v` is `"3.31.0"`.
 
 The following sub modules are available:
 

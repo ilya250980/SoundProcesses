@@ -240,7 +240,7 @@ object Code {
           |""".stripMargin
       ),
       Example("Attributes", 'a',
-        """for {
+        /* this is OK, no missing interpolator */ """for {
           |  i <- self.attr.$[IntObj]("int")
           |} {
           |  println(s"Value is ${i.value}")

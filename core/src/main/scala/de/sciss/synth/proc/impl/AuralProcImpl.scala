@@ -489,7 +489,7 @@ object AuralProcImpl {
           throw MissingIn(i.key)
         }
         val res = if (found >= 0) found else if (reqNum >= 0) reqNum else defNum
-        UGB.Input.Scalar.Value(res)
+        UGB.Input.Scalar.Value(res) // IntelliJ highlight bug
 
       case i: UGB.Input.Stream =>
         val procObj       = procCached()
@@ -929,7 +929,7 @@ object AuralProcImpl {
         val prep = setPlayingPrepare(res)
         tx.afterCommit {
           import SoundProcesses.executionContext
-          val reduced = Future.reduce(res)((_, _) => ()) // reduceLeft requires Scala 2.12
+          val reduced = Future.reduceLeft(res)((_, _) => ())
           reduced.foreach { _ =>
             cursor.step { implicit tx =>
               if (playingRef() == prep) {

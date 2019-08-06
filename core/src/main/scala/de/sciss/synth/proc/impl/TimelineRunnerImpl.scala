@@ -100,9 +100,9 @@ object TimelineRunnerImpl {
       }
     }
 
-    def prepare(timeRef: TimeRef.Option)(implicit tx: S#Tx): Unit = {
+    def prepare(timeRef: TimeRef.Option, attr: Runner.Attr)(implicit tx: S#Tx): Unit = {
       targetState() = Runner.Preparing
-      auralRef().foreach(_.prepare(timeRef))
+      auralRef().foreach(_.prepare(timeRef))  // XXX TODO --- should we pass on `attr`?
     }
 
     def run(timeRef: TimeRef.Option, target: Unit)(implicit tx: S#Tx): Unit = {

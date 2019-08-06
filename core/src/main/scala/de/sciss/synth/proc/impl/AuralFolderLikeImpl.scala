@@ -95,8 +95,9 @@ trait AuralFolderLikeImpl[S <: Sys[S], Repr <: Obj[S], View <: AuralObj.FolderLi
     state = Runner.Running
   }
 
-  final def prepare(timeRef: TimeRef.Option)(implicit tx: S#Tx): Unit = {
+  final def prepare(timeRef: TimeRef.Option, attr: Runner.Attr)(implicit tx: S#Tx): Unit = {
     if (state != Runner.Stopped) return
+    // XXX TODO --- should we preserve `attr`?
     Console.err.println("TODO: AuralObj.FolderLike.prepare") // XXX TODO
     state = Runner.Prepared
   }

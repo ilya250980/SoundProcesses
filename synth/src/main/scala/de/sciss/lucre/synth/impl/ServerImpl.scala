@@ -52,7 +52,7 @@ object ServerImpl {
     futures match {
       case Vec()        => Future.successful(())
       case Vec(single)  => single
-      case _ /* more */ => Future.reduce(futures)((_, _) => ()) // reduceLeft requires Scala 2.12
+      case _ /* more */ => Future.reduceLeft(futures)((_, _) => ())
     }
 
   private final case class OnlineImpl(peer: SServer) extends Impl {
@@ -372,7 +372,7 @@ object ServerImpl {
                                                                       it = it, addSize = 20) { packets =>
             perform_!!(tt, packets)
           } (_ :+ _)
-          Future.reduce[Unit, Unit](futures)((_, _) => ()) // reduceLeft requires Scala 2.12
+          Future.reduceLeft[Unit, Unit](futures)((_, _) => ())
         }
       } else {
         perform_!!(tt, b.packets)

@@ -28,11 +28,43 @@ import de.sciss.synth.proc.{Action => _Action, Proc => _Proc, Timeline => _Timel
 import scala.language.higherKinds
 
 object Runner {
-  sealed trait State { def id: Int }
-  case object Stopped   extends State { final val id = 0 }
-  case object Preparing extends State { final val id = 1 }
-  case object Prepared  extends State { final val id = 2 }
-  case object Running   extends State { final val id = 3 }
+  sealed trait State {
+    def id: Int
+
+    /** Stopped or completed. */
+    def idle: Boolean
+  }
+
+  /** The initial state of an object and after `stop` has been called and performed.
+    * If an object comes to a halt by itself, it will depend on the type of object
+    * whether it goes back to `Stopped` or finishes with `Done`.
+    */
+  case object Stopped extends State {
+    final val id    = 0
+    final val idle  = true
+  }
+  case object Preparing extends State {
+    final val id    = 1
+    final val idle  = false
+  }
+  case object Prepared extends State {
+    final val id    = 2
+    final val idle  = false
+  }
+  case object Running extends State {
+    final val id    = 3
+    final val idle  = false
+  }
+  case object Done extends State {
+    final val id    = 4
+    final val idle  = true
+  }
+  final case class Failed(ex: Throwable) extends State {
+    final val id    = 5
+    final val idle  = true
+  }
+
+  type Attr = Map[String, Any]
 
   object Universe {
     sealed trait Update[S <: Sys[S]]

@@ -116,6 +116,7 @@ object AuralObj {
 
     def ports: Observable[S#Tx, Proc.Update[S]]
 
+    // used by Nuages
     def getAttr  (key: String)(implicit tx: S#Tx): Option[AuralAttribute[S]]
     def getOutput(key: String)(implicit tx: S#Tx): Option[AuralOutput   [S]]
   }

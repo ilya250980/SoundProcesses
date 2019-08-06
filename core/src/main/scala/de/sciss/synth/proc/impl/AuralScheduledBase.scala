@@ -233,10 +233,10 @@ trait AuralScheduledBase[S <: Sys[S], Target, Elem <: ViewBase[S, Target]]
 
   // ----
 
-  final def prepare(timeRef: TimeRef.Option)(implicit tx: S#Tx): Unit = {
+  final def prepare(timeRef: TimeRef.Option, attr: Runner.Attr)(implicit tx: S#Tx): Unit = {
     if (state != Stopped) return
     val tForce    = timeRef.force
-    val newState  = prepareNoFire(tForce)
+    val newState  = prepareNoFire(tForce) // XXX TODO should we pass on `attr`?
     fire(newState.external)
   }
 

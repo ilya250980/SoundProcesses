@@ -20,7 +20,13 @@ import de.sciss.synth.proc
 import de.sciss.synth.proc.Implicits._
 import de.sciss.synth.proc.Runner.{Prepared, Running, Stopped}
 import de.sciss.synth.proc.{Action, ObjViewBase, Runner, TimeRef}
+import de.sciss.lucre.stm.TxnLike.peer
 
+import scala.concurrent.stm.Ref
+
+/** The action runner supports passing a value in by
+  * using the entry `"value"` in the `prepare` method's `attr` argument.
+  */
 object ActionRunnerImpl {
   def apply[S <: Sys[S]](obj: Action[S])(implicit tx: S#Tx, universe: Runner.Universe[S]): Runner[S] =
     new Impl(tx.newHandle(obj), universe)
@@ -28,32 +34,30 @@ object ActionRunnerImpl {
   abstract class Base[S <: Sys[S], Target] extends ObjViewBase[S, Target] with BasicViewBaseImpl[S, Target] {
     implicit def universe: proc.Universe[S]
 
-//    implicit protected       def scheduler : Scheduler       [S]
-//    implicit protected       def genContext: GenContext      [S]
-//
-//    implicit protected final def workspace : WorkspaceHandle [S] = genContext.workspace
-//    implicit protected final def cursor    : Cursor          [S] = genContext.cursor
+    private[this] val invokeValueRef = Ref((): Any)
 
     override def objH: stm.Source[S#Tx, Action[S]]
 
-//    final def factory: Runner.Factory = Runner.Action
-
     final def tpe: Obj.Type = Action
 
-    final def prepare(timeRef: TimeRef.Option)(implicit tx: S#Tx): Unit =
+    final def prepare(timeRef: TimeRef.Option, attr: Runner.Attr)(implicit tx: S#Tx): Unit = {
       state = Prepared
+      if (attr.nonEmpty) invokeValueRef() = attr.getOrElse("value", ())
+    }
 
-    final def stop()(implicit tx: S#Tx): Unit =
+    final def stop()(implicit tx: S#Tx): Unit = {
       state = Stopped
+      invokeValueRef() = ()
+    }
 
     def run(timeRef: TimeRef.Option, target: Target)(implicit tx: S#Tx): Unit = {
       state = Running
       val action = objH()
       if (!action.muted) {
-        val au = Action.Universe[S](action)
+        val au = Action.Universe[S](action, value = invokeValueRef())
         action.execute(au)
       }
-      state = Stopped
+      stop()
     }
   }
 

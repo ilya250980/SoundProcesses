@@ -18,7 +18,7 @@ import de.sciss.lucre.stm.{Disposable, Obj, TxnLike}
 import de.sciss.lucre.synth.Sys
 import de.sciss.synth.proc.AuralAttribute.{Factory, Observer, Target}
 import de.sciss.synth.proc.Runner.{Prepared, Running, Stopped}
-import de.sciss.synth.proc.{AuralAttribute, AuralContext, AuralOutput, AuxContext, Output, TimeRef}
+import de.sciss.synth.proc.{AuralAttribute, AuralContext, AuralOutput, AuxContext, Output, Runner, TimeRef}
 
 import scala.concurrent.stm.Ref
 
@@ -79,7 +79,8 @@ final class AuralOutputAttribute[S <: Sys[S]](val key: String, val objH: stm.Sou
     playRef().foreach(update(_, auralOutput))
   }
 
-  def prepare(timeRef: TimeRef.Option)(implicit tx: S#Tx): Unit = state = Prepared
+  def prepare(timeRef: TimeRef.Option, attr: Runner.Attr)(implicit tx: S#Tx): Unit =
+    state = Prepared
 
   def run(timeRef: TimeRef.Option, target: Target[S])(implicit tx: S#Tx): Unit /* Instance */ = {
     // println(s"PLAY $this")

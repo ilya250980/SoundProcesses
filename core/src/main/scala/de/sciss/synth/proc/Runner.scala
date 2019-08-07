@@ -22,7 +22,7 @@ import de.sciss.lucre.stm
 import de.sciss.lucre.stm.{Cursor, Obj, Sys}
 import de.sciss.lucre.synth.{Sys => SSys}
 import de.sciss.synth.proc
-import de.sciss.synth.proc.impl.{ActionRunnerImpl, BasicRunnerImpl, TimelineRunnerImpl, RunnerUniverseImpl => Impl}
+import de.sciss.synth.proc.impl.{ActionRunnerImpl, BasicAuralRunnerImpl, TimelineRunnerImpl, RunnerUniverseImpl => Impl}
 import de.sciss.synth.proc.{Action => _Action, Proc => _Proc, Timeline => _Timeline}
 
 import scala.language.higherKinds
@@ -33,6 +33,8 @@ object Runner {
 
     /** Stopped or completed. */
     def idle: Boolean
+
+    def idleOrPrepared: Boolean
   }
 
   /** The initial state of an object and after `stop` has been called and performed.
@@ -40,28 +42,35 @@ object Runner {
     * whether it goes back to `Stopped` or finishes with `Done`.
     */
   case object Stopped extends State {
-    final val id    = 0
-    final val idle  = true
+    final val id              = 0
+    final val idle            = true
+    final val idleOrPrepared  = true
   }
   case object Preparing extends State {
-    final val id    = 1
-    final val idle  = false
+    final val id              = 1
+    final val idle            = false
+    final val idleOrPrepared  = false
   }
   case object Prepared extends State {
-    final val id    = 2
-    final val idle  = false
+    final val id              = 2
+    /** Note: this reports `false` */
+    final val idle            = false
+    final val idleOrPrepared  = true
   }
   case object Running extends State {
-    final val id    = 3
-    final val idle  = false
+    final val id              = 3
+    final val idle            = false
+    final val idleOrPrepared  = false
   }
   case object Done extends State {
-    final val id    = 4
-    final val idle  = true
+    final val id              = 4
+    final val idle            = true
+    final val idleOrPrepared  = true
   }
   final case class Failed(ex: Throwable) extends State {
-    final val id    = 5
-    final val idle  = true
+    final val id              = 5
+    final val idle            = true
+    final val idleOrPrepared  = true
   }
 
   type Attr = Map[String, Any]
@@ -143,7 +152,7 @@ object Runner {
     type Repr[~ <: Sys[~]] = _Proc[~]
 
     def mkRunner[S <: SSys[S]](obj: _Proc[S])(implicit tx: S#Tx, universe: Runner.Universe[S]): Runner[S] =
-      BasicRunnerImpl(obj)
+      BasicAuralRunnerImpl(obj)
   }
 
   object Timeline extends Factory {

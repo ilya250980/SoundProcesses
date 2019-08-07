@@ -32,6 +32,11 @@ trait BasicViewBaseImpl[S <: Sys[S], -Target]
 
   final protected def state_=(now: Runner.State)(implicit tx: S#Tx): Unit = {
     val before = stateRef.swap(now)
-    if (before != now) fire(now)
+    if (before != now) {
+      stateWillChanged(now)
+      fire(now)
+    }
   }
+
+  protected def stateWillChanged(now: Runner.State)(implicit tx: S#Tx): Unit = ()
 }

@@ -32,7 +32,7 @@ object AuralObj {
 
     type Repr[~ <: Sys[~]] <: Obj[~]
 
-    def apply[S <: SSys[S]](obj: Repr[S], attr: Runner.Attr = Map.empty)
+    def apply[S <: SSys[S]](obj: Repr[S], attr: Runner.Attr)
                            (implicit tx: S#Tx, context: AuralContext[S]): AuralObj[S]
   }
 
@@ -40,7 +40,8 @@ object AuralObj {
 
   def factories: Iterable[Factory] = Impl.factories
 
-  def apply[S <: SSys[S]](obj: Obj[S])(implicit tx: S#Tx, context: AuralContext[S]): AuralObj[S] = Impl(obj)
+  def apply[S <: SSys[S]](obj: Obj[S], attr: Runner.Attr = Map.empty)
+                         (implicit tx: S#Tx, context: AuralContext[S]): AuralObj[S] = Impl(obj, attr = attr)
 
   /* The target state indicates the eventual state the process should have,
      independent of the current state which might not yet be ready.
@@ -74,7 +75,7 @@ object AuralObj {
 
     def tpe: Obj.Type = _Proc
 
-    def apply[S <: SSys[S]](obj: _Proc[S], attr: Runner.Attr)
+    def apply[S <: SSys[S]](obj: _Proc[S], attr: Runner.Attr = Map.empty)
                            (implicit tx: S#Tx, context: AuralContext[S]): AuralObj.Proc[S] =
       AuralProcImpl(obj, attr)
 
@@ -156,7 +157,7 @@ object AuralObj {
 
     def tpe: Obj.Type = _Timeline
 
-    def apply[S <: SSys[S]](obj: _Timeline[S], attr: Runner.Attr)
+    def apply[S <: SSys[S]](obj: _Timeline[S], attr: Runner.Attr = Map.empty)
                            (implicit tx: S#Tx, context: AuralContext[S]): AuralObj.Timeline[S] =
       AuralTimelineImpl(obj, attr)
 

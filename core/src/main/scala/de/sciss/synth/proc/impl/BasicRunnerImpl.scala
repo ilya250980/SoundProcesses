@@ -18,7 +18,8 @@ import de.sciss.lucre.stm
 import de.sciss.lucre.stm.TxnLike.peer
 import de.sciss.lucre.stm.{Cursor, Disposable, Obj, Sys, Workspace}
 import de.sciss.lucre.synth.{Sys => SSys}
-import de.sciss.synth.proc.{AuralObj, Proc, Runner, TimeRef, Transport}
+import de.sciss.synth.proc.Runner.Attr
+import de.sciss.synth.proc.{AuralContext, AuralObj, Runner, TimeRef}
 
 import scala.concurrent.stm.Ref
 
@@ -56,44 +57,34 @@ trait BasicRunnerImpl[S <: Sys[S]]
   }
 }
 
+/** An implementation that maintains an `AuralObj` of the object which is run and stopped. */
+trait BasicAuralRunnerImpl[S <: SSys[S]] extends AuralSystemTxBridge[S] with BasicRunnerImpl[S] {
+  def initRunner(obj: Obj[S])(implicit tx: S#Tx): this.type = {
+    this
+  }
+}
+
 object BasicRunnerImpl {
   def apply[S <: SSys[S]](obj: Obj[S])(implicit tx: S#Tx, universe: Runner.Universe[S]): Runner[S] = {
-    // the transport is simply to get the work done of dynamically creating
-    // an aural-obj... a bit of a resource waste?
-    val t = Transport[S](universe)
-    t.addObject(obj)
-    new Impl(tx.newHandle(obj), t, universe).initRunner(obj)
+    new Impl(tx.newHandle(obj), obj.tpe, universe).initRunner(obj)
   }
 
-  private final class Impl[S <: Sys[S]](val objH: stm.Source[S#Tx, Obj[S]],
-                                        t: Transport[S],
+  private final class Impl[S <: SSys[S]](val objH: stm.Source[S#Tx, Obj[S]], tpe: Obj.Type,
                                         val universe: Runner.Universe[S])
-    extends BasicRunnerImpl[S] {
+    extends BasicAuralRunnerImpl[S] {
 
-    override def toString = s"Runner.Proc${hashCode().toHexString}"
+    override def toString = s"Runner(${tpe.typeId})@{hashCode().toHexString}"
 
-    def tpe: Obj.Type = Proc
+//    def tpe: Obj.Type = Proc
 
     private[this] val dispatchedState = Ref[Runner.State](Runner.Stopped)
     private[this] val targetState     = Ref[Runner.State](Runner.Stopped)
     private[this] val auralRef        = Ref(Option.empty[AuralObj[S]])
     private[this] val auralObs        = Ref(Disposable.empty[S#Tx])
+    private[this] val contextRef      = Ref(Option.empty[AuralContext[S]])
 
     object progress extends Runner.Progress[S#Tx] with DummyObservableImpl[S] {
       def current(implicit tx: S#Tx): Double = -1
-    }
-
-    def initRunner(obj: Obj[S])(implicit tx: S#Tx): this.type = {
-      val vOpt = t.getView(obj)
-      vOpt.foreach(auralViewAdded)
-      // no need to store the observer, as the transport
-      // will be disposed with the runner
-      /* tObs = */ t.react { implicit tx => {
-        case Transport.ViewAdded  (_, v) => auralViewAdded  (v)
-        case Transport.ViewRemoved(_, v) => auralViewRemoved(v)
-        case _ =>
-      }}
-      this
     }
 
     private def auralViewAdded(v: AuralObj[S])(implicit tx: S#Tx): Unit = {
@@ -132,7 +123,13 @@ object BasicRunnerImpl {
 //      auralRef().foreach(_.prepare(TimeRef.undefined))
 //    }
 
-    def run(attr: Runner.Attr)(implicit tx: S#Tx): Unit = {
+    def prepare(attr: Attr)(implicit tx: S#Tx): Unit = {
+
+      targetState() = Runner.Preparing
+      auralRef().foreach(_.prepare(TimeRef.undefined))
+    }
+
+    def run()(implicit tx: S#Tx): Unit = {
       targetState() = Runner.Running
       auralRef().foreach(_.play())
     }
@@ -142,9 +139,13 @@ object BasicRunnerImpl {
       auralRef().foreach(_.stop())
     }
 
+    protected def auralStartedTx()(implicit tx: S#Tx, auralContext: AuralContext[S]): Unit = ???
+
+    protected def auralStoppedTx()(implicit tx: S#Tx): Unit = ???
+
     protected def disposeData()(implicit tx: S#Tx): Unit = {
+      disconnectAuralSystem()
       auralObs.swap(Disposable.empty).dispose()
-      t.dispose()
     }
   }
 }

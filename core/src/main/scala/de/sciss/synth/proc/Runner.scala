@@ -188,7 +188,9 @@ trait Runner[S <: Sys[S]] extends ViewBase[S, Unit] with IControl[S] {
 
   val universe: Runner.Universe[S]
 
-  def run(attr: Runner.Attr = Map.empty)(implicit tx: S#Tx): Unit
+  def prepare(attr: Runner.Attr = Map.empty)(implicit tx: S#Tx): Unit
+
+  def run()(implicit tx: S#Tx): Unit
 
   /*
   - allow both for a `self` and an `invoker` (`Action.Universe`)

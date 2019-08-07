@@ -68,8 +68,10 @@ object ActionRunnerImpl {
 
     protected def disposeData()(implicit tx: S#Tx): Unit = ()
 
-    def run(attr: Attr)(implicit tx: S#Tx): Unit =
-      execute(attr.getOrElse("value", ()))
+    def prepare(attr: Attr)(implicit tx: S#Tx): Unit = ???
+
+    def run()(implicit tx: S#Tx): Unit =
+      execute(???)
 
     def run(timeRef: TimeRef.Option, target: Unit)(implicit tx: S#Tx): Unit =
       execute(())

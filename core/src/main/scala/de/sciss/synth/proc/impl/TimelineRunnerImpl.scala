@@ -26,15 +26,10 @@ import scala.concurrent.stm.Ref
 
 object TimelineRunnerImpl {
   def apply[S <: Sys[S]](obj: Timeline[S])(implicit tx: S#Tx, universe: Runner.Universe[S]): Runner[S] = {
-    // the transport is simply to get the work done of dynamically creating
-    // an aural-obj... a bit of a resource waste?
-    val t = Transport[S](universe)
-    t.addObject(obj)
-    new Impl(tx.newHandle(obj), t, universe).init(obj)
+    new Impl(tx.newHandle(obj), universe).init(obj)
   }
 
   private final class Impl[S <: Sys[S]](val objH: stm.Source[S#Tx, Timeline[S]],
-                                        t: Transport[S],
                                         val universe: Universe[S])
     extends BasicRunnerImpl[S] {
 
@@ -57,15 +52,16 @@ object TimelineRunnerImpl {
     //    def factory: Runner.Factory = Runner.Timeline
 
     def init(obj: Timeline[S])(implicit tx: S#Tx): this.type = {
-      val vOpt = t.getView(obj)
-      vOpt.foreach(auralViewAdded)
-      // no need to store the observer, as the transport
-      // will be disposed with the runner
-      /* tObs = */ t.react { implicit tx => {
-        case Transport.ViewAdded  (_, v) => auralViewAdded  (v)
-        case Transport.ViewRemoved(_, v) => auralViewRemoved(v)
-        case _ =>
-      }}
+      ???
+//      val vOpt = t.getView(obj)
+//      vOpt.foreach(auralViewAdded)
+//      // no need to store the observer, as the transport
+//      // will be disposed with the runner
+//      /* tObs = */ t.react { implicit tx => {
+//        case Transport.ViewAdded  (_, v) => auralViewAdded  (v)
+//        case Transport.ViewRemoved(_, v) => auralViewRemoved(v)
+//        case _ =>
+//      }}
       this
     }
 
@@ -85,8 +81,8 @@ object TimelineRunnerImpl {
       }
       if (vs != ts) ts match {
         case Runner.Stopped   => stop   ()
-        case Runner.Preparing => prepare(TimeRef.undefined)
-        case Runner.Running   => run    (TimeRef.undefined, ())
+        case Runner.Preparing => prepare(???) // TimeRef.undefined)
+        case Runner.Running   => run    ()
         case _ =>
       }
     }
@@ -100,12 +96,12 @@ object TimelineRunnerImpl {
       }
     }
 
-    def prepare(timeRef: TimeRef.Option, attr: Runner.Attr)(implicit tx: S#Tx): Unit = {
+    def prepare(attr: Runner.Attr)(implicit tx: S#Tx): Unit = {
       targetState() = Runner.Preparing
-      auralRef().foreach(_.prepare(timeRef))  // XXX TODO --- should we pass on `attr`?
+      auralRef().foreach(_.prepare(???))  // XXX TODO --- should we pass on `attr`?
     }
 
-    def run(runAttr: Runner.Attr)(implicit tx: S#Tx): Unit = {
+    def run()(implicit tx: S#Tx): Unit = {
       targetState() = Runner.Running
       auralRef().foreach { v =>
         val timeRef = TimeRef.Undefined
@@ -115,14 +111,14 @@ object TimelineRunnerImpl {
           val now = timeRef.force.span.start
           val dt  = timeStop - now
           if (dt > 0) {
-            val sch   = t.universe.scheduler
+            val sch   = universe.scheduler
             val timeS = sch.time
             val token = sch.schedule(timeS + dt) { implicit tx =>
               val tl    = objH()
               val loop  = tl.attr.$[BooleanObj]("loop").exists(_.value) // bit of a hack LOL
               if (loop) {
                 stop()
-                run(runAttr = runAttr)
+                run()
               }
             }
             cancelSch()
@@ -134,7 +130,7 @@ object TimelineRunnerImpl {
 
     private def cancelSch()(implicit tx: S#Tx): Unit = {
       val token = schToken.swap(-1)
-      if (token >= 0) t.universe.scheduler.cancel(token)
+      if (token >= 0) universe.scheduler.cancel(token)
     }
 
     def stop()(implicit tx: S#Tx): Unit = {
@@ -146,7 +142,7 @@ object TimelineRunnerImpl {
     protected def disposeData()(implicit tx: S#Tx): Unit = {
       cancelSch()
       auralObs.swap(Disposable.empty).dispose()
-      t.dispose()
+//      t.dispose()
     }
   }
 }

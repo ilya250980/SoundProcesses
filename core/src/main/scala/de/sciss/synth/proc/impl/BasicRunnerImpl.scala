@@ -27,7 +27,7 @@ import scala.annotation.tailrec
 import scala.concurrent.stm.Ref
 
 trait BasicRunnerImpl[S <: Sys[S]]
-  extends Runner[S] with BasicViewBaseImpl[S, Unit] {
+  extends Runner[S] with BasicViewBaseImpl[S] {
 
   // ---- abstract ----
 
@@ -133,6 +133,8 @@ trait BasicAuralRunnerImpl[S <: SSys[S]] extends AuralSystemTxBridge[S] with Bas
               mkRef()
               matchStates()
             }
+
+          case _ => assert(assertion = false, tgt.toString)
         }
       case None =>
         tgt match {

@@ -16,4 +16,4 @@ package de.sciss.synth.proc.impl
 import de.sciss.lucre.stm.Sys
 import de.sciss.synth.proc.AuralObj
 
-trait BasicAuralObjImpl[S <: Sys[S]] extends AuralObj[S] with BasicViewBaseImpl[S, Unit]
+trait BasicAuralObjImpl[S <: Sys[S]] extends AuralObj[S] with BasicViewBaseImpl[S]

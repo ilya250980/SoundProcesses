@@ -28,14 +28,12 @@ object ActionRunnerImpl {
   def apply[S <: Sys[S]](obj: Action[S])(implicit tx: S#Tx, universe: Runner.Universe[S]): Runner[S] =
     new Impl(tx.newHandle(obj), universe)
 
-  abstract class Base[S <: Sys[S], Target] extends ObjViewBase[S, Target] with BasicViewBaseImpl[S, Target] {
+  abstract class Base[S <: Sys[S], Target] extends ObjViewBase[S, Target] with BasicViewBaseImpl[S] {
     // ---- abstract ----
 
     implicit def universe: proc.Universe[S]
 
-    override def objH: stm.Source[S#Tx, Action[S]]
-
-//    protected def invokeValue(implicit tx: S#Tx): Any
+    type Repr = Action[S]
 
     // ---- impl ----
 
@@ -52,7 +50,7 @@ object ActionRunnerImpl {
 
     final protected def execute(invokeValue: Any)(implicit tx: S#Tx): Unit = {
       state = Running
-      val action = objH()
+      val action = obj
       if (!action.muted) {
         val au = Action.Universe[S](action, value = invokeValue)
         action.execute(au)
@@ -61,12 +59,14 @@ object ActionRunnerImpl {
     }
   }
 
-  private final class Impl[S <: Sys[S]](val objH: stm.Source[S#Tx, Action[S]], override val universe: Runner.Universe[S])
+  private final class Impl[S <: Sys[S]](objH: stm.Source[S#Tx, Action[S]], override val universe: Runner.Universe[S])
     extends Base[S, Unit] with BasicRunnerImpl[S] {
 
     override def toString = s"Runner.Action${hashCode().toHexString}"
 
     protected def disposeData()(implicit tx: S#Tx): Unit = ()
+
+    override def obj(implicit tx: S#Tx): Action[S] = objH()
 
     def prepare(attr: Attr)(implicit tx: S#Tx): Unit = ???
 

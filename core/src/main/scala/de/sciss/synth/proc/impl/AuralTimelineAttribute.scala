@@ -58,7 +58,7 @@ object AuralTimelineAttribute extends Factory {
   }
 }
 final class AuralTimelineAttribute[S <: Sys[S], I <: stm.Sys[I]](val key: String,
-                                                                 val objH: stm.Source[S#Tx, Timeline[S]],
+                                                                 objH: stm.Source[S#Tx, Timeline[S]],
                                                                  observer: Observer[S],
                                                                  protected val tree: SkipOctree[I, LongSpace.TwoDim, AuralTimelineAttribute.Leaf[S]])
         (implicit protected val context: AuralContext[S], protected val iSys: S#Tx => I#Tx)
@@ -70,6 +70,8 @@ final class AuralTimelineAttribute[S <: Sys[S], I <: stm.Sys[I]](val key: String
   import TxnLike.peer
 
   type Elem = AuralAttribute[S]
+
+  def obj(implicit tx: S#Tx): Timeline[S] = objH()
 
   // we sample the first encountered objects for which temporary views
   // have to built in order to get the number-of-channels. these

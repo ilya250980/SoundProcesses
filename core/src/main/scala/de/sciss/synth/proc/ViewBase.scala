@@ -13,10 +13,11 @@
 package de.sciss.synth.proc
 
 import de.sciss.lucre.event.Observable
-import de.sciss.lucre.stm
-import de.sciss.lucre.stm.{Disposable, Obj, Sys}
+import de.sciss.lucre.stm.{Disposable, Form, Obj, Sys}
 
-trait ViewBase[S <: Sys[S], -Target] extends Observable[S#Tx, Runner.State] with Disposable[S#Tx] {
+import scala.language.higherKinds
+
+trait ViewBase[S <: Sys[S]] extends Observable[S#Tx, Runner.State] with Disposable[S#Tx] {
   def state(implicit tx: S#Tx): Runner.State
 
   def stop()(implicit tx: S#Tx): Unit
@@ -29,11 +30,10 @@ trait ViewBase[S <: Sys[S], -Target] extends Observable[S#Tx, Runner.State] with
   }
 }
 
-trait ObjViewBase[S <: Sys[S], -Target] extends ViewBase[S, Target] {
-  def tpe: Obj.Type
+trait AuralViewBase[S <: Sys[S], -Target] extends ViewBase[S] {
+  type Repr <: Form[S]
 
-  /** The view must store a handle to its underlying model. */
-  def objH: stm.Source[S#Tx, Obj[S]]
+  def obj(implicit tx: S#Tx): Repr
 
   /** Prepares the view to be able to `run`.
     *
@@ -46,4 +46,10 @@ trait ObjViewBase[S <: Sys[S], -Target] extends ViewBase[S, Target] {
     * (without mapping any `attr` map).
     */
   def run(timeRef: TimeRef.Option, target: Target)(implicit tx: S#Tx): Unit
+}
+
+trait ObjViewBase[S <: Sys[S], -Target] extends AuralViewBase[S, Target] {
+  type Repr <: Obj[S]
+
+  def tpe: Obj.Type
 }

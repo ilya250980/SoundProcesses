@@ -70,7 +70,7 @@ class AuralTests2[S <: Sys[S]](name: String)(implicit cursor: stm.Cursor[S]) ext
       val evH   = tx.newHandle(ev)
       gr.add(t2Obj, ev)
 
-      val attr = _view.objH().attr
+      val attr = _view.obj.attr
       attr.put("freq", gr)
       _view.play()
 
@@ -130,7 +130,7 @@ class AuralTests2[S <: Sys[S]](name: String)(implicit cursor: stm.Cursor[S]) ext
       gr.add(frame(6.0), ev)
       gr.add(frame(9.0), IntObj.newConst(400))
 
-      val attr = _view.objH().attr
+      val attr = _view.obj.attr
       attr.put("freq", gr)
       _view.play()
 
@@ -174,7 +174,7 @@ class AuralTests2[S <: Sys[S]](name: String)(implicit cursor: stm.Cursor[S]) ext
       gr.add(frame(3.0), EnvSegment.Obj.newConst(EnvSegment.Single(1000, Curve.lin)))
       gr.add(frame(6.0), IntObj.newConst(400))
 
-      val attr = _view.objH().attr
+      val attr = _view.obj.attr
       attr.put("freq", gr)
       _view.play()
       stopAndQuit(9.0)
@@ -242,7 +242,7 @@ class AuralTests2[S <: Sys[S]](name: String)(implicit cursor: stm.Cursor[S]) ext
       Action.registerPredef("buffer-test", body)
       val action = Action.predef[S]("buffer-test")
 
-      val attr1 = _view1.objH().attr
+      val attr1 = _view1.obj.attr
       attr1.put("rec-dur" , IntObj.newConst[S](8))
       attr1.put("buses-in", DoubleVector.newConst[S](Vector(0, 1)))
       attr1.put("file", art)

@@ -31,7 +31,7 @@ object AuralOutputAttribute extends Factory {
                         (implicit tx: S#Tx, context: AuralContext[S]): AuralAttribute[S] =
     new AuralOutputAttribute(key, tx.newHandle(value), observer).init(value)
 }
-final class AuralOutputAttribute[S <: Sys[S]](val key: String, val objH: stm.Source[S#Tx, Output[S]],
+final class AuralOutputAttribute[S <: Sys[S]](val key: String, objH: stm.Source[S#Tx, Output[S]],
                                               observer: Observer[S])
                                              (implicit context: AuralContext[S])
   extends AuralAttributeImpl[S] { attr =>
@@ -41,6 +41,10 @@ final class AuralOutputAttribute[S <: Sys[S]](val key: String, val objH: stm.Sou
   import TxnLike.peer
 
   def tpe: Obj.Type = Output
+
+  type Repr = Output[S]
+
+  def obj(implicit tx: S#Tx): Output[S] = objH()
 
   private[this] val auralRef  = Ref(Option.empty[AuralOutput[S]])
   private[this] var obs: Disposable[S#Tx] = _

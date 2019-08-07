@@ -20,8 +20,8 @@ import de.sciss.synth.proc.{Runner, ViewBase}
 
 import scala.concurrent.stm.Ref
 
-trait BasicViewBaseImpl[S <: Sys[S], -Target]
-  extends ViewBase[S, Target] with ObservableImpl[S, Runner.State] {
+trait BasicViewBaseImpl[S <: Sys[S]]
+  extends ViewBase[S] with ObservableImpl[S, Runner.State] {
 
 //  implicit final def workspace : WorkspaceHandle[S] = handler.workspace
 //  implicit final def cursor    : Cursor[S]          = handler.cursor

@@ -190,7 +190,7 @@ object Runner {
     def current(implicit tx: Tx): Double
   }
 }
-trait Runner[S <: Sys[S]] extends ViewBase[S, Unit] with IControl[S] {
+trait Runner[S <: Sys[S]] extends ViewBase[S] with IControl[S] {
   def messages: Runner.Messages[S#Tx] // (implicit tx: S#Tx): Any
 
   def progress: Runner.Progress[S#Tx]

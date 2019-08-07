@@ -20,7 +20,7 @@ import de.sciss.lucre.stm
 import de.sciss.lucre.stm.{Disposable, Obj, TxnLike}
 import de.sciss.lucre.synth.Sys
 import de.sciss.span.{Span, SpanLike}
-import de.sciss.synth.proc.{Grapheme, ObjViewBase, Runner, TimeRef, logAural => logA}
+import de.sciss.synth.proc.{AuralViewBase, Grapheme, Runner, TimeRef, logAural => logA}
 
 import scala.collection.immutable.{IndexedSeq => Vec}
 import scala.concurrent.stm.Ref
@@ -33,16 +33,14 @@ object AuralGraphemeBase {
   *
   * @see [[AuralGraphemeAttribute]]
   */
-trait AuralGraphemeBase[S <: Sys[S], I <: stm.Sys[I], Target, Elem <: ObjViewBase[S, Target]]
+trait AuralGraphemeBase[S <: Sys[S], I <: stm.Sys[I], Target, Elem <: AuralViewBase[S, Target]]
   extends AuralScheduledBase[S, Target, Elem] with ObservableImpl[S, Runner.State] {
 
-  impl: ObjViewBase[S, Target] =>
+  impl: AuralViewBase[S, Target] =>
 
   import TxnLike.peer
 
   // ---- abstract ----
-
-  override def objH: stm.Source[S#Tx, Grapheme[S]]
 
   protected def viewTree: SkipList.Map[I, Long, Vec[Elem]]
 
@@ -51,6 +49,8 @@ trait AuralGraphemeBase[S <: Sys[S], I <: stm.Sys[I], Target, Elem <: ObjViewBas
   protected def makeViewElem(start: Long, obj: Obj[S])(implicit tx: S#Tx): Elem
 
   // ---- impl ----
+
+  type Repr = Grapheme[S]
 
   private[this] val playingRef = Ref(Option.empty[ElemHandle])
 
@@ -66,7 +66,7 @@ trait AuralGraphemeBase[S <: Sys[S], I <: stm.Sys[I], Target, Elem <: ObjViewBas
     viewTree.ceil(offset + 1)(iSys(tx)).fold(Long.MaxValue)(_._1)
 
   protected final def modelEventAfter(offset: Long)(implicit tx: S#Tx): Long =
-    objH().eventAfter(offset).getOrElse(Long.MaxValue)
+    obj.eventAfter(offset).getOrElse(Long.MaxValue)
 
   protected final def processPlay(timeRef: TimeRef, target: Target)(implicit tx: S#Tx): Unit = {
     implicit val itx: I#Tx = iSys(tx)
@@ -85,7 +85,7 @@ trait AuralGraphemeBase[S <: Sys[S], I <: stm.Sys[I], Target, Elem <: ObjViewBas
   protected final def processPrepare(spanP: Span, timeRef: TimeRef, initial: Boolean)
                                     (implicit tx: S#Tx): Iterator[PrepareResult] = {
     // println(s"processPrepare($span, $timeRef, initial = $initial")
-    val gr    = objH()
+    val gr    = obj
     val opt0  = if (initial) gr.floor(spanP.start) else gr.ceil(spanP.start)
     opt0.fold[Iterator[PrepareResult]](Iterator.empty) { e0 =>
       new Iterator[PrepareResult] {
@@ -243,7 +243,7 @@ trait AuralGraphemeBase[S <: Sys[S], I <: stm.Sys[I], Target, Elem <: ObjViewBas
     // implicit val itx = iSys(tx)
     val opt = for {
       seq  <- viewTree.get(start)(iSys(tx))
-      view <- seq.find(_.objH() == child)
+      view <- seq.find(_.obj == child)
     } yield {
       logA(s"timeline - elemRemoved($start, $child)")
       val h         = ElemHandle(start, view)

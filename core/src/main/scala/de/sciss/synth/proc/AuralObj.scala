@@ -105,7 +105,7 @@ object AuralObj {
       extends OutputUpdate[S]
   }
   trait Proc[S <: Sys[S]] extends AuralObj[S] {
-    override def objH: stm.Source[S#Tx, _Proc[S]]
+    type Repr = _Proc[S]
 
     /** The node reference associated with the process. A `Some` value indicates that
       * at least one instance view is playing, whereas a `None` value indicates that
@@ -136,11 +136,11 @@ object AuralObj {
     final case class ViewRemoved[S <: Sys[S], Repr](container: Repr, id: S#Id, view: AuralObj[S])
       extends Update[S, Repr]
   }
-  trait Container[S <: Sys[S], +Repr <: Container[S, Repr]] extends AuralObj[S] {
+  trait Container[S <: Sys[S], +Self <: Container[S, Self]] extends AuralObj[S] {
     /** Monitors the _active_ views, i.e. views which are
       * intersecting with the current transport position.
       */
-    def contents: Observable[S#Tx, Container.Update[S, Repr]]
+    def contents: Observable[S#Tx, Container.Update[S, Self]]
 
     /** Returns the set of _active_ views, i.e. views which are intersecting
       * with the current transport position.
@@ -167,14 +167,14 @@ object AuralObj {
     }
   }
   trait Timeline[S <: Sys[S]] extends Container[S, Timeline[S]] {
-    override def objH: stm.Source[S#Tx, _Timeline[S]]
+    type Repr = _Timeline[S]
 
     def getView(timed: _Timeline.Timed[S])(implicit tx: S#Tx): Option[AuralObj[S]]
   }
 
   // ---- ensemble ----
 
-  trait FolderLike[S <: Sys[S], Repr <: FolderLike[S, Repr]] extends Container[S, Repr] {
+  trait FolderLike[S <: Sys[S], Self <: FolderLike[S, Self]] extends Container[S, Self] {
     def folder(implicit tx: S#Tx): _Folder[S]
 
     def getView(obj: Obj[S])(implicit tx: S#Tx): Option[AuralObj[S]]
@@ -190,7 +190,7 @@ object AuralObj {
       AuralEnsembleImpl(obj, attr)
   }
   trait Ensemble[S <: Sys[S]] extends FolderLike[S, Ensemble[S]] {
-    override def objH: stm.Source[S#Tx, _Ensemble[S]]
+    type Repr = _Ensemble[S]
   }
 
   // ---- folder ----
@@ -204,9 +204,7 @@ object AuralObj {
                            (implicit tx: S#Tx, context: AuralContext[S]): AuralObj.Folder[S] =
       AuralFolderImpl(obj, attr)
   }
-  trait Folder[S <: Sys[S]] extends FolderLike[S, Folder[S]] {
-    override def objH: stm.Source[S#Tx, _Folder[S]]
-  }
+  trait Folder[S <: Sys[S]] extends FolderLike[S, Folder[S]]
 
   // ---- action ----
 
@@ -220,7 +218,7 @@ object AuralObj {
       AuralActionImpl(obj, attr)
   }
   trait Action[S <: Sys[S]] extends AuralObj[S] {
-    override def objH: stm.Source[S#Tx, _Action[S]]
+    type Repr = _Action[S]
   }
 }
 trait AuralObj[S <: Sys[S]] extends ObjViewBase[S, Unit] {

@@ -19,7 +19,7 @@ import de.sciss.osc
 import de.sciss.synth.proc.graph.StopSelf
 import de.sciss.synth.proc.{SoundProcesses, ViewBase}
 
-final class StopSelfResponder[S <: Sys[S]](view: ViewBase[S, Nothing], protected val synth: Node)
+final class StopSelfResponder[S <: Sys[S]](view: ViewBase[S], protected val synth: Node)
                                           (implicit cursor: stm.Cursor[S])
   extends SendReplyResponder {
 

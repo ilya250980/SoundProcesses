@@ -51,7 +51,7 @@ object AuralGraphemeAttribute extends Factory {
   }
 }
 final class AuralGraphemeAttribute[S <: Sys[S], I <: stm.Sys[I]](val key: String,
-                                                                 val objH: stm.Source[S#Tx, Grapheme[S]],
+                                                                 objH: stm.Source[S#Tx, Grapheme[S]],
                                                                  observer: Observer[S],
                                                                  protected val viewTree: SkipList.Map[I, Long, Vec[AuralAttribute[S]]])
                                                                 (implicit protected val context: AuralContext[S],
@@ -64,6 +64,9 @@ final class AuralGraphemeAttribute[S <: Sys[S], I <: stm.Sys[I]](val key: String
   import TxnLike.peer
 
   type Elem = AuralAttribute[S]
+
+
+  def obj(implicit tx: S#Tx): Grapheme[S] = objH()
 
   // we sample the first encountered objects for which temporary views
   // have to built in order to get the number-of-channels. these

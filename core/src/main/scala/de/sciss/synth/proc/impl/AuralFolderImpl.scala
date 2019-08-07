@@ -26,13 +26,16 @@ object AuralFolderImpl {
     new Impl(tx.newHandle(folder), transport).init(folder)
   }
 
-  private final class Impl[S <: Sys[S]](val objH: stm.Source[S#Tx, Folder[S]],
+  private final class Impl[S <: Sys[S]](objH: stm.Source[S#Tx, Folder[S]],
                                         protected val transport: Transport[S])
-    extends AuralFolderLikeImpl[S, Folder[S], AuralObj.Folder[S]]
+    extends AuralFolderLikeImpl[S, /*Folder[S],*/ AuralObj.Folder[S]]
     with AuralObj.Folder[S] { impl =>
 
     def tpe: Obj.Type = Folder
 
+    type Repr = Folder[S]
+
+    def obj   (implicit tx: S#Tx): Folder[S] = objH()
     def folder(implicit tx: S#Tx): Folder[S] = objH()
 
     def mkObserver(ens: Folder[S])(implicit tx: S#Tx): Disposable[S#Tx] =

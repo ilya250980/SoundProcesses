@@ -55,10 +55,14 @@ object AuralObjImpl {
     def apply[S <: Sys[S]](obj: Obj[S])(implicit tx: S#Tx): AuralObj[S] =
       new Impl(tx.newHandle(obj))
 
-    private final class Impl[S <: Sys[S]](val objH: stm.Source[S#Tx, Obj[S]])
+    private final class Impl[S <: Sys[S]](objH: stm.Source[S#Tx, Obj[S]])
       extends AuralObj[S] with DummyObservableImpl[S] {
 
       def tpe: Obj.Type = throw new UnsupportedOperationException("Generic.tpe")
+
+      type Repr = Obj[S]
+
+      def obj(implicit tx: S#Tx): Obj[S] = objH()
 
       def run(timeRef: TimeRef.Option, target: Unit)(implicit tx: S#Tx): Unit = ()
 

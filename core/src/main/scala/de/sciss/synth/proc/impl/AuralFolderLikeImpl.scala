@@ -20,7 +20,7 @@ import de.sciss.lucre.synth.Sys
 import de.sciss.synth.proc.AuralObj.Container
 import de.sciss.synth.proc.{AuralObj, Runner, TimeRef, Transport}
 
-trait AuralFolderLikeImpl[S <: Sys[S], Repr <: Obj[S], View <: AuralObj.FolderLike[S, View]]
+trait AuralFolderLikeImpl[S <: Sys[S], /*Repr <: Obj[S],*/ View <: AuralObj.FolderLike[S, View]]
   extends AuralObj.FolderLike[S, View] with BasicAuralObjImpl[S] {
   impl: View =>
 
@@ -47,8 +47,8 @@ trait AuralFolderLikeImpl[S <: Sys[S], Repr <: Obj[S], View <: AuralObj.FolderLi
   final def init(obj: Repr)(implicit tx: S#Tx): this.type = {
     observer      = mkObserver(obj)
     transportObs  = transport.react { implicit tx => {
-      case Transport.ViewAdded  (_, view) => contents(Container.ViewAdded  [S, View](impl, view.objH().id, view))
-      case Transport.ViewRemoved(_, view) => contents(Container.ViewRemoved[S, View](impl, view.objH().id, view))
+      case Transport.ViewAdded  (_, view) => contents(Container.ViewAdded  [S, View](impl, view.obj.id, view))
+      case Transport.ViewRemoved(_, view) => contents(Container.ViewRemoved[S, View](impl, view.obj.id, view))
       case _ =>
     }}
 

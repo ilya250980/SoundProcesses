@@ -28,11 +28,15 @@ object AuralActionImpl extends AuralObj.Factory {
     new Impl(objH, attr.getOrElse("value", ()))
   }
 
-  private final class Impl[S <: SSys[S]](val objH: stm.Source[S#Tx, Action[S]], invokeValue: Any)
+  private final class Impl[S <: SSys[S]](objH: stm.Source[S#Tx, Action[S]], invokeValue: Any)
                                         (implicit context: AuralContext[S])
     extends ActionRunnerImpl.Base[S, Unit] with AuralObj.Action[S] {
 
     implicit def universe: Universe[S] = context.universe
+
+    override type Repr = Action[S]
+
+    override def obj(implicit tx: S#Tx): Action[S] = objH()
 
     def run(timeRef: TimeRef.Option, target: Unit)(implicit tx: S#Tx): Unit =
       execute(invokeValue = invokeValue)

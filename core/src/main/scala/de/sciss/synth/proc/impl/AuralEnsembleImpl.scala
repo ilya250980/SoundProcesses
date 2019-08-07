@@ -29,14 +29,16 @@ object AuralEnsembleImpl {
     new Impl(tx.newHandle(obj), transport).init(ensemble)
   }
   
-  private final class Impl[S <: Sys[S]](val objH: stm.Source[S#Tx, Ensemble[S]],
+  private final class Impl[S <: Sys[S]](objH: stm.Source[S#Tx, Ensemble[S]],
                                         protected val transport: Transport[S])
-    extends AuralFolderLikeImpl[S, Ensemble[S], AuralObj.Ensemble[S]]
+    extends AuralFolderLikeImpl[S, /*Ensemble[S],*/ AuralObj.Ensemble[S]]
     with AuralObj.Ensemble[S] { impl =>
-    
+
     def tpe: Obj.Type = Ensemble
 
     def folder(implicit tx: S#Tx): Folder[S] = ensemble.folder
+
+    override def obj(implicit tx: S#Tx): Ensemble[S] = objH()
 
     def mkObserver(ens: Ensemble[S])(implicit tx: S#Tx): Disposable[S#Tx] =
       ens.changed.react { implicit tx => upd =>

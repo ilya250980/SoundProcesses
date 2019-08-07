@@ -62,7 +62,7 @@ object AuralFolderAttribute extends Factory {
     def external: Runner.State = Running
   }
 }
-final class AuralFolderAttribute[S <: Sys[S]](val key: String, val objH: stm.Source[S#Tx, Folder[S]],
+final class AuralFolderAttribute[S <: Sys[S]](val key: String, objH: stm.Source[S#Tx, Folder[S]],
                                               observer: Observer[S])
                                              (implicit context: AuralContext[S])
   extends AuralAttribute[S] with ObservableImpl[S, Runner.State] with AuralAttribute.Observer[S] { attr =>
@@ -75,7 +75,11 @@ final class AuralFolderAttribute[S <: Sys[S]](val key: String, val objH: stm.Sou
 
   def tpe: Obj.Type = Folder
 
+  type Repr = Folder[S]
+
   import AuralFolderAttribute.{IPlaying, IPreparing, IStopped, InternalState}
+
+  def obj(implicit tx: S#Tx): Folder[S] = objH()
 
   private[this] val childAttrRef  = Ref.make[Vector[Elem]]
   private[this] val _IStopped     = IStopped[S]()

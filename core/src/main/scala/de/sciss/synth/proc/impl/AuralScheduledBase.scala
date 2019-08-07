@@ -20,7 +20,7 @@ import de.sciss.lucre.stm.{Disposable, TxnLike}
 import de.sciss.lucre.synth.Sys
 import de.sciss.span.{Span, SpanLike}
 import de.sciss.synth.proc.Runner.{Prepared, Preparing, Running, Stopped}
-import de.sciss.synth.proc.{AuralContext, ObjViewBase, Runner, TimeRef, logAural => logA}
+import de.sciss.synth.proc.{AuralContext, AuralViewBase, ObjViewBase, Runner, TimeRef, logAural => logA}
 
 import scala.concurrent.stm.Ref
 
@@ -40,7 +40,7 @@ object AuralScheduledBase {
   def spanToPoint(span: SpanLike): LongPoint2D = BiGroupImpl.spanToPoint(span)
 }
 /** Common base for `AuralGraphemeBase` and `AuralTimelineBase`. */
-trait AuralScheduledBase[S <: Sys[S], Target, Elem <: ObjViewBase[S, Target]]
+trait AuralScheduledBase[S <: Sys[S], Target, Elem <: AuralViewBase[S, Target]]
   extends ObjViewBase[S, Target] with ObservableImpl[S, Runner.State] { impl =>
 
   import TxnLike.peer

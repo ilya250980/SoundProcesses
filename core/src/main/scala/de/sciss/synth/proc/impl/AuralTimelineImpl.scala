@@ -50,13 +50,17 @@ object AuralTimelineImpl {
     res
   }
 
-  private final class Impl[S <: Sys[S], I <: stm.Sys[I]](val objH: stm.Source[S#Tx, Timeline[S]],
+  private final class Impl[S <: Sys[S], I <: stm.Sys[I]](objH: stm.Source[S#Tx, Timeline[S]],
                                                          protected val tree: SkipOctree[I, LongSpace.TwoDim, Leaf[S]])
                                                         (implicit protected val context: AuralContext[S],
                                                          protected val iSys: S#Tx => I#Tx)
     extends AuralTimelineBase[S, I, Unit, AuralObj[S]] with AuralObj.Timeline.Manual[S] { impl =>
 
+    override type Repr = Timeline[S]
+
     protected def makeViewElem(obj: Obj[S])(implicit tx: S#Tx): AuralObj[S] = AuralObj(obj)
+
+    def obj(implicit tx: S#Tx): Timeline[S] = objH()
 
     object contents extends ObservableImpl[S, Container.Update[S, AuralObj.Timeline[S]]] {
       def viewAdded(id: S#Id, view: AuralObj[S])(implicit tx: S#Tx): Unit =

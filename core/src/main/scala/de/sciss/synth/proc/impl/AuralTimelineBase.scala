@@ -23,7 +23,7 @@ import de.sciss.lucre.stm
 import de.sciss.lucre.stm.{Disposable, IdentifierMap, Obj, TxnLike}
 import de.sciss.lucre.synth.Sys
 import de.sciss.span.{Span, SpanLike}
-import de.sciss.synth.proc.{Runner, TimeRef, Timeline, ViewBase, logAural => logA}
+import de.sciss.synth.proc.{ObjViewBase, Runner, TimeRef, Timeline, logAural => logA}
 
 import scala.collection.immutable.{IndexedSeq => Vec, Set => ISet}
 import scala.concurrent.stm.TSet
@@ -36,7 +36,7 @@ object AuralTimelineBase {
 
   protected final case class ElemHandle[S <: Sys[S], Elem](idH: stm.Source[S#Tx, S#Id], span: SpanLike, view: Elem)
 }
-trait AuralTimelineBase[S <: Sys[S], I <: stm.Sys[I], Target, Elem <: ViewBase[S, Target]]
+trait AuralTimelineBase[S <: Sys[S], I <: stm.Sys[I], Target, Elem <: ObjViewBase[S, Target]]
   extends AuralScheduledBase[S, Target, Elem] with ObservableImpl[S, Runner.State] { impl =>
 
   import AuralTimelineBase.spanToPoint

@@ -22,14 +22,14 @@ import de.sciss.lucre.synth
 import de.sciss.model.Change
 import de.sciss.synth.proc
 import de.sciss.synth.proc.Runner.Universe
-import de.sciss.synth.proc.{TimeRef, UGenGraphBuilder => UGB}
+import de.sciss.synth.proc.{UGenGraphBuilder => UGB}
 
 import scala.concurrent.stm.Ref
 
 object Runner {
   private final class ExpandedRun[S <: Sys[S]](r: proc.Runner[S]) extends IActionImpl[S] {
     def executeAction()(implicit tx: S#Tx): Unit =
-      r.run(TimeRef.undefined, ())
+      r.run()
   }
 
   final case class Run(r: Runner) extends Act {

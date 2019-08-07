@@ -20,7 +20,7 @@ import de.sciss.lucre.stm.TxnLike.peer
 import de.sciss.lucre.stm.{Disposable, Obj}
 import de.sciss.lucre.synth.Sys
 import de.sciss.synth.proc.Runner.Universe
-import de.sciss.synth.proc.{AuralObj, ObjViewBase, Runner, TimeRef, Timeline, Transport}
+import de.sciss.synth.proc.{AuralObj, Runner, TimeRef, Timeline, Transport}
 
 import scala.concurrent.stm.Ref
 
@@ -36,7 +36,7 @@ object TimelineRunnerImpl {
   private final class Impl[S <: Sys[S]](val objH: stm.Source[S#Tx, Timeline[S]],
                                         t: Transport[S],
                                         val universe: Universe[S])
-    extends BasicRunnerImpl[S] with ObjViewBase[S, Unit] {
+    extends BasicRunnerImpl[S] {
 
     override def toString = s"Runner.Timeline${hashCode().toHexString}"
 
@@ -105,9 +105,10 @@ object TimelineRunnerImpl {
       auralRef().foreach(_.prepare(timeRef))  // XXX TODO --- should we pass on `attr`?
     }
 
-    def run(timeRef: TimeRef.Option, target: Unit)(implicit tx: S#Tx): Unit = {
+    def run(runAttr: Runner.Attr)(implicit tx: S#Tx): Unit = {
       targetState() = Runner.Running
       auralRef().foreach { v =>
+        val timeRef = TimeRef.Undefined
         v.run(timeRef, ())
         val tl = objH()
         tl.lastEvent.foreach { timeStop =>
@@ -121,7 +122,7 @@ object TimelineRunnerImpl {
               val loop  = tl.attr.$[BooleanObj]("loop").exists(_.value) // bit of a hack LOL
               if (loop) {
                 stop()
-                run(TimeRef.undefined, ())
+                run(runAttr = runAttr)
               }
             }
             cancelSch()

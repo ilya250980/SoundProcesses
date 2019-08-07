@@ -13,7 +13,7 @@
 
 package de.sciss.synth.proc.impl
 
-import de.sciss.lucre.event.impl.{DummyObservableImpl, ObservableImpl}
+import de.sciss.lucre.event.impl.DummyObservableImpl
 import de.sciss.lucre.expr.{BooleanObj, DoubleObj, DoubleVector, Expr, IntObj}
 import de.sciss.lucre.stm
 import de.sciss.lucre.stm.{Disposable, Folder, NoSys, Obj, TxnLike}
@@ -21,7 +21,7 @@ import de.sciss.lucre.synth.Sys
 import de.sciss.synth.Curve
 import de.sciss.synth.proc.AuralAttribute.{Factory, Observer, Scalar, Target}
 import de.sciss.synth.proc.Runner.{Prepared, Running, State, Stopped}
-import de.sciss.synth.proc.{AuralAttribute, AuralContext, ControlValuesView, EnvSegment, FadeSpec, Grapheme, Output, Runner, StartLevelViewFactory, TimeRef, Timeline}
+import de.sciss.synth.proc.{AuralAttribute, AuralContext, ControlValuesView, EnvSegment, FadeSpec, Grapheme, Output, StartLevelViewFactory, TimeRef, Timeline}
 import de.sciss.synth.ugen.ControlValues
 
 import scala.collection.immutable.{IndexedSeq => Vec}
@@ -401,19 +401,7 @@ object AuralAttributeImpl {
     def stop   ()(implicit tx: S#Tx): Unit = ()
     def dispose()(implicit tx: S#Tx): Unit = ()
 
-//    def react(fun: (S#Tx) => (State) => Unit)(implicit tx: S#Tx): Disposable[S#Tx] = DummyObservableImpl
-
     override def toString = s"DummyAttribute($key)@${hashCode.toHexString}"
   }
 }
-trait AuralAttributeImpl[S <: Sys[S]] extends AuralAttribute[S] with ObservableImpl[S, Runner.State] {
-  import TxnLike.peer
-
-  private[this] final val stateRef = Ref[State](Stopped)
-
-  final def state(implicit tx: S#Tx): State = stateRef()
-  final protected def state_=(value: State)(implicit tx: S#Tx): Unit = {
-    val prev = stateRef.swap(value)
-    if (value != prev) fire(value)
-  }
-}
+trait AuralAttributeImpl[S <: Sys[S]] extends AuralAttribute[S] with BasicViewBaseImpl[S, AuralAttribute.Target[S]]

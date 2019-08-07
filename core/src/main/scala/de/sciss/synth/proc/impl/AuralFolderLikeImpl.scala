@@ -20,10 +20,8 @@ import de.sciss.lucre.synth.Sys
 import de.sciss.synth.proc.AuralObj.Container
 import de.sciss.synth.proc.{AuralObj, Runner, TimeRef, Transport}
 
-import scala.concurrent.stm.Ref
-
 trait AuralFolderLikeImpl[S <: Sys[S], Repr <: Obj[S], View <: AuralObj.FolderLike[S, View]]
-  extends AuralObj.FolderLike[S, View] with ObservableImpl[S, Runner.State] {
+  extends AuralObj.FolderLike[S, View] with BasicAuralObjImpl[S] {
   impl: View =>
 
   // ---- abstract ----
@@ -38,8 +36,6 @@ trait AuralFolderLikeImpl[S <: Sys[S], Repr <: Obj[S], View <: AuralObj.FolderLi
 
   private[this] var observer    : Disposable[S#Tx] = _
   private[this] var transportObs: Disposable[S#Tx] = _
-
-  private[this] val currentStateRef = Ref[Runner.State](Runner.Stopped)
 
   final protected def processFolderUpdate(fUpd: stm.Folder.Update[S])(implicit tx: S#Tx): Unit =
     fUpd.changes.foreach {
@@ -71,16 +67,6 @@ trait AuralFolderLikeImpl[S <: Sys[S], Repr <: Obj[S], View <: AuralObj.FolderLi
   final def stop()(implicit tx: S#Tx): Unit = {
     transport.stop()
     state_=(Runner.Stopped)
-  }
-
-  final def state(implicit tx: S#Tx): Runner.State = currentStateRef.get(tx.peer)
-
-  private def state_=(value: Runner.State)(implicit tx: S#Tx): Unit = {
-    val old = currentStateRef.swap(value)(tx.peer)
-    if (value != old) {
-      // println(s"------ENSEMBLE STATE $old > $value")
-      fire(value)
-    }
   }
 
   final protected def startTransport(offset: Long)(implicit tx: S#Tx): Unit = {

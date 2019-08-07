@@ -11,7 +11,7 @@ lazy val commonSettings = Seq(
   description        := "A framework for creating and managing ScalaCollider based sound processes",
   licenses           := Seq("LGPL v2.1+" -> url("http://www.gnu.org/licenses/lgpl-2.1.txt")),
   scalaVersion       := "2.12.9",
-  crossScalaVersions := Seq("2.12.9", "2.13.0"),
+  crossScalaVersions := Seq("2.13.0", "2.12.9"),
   scalacOptions ++= {
     // "-Xfatal-warnings" -- breaks for cross-scala-build and deprecations
     // -stars-align produces wrong warnings with decomposing OSC messages
@@ -21,7 +21,7 @@ lazy val commonSettings = Seq(
   resolvers          += "Oracle Repository" at "http://download.oracle.com/maven",  // required for sleepycat
   parallelExecution in Test := false,
   updateOptions      := updateOptions.value.withLatestSnapshots(false),
-  testOptions in Test += Tests.Argument("-oF"),
+  testOptions in Test += Tests.Argument("-oF"), // "show full stack traces" (?)
   fork in run := true  // required for shutdown hook, and also the scheduled thread pool, it seems
 ) ++ publishSettings
 
@@ -31,7 +31,7 @@ lazy val deps = new {
     val audioWidgets        = "1.14.3"
     val equal               = "0.1.4"
     val fileUtil            = "1.1.3"
-    val lucre               = "3.13.1"
+    val lucre               = "3.13.2-SNAPSHOT"
     val lucreSwing          = "1.17.2"
     val model               = "0.3.4"
     val numbers             = "0.2.0"

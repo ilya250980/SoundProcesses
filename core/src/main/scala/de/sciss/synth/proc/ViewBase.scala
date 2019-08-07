@@ -19,22 +19,10 @@ import de.sciss.lucre.stm.{Disposable, Obj, Sys}
 trait ViewBase[S <: Sys[S], -Target] extends Observable[S#Tx, Runner.State] with Disposable[S#Tx] {
   def state(implicit tx: S#Tx): Runner.State
 
-  /** Prepares the view to be able to `run`.
-    *
-    * @param  timeRef   an optional context of temporal position
-    */
-  def prepare(timeRef: TimeRef.Option)(implicit tx: S#Tx): Unit
-
-  /** Runs the view, whatever that means for the particular object. If the object is not
-    * prepared and needs preparing, the view will take care of running the `prepare` step
-    * (without mapping any `attr` map).
-    */
-  def run(timeRef: TimeRef.Option, target: Target)(implicit tx: S#Tx): Unit
-
   def stop()(implicit tx: S#Tx): Unit
 
   /** Like `react`, but also invokes the function with the current state immediately. */
-  def reactNow(fun: S#Tx => Runner.State => Unit)(implicit tx: S#Tx): Disposable[S#Tx] = {
+  final def reactNow(fun: S#Tx => Runner.State => Unit)(implicit tx: S#Tx): Disposable[S#Tx] = {
     val res = react(fun)
     fun(tx)(state)
     res
@@ -46,4 +34,16 @@ trait ObjViewBase[S <: Sys[S], -Target] extends ViewBase[S, Target] {
 
   /** The view must store a handle to its underlying model. */
   def objH: stm.Source[S#Tx, Obj[S]]
+
+  /** Prepares the view to be able to `run`.
+    *
+    * @param  timeRef   an optional context of temporal position
+    */
+  def prepare(timeRef: TimeRef.Option)(implicit tx: S#Tx): Unit
+
+  /** Runs the view, whatever that means for the particular object. If the object is not
+    * prepared and needs preparing, the view will take care of running the `prepare` step
+    * (without mapping any `attr` map).
+    */
+  def run(timeRef: TimeRef.Option, target: Target)(implicit tx: S#Tx): Unit
 }

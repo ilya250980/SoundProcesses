@@ -18,17 +18,31 @@ import de.sciss.lucre.stm
 import de.sciss.lucre.stm.TxnLike.peer
 import de.sciss.lucre.stm.{Cursor, Disposable, Obj, Sys, Workspace}
 import de.sciss.lucre.synth.{Sys => SSys}
-import de.sciss.synth.proc.{AuralObj, ObjViewBase, Proc, Runner, TimeRef, Transport}
+import de.sciss.synth.proc.{AuralObj, Proc, Runner, TimeRef, Transport}
 
 import scala.concurrent.stm.Ref
 
 trait BasicRunnerImpl[S <: Sys[S]]
-  extends BasicViewBaseImpl[S, Unit] with Runner[S] {
+  extends Runner[S] with BasicViewBaseImpl[S, Unit] {
+
+  // ---- abstract ----
+
+  protected def disposeData()(implicit tx: S#Tx): Unit
+
+  // ---- impl ----
 
   implicit final def workspace : Workspace[S] = universe.workspace
   implicit final def cursor    : Cursor[S]    = universe.cursor
 
   def initControl()(implicit tx: S#Tx): Unit = ()
+
+
+  // this is implemented so there is no chance of forgetting
+  // to remove the runner from the handler
+  final def dispose()(implicit tx: S#Tx): Unit = {
+    universe.removeRunner(this)
+    disposeData()
+  }
 
   final object messages extends Runner.Messages[S#Tx] with ObservableImpl[S, List[Runner.Message]] {
     private[this] val ref = Ref(List.empty[Runner.Message])
@@ -54,7 +68,7 @@ object BasicRunnerImpl {
   private final class Impl[S <: Sys[S]](val objH: stm.Source[S#Tx, Obj[S]],
                                         t: Transport[S],
                                         val universe: Runner.Universe[S])
-    extends BasicRunnerImpl[S] with ObjViewBase[S, Unit] {
+    extends BasicRunnerImpl[S] {
 
     override def toString = s"Runner.Proc${hashCode().toHexString}"
 
@@ -113,12 +127,12 @@ object BasicRunnerImpl {
       }
     }
 
-    def prepare(timeRef: TimeRef.Option)(implicit tx: S#Tx): Unit = {
-      targetState() = Runner.Preparing
-      auralRef().foreach(_.prepare(TimeRef.undefined))
-    }
+//    def prepare(timeRef: TimeRef.Option)(implicit tx: S#Tx): Unit = {
+//      targetState() = Runner.Preparing
+//      auralRef().foreach(_.prepare(TimeRef.undefined))
+//    }
 
-    def run(timeRef: TimeRef.Option, target: Unit)(implicit tx: S#Tx): Unit = {
+    def run(attr: Runner.Attr)(implicit tx: S#Tx): Unit = {
       targetState() = Runner.Running
       auralRef().foreach(_.play())
     }

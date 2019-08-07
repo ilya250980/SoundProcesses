@@ -182,28 +182,17 @@ object Runner {
   }
 }
 trait Runner[S <: Sys[S]] extends ViewBase[S, Unit] with IControl[S] {
-  // def factory: Runner.Factory
-
   def messages: Runner.Messages[S#Tx] // (implicit tx: S#Tx): Any
 
   def progress: Runner.Progress[S#Tx]
 
   val universe: Runner.Universe[S]
 
-  def runWith(timeRef: TimeRef.Option, attr: Runner.Attr)(implicit tx: S#Tx): Unit
+  def run(attr: Runner.Attr = Map.empty)(implicit tx: S#Tx): Unit
 
-  protected def disposeData()(implicit tx: S#Tx): Unit
-
-  // this is implemented so there is no chance of forgetting
-  // to remove the runner from the handler
-  final def dispose()(implicit tx: S#Tx): Unit = {
-    universe.removeRunner(this)
-    disposeData()
-  }
-
-/*
-- allow both for a `self` and an `invoker` (`Action.Universe`)
-- should we have an `value: Any` as in `Action.Universe`?
-- actually, `invoker` and potential `value` should go into `play` and/or `prepare`
- */
+  /*
+  - allow both for a `self` and an `invoker` (`Action.Universe`)
+  - should we have an `value: Any` as in `Action.Universe`?
+  - actually, `invoker` and potential `value` should go into `play` and/or `prepare`
+   */
 }

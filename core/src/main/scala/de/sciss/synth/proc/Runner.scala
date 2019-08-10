@@ -20,8 +20,8 @@ import de.sciss.lucre.event.Observable
 import de.sciss.lucre.expr.IControl
 import de.sciss.lucre.stm.{Obj, Sys}
 import de.sciss.lucre.synth.{Sys => SSys}
-import de.sciss.synth.proc.impl.{ActionRunnerImpl, BasicAuralRunnerImpl, TimelineRunnerImpl, RunnerUniverseImpl => Impl}
-import de.sciss.synth.proc.{Action => _Action, Proc => _Proc, Timeline => _Timeline}
+import de.sciss.synth.proc.impl.{ActionRunnerImpl, BasicAuralRunnerImpl, ControlRunnerImpl, TimelineRunnerImpl, RunnerUniverseImpl => Impl}
+import de.sciss.synth.proc.{Action => _Action, Control => _Control, Proc => _Proc, Timeline => _Timeline}
 
 import scala.language.higherKinds
 
@@ -105,6 +105,21 @@ object Runner {
   // ---- factories ----
   // -------------------
 
+  // ---- Control ----
+
+  object Control extends Factory {
+    final val prefix          = "Control"
+    def humanName : String    = prefix
+    def tpe       : Obj.Type  = _Control
+
+    def isSingleton: Boolean = false
+
+    type Repr[~ <: Sys[~]] = _Control[~]
+
+    def mkRunner[S <: Sys[S]](obj: _Control[S])(implicit tx: S#Tx, universe: Universe[S]): Runner[S] =
+      ControlRunnerImpl(obj)
+  }
+
   // ---- Action ----
 
   object Action extends Factory {
@@ -136,6 +151,8 @@ object Runner {
       BasicAuralRunnerImpl(obj)
   }
 
+  // ---- Timeline ----
+
   object Timeline extends Factory {
     final val prefix          = "Timeline"
     def humanName : String    = prefix
@@ -148,6 +165,8 @@ object Runner {
     def mkRunner[S <: SSys[S]](obj: _Timeline[S])(implicit tx: S#Tx, universe: Universe[S]): Runner[S] =
       TimelineRunnerImpl(obj)
   }
+
+  // ----
 
   private lazy val fmtMessageDate = new SimpleDateFormat("[HH:mm''ss.SSS]", Locale.US)
 

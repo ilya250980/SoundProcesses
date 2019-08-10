@@ -1,5 +1,5 @@
 /*
- *  Widget.scala
+ *  Control.scala
  *  (SoundProcesses)
  *
  *  Copyright (c) 2010-2019 Hanns Holger Rutz. All rights reserved.
@@ -15,23 +15,25 @@ package de.sciss.synth.proc
 
 import de.sciss.lucre.event.{Dummy, Event, EventLike, Publisher, Targets}
 import de.sciss.lucre.expr
-import de.sciss.lucre.expr.Expr
+import de.sciss.lucre.expr.{Expr, Graph => _Graph}
 import de.sciss.lucre.stm.{Copy, Elem, Obj, Sys}
-import de.sciss.lucre.swing.graph.{Widget => _Widget}
-import de.sciss.lucre.swing.{Graph => _Graph}
+import de.sciss.model
 import de.sciss.serial.{DataInput, DataOutput, ImmutableSerializer, Serializer}
 import de.sciss.synth.UGenSource.Vec
 import de.sciss.synth.proc
 import de.sciss.synth.proc.Code.{Example, Import}
-import de.sciss.synth.proc.impl.{CodeImpl, WidgetImpl => Impl}
-import de.sciss.{lucre, model}
+import de.sciss.synth.proc.impl.{CodeImpl, ControlImpl => Impl}
 
 import scala.collection.immutable.{Seq => ISeq}
 import scala.concurrent.Future
 
-// XXX TODO --- complete DRY with Control
-object Widget extends Obj.Type {
-  final val typeId = 0x1000E
+// I don't very much like the term 'control' and its cybernetic interpretation.
+// What would be alternatives?
+// - Script, Program, Snippet, Glue, Module, Machine, Actor, Agent, Mechanism, Device, Struct,
+//   Assembly, Unit (this makes sense but shadows `scala.Unit`).
+// None of them is without problems, so let's just stick to Control.
+object Control extends Obj.Type {
+  final val typeId = 0x1000F
 
   /** Source code of the graph function. */
   final val attrSource    = "graph-source"
@@ -45,11 +47,11 @@ object Widget extends Obj.Type {
     Code    .init()
   }
 
-  def apply[S <: Sys[S]]()(implicit tx: S#Tx): Widget[S] = Impl[S]
+  def apply[S <: Sys[S]]()(implicit tx: S#Tx): Control[S] = Impl[S]
 
-  def read[S <: Sys[S]](in: DataInput, access: S#Acc)(implicit tx: S#Tx): Widget[S] = Impl.read(in, access)
+  def read[S <: Sys[S]](in: DataInput, access: S#Acc)(implicit tx: S#Tx): Control[S] = Impl.read(in, access)
 
-  implicit def serializer[S <: Sys[S]]: Serializer[S#Tx, S#Acc, Widget[S]] = Impl.serializer[S]
+  implicit def serializer[S <: Sys[S]]: Serializer[S#Tx, S#Acc, Control[S]] = Impl.serializer[S]
 
   def readIdentifiedObj[S <: Sys[S]](in: DataInput, access: S#Acc)(implicit tx: S#Tx): Obj[S] =
     Impl.readIdentifiedObj(in, access)
@@ -60,7 +62,7 @@ object Widget extends Obj.Type {
   // ---- event types ----
 
   /** An update is a sequence of changes */
-  final case class Update[S <: Sys[S]](w: Widget[S], changes: Vec[Change[S]])
+  final case class Update[S <: Sys[S]](w: Control[S], changes: Vec[Change[S]])
 
   /** A change is either a state change, or a scan or a grapheme change */
   sealed trait Change[S <: Sys[S]]
@@ -70,23 +72,22 @@ object Widget extends Obj.Type {
   // ---- Code ----
 
   object Code extends proc.Code.Type {
-    final val id        = 6
-    final val prefix    = "Widget"
-    final val humanName = "Widget Graph"
+    final val id        = 7
+    final val prefix    = "Control"
+    final val humanName = "Control Graph"
     type Repr           = Code
 
     override def examples: ISeq[Example] = List(
       Example("Hello World", 'h',
-        """val b = Bang()
+        """val b = LoadBang()
           |b ---> PrintLn("Hello World!")
-          |b
         """.stripMargin
       )
     )
 
-    override def defaultSource: String = s"${super.defaultSource}Empty()\n"
+//    override def defaultSource: String = s"${super.defaultSource}Empty()\n"
 
-    def docBaseSymbol: String = "de.sciss.lucre.swing.graph"
+    def docBaseSymbol: String = "de.sciss.lucre.expr.graph"
 
     private[this] lazy val _init: Unit = {
       proc.Code.addType(this)
@@ -96,11 +97,10 @@ object Widget extends Obj.Type {
         Import("de.sciss.lucre.expr.ExImport", All),
         Import("de.sciss.synth.proc.ExImport", All),
         Import("de.sciss.file", All),
-        Import("de.sciss.lucre.expr.graph", All),
-        Import("de.sciss.lucre.swing.graph", All)
+        Import("de.sciss.lucre.expr.graph", All)
       ))
       proc.Code.registerImports(proc.Code.Action.id, Vec(
-        Import("de.sciss.synth.proc", Name("Widget") :: Nil)
+        Import("de.sciss.synth.proc", Name("Control") :: Nil)
       ))
     }
 
@@ -115,23 +115,38 @@ object Widget extends Obj.Type {
 
     def tpe: proc.Code.Type = Code
 
+//    def compileBody()(implicit compiler: proc.Code.Compiler): Future[Unit] = {
+//      import reflect.runtime.universe._
+//      CodeImpl.compileBody[In, Out, _Control, Code](this, typeTag[_Control])
+//    }
+//
+//    def execute(in: In)(implicit compiler: proc.Code.Compiler): Out =
+//      Graph {
+//        import reflect.runtime.universe._
+//        CodeImpl.compileThunk[_Control](this, typeTag[_Control], execute = true)
+//      }
+//
+//    def prelude : String =
+//      s"""object Main {
+//         |  def __result__ : ${classOf[_Control].getName} = {
+//         |""".stripMargin
+//
+//    def postlude: String = "\n  }\n}\n"
+
     def compileBody()(implicit compiler: proc.Code.Compiler): Future[Unit] = {
       import reflect.runtime.universe._
-      CodeImpl.compileBody[In, Out, _Widget, Code](this, typeTag[_Widget])
+      CodeImpl.compileBody[In, Out, Unit, Code](this, typeTag[Unit])
     }
 
     def execute(in: In)(implicit compiler: proc.Code.Compiler): Out =
       Graph {
         import reflect.runtime.universe._
-        CodeImpl.compileThunk[_Widget](this, typeTag[_Widget], execute = true)
+        CodeImpl.compileThunk[Unit](this, typeTag[Unit], execute = true)
       }
 
-    def prelude : String =
-      s"""object Main {
-         |  def __result__ : ${classOf[_Widget].getName} = {
-         |""".stripMargin
+    def prelude : String = "object Main {\n"
 
-    def postlude: String = "\n  }\n}\n"
+    def postlude: String = "\n}\n"
 
     def updateSource(newText: String): Code = copy(source = newText)
   }
@@ -139,7 +154,7 @@ object Widget extends Obj.Type {
   // ---- graph obj ----
 
   object GraphObj extends expr.impl.ExprTypeImpl[_Graph, GraphObj] {
-    final val typeId = 400
+    final val typeId = 500
 
     protected def mkConst[S <: Sys[S]](id: S#Id, value: A)(implicit tx: S#Tx): Const[S] =
       new _Const[S](id, value)
@@ -169,12 +184,6 @@ object Widget extends Obj.Type {
           val id = tx.readId(in, access)
           new Predefined(id, cookie)
         case _ => super.readCookie(in, access, cookie)
-      }
-
-    private val emptyGraph =
-      _Graph {
-        import lucre.swing.graph._
-        Empty()
       }
 
     def empty[S <: Sys[S]](implicit tx: S#Tx): _Ex[S] = apply(emptyCookie)
@@ -207,12 +216,12 @@ object Widget extends Obj.Type {
       def dispose()(implicit tx: S#Tx): Unit = ()
 
       def constValue: _Graph = cookie match {
-        case `emptyCookie` => emptyGraph
+        case `emptyCookie` => _Graph.empty // emptyGraph
       }
     }
   }
   trait GraphObj[S <: Sys[S]] extends Expr[S, _Graph]
 }
-trait Widget[S <: Sys[S]] extends Obj[S] with Publisher[S, Widget.Update[S]] {
-  def graph: Widget.GraphObj.Var[S]
+trait Control[S <: Sys[S]] extends Obj[S] with Publisher[S, Control.Update[S]] {
+  def graph: Control.GraphObj.Var[S]
 }

@@ -25,6 +25,7 @@ import de.sciss.synth.proc.Runner.Universe
 import de.sciss.synth.proc.{UGenGraphBuilder => UGB}
 
 import scala.concurrent.stm.Ref
+import scala.language.higherKinds
 
 object Runner {
   private final class ExpandedRun[S <: Sys[S]](r: proc.Runner[S]) extends IActionImpl[S] {
@@ -40,6 +41,27 @@ object Runner {
     protected def mkRepr[S <: Sys[S]](implicit ctx: Context[S], tx: S#Tx): Repr[S] = {
       val rx = r.expand[S]
       new ExpandedRun[S](rx)
+    }
+  }
+
+  private final class ExpandedRunWith[S <: Sys[S]](r: proc.Runner[S], map: IExpr[S, Seq[(String, _)]])
+    extends IActionImpl[S] {
+
+    def executeAction()(implicit tx: S#Tx): Unit = {
+      r.prepare(map.value.toMap)  // XXX TODO --- proc.Runner should take mutable object
+      r.run()
+    }
+  }
+
+  final case class RunWith(r: Runner, map: Ex[Seq[(String, _)]]) extends Act {
+    type Repr[S <: Sys[S]] = IAction[S]
+
+    override def productPrefix: String = s"Runner$$RunWith" // serialization
+
+    protected def mkRepr[S <: Sys[S]](implicit ctx: Context[S], tx: S#Tx): Repr[S] = {
+      val rx    = r   .expand[S]
+      val mapEx = map .expand[S]
+      new ExpandedRunWith[S](rx, mapEx)
     }
   }
 
@@ -163,13 +185,44 @@ object Runner {
       new ExpandedMessages[S](rx, tx)
     }
   }
-}
-final case class Runner(key: String) extends Control {
 
-  type Repr[S <: Sys[S]] = proc.Runner[S]
+  def apply(key: String): Runner = Impl(key)
+
+  private final case class Impl(key: String) extends Runner {
+    override def productPrefix: String = "Runner" // serialization
+
+    type Repr[S <: Sys[S]] = proc.Runner[S]
+
+    protected def mkRepr[S <: Sys[S]](implicit ctx: Context[S], tx: S#Tx): Repr[S] =
+      tx.system match {
+        case _: synth.Sys[_] =>
+          // XXX TODO --- ugly ugly ugly
+          mkControlImpl[synth.NoSys](ctx.asInstanceOf[Context[synth.NoSys]], tx.asInstanceOf[synth.NoSys#Tx])
+            .asInstanceOf[Repr[S]]
+
+        case _ => throw new Exception("Need a SoundProcesses system")
+      }
+
+    private def mkControlImpl[S <: synth.Sys[S]](implicit ctx: Context[S], tx: S#Tx): Repr[S] = {
+      import ctx.{cursor, workspace}
+      val objOpt                  = ctx.selfOption.flatMap(self => self.attr.get(key))
+      val obj                     = objOpt.getOrElse(throw UGB.MissingIn(UGB.AttributeKey(key)))
+      implicit val h: Universe[S] = Universe()
+      val runOpt                  = proc.Runner[S](obj)
+      runOpt.getOrElse(throw new Exception(s"No runner for ${obj.tpe}"))
+    }
+  }
+}
+trait Runner extends Control {
+  // def key: String
+
+  type Repr[S <: Sys[S]] <: proc.Runner[S]
 
   def run : Act = Runner.Run  (this)
   def stop: Act = Runner.Stop (this)
+
+  // XXX TODO: should we introduce `Map` at some point?
+  def runWith(map: Ex[Seq[(String, _)]]): Act = Runner.RunWith(this, map)
 
   /** 0 - stopped, 1 - preparing, 2 - prepared, 3 - running */
   def state: Ex[Int] = Runner.State(this)
@@ -178,23 +231,4 @@ final case class Runner(key: String) extends Control {
   def progress: Ex[Double] = Runner.Progress(this)
 
   def messages: Ex[Seq[proc.Runner.Message]] = Runner.Messages(this)
-
-  protected def mkRepr[S <: Sys[S]](implicit ctx: Context[S], tx: S#Tx): Repr[S] =
-    tx.system match {
-      case _: synth.Sys[_] =>
-        // XXX TODO --- ugly ugly ugly
-        mkControlImpl[synth.NoSys](ctx.asInstanceOf[Context[synth.NoSys]], tx.asInstanceOf[synth.NoSys#Tx])
-          .asInstanceOf[Repr[S]]
-
-      case _ => throw new Exception("Need a SoundProcesses system")
-    }
-
-  private def mkControlImpl[S <: synth.Sys[S]](implicit ctx: Context[S], tx: S#Tx): Repr[S] = {
-    import ctx.{cursor, workspace}
-    val objOpt                  = ctx.selfOption.flatMap(self => self.attr.get(key))
-    val obj                     = objOpt.getOrElse(throw UGB.MissingIn(UGB.AttributeKey(key)))
-    implicit val h: Universe[S] = Universe()
-    val runOpt                  = proc.Runner[S](obj)
-    runOpt.getOrElse(throw new Exception(s"No runner for ${obj.tpe}"))
-  }
 }

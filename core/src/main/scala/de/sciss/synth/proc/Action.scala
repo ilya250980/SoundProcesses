@@ -76,7 +76,13 @@ object Action extends Obj.Type {
                            (implicit peer: proc.Universe[S]): Universe[S] =
       new Impl.UniverseImpl(self, invoker, value)
   }
-  trait Universe[S <: Sys[S]] extends proc.Universe[S] {
+
+  /** Environment passed into the action body. Deliberately not a sub-type of `proc.Universe`,
+    * but carrying over some of the same methods.
+    */
+  trait Universe[S <: Sys[S]] extends proc.Universe.Base[S] {
+    implicit def peer: proc.Universe[S]
+
     /** The action object itself, most prominently giving access to
       * linked objects via its attributes.
       */

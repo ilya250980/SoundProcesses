@@ -18,10 +18,8 @@ import java.util.{Date, Locale}
 
 import de.sciss.lucre.event.Observable
 import de.sciss.lucre.expr.IControl
-import de.sciss.lucre.stm
-import de.sciss.lucre.stm.{Cursor, Obj, Sys}
+import de.sciss.lucre.stm.{Obj, Sys}
 import de.sciss.lucre.synth.{Sys => SSys}
-import de.sciss.synth.proc
 import de.sciss.synth.proc.impl.{ActionRunnerImpl, BasicAuralRunnerImpl, TimelineRunnerImpl, RunnerUniverseImpl => Impl}
 import de.sciss.synth.proc.{Action => _Action, Proc => _Proc, Timeline => _Timeline}
 
@@ -75,26 +73,6 @@ object Runner {
 
   type Attr = Map[String, Any]
 
-  object Universe {
-    sealed trait Update[S <: Sys[S]]
-    final case class Added  [S <: Sys[S]](r: Runner[S]) extends Update[S]
-    final case class Removed[S <: Sys[S]](r: Runner[S]) extends Update[S]
-
-    /** Finds an existing handler for the given workspace; returns this handler or
-      * creates a new one if not found.
-      */
-    def apply[S <: SSys[S]]()(implicit tx: S#Tx, universe: Cursor[S], workspace: stm.Workspace[S]): Universe[S] =
-      Impl()
-
-    /** Creates a new handler. */
-    def apply[S <: SSys[S]](genContext: GenContext[S], scheduler: Scheduler[S], auralSystem: AuralSystem)
-                          (implicit tx: S#Tx, cursor: Cursor[S], workspace: stm.Workspace[S]): Universe[S] =
-      Impl(genContext, scheduler, auralSystem)
-  }
-  trait Universe[S <: Sys[S]] extends proc.Universe.Disposable[S] with Observable[S#Tx, Universe.Update[S]] {
-    private[proc] def removeRunner(r: Runner[S])(implicit tx: S#Tx): Unit
-  }
-
   def addFactory(f: Factory): Unit = Impl.addFactory(f)
 
   def getFactory(tpe: Obj.Type): Option[Factory] = Impl.getFactory(tpe)
@@ -117,7 +95,7 @@ object Runner {
 
     type Repr[~ <: Sys[~]] <: Obj[~]
 
-    def mkRunner[S <: SSys[S]](obj: Repr[S])(implicit tx: S#Tx, universe: Runner.Universe[S]): Runner[S]
+    def mkRunner[S <: SSys[S]](obj: Repr[S])(implicit tx: S#Tx, universe: Universe[S]): Runner[S]
   }
 
   // -------------------
@@ -136,7 +114,7 @@ object Runner {
 
     type Repr[~ <: Sys[~]] = _Action[~]
 
-    def mkRunner[S <: Sys[S]](obj: _Action[S])(implicit tx: S#Tx, universe: Runner.Universe[S]): Runner[S] =
+    def mkRunner[S <: Sys[S]](obj: _Action[S])(implicit tx: S#Tx, universe: Universe[S]): Runner[S] =
       ActionRunnerImpl(obj)
   }
 
@@ -151,7 +129,7 @@ object Runner {
 
     type Repr[~ <: Sys[~]] = _Proc[~]
 
-    def mkRunner[S <: SSys[S]](obj: _Proc[S])(implicit tx: S#Tx, universe: Runner.Universe[S]): Runner[S] =
+    def mkRunner[S <: SSys[S]](obj: _Proc[S])(implicit tx: S#Tx, universe: Universe[S]): Runner[S] =
       BasicAuralRunnerImpl(obj)
   }
 
@@ -164,7 +142,7 @@ object Runner {
 
     type Repr[~ <: Sys[~]] = _Timeline[~]
 
-    def mkRunner[S <: SSys[S]](obj: _Timeline[S])(implicit tx: S#Tx, universe: Runner.Universe[S]): Runner[S] =
+    def mkRunner[S <: SSys[S]](obj: _Timeline[S])(implicit tx: S#Tx, universe: Universe[S]): Runner[S] =
       TimelineRunnerImpl(obj)
   }
 
@@ -195,7 +173,7 @@ trait Runner[S <: Sys[S]] extends ViewBase[S] with IControl[S] {
 
   def progress: Runner.Progress[S#Tx]
 
-  val universe: Runner.Universe[S]
+  implicit val universe: Universe[S]
 
   def prepare(attr: Runner.Attr = Map.empty)(implicit tx: S#Tx): Unit
 

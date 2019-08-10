@@ -18,13 +18,13 @@ import de.sciss.lucre.stm
 import de.sciss.lucre.stm.Obj
 import de.sciss.lucre.stm.TxnLike.peer
 import de.sciss.lucre.synth.Sys
-import de.sciss.synth.proc.Runner.{Running, Stopped, Universe}
-import de.sciss.synth.proc.{Runner, Timeline}
+import de.sciss.synth.proc.Runner.{Running, Stopped}
+import de.sciss.synth.proc.{Runner, Timeline, Universe}
 
 import scala.concurrent.stm.Ref
 
 object TimelineRunnerImpl {
-  def apply[S <: Sys[S]](obj: Timeline[S])(implicit tx: S#Tx, universe: Runner.Universe[S]): Runner[S] = {
+  def apply[S <: Sys[S]](obj: Timeline[S])(implicit tx: S#Tx, universe: Universe[S]): Runner[S] = {
     new Impl(tx.newHandle(obj), universe).init()
   }
 

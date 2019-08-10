@@ -21,7 +21,7 @@ import de.sciss.lucre.stm.{Cursor, Disposable, Obj, Sys, Workspace}
 import de.sciss.lucre.synth.{Sys => SSys}
 import de.sciss.synth.proc.Runner.{Attr, Preparing, Running, State, Stopped}
 import de.sciss.synth.proc.impl.BasicAuralRunnerImpl.AuralRef
-import de.sciss.synth.proc.{AuralContext, AuralObj, Runner, TimeRef}
+import de.sciss.synth.proc.{AuralContext, AuralObj, Runner, TimeRef, Universe}
 
 import scala.annotation.tailrec
 import scala.concurrent.stm.Ref
@@ -170,7 +170,7 @@ trait BasicAuralRunnerImpl[S <: SSys[S]] extends AuralSystemTxBridge[S] with Bas
 }
 
 object BasicAuralRunnerImpl {
-  def apply[S <: SSys[S]](obj: Obj[S])(implicit tx: S#Tx, universe: Runner.Universe[S]): Runner[S] = {
+  def apply[S <: SSys[S]](obj: Obj[S])(implicit tx: S#Tx, universe: Universe[S]): Runner[S] = {
     new Impl(tx.newHandle(obj), obj.tpe, universe).init()
   }
 
@@ -182,7 +182,7 @@ object BasicAuralRunnerImpl {
   }
 
   private final class Impl[S <: SSys[S]](objH: stm.Source[S#Tx, Obj[S]], tpe: Obj.Type,
-                                         val universe: Runner.Universe[S])
+                                         val universe: Universe[S])
     extends BasicAuralRunnerImpl[S] {
 
     override def toString = s"Runner(${tpe.typeId})@{hashCode().toHexString}"

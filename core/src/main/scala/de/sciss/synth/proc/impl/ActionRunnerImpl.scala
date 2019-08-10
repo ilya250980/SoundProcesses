@@ -19,13 +19,13 @@ import de.sciss.lucre.stm.{Obj, Sys}
 import de.sciss.synth.proc
 import de.sciss.synth.proc.Implicits._
 import de.sciss.synth.proc.Runner.{Attr, Prepared, Running, Stopped}
-import de.sciss.synth.proc.{Action, ObjViewBase, Runner, TimeRef}
+import de.sciss.synth.proc.{Action, ObjViewBase, Runner, TimeRef, Universe}
 
 /** The action runner supports passing a value in by
   * using the entry `"value"` in the `prepare` method's `attr` argument.
   */
 object ActionRunnerImpl {
-  def apply[S <: Sys[S]](obj: Action[S])(implicit tx: S#Tx, universe: Runner.Universe[S]): Runner[S] =
+  def apply[S <: Sys[S]](obj: Action[S])(implicit tx: S#Tx, universe: Universe[S]): Runner[S] =
     new Impl(tx.newHandle(obj), universe)
 
   abstract class Base[S <: Sys[S], Target] extends ObjViewBase[S, Target] with BasicViewBaseImpl[S] {
@@ -59,7 +59,7 @@ object ActionRunnerImpl {
     }
   }
 
-  private final class Impl[S <: Sys[S]](objH: stm.Source[S#Tx, Action[S]], override val universe: Runner.Universe[S])
+  private final class Impl[S <: Sys[S]](objH: stm.Source[S#Tx, Action[S]], override val universe: Universe[S])
     extends Base[S, Unit] with BasicRunnerImpl[S] {
 
     override def toString = s"Runner.Action${hashCode().toHexString}"

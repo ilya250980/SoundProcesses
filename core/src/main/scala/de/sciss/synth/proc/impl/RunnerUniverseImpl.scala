@@ -18,8 +18,8 @@ import de.sciss.lucre.stm
 import de.sciss.lucre.stm.TxnLike.peer
 import de.sciss.lucre.stm.{Cursor, Disposable, Obj, Workspace}
 import de.sciss.lucre.synth.{Sys => SSys}
-import de.sciss.synth.proc.Runner.{Factory, Universe}
-import de.sciss.synth.proc.{Action, AuralSystem, GenContext, Proc, Runner, Scheduler, Timeline}
+import de.sciss.synth.proc.Runner.Factory
+import de.sciss.synth.proc.{Action, AuralSystem, GenContext, Proc, Runner, Scheduler, Timeline, Universe}
 
 import scala.collection.immutable.{IndexedSeq => Vec}
 import scala.concurrent.stm.{Ref, TMap}

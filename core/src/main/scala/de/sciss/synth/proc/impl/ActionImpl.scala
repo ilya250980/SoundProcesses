@@ -22,7 +22,7 @@ import de.sciss.lucre.stm.{Copy, Cursor, Elem, IdPeek, NoSys, Obj, Sys, TxnLike,
 import de.sciss.lucre.{stm, event => evt}
 import de.sciss.serial.{DataInput, DataOutput, Serializer}
 import de.sciss.synth.proc
-import de.sciss.synth.proc.{Action, AuralSystem, Code, GenContext, Runner, Scheduler, Universe}
+import de.sciss.synth.proc.{Action, AuralSystem, Code, GenContext, Scheduler}
 
 import scala.annotation.switch
 import scala.collection.mutable
@@ -126,8 +126,8 @@ object ActionImpl {
   private lazy val logHeader = new SimpleDateFormat("[d MMM yyyy, HH:mm''ss.SSS] 'action' - ", Locale.US)
 
   final class UniverseImpl[S <: Sys[S]](val self: Action[S],
-                                         val invoker: Option[Obj[S]], val value: Any)
-                                        (implicit peer: proc.Universe[S])
+                                        val invoker: Option[Obj[S]], val value: Any)
+                                       (implicit val peer: proc.Universe[S])
     extends Action.Universe[S] {
 
     implicit def cursor     : Cursor    [S] = peer.cursor
@@ -135,22 +135,11 @@ object ActionImpl {
     implicit def genContext : GenContext[S] = peer.genContext
     implicit val scheduler  : Scheduler [S] = peer.scheduler
 
-    def mkChild(newAuralSystem: AuralSystem, newScheduler: Scheduler[S])(implicit tx: S#Tx): Universe[S] = {
-      val newPeer = peer.mkChild(newAuralSystem, newScheduler)
-      new UniverseImpl[S](self = self, invoker = invoker, value = value)(peer = newPeer)
-    }
-
     def auralSystem: AuralSystem = peer.auralSystem
-
-    def mkRunner(obj: Obj[S])(implicit tx: S#Tx): Option[Runner[S]] = peer.mkRunner(obj)
-
-    def runners(implicit tx: S#Tx): Iterator[Runner[S]] = peer.runners
 
     def log(what: => String)(implicit tx: S#Tx): Unit = tx.afterCommit {
       Console.out.println(logHeader.format(new Date()) + what)
     }
-
-//    def mkTransport()(implicit tx: S#Tx): Transport[S] = Transport[S](this)
   }
 
   // ---- serialization ----

@@ -21,8 +21,7 @@ import de.sciss.lucre.stm.Sys
 import de.sciss.lucre.synth
 import de.sciss.model.Change
 import de.sciss.synth.proc
-import de.sciss.synth.proc.Runner.Universe
-import de.sciss.synth.proc.{UGenGraphBuilder => UGB}
+import de.sciss.synth.proc.{Universe, UGenGraphBuilder => UGB}
 
 import scala.concurrent.stm.Ref
 import scala.language.higherKinds

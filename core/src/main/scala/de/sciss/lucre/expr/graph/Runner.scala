@@ -207,8 +207,7 @@ object Runner {
       val objOpt                  = ctx.selfOption.flatMap(self => self.attr.get(key))
       val obj                     = objOpt.getOrElse(throw UGB.MissingIn(UGB.AttributeKey(key)))
       implicit val h: Universe[S] = Universe()
-      val runOpt                  = proc.Runner[S](obj)
-      runOpt.getOrElse(throw new Exception(s"No runner for ${obj.tpe}"))
+      proc.Runner[S](obj)
     }
   }
 }

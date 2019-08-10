@@ -79,8 +79,11 @@ object Runner {
 
   def factories: Iterable[Factory] = Impl.factories
 
-  def apply[S <: Sys[S]](obj: Obj[S])(implicit tx: S#Tx, h: Universe[S]): Option[Runner[S]] =
+  def get[S <: Sys[S]](obj: Obj[S])(implicit tx: S#Tx, h: Universe[S]): Option[Runner[S]] =
     h.mkRunner(obj)
+
+  def apply[S <: Sys[S]](obj: Obj[S])(implicit tx: S#Tx, h: Universe[S]): Runner[S] =
+    get(obj).getOrElse(throw new IllegalArgumentException(s"No runner factory for ${obj.tpe}"))
 
   trait Factory {
     def prefix      : String

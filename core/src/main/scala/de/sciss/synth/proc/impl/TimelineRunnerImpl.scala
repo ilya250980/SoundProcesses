@@ -71,8 +71,9 @@ object TimelineRunnerImpl {
     }
 
     override protected def stateWillChanged(now: Runner.State)(implicit tx: S#Tx): Unit = now match {
-      case Running => mkSch()
-      case Stopped => cancelSch()
+      case Running  => mkSch()
+      case Stopped  => cancelSch()
+      case _        =>
     }
 
     override protected def disposeData()(implicit tx: S#Tx): Unit = {

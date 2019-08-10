@@ -20,6 +20,7 @@ import de.sciss.lucre.stm.Sys
 import de.sciss.serial.{DataInput, DataOutput, ImmutableSerializer, Writable}
 import de.sciss.synth
 import de.sciss.synth.proc.impl.{CodeImpl => Impl}
+import de.sciss.synth.proc.{Control => _Control}
 
 import scala.collection.immutable.{IndexedSeq => Vec, Seq => ISeq}
 import scala.concurrent.{ExecutionContext, Future, blocking}
@@ -28,9 +29,10 @@ object Code {
   final val typeId = 0x20001
 
   def init(): Unit = {
-    Obj.init()
-    SynthGraph   .init()
-    Action       .init()
+    Obj       .init()
+    SynthGraph.init()
+    Control   .init()
+    Action    .init()
   }
 
   final val UserPackage = "user"
@@ -223,6 +225,89 @@ object Code {
     def postlude: String = "\n}\n"
 
     def updateSource(newText: String): SynthGraph = copy(source = newText)
+  }
+
+  // ---- type: Action ----
+
+
+  object Control extends Type {
+    final val id        = 7
+    final val prefix    = "Control"
+    final val humanName = "Control Graph"
+    type Repr           = Code
+
+    override def examples: ISeq[Example] = List(
+      Example("Hello World", 'h',
+        """val b = LoadBang()
+          |b ---> PrintLn("Hello World!")
+        """.stripMargin
+      )
+    )
+
+    //    override def defaultSource: String = s"${super.defaultSource}Empty()\n"
+
+    def docBaseSymbol: String = "de.sciss.lucre.expr.graph"
+
+//    private[this] lazy val _init: Unit = {
+//      Code.addType(this)
+//      import Import._
+//      Code.registerImports(id, Vec(
+//        Import("de.sciss.numbers.Implicits", All),
+//        Import("de.sciss.lucre.expr.ExImport", All),
+//        Import("de.sciss.synth.proc.ExImport", All),
+//        Import("de.sciss.file", All),
+//        Import("de.sciss.lucre.expr.graph", All)
+//      ))
+////      proc.Code.registerImports(proc.Code.Action.id, Vec(
+////        Import("de.sciss.synth.proc", Name("Control") :: Nil)
+////      ))
+//    }
+//
+//    // override because we need register imports
+//    override def init(): Unit = _init
+
+    def mkCode(source: String): Repr = Control(source)
+  }
+  final case class Control(source: String) extends Code {
+    type In     = Unit
+    type Out    = _Control.Graph
+
+    def tpe: Type = Control
+
+    //    def compileBody()(implicit compiler: proc.Code.Compiler): Future[Unit] = {
+    //      import reflect.runtime.universe._
+    //      CodeImpl.compileBody[In, Out, _Control, Code](this, typeTag[_Control])
+    //    }
+    //
+    //    def execute(in: In)(implicit compiler: proc.Code.Compiler): Out =
+    //      Graph {
+    //        import reflect.runtime.universe._
+    //        CodeImpl.compileThunk[_Control](this, typeTag[_Control], execute = true)
+    //      }
+    //
+    //    def prelude : String =
+    //      s"""object Main {
+    //         |  def __result__ : ${classOf[_Control].getName} = {
+    //         |""".stripMargin
+    //
+    //    def postlude: String = "\n  }\n}\n"
+
+    def compileBody()(implicit compiler: Code.Compiler): Future[Unit] = {
+      import reflect.runtime.universe._
+      Impl.compileBody[In, Out, Unit, Control](this, typeTag[Unit])
+    }
+
+    def execute(in: In)(implicit compiler: Code.Compiler): Out =
+      _Control.Graph {
+        import reflect.runtime.universe._
+        Impl.compileThunk[Unit](this, typeTag[Unit], execute = true)
+      }
+
+    def prelude : String = "object Main {\n"
+
+    def postlude: String = "\n}\n"
+
+    def updateSource(newText: String): Control = copy(source = newText)
   }
 
   // ---- type: Action ----

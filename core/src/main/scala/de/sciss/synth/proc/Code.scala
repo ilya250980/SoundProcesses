@@ -400,7 +400,7 @@ object Code {
 
   type T[I, O] = Code { type In = I; type Out = O }
 }
-trait Code extends Writable { me =>
+trait Code extends Product with Writable { me =>
   type Self = Code.T[In, Out]
 
   /** The interfacing input type */

@@ -188,5 +188,7 @@ object FadeSpec {
     def curve     : Ex[Curve]  = _FadeSpec.Curve    (x)
     def floor     : Ex[Double] = _FadeSpec.Floor    (x)
   }
+
+  implicit object ExValue extends Ex.Value[FadeSpec]
 }
 final case class FadeSpec(numFrames: Long, curve: Curve = linear, floor: Float = 0f)

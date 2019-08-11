@@ -16,7 +16,7 @@ package de.sciss.lucre.expr.graph
 import de.sciss.lucre.event.impl.IGenerator
 import de.sciss.lucre.event.{IEvent, IPull, ITargets}
 import de.sciss.lucre.expr.impl.IActionImpl
-import de.sciss.lucre.expr.{Context, IAction, IExpr}
+import de.sciss.lucre.expr.{Context, IAction, IExpr, IExprAsRunnerMap}
 import de.sciss.lucre.stm.Sys
 import de.sciss.lucre.synth
 import de.sciss.model.Change
@@ -43,24 +43,25 @@ object Runner {
     }
   }
 
-  private final class ExpandedRunWith[S <: Sys[S]](r: proc.Runner[S], map: IExpr[S, Map[String, _]])
+  private final class ExpandedRunWith[S <: Sys[S]](r: proc.Runner[S], attr: proc.Runner.Attr[S])
     extends IActionImpl[S] {
 
     def executeAction()(implicit tx: S#Tx): Unit = {
-      r.prepare(??? /*map.value*/)  // XXX TODO --- proc.Runner should take mutable object
+      r.prepare(attr)
       r.run()
     }
   }
 
-  final case class RunWith(r: Runner, map: Ex[Map[String, _]]) extends Act {
+  final case class RunWith(r: Runner, map: Ex[(String, _)]*) extends Act {
     type Repr[S <: Sys[S]] = IAction[S]
 
     override def productPrefix: String = s"Runner$$RunWith" // serialization
 
     protected def mkRepr[S <: Sys[S]](implicit ctx: Context[S], tx: S#Tx): Repr[S] = {
-      val rx    = r   .expand[S]
-      val mapEx = map .expand[S]
-      new ExpandedRunWith[S](rx, mapEx)
+      val rx    = r.expand[S]
+      val mapEx = map.map(_.expand[S])
+      val attr  = new IExprAsRunnerMap[S](mapEx)
+      new ExpandedRunWith[S](rx, attr)
     }
   }
 
@@ -219,7 +220,9 @@ trait Runner extends Control {
   def run : Act = Runner.Run  (this)
   def stop: Act = Runner.Stop (this)
 
-  def runWith(map: Ex[Map[String, _]]): Act = Runner.RunWith(this, map)
+  def runWith(attr: Ex[(String, _)]*): Act = Runner.RunWith(this, attr)
+
+//  def runWith(attr: (String, Ex[_])*): Act = Runner.RunWith(this, attr)
 
   /** 0 - stopped, 1 - preparing, 2 - prepared, 3 - running */
   def state: Ex[Int] = Runner.State(this)

@@ -96,7 +96,7 @@ object Color {
     def id = 16
   }
 }
-sealed trait Color {
+sealed trait Color extends Product {
   /** Value consisting of the alpha component in bits 24-31, the red component in bits 16-23,
     * the green component in bits 8-15, and the blue component in bits 0-7.
     *

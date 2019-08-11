@@ -19,6 +19,7 @@ import de.sciss.lucre.expr.{Context, IExpr}
 import de.sciss.lucre.stm.Sys
 import de.sciss.synth.proc.{FadeSpec => _FadeSpec}
 import de.sciss.synth.{Curve => _Curve}
+import de.sciss.synth.proc.ExImport._
 
 object FadeSpec {
   private final class NumFramesExpanded[S <: Sys[S]](in: IExpr[S, _FadeSpec], tx0: S#Tx)(implicit targets: ITargets[S])

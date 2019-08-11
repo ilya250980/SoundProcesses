@@ -433,6 +433,8 @@ object AudioCue {
       */
     def fileOffset: Ex[Long] = _AudioCue.FileOffset(x) // (offset / TimeRef.SampleRate * sampleRate + 0.5).toLong
   }
+
+  implicit object ExValue extends Ex.Value[AudioCue]
 }
 
 /** A chunk of an audio file.

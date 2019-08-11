@@ -25,6 +25,9 @@ object ExImport {
   implicit val envSegmentExAttrBridge : Obj.Bridge[EnvSegment ] = new Impl(EnvSegment .Obj)
   implicit val fadeSpecExAttrBridge   : Obj.Bridge[FadeSpec   ] = new Impl(FadeSpec   .Obj)
 
+  implicit object curveIsValue          extends Ex.Value[Curve]
+  implicit object audioFileSpecIsValue  extends Ex.Value[AudioFileSpec]
+
   type AudioCue       = proc              .AudioCue
   type AudioFileSpec  = de.sciss.synth.io .AudioFileSpec
   type FadeSpec       = proc              .FadeSpec

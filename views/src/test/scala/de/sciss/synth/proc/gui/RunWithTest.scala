@@ -16,11 +16,7 @@ object RunWithTest extends App {
     // Ex[Seq[...]] should be both inferred for
     // Seq("foo" -> 123.0) and Seq("foo" -> (123.0: Ex[Double]))
     val freq: Ex[Double] = 440.0
-    val a = r.runWith(
-      Map(
-        "freq" -> freq
-      )
-    )
+    val a = r.runWith("freq" -> freq)
 
     LoadBang() ---> a
   }

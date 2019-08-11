@@ -294,7 +294,7 @@ object EnvSegment {
     }
   }
 }
-sealed abstract class EnvSegment extends Writable {
+sealed abstract class EnvSegment extends Product with Writable {
   def curve: Curve
   def startLevels: Vec[Double]
   def numChannels: Int

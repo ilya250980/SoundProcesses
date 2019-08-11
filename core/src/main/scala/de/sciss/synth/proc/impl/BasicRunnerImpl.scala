@@ -13,9 +13,9 @@
 
 package de.sciss.synth.proc.impl
 
+import de.sciss.equal.Implicits._
 import de.sciss.lucre.event.impl.{DummyObservableImpl, ObservableImpl}
 import de.sciss.lucre.stm
-import de.sciss.equal.Implicits._
 import de.sciss.lucre.stm.TxnLike.peer
 import de.sciss.lucre.stm.{Cursor, Disposable, Obj, Sys, Workspace}
 import de.sciss.lucre.synth.{Sys => SSys}
@@ -71,14 +71,14 @@ trait BasicAuralRunnerImpl[S <: SSys[S]] extends AuralSystemTxBridge[S] with Bas
   private[this] val targetState     = Ref[Runner.State](Runner.Stopped)
   private[this] val auralRef        = Ref(Option.empty[AuralRef[S]])
   private[this] val contextRef      = Ref(Option.empty[AuralContext[S]])
-  private[this] val attrRef         = Ref(Map.empty: Attr)
+  private[this] val attrRef         = Ref(Runner.emptyAttr[S])(NoManifest)
   private[this] val attrDirty       = Ref(false)
 
   object progress extends Runner.Progress[S#Tx] with DummyObservableImpl[S] {
     def current(implicit tx: S#Tx): Double = -1
   }
 
-  def prepare(attr: Attr)(implicit tx: S#Tx): Unit = {
+  def prepare(attr: Attr[S])(implicit tx: S#Tx): Unit = {
     val oldAttr = attrRef.swap(attr)
     attrDirty() = oldAttr !== attr
     setAndMatchStates(Preparing)

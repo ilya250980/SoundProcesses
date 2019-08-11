@@ -47,7 +47,7 @@ object Runner {
     extends IActionImpl[S] {
 
     def executeAction()(implicit tx: S#Tx): Unit = {
-      r.prepare(map.value)  // XXX TODO --- proc.Runner should take mutable object
+      r.prepare(??? /*map.value*/)  // XXX TODO --- proc.Runner should take mutable object
       r.run()
     }
   }

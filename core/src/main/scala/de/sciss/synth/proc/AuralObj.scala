@@ -19,7 +19,7 @@ import de.sciss.lucre.stm
 import de.sciss.lucre.stm.{Obj, Sys, TxnLike}
 import de.sciss.lucre.synth.{NodeRef, Sys => SSys}
 import de.sciss.synth.proc
-import de.sciss.synth.proc.impl.{AuralActionImpl, AuralEnsembleImpl, AuralFolderImpl, AuralObjImpl => Impl, AuralProcImpl, AuralTimelineImpl}
+import de.sciss.synth.proc.impl.{AuralActionImpl, AuralEnsembleImpl, AuralFolderImpl, AuralProcImpl, AuralTimelineImpl, AuralObjImpl => Impl}
 
 import scala.language.higherKinds
 
@@ -32,7 +32,7 @@ object AuralObj {
 
     type Repr[~ <: Sys[~]] <: Obj[~]
 
-    def apply[S <: SSys[S]](obj: Repr[S], attr: Runner.Attr)
+    def apply[S <: SSys[S]](obj: Repr[S], attr: Runner.Attr[S])
                            (implicit tx: S#Tx, context: AuralContext[S]): AuralObj[S]
   }
 
@@ -40,7 +40,7 @@ object AuralObj {
 
   def factories: Iterable[Factory] = Impl.factories
 
-  def apply[S <: SSys[S]](obj: Obj[S], attr: Runner.Attr = Map.empty)
+  def apply[S <: SSys[S]](obj: Obj[S], attr: Runner.Attr[S] = Runner.emptyAttr[S])
                          (implicit tx: S#Tx, context: AuralContext[S]): AuralObj[S] = Impl(obj, attr = attr)
 
   /* The target state indicates the eventual state the process should have,
@@ -75,7 +75,7 @@ object AuralObj {
 
     def tpe: Obj.Type = _Proc
 
-    def apply[S <: SSys[S]](obj: _Proc[S], attr: Runner.Attr = Map.empty)
+    def apply[S <: SSys[S]](obj: _Proc[S], attr: Runner.Attr[S] = Runner.emptyAttr[S])
                            (implicit tx: S#Tx, context: AuralContext[S]): AuralObj.Proc[S] =
       AuralProcImpl(obj, attr)
 
@@ -157,7 +157,7 @@ object AuralObj {
 
     def tpe: Obj.Type = _Timeline
 
-    def apply[S <: SSys[S]](obj: _Timeline[S], attr: Runner.Attr = Map.empty)
+    def apply[S <: SSys[S]](obj: _Timeline[S], attr: Runner.Attr[S] = Runner.emptyAttr[S])
                            (implicit tx: S#Tx, context: AuralContext[S]): AuralObj.Timeline[S] =
       AuralTimelineImpl(obj, attr)
 
@@ -185,7 +185,7 @@ object AuralObj {
 
     def tpe: Obj.Type = _Ensemble
 
-    def apply[S <: SSys[S]](obj: _Ensemble[S], attr: Runner.Attr)
+    def apply[S <: SSys[S]](obj: _Ensemble[S], attr: Runner.Attr[S])
                            (implicit tx: S#Tx, context: AuralContext[S]): AuralObj.Ensemble[S] =
       AuralEnsembleImpl(obj, attr)
   }
@@ -200,7 +200,7 @@ object AuralObj {
 
     def tpe: Obj.Type = _Folder
 
-    def apply[S <: SSys[S]](obj: _Folder[S], attr: Runner.Attr)
+    def apply[S <: SSys[S]](obj: _Folder[S], attr: Runner.Attr[S])
                            (implicit tx: S#Tx, context: AuralContext[S]): AuralObj.Folder[S] =
       AuralFolderImpl(obj, attr)
   }
@@ -213,7 +213,7 @@ object AuralObj {
 
     def tpe: Obj.Type = _Action
 
-    def apply[S <: SSys[S]](obj: _Action[S], attr: Runner.Attr)
+    def apply[S <: SSys[S]](obj: _Action[S], attr: Runner.Attr[S])
                            (implicit tx: S#Tx, context: AuralContext[S]): AuralObj.Action[S] =
       AuralActionImpl(obj, attr)
   }

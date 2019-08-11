@@ -37,7 +37,7 @@ import scala.concurrent.Future
 import scala.concurrent.stm.{Ref, TMap, TxnLocal}
 
 object AuralProcImpl {
-  def apply[S <: Sys[S]](proc: Proc[S], attr: Runner.Attr)
+  def apply[S <: Sys[S]](proc: Proc[S], attr: Runner.Attr[S])
                         (implicit tx: S#Tx, context: AuralContext[S]): AuralObj.Proc[S] = {
     val res = new Impl[S](attr)
     res.init(proc)
@@ -54,7 +54,7 @@ object AuralProcImpl {
 
   final class BufferAndGain(val buf: Buffer, val gain: Float)
 
-  class Impl[S <: Sys[S]](protected val runnerAttr: Runner.Attr)(implicit val context: AuralContext[S])
+  class Impl[S <: Sys[S]](protected val runnerAttr: Runner.Attr[S])(implicit val context: AuralContext[S])
     extends AuralObj.Proc[S]
     with UGB.Context[S]
     with AuralAttribute.Observer[S]

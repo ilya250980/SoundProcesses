@@ -22,13 +22,13 @@ object AuralActionImpl extends AuralObj.Factory {
   type Repr[S <: Sys[S]]  = Action[S]
   def tpe: Obj.Type       = Action
 
-  def apply[S <: SSys[S]](obj: Action[S], attr: Runner.Attr)
+  def apply[S <: SSys[S]](obj: Action[S], attr: Runner.Attr[S])
                          (implicit tx: S#Tx, context: AuralContext[S]): AuralObj.Action[S] = {
     val objH = tx.newHandle(obj)
-    new Impl(objH, attr.getOrElse("value", ()))
+    new Impl(objH, attr)
   }
 
-  private final class Impl[S <: SSys[S]](objH: stm.Source[S#Tx, Action[S]], invokeValue: Any)
+  private final class Impl[S <: SSys[S]](objH: stm.Source[S#Tx, Action[S]], attr: Runner.Attr[S])
                                         (implicit context: AuralContext[S])
     extends ActionRunnerImpl.Base[S, Unit] with AuralObj.Action[S] {
 
@@ -37,6 +37,9 @@ object AuralActionImpl extends AuralObj.Factory {
     override type Repr = Action[S]
 
     override def obj(implicit tx: S#Tx): Action[S] = objH()
+
+    private def invokeValue(implicit tx: S#Tx): Any =
+      attr.get("value").getOrElse(())
 
     def run(timeRef: TimeRef.Option, target: Unit)(implicit tx: S#Tx): Unit =
       execute(invokeValue = invokeValue)

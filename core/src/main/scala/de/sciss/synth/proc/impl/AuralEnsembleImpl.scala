@@ -21,7 +21,7 @@ import de.sciss.model.Change
 import de.sciss.synth.proc.{AuralContext, AuralObj, Ensemble, Runner, TimeRef, Transport, logTransport}
 
 object AuralEnsembleImpl {
-  def apply[S <: Sys[S]](obj: Ensemble[S], attr: Runner.Attr)
+  def apply[S <: Sys[S]](obj: Ensemble[S], attr: Runner.Attr[S])
                         (implicit tx: S#Tx, context: AuralContext[S]): AuralObj.Ensemble[S] = {
     val transport = Transport[S](context)
     val ensemble  = obj

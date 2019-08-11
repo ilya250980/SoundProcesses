@@ -19,7 +19,7 @@ import de.sciss.lucre.synth.Sys
 import de.sciss.synth.proc.{AuralContext, AuralObj, Runner, TimeRef, Transport}
 
 object AuralFolderImpl {
-  def apply[S <: Sys[S]](folder: Folder[S], attr: Runner.Attr)
+  def apply[S <: Sys[S]](folder: Folder[S], attr: Runner.Attr[S])
                         (implicit tx: S#Tx, context: AuralContext[S]): AuralObj.Folder[S] = {
     val transport = Transport[S](context)
     folder.iterator.foreach(transport.addObject)  // XXX TODO: should we pass `attr`?

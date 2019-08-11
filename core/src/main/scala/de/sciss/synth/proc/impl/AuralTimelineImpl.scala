@@ -29,7 +29,7 @@ object AuralTimelineImpl {
 
   import AuralTimelineBase.spanToPoint
 
-  def apply[S <: Sys[S]](timeline: Timeline[S], attr: Runner.Attr)
+  def apply[S <: Sys[S]](timeline: Timeline[S], attr: Runner.Attr[S])
                         (implicit tx: S#Tx, context: AuralContext[S]): AuralObj.Timeline[S] = {
     val system  = tx.system
     val res     = prepare[S, system.I](timeline, system)  // XXX TODO: should we pass on `attr`?

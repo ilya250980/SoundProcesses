@@ -68,7 +68,7 @@ object ActionRunnerImpl {
 
     override def obj(implicit tx: S#Tx): Action[S] = objH()
 
-    def prepare(attr: Attr)(implicit tx: S#Tx): Unit = ???
+    def prepare(attr: Attr[S])(implicit tx: S#Tx): Unit = ???
 
     def run()(implicit tx: S#Tx): Unit =
       execute(???)

@@ -17,7 +17,7 @@ import java.text.SimpleDateFormat
 import java.util.{Date, Locale}
 
 import de.sciss.lucre.event.Observable
-import de.sciss.lucre.expr.IControl
+import de.sciss.lucre.expr.{Context, IControl}
 import de.sciss.lucre.stm.{Obj, Sys}
 import de.sciss.lucre.synth.{Sys => SSys}
 import de.sciss.synth.proc.impl.{ActionRunnerImpl, BasicAuralRunnerImpl, ControlRunnerImpl, TimelineRunnerImpl, RunnerUniverseImpl => Impl}
@@ -71,7 +71,10 @@ object Runner {
     final val idleOrPrepared  = true
   }
 
-  type Attr = Map[String, Any]
+  def emptyAttr[S <: Sys[S]]: Attr[S] = Context.emptyAttr[S]
+
+//  type Attr = Map[String, Any]
+  type Attr[S <: Sys[S]] = Context.Attr[S] // MapLike[S, String, Form]
 
   def addFactory(f: Factory): Unit = Impl.addFactory(f)
 
@@ -197,7 +200,7 @@ trait Runner[S <: Sys[S]] extends ViewBase[S] with IControl[S] {
 
   implicit val universe: Universe[S]
 
-  def prepare(attr: Runner.Attr = Map.empty)(implicit tx: S#Tx): Unit
+  def prepare(attr: Runner.Attr[S] = Runner.emptyAttr[S])(implicit tx: S#Tx): Unit
 
   def run()(implicit tx: S#Tx): Unit
 

@@ -52,7 +52,7 @@ object ControlRunnerImpl {
       }
 
     @tailrec
-    def prepare(attr: Attr)(implicit tx: S#Tx): Unit = {
+    def prepare(attr: Attr[S])(implicit tx: S#Tx): Unit = {
       state match {
         case Stopped  =>
           val tr = mkRef()

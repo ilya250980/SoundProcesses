@@ -19,16 +19,18 @@ import de.sciss.lucre.stm
 import de.sciss.lucre.stm.{Cursor, Obj, Sys, UndoManager}
 
 object ExprContext {
-  def apply[S <: Sys[S]](selfH: Option[stm.Source[S#Tx, Obj[S]]] = None)
+  def apply[S <: Sys[S]](selfH: Option[stm.Source[S#Tx, Obj[S]]] = None,
+                         attr: Context.Attr[S] = Context.emptyAttr[S])
                         (implicit universe: Universe[S], undoManager: UndoManager[S]): Context[S] =
-    new Impl[S](selfH)
+    new Impl[S](selfH, attr)
 
   def get[S <: Sys[S]](implicit ctx: Context[S]): ExprContext[S] = ctx match {
     case ec: ExprContext[S] => ec
     case _ => sys.error("Trying to expand graph outside of SoundProcesses context")
   }
 
-  private final class Impl[S <: Sys[S]](protected val selfH: Option[stm.Source[S#Tx, Obj[S]]])
+  private final class Impl[S <: Sys[S]](protected val selfH: Option[stm.Source[S#Tx, Obj[S]]],
+                                        val attr: Context.Attr[S])
                                        (implicit val universe: Universe[S], val undoManager: UndoManager[S])
     extends ContextMixin[S] with ExprContext[S] {
 

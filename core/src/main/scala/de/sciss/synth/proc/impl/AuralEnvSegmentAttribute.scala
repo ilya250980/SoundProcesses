@@ -87,7 +87,7 @@ object AuralEnvSegmentAttribute extends Factory with StartLevelViewFactory {
     def dispose()(implicit tx: S#Tx): Unit = obs.dispose()
   }
 
-  private final class Impl[S <: Sys[S]](val key: String, objH: stm.Source[S#Tx, Repr[S]])
+  private final class Impl[S <: Sys[S]](val key: String, objH: stm.Source[S#Tx, AuralEnvSegmentAttribute.Repr[S]])
                                        (implicit val context: AuralContext[S])
     extends ExprImpl[S, EnvSegment] with GraphemeAware[S] {
 

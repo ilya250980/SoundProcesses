@@ -43,16 +43,16 @@ object Runner {
     }
   }
 
-  private final class ExpandedRunWith[S <: Sys[S]](r: proc.Runner[S], map: IExpr[S, Seq[(String, _)]])
+  private final class ExpandedRunWith[S <: Sys[S]](r: proc.Runner[S], map: IExpr[S, Map[String, _]])
     extends IActionImpl[S] {
 
     def executeAction()(implicit tx: S#Tx): Unit = {
-      r.prepare(map.value.toMap)  // XXX TODO --- proc.Runner should take mutable object
+      r.prepare(map.value)  // XXX TODO --- proc.Runner should take mutable object
       r.run()
     }
   }
 
-  final case class RunWith(r: Runner, map: Ex[Seq[(String, _)]]) extends Act {
+  final case class RunWith(r: Runner, map: Ex[Map[String, _]]) extends Act {
     type Repr[S <: Sys[S]] = IAction[S]
 
     override def productPrefix: String = s"Runner$$RunWith" // serialization
@@ -219,8 +219,7 @@ trait Runner extends Control {
   def run : Act = Runner.Run  (this)
   def stop: Act = Runner.Stop (this)
 
-  // XXX TODO: should we introduce `Map` at some point?
-  def runWith(map: Ex[Seq[(String, _)]]): Act = Runner.RunWith(this, map)
+  def runWith(map: Ex[Map[String, _]]): Act = Runner.RunWith(this, map)
 
   /** 0 - stopped, 1 - preparing, 2 - prepared, 3 - running */
   def state: Ex[Int] = Runner.State(this)

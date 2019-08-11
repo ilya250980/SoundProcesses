@@ -2,9 +2,10 @@ package de.sciss.synth.proc.gui
 
 import de.sciss.lucre.expr.Graph
 import de.sciss.lucre.synth.InMemory
-import de.sciss.synth.SynthGraph
-import de.sciss.synth.proc.Widget
+import de.sciss.synth.proc
+import de.sciss.synth.proc.{Control, Universe}
 
+// expected output: `Some(440.0)`
 object RunWithTest extends App {
   type S = InMemory
 
@@ -22,32 +23,25 @@ object RunWithTest extends App {
     )
 
     LoadBang() ---> a
-//    Empty()
   }
 
-  val gSink = SynthGraph {
-    import de.sciss.synth.proc.graph.Ops.stringToControl
-//    import de.sciss.synth.proc.graph._
-    val fAttr = "freq".ar(0.0)
-    fAttr.poll(0, "freq")
+  val gSink = Graph {
+    import de.sciss.lucre.expr.ExImport._
+    import de.sciss.lucre.expr.graph._
+    val fAttr: Ex[Option[Double]] = "freq".attr[Double]
+    LoadBang() ---> PrintLn(fAttr.toStr)
   }
 
   implicit val system: S = InMemory()
 
   system.step { implicit tx =>
-    val w1 = Widget[S]()
-//    w1.graph() = Widget.GraphObj.newConst[S](gSource)
-
-    ???
-//    val self  = IntObj.newConst(0): IntObj[S]
-//    val f     = stm.Folder[S]()
-//    self.attr.put("foo", f)
-//    val selfH = tx.newHandle(self)
-//    implicit val u    : Universe    [S] = Universe.dummy
-//    implicit val undo : UndoManager [S] = UndoManager()
-//    implicit val ctx  : Context     [S] = ExprContext(Some(selfH))
-//    gSource.expand.initControl()
-//    val x: stm.Obj[S] = IntObj.newConst(1)
-//    f.addLast(x)
+    val c1 = Control[S]()
+    c1.graph() = Control.GraphObj.newConst[S](gSource)
+    val c2 = Control[S]()
+    c2.graph() = Control.GraphObj.newConst[S](gSink)
+    c1.attr.put("that", c2)
+    implicit val u: Universe[S] = Universe.dummy
+    val r1 = proc.Runner(c1)
+    r1.run()
   }
 }

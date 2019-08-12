@@ -14,6 +14,7 @@
 package de.sciss.synth.proc
 
 import de.sciss.lucre.event.Targets
+import de.sciss.lucre.expr.graph.Ex
 import de.sciss.lucre.expr.impl.ExprTypeImpl
 import de.sciss.lucre.expr.{Expr => _Expr}
 import de.sciss.lucre.stm.Sys
@@ -95,6 +96,8 @@ object Color {
     def name = "User"
     def id = 16
   }
+
+  implicit object ExValue extends Ex.Value[Color]
 }
 sealed trait Color extends Product {
   /** Value consisting of the alpha component in bits 24-31, the red component in bits 16-23,

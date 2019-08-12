@@ -52,15 +52,16 @@ object Runner {
     }
   }
 
-  final case class RunWith(r: Runner, map: Ex[(String, _)]*) extends Act {
+  final case class RunWith(r: Runner, map: Seq[Ex[(String, _)]]) extends Act {
     type Repr[S <: Sys[S]] = IAction[S]
 
     override def productPrefix: String = s"Runner$$RunWith" // serialization
 
     protected def mkRepr[S <: Sys[S]](implicit ctx: Context[S], tx: S#Tx): Repr[S] = {
+      import ctx.targets
       val rx    = r.expand[S]
       val mapEx = map.map(_.expand[S])
-      val attr  = new IExprAsRunnerMap[S](mapEx)
+      val attr  = new IExprAsRunnerMap[S](mapEx, tx)
       new ExpandedRunWith[S](rx, attr)
     }
   }

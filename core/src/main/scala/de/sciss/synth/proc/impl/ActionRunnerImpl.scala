@@ -15,11 +15,15 @@ package de.sciss.synth.proc.impl
 
 import de.sciss.lucre.event.impl.DummyObservableImpl
 import de.sciss.lucre.stm
+import de.sciss.lucre.stm.TxnLike.peer
 import de.sciss.lucre.stm.{Obj, Sys}
 import de.sciss.synth.proc
 import de.sciss.synth.proc.Implicits._
-import de.sciss.synth.proc.Runner.{Attr, Prepared, Running, Stopped}
+import de.sciss.synth.proc.Runner.{Attr, Done, Failed, Prepared, Running, Stopped}
 import de.sciss.synth.proc.{Action, ObjViewBase, Runner, TimeRef, Universe}
+
+import scala.concurrent.stm.Ref
+import scala.util.{Failure, Success, Try}
 
 /** The action runner supports passing a value in by
   * using the entry `"value"` in the `prepare` method's `attr` argument.
@@ -51,11 +55,14 @@ object ActionRunnerImpl {
     final protected def execute(invokeValue: Any)(implicit tx: S#Tx): Unit = {
       state = Running
       val action = obj
-      if (!action.muted) {
+      state = if (action.muted) Stopped else {
         val au = Action.Universe[S](action, value = invokeValue)
-        action.execute(au)
+        val tr = Try(action.execute(au))
+        tr match {
+          case Success(_)   => Done
+          case Failure(ex)  => Failed(ex)
+        }
       }
-      state = Stopped
     }
   }
 
@@ -68,10 +75,17 @@ object ActionRunnerImpl {
 
     override def obj(implicit tx: S#Tx): Action[S] = objH()
 
-    def prepare(attr: Attr[S])(implicit tx: S#Tx): Unit = ???
+    private[this] val invokerValRef = Ref[Any](())
 
-    def run()(implicit tx: S#Tx): Unit =
-      execute(???)
+    def prepare(attr: Attr[S])(implicit tx: S#Tx): Unit = {
+      invokerValRef() = attr.get("value").getOrElse(())
+      state = Prepared
+    }
+
+    def run()(implicit tx: S#Tx): Unit = {
+      val v = invokerValRef.swap(())
+      execute(v)
+    }
 
     def run(timeRef: TimeRef.Option, target: Unit)(implicit tx: S#Tx): Unit =
       execute(())

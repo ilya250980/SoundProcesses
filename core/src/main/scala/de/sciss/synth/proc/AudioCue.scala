@@ -73,6 +73,11 @@ object AudioCue {
       _init
     }
 
+    def tryParse(value: Any): Option[AudioCue] = value match {
+      case x: AudioCue  => Some(x)
+      case _            => None
+    }
+
     protected def mkConst[S <: Sys[S]](id: S#Id, value: A)(implicit tx: S#Tx): Const[S] =
       new _Const[S](id, value)
 

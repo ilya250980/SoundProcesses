@@ -25,13 +25,18 @@ import de.sciss.synth.proc.Implicits._
 import de.sciss.synth.ugen.{Constant, ControlProxyLike}
 import de.sciss.synth.{Lazy, MaybeRate, SynthGraph, proc}
 
-import scala.annotation.switch
+import scala.annotation.{switch, tailrec}
 import scala.util.control.NonFatal
 
 object SynthGraphObj extends expr.impl.ExprTypeImpl[SynthGraph, SynthGraphObj] {
   final val typeId = 16
 
   import proc.{SynthGraphObj => Repr}
+
+  def tryParse(value: Any): Option[SynthGraph] = value match {
+    case x: SynthGraph  => Some(x)
+    case _              => None
+  }
 
   protected def mkConst[S <: Sys[S]](id: S#Id, value: A)(implicit tx: S#Tx): Const[S] =
     new _Const[S](id, value)
@@ -92,6 +97,7 @@ object SynthGraphObj extends expr.impl.ExprTypeImpl[SynthGraph, SynthGraphObj] {
       xs.foreach(writeElem(_, out, ref))
     }
 
+    @tailrec
     private def writeElem(e: Any, out: DataOutput, ref: RefMapOut): Unit =
       e match {
         case c: Constant =>

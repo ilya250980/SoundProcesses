@@ -58,6 +58,11 @@ object FadeSpec {
 
     import FadeSpec.{Obj => Repr}
 
+    def tryParse(value: Any): Option[FadeSpec] = value match {
+      case x: FadeSpec  => Some(x)
+      case _            => None
+    }
+
     private[this] lazy val _init: Unit = registerExtension(Apply)
 
     override def init(): Unit = {

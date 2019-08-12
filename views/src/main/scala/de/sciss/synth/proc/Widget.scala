@@ -141,6 +141,11 @@ object Widget extends Obj.Type {
   object GraphObj extends expr.impl.ExprTypeImpl[_Graph, GraphObj] {
     final val typeId = 400
 
+    def tryParse(value: Any): Option[_Graph] = value match {
+      case x: _Graph  => Some(x)
+      case _          => None
+    }
+
     protected def mkConst[S <: Sys[S]](id: S#Id, value: A)(implicit tx: S#Tx): Const[S] =
       new _Const[S](id, value)
 

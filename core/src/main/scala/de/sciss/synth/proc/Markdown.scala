@@ -29,6 +29,11 @@ object Markdown extends ExprTypeImpl[String, Markdown] {
   /** Boolean indicating whether view should go into edit mode by default. */
   final val attrEditMode    = "edit-mode"
 
+  def tryParse(value: Any): Option[String] = value match {
+    case x: String  => Some(x)
+    case _          => None
+  }
+
   protected def mkConst[S <: Sys[S]](id: S#Id, value: A)(implicit tx: S#Tx): Const[S] =
     new _Const[S](id, value)
 

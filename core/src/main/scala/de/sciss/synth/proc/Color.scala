@@ -52,6 +52,11 @@ object Color {
 
     implicit def valueSerializer: ImmutableSerializer[Color] = Color.serializer
 
+    def tryParse(value: Any): Option[Color] = value match {
+      case x: Color => Some(x)
+      case _        => None
+    }
+
     protected def mkConst[S <: Sys[S]](id: S#Id, value: A)(implicit tx: S#Tx): Const[S] =
       new _Const[S](id, value)
 

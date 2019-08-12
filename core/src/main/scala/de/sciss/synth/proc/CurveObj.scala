@@ -26,6 +26,11 @@ object CurveObj extends ExprTypeImpl[Curve, CurveObj] {
   final val typeId = 15
   final val valueSerializer: ImmutableSerializer[Curve] = Curve.serializer
 
+  def tryParse(value: Any): Option[Curve] = value match {
+    case x: Curve => Some(x)
+    case _        => None
+  }
+
   protected def mkConst[S <: Sys[S]](id: S#Id, value: A)(implicit tx: S#Tx): Const[S] =
     new _Const[S](id, value)
 

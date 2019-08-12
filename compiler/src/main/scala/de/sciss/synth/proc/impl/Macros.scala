@@ -56,7 +56,7 @@ object Macros {
   }
 
   def procGraphWithSource[S <: Sys[S]](c: blackbox.Context)(body: c.Expr[Unit])(tx: c.Expr[S#Tx])
-                                      (implicit tt: c.WeakTypeTag[S]): c.Expr[Unit] = {
+                         /* note: implicits _are_ used! */ (implicit tt: c.WeakTypeTag[S]): c.Expr[Unit] = {
     import c.universe._
 
     val source      = mkSource(c)("proc", body.tree)
@@ -76,7 +76,7 @@ object Macros {
   }
 
   def widgetGraphWithSource[S <: Sys[S]](c: blackbox.Context)(body: c.Expr[lucre.swing.graph.Widget])(tx: c.Expr[S#Tx])
-                                        (implicit tt: c.WeakTypeTag[S]): c.Expr[Unit] = {
+                            /* note: implicits _are_ used! */(implicit tt: c.WeakTypeTag[S]): c.Expr[Unit] = {
     import c.universe._
 
     val source      = mkSource(c)("widget", body.tree)
@@ -101,7 +101,7 @@ object Macros {
   private[this] var iMainPeer: Global = _
 
   def actionWithSource[S <: Sys[S]](c: blackbox.Context)(body: c.Expr[Action.Universe[S] => Unit])(tx: c.Expr[S#Tx])
-                                   (implicit tt: c.WeakTypeTag[S]): c.Expr[Action[S]] = {
+                       /* note: implicits _are_ used! */(implicit tt: c.WeakTypeTag[S]): c.Expr[Action[S]] = {
     import c.universe._
     val source = body.tree match {
       case Function(ValDef(_, argName, _, _) :: Nil, _ /* funBody */) =>

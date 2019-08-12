@@ -381,6 +381,11 @@ object Code {
 
     def valueSerializer: ImmutableSerializer[Code] = Code.serializer
 
+    def tryParse(value: Any): Option[Code] = value match {
+      case x: Code  => Some(x)
+      case _        => None
+    }
+
     protected def mkConst[S <: Sys[S]](id: S#Id, value: A)(implicit tx: S#Tx): Const[S] =
       new _Const[S](id, value)
 

@@ -58,6 +58,11 @@ object EnvSegment {
 
     import EnvSegment.{Obj => Repr}
 
+    def tryParse(value: Any): Option[EnvSegment] = value match {
+      case x: EnvSegment  => Some(x)
+      case _              => None
+    }
+
     private[this] lazy val _init: Unit = {
       registerExtension(ApplySingle)
       registerExtension(ApplyMulti )

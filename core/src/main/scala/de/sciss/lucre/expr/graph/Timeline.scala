@@ -94,6 +94,8 @@ object Timeline {
 
     def cellView[S <: Sys[S]](obj: stm.Obj[S], key: String)(implicit tx: S#Tx): CellView.Var[S, Option[Timeline]] =
       new CellViewImpl(tx.newHandle(obj), key)
+
+    def cellView[S <: Sys[S]](key: String)(implicit tx: S#Tx, context: Context[S]): CellView[S#Tx, Option[Timeline]] = ???
   }
 
   private final class AddExpanded[S <: Sys[S], A](in: IExpr[S, Timeline], span: IExpr[S, _SpanLike],

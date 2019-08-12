@@ -34,7 +34,8 @@ object ControlRunnerImpl {
 
     type Repr = Control[S]
 
-    private[this] val ctlRef = Ref(Option.empty[Try[IControl[S]]])
+    private[this] val ctlRef  = Ref(Option.empty[Try[IControl[S]]])
+    private[this] val attrRef = Ref(Context.emptyAttr[S])(NoManifest)
 
     def tpe: Obj.Type = Control
 
@@ -45,7 +46,12 @@ object ControlRunnerImpl {
 
     override def toString = s"Runner.Control${hashCode().toHexString}"
 
-    protected def disposeData()(implicit tx: S#Tx): Unit =
+    protected def disposeData()(implicit tx: S#Tx): Unit = {
+      attrRef() = Context.emptyAttr
+      disposeCtl()
+    }
+
+    private def disposeCtl()(implicit tx: S#Tx): Unit =
       ctlRef.swap(None) match {
         case Some(Success(c)) => c.dispose()
         case _ =>
@@ -55,7 +61,8 @@ object ControlRunnerImpl {
     def prepare(attr: Attr[S])(implicit tx: S#Tx): Unit = {
       state match {
         case Stopped  =>
-          val tr = mkRef()
+          attrRef() = attr
+          val tr    = mkRef()
           state = tr match {
             case Success(_)   => Prepared
             case Failure(ex)  => Failed(ex)
@@ -101,10 +108,11 @@ object ControlRunnerImpl {
     }
 
     private def mkRef()(implicit tx: S#Tx): Try[IControl[S]] = {
-      disposeData()
+      disposeCtl()
       val ctl   = objH()
       implicit val u: UndoManager[S]  = UndoManager()
-      implicit val ctx: Context[S]    = ExprContext(Some(objH))
+      val attr  = attrRef()
+      implicit val ctx: Context[S]    = ExprContext(Some(objH), attr)
       val g     = ctl.graph.value
       val res   = Try(g.expand[S])
       ctlRef()  = Some(res)

@@ -163,13 +163,14 @@ object SynthGraphObj extends expr.impl.ExprTypeImpl[SynthGraph, SynthGraphObj] {
       val res = try {
         if (arity == 0 && className.charAt(className.length - 1) == '$') {
           // case object
-          val companion = Class.forName(s"$className").getField("MODULE$").get(null)
+          val companion = Class.forName(className).getField("MODULE$").get(null)
           companion.asInstanceOf[Product]
 
         } else {
 
           // cf. stackoverflow #3039822
-          val companion = Class.forName(s"$className$$").getField("MODULE$").get(null)
+          val className1 = className + "$"
+          val companion = Class.forName(className1).getField("MODULE$").get(null)
           val elems = new Array[AnyRef](arity)
           var i = 0
           while (i < arity) {

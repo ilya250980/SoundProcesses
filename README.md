@@ -22,6 +22,8 @@ For tutorials, see the [Mellite website](https://www.sciss.de/mellite/tutorials.
 SoundProcesses builds with sbt and Scala 2.13, 2.12 (last version to support Scala 2.11 was 3.31.0).
 The dependencies should be downloaded automatically from maven central repository.
 
+__Note:__ Due to [scala/bug#11679](https://github.com/scala/bug/issues/11679), the project can currently only be compiled under JDK 8.
+
 ## linking
 
 The following dependency is necessary:

@@ -73,6 +73,7 @@ object SoundProcesses {
     AudioCue      .init()
     Code          .init()
     Color         .init()
+    Control       .init()
     Cursors       .init()
     CurveObj      .init()
     Ensemble      .init()

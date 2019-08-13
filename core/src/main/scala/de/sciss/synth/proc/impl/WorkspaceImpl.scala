@@ -242,11 +242,14 @@ object WorkspaceImpl {
 //      b.result()
 //    }
 
-//    final def close(): Unit = {
-//      atomic[S, Unit] { implicit tx =>
+    final def close(): Unit = {
+      // XXX TODO --- why did we have this asynchronously?
+//      SoundProcesses.atomic[S, Unit] { implicit tx =>
 //        dispose()
 //      } (cursor)
-//    }
+
+      cursor.step { implicit tx => dispose() }
+    }
 
     final def dispose()(implicit tx: S#Tx): Unit = {
       // logInfoTx(s"Dispose workspace $name")

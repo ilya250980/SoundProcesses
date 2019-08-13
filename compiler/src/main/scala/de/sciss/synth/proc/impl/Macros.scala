@@ -55,6 +55,8 @@ object Macros {
     res
   }
 
+  // ---- Proc ----
+
   def procGraphWithSource[S <: Sys[S]](c: blackbox.Context)(body: c.Expr[Unit])(tx: c.Expr[S#Tx])
                          /* note: implicits _are_ used! */ (implicit tt: c.WeakTypeTag[S]): c.Expr[Unit] = {
     import c.universe._
@@ -66,7 +68,7 @@ object Macros {
     // There is simply no way (?) to get hold of the `S` parameter in the macro implementation.
     reify {
       val ext                 = c.prefix.splice.asInstanceOf[MacroImplicits.ProcMacroOps[S]]
-      implicit val txc = tx.splice // don't bloody annotate the type with `S#Tx`, it will break scalac
+      implicit val txc = tx.splice // don't annotate the type with `S#Tx`, it will break scalac
       val p                   = ext.`this`
       p.graph()               = SynthGraphObj.newConst[S](SynthGraph(body.splice))
       val code                = Code.SynthGraph(sourceExpr.splice)
@@ -75,8 +77,32 @@ object Macros {
     }
   }
 
+  // ---- Control ----
+
+  def controlGraphWithSource[S <: Sys[S]](c: blackbox.Context)(body: c.Expr[Unit])(tx: c.Expr[S#Tx])
+                             /* note: implicits _are_ used! */(implicit tt: c.WeakTypeTag[S]): c.Expr[Unit] = {
+    import c.universe._
+
+    val source      = mkSource(c)("control", body.tree)
+    val sourceExpr  = c.Expr[String](Literal(Constant(source)))
+    // N.B. the cast to `InMemory` doesn't seem to cause any problems, it's just to satisfy
+    // scalac at this point, although `ProcCompilerOps` has already put all type checks into place.
+    // There is simply no way (?) to get hold of the `S` parameter in the macro implementation.
+    reify {
+      val ext                 = c.prefix.splice.asInstanceOf[MacroImplicits.ControlMacroOps[S]]
+      implicit val txc = tx.splice // don't annotate the type with `S#Tx`, it will break scalac
+      val w                   = ext.`this`
+      w.graph()               = Control.GraphObj.newConst[S](Control.Graph(body.splice))
+      val code                = Code.Control(sourceExpr.splice)
+      val codeObj             = Code.Obj.newVar[S](Code.Obj.newConst[S](code))
+      w.attr.put(Control.attrSource, codeObj)
+    }
+  }
+
+  // ---- Widget ----
+
   def widgetGraphWithSource[S <: Sys[S]](c: blackbox.Context)(body: c.Expr[lucre.swing.graph.Widget])(tx: c.Expr[S#Tx])
-                            /* note: implicits _are_ used! */(implicit tt: c.WeakTypeTag[S]): c.Expr[Unit] = {
+                                        /* note: implicits _are_ used! */(implicit tt: c.WeakTypeTag[S]): c.Expr[Unit] = {
     import c.universe._
 
     val source      = mkSource(c)("widget", body.tree)
@@ -86,14 +112,16 @@ object Macros {
     // There is simply no way (?) to get hold of the `S` parameter in the macro implementation.
     reify {
       val ext                 = c.prefix.splice.asInstanceOf[MacroImplicits.WidgetMacroOps[S]]
-      implicit val txc = tx.splice // don't bloody annotate the type with `S#Tx`, it will break scalac
+      implicit val txc = tx.splice // don't annotate the type with `S#Tx`, it will break scalac
       val w                   = ext.`this`
-      w.graph()               = Widget.GraphObj.newConst[S](lucre.swing.Graph(body.splice))
+      w.graph()               = Widget.GraphObj.newConst[S](Widget.Graph(body.splice))
       val code                = Widget.Code(sourceExpr.splice)
       val codeObj             = Code.Obj.newVar[S](Code.Obj.newConst[S](code))
       w.attr.put(Widget.attrSource, codeObj)
     }
   }
+
+  // ---- Action ----
 
   private[this] val compileCount = Ref(0)
 
@@ -148,7 +176,7 @@ object Macros {
     // scalac at this point, although `ProcCompilerOps` has already put all type checks into place.
     // There is simply no way (?) to get hold of the `S` parameter in the macro implementation.
     reify {
-      implicit val txc  = tx.splice // don't bloody annotate the type with `S#Tx`, it will break scalac
+      implicit val txc  = tx.splice // don't annotate the type with `S#Tx`, it will break scalac
       val codeObj       = Code.Obj.newVar[S](Code.Obj.newConst[S](Code.Action(sourceExpr.splice)))
       val a             = Action.newConst[S](nameExpr.splice, jarExpr.splice.getBytes("ISO-8859-1"))
       a.attr.put(Action.attrSource, codeObj)

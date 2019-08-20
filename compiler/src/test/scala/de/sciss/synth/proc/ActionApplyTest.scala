@@ -16,7 +16,7 @@ object ActionApplyTest {
     val ds      = BerkeleyDB.factory(dir)
     val ws      = Workspace.Durable.empty(dir, ds)
     ws.cursor.step { implicit tx =>
-      val a = Action.apply[S] { universe =>
+      val a = ActionRaw.apply[S] { universe =>
         // we're here!
         val self = universe.self
         println(s"Hello world. Self = $self - name ${self.attr.$[StringObj]("name").map(_.value)}")
@@ -26,7 +26,7 @@ object ActionApplyTest {
       ws.root.addLast(a)
 
       println("---- Source ----")
-      println(a.attr.$[Code.Obj](Action.attrSource).map(_.value.source).getOrElse("<not found>"))
+      println(a.attr.$[Code.Obj](ActionRaw.attrSource).map(_.value.source).getOrElse("<not found>"))
       println("----------------")
     }
 

@@ -1,5 +1,5 @@
 /*
- *  Action.scala
+ *  ActionRaw.scala
  *  (SoundProcesses)
  *
  *  Copyright (c) 2010-2019 Hanns Holger Rutz. All rights reserved.
@@ -17,36 +17,38 @@ import de.sciss.lucre.stm.{Folder, Obj, Sys, TxnLike}
 import de.sciss.lucre.{stm, event => evt}
 import de.sciss.serial.{DataInput, Serializer}
 import de.sciss.synth.proc
-import de.sciss.synth.proc.impl.{ActionImpl => Impl}
+import de.sciss.synth.proc.impl.{ActionRawImpl => Impl}
 
 import scala.collection.immutable.{IndexedSeq => Vec}
 import scala.concurrent.Future
 
-object Action extends Obj.Type {
+/** The old `Action` object backed up by raw Scala code.
+  */
+object ActionRaw extends Obj.Type {
   final val typeId = 19
 
   final val attrSource = "action-source"
 
-  def compile[S <: Sys[S]](source: Code.Action)
+  def compile[S <: Sys[S]](source: Code.ActionRaw)
                           (implicit tx: S#Tx, cursor: stm.Cursor[S],
-                           compiler: Code.Compiler): Future[stm.Source[S#Tx, Action[S]]] =
+                           compiler: Code.Compiler): Future[stm.Source[S#Tx, ActionRaw[S]]] =
     Impl.compile(source)
 
-  def empty[S <: Sys[S]](implicit tx: S#Tx): Action[S] = Impl.empty[S]
+  def empty[S <: Sys[S]](implicit tx: S#Tx): ActionRaw[S] = Impl.empty[S]
 
   def mkName[S <: Sys[S]]()(implicit tx: S#Tx): String = Impl.mkName[S]()
 
-  def newConst[S <: Sys[S]](name: String, jar: Array[Byte])(implicit tx: S#Tx): Action[S] =
+  def newConst[S <: Sys[S]](name: String, jar: Array[Byte])(implicit tx: S#Tx): ActionRaw[S] =
     Impl.newConst(name, jar)
 
-  def predef[S <: Sys[S]](id: String)(implicit tx: S#Tx): Action[S] = Impl.predef(id)
+  def predef[S <: Sys[S]](id: String)(implicit tx: S#Tx): ActionRaw[S] = Impl.predef(id)
 
   def registerPredef(id: String, body: Body)(implicit tx: TxnLike): Unit = Impl.registerPredef(id, body)
 
   object Var {
-    def apply[S <: Sys[S]](init: Action[S])(implicit tx: S#Tx): Var[S] = Impl.newVar(init)
+    def apply[S <: Sys[S]](init: ActionRaw[S])(implicit tx: S#Tx): Var[S] = Impl.newVar(init)
 
-    def unapply[S <: Sys[S]](a: Action[S]): Option[Var[S]] =
+    def unapply[S <: Sys[S]](a: ActionRaw[S]): Option[Var[S]] =
       a match {
         case x: Var[S] => Some(x)
         case _ => None
@@ -54,11 +56,11 @@ object Action extends Obj.Type {
 
     implicit def serializer[S <: Sys[S]]: Serializer[S#Tx, S#Acc, Var[S]] = Impl.varSerializer[S]
   }
-  trait Var[S <: Sys[S]] extends Action[S] with stm.Var[S#Tx, Action[S]]
+  trait Var[S <: Sys[S]] extends ActionRaw[S] with stm.Var[S#Tx, ActionRaw[S]]
 
-  implicit def serializer[S <: Sys[S]]: Serializer[S#Tx, S#Acc, Action[S]] = Impl.serializer[S]
+  implicit def serializer[S <: Sys[S]]: Serializer[S#Tx, S#Acc, ActionRaw[S]] = Impl.serializer[S]
 
-  def read[S <: Sys[S]](in: DataInput, access: S#Acc)(implicit tx: S#Tx): Action[S] = serializer[S].read(in, access)
+  def read[S <: Sys[S]](in: DataInput, access: S#Acc)(implicit tx: S#Tx): ActionRaw[S] = serializer[S].read(in, access)
 
   // ---- body ----
 
@@ -72,7 +74,7 @@ object Action extends Obj.Type {
   final case class FloatVector (xs: Vec[Float ])
 
   object Universe {
-    def apply[S <: Sys[S]](self: Action[S], invoker: Option[Obj[S]] = None, value: Any = ())
+    def apply[S <: Sys[S]](self: ActionRaw[S], invoker: Option[Obj[S]] = None, value: Any = ())
                            (implicit peer: proc.Universe[S]): Universe[S] =
       new Impl.UniverseImpl(self, invoker, value)
   }
@@ -86,7 +88,7 @@ object Action extends Obj.Type {
     /** The action object itself, most prominently giving access to
       * linked objects via its attributes.
       */
-    def self: Action[S]
+    def self: ActionRaw[S]
 
     /** A result object from the invoker. To permit different kind of invocations,
       * this value is untyped. Conventionally, `Action.DoubleVector` and `Action.FloatVector`
@@ -108,6 +110,6 @@ object Action extends Obj.Type {
   def readIdentifiedObj[S <: Sys[S]](in: DataInput, access: S#Acc)(implicit tx: S#Tx): Obj[S] =
     Impl.readIdentifiedObj(in, access)
 }
-trait Action[S <: Sys[S]] extends Obj[S] with evt.Publisher[S, Unit] {
-  def execute(universe: Action.Universe[S])(implicit tx: S#Tx): Unit
+trait ActionRaw[S <: Sys[S]] extends Obj[S] with evt.Publisher[S, Unit] {
+  def execute(universe: ActionRaw.Universe[S])(implicit tx: S#Tx): Unit
 }

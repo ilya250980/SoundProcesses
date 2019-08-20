@@ -128,8 +128,8 @@ object Macros {
   private[this] var iMainImpl: IMain  = _
   private[this] var iMainPeer: Global = _
 
-  def actionWithSource[S <: Sys[S]](c: blackbox.Context)(body: c.Expr[Action.Universe[S] => Unit])(tx: c.Expr[S#Tx])
-                       /* note: implicits _are_ used! */(implicit tt: c.WeakTypeTag[S]): c.Expr[Action[S]] = {
+  def actionWithSource[S <: Sys[S]](c: blackbox.Context)(body: c.Expr[ActionRaw.Universe[S] => Unit])(tx: c.Expr[S#Tx])
+                                   /* note: implicits _are_ used! */ (implicit tt: c.WeakTypeTag[S]): c.Expr[ActionRaw[S]] = {
     import c.universe._
     val source = body.tree match {
       case Function(ValDef(_, argName, _, _) :: Nil, _ /* funBody */) =>
@@ -150,7 +150,7 @@ object Macros {
     val nameIdx     = compileCount.single.transformAndGet(_ + 1)
     val nameTime    = System.currentTimeMillis()
     val name        = s"Action${nameTime}_$nameIdx"
-    val code0       = Code.Action(source)
+    val code0       = Code.ActionRaw(source)
 
     val iMainOld    = iMainImpl
     val iMainPeerOld= iMainPeer
@@ -177,9 +177,9 @@ object Macros {
     // There is simply no way (?) to get hold of the `S` parameter in the macro implementation.
     reify {
       implicit val txc  = tx.splice // don't annotate the type with `S#Tx`, it will break scalac
-      val codeObj       = Code.Obj.newVar[S](Code.Obj.newConst[S](Code.Action(sourceExpr.splice)))
-      val a             = Action.newConst[S](nameExpr.splice, jarExpr.splice.getBytes("ISO-8859-1"))
-      a.attr.put(Action.attrSource, codeObj)
+      val codeObj       = Code.Obj.newVar[S](Code.Obj.newConst[S](Code.ActionRaw(sourceExpr.splice)))
+      val a             = ActionRaw.newConst[S](nameExpr.splice, jarExpr.splice.getBytes("ISO-8859-1"))
+      a.attr.put(ActionRaw.attrSource, codeObj)
       a
     }
   }

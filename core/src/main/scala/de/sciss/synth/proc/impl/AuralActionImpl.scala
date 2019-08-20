@@ -16,27 +16,27 @@ package de.sciss.synth.proc.impl
 import de.sciss.lucre.stm
 import de.sciss.lucre.stm.{Obj, Sys}
 import de.sciss.lucre.synth.{Sys => SSys}
-import de.sciss.synth.proc.{Action, AuralContext, AuralObj, Runner, TimeRef, Universe}
+import de.sciss.synth.proc.{ActionRaw, AuralContext, AuralObj, Runner, TimeRef, Universe}
 
 object AuralActionImpl extends AuralObj.Factory {
-  type Repr[S <: Sys[S]]  = Action[S]
-  def tpe: Obj.Type       = Action
+  type Repr[S <: Sys[S]]  = ActionRaw[S]
+  def tpe: Obj.Type       = ActionRaw
 
-  def apply[S <: SSys[S]](obj: Action[S], attr: Runner.Attr[S])
-                         (implicit tx: S#Tx, context: AuralContext[S]): AuralObj.Action[S] = {
+  def apply[S <: SSys[S]](obj: ActionRaw[S], attr: Runner.Attr[S])
+                         (implicit tx: S#Tx, context: AuralContext[S]): AuralObj.ActionRaw[S] = {
     val objH = tx.newHandle(obj)
     new Impl(objH, attr)
   }
 
-  private final class Impl[S <: SSys[S]](objH: stm.Source[S#Tx, Action[S]], attr: Runner.Attr[S])
+  private final class Impl[S <: SSys[S]](objH: stm.Source[S#Tx, ActionRaw[S]], attr: Runner.Attr[S])
                                         (implicit context: AuralContext[S])
-    extends ActionRunnerImpl.Base[S, Unit] with AuralObj.Action[S] {
+    extends ActionRawRunnerImpl.Base[S, Unit] with AuralObj.ActionRaw[S] {
 
     implicit def universe: Universe[S] = context.universe
 
-    override type Repr = Action[S]
+    override type Repr = ActionRaw[S]
 
-    override def obj(implicit tx: S#Tx): Action[S] = objH()
+    override def obj(implicit tx: S#Tx): ActionRaw[S] = objH()
 
     private def invokeValue(implicit tx: S#Tx): Any =
       attr.get("value").getOrElse(())

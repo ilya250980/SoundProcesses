@@ -31,7 +31,7 @@ import de.sciss.synth.proc.Runner.{Prepared, Preparing, Running, Stopped}
 import de.sciss.synth.proc.TimeRef.SampleRate
 import de.sciss.synth.proc.UGenGraphBuilder.{Complete, Incomplete, MissingIn}
 import de.sciss.synth.proc.graph.impl.{ActionResponder, StopSelfResponder}
-import de.sciss.synth.proc.{Action, AudioCue, AuralAttribute, AuralContext, AuralNode, AuralObj, AuralOutput, FadeSpec, Gen, GenView, ObjKeys, Output, Proc, Runner, SoundProcesses, TimeRef, graph, UGenGraphBuilder => UGB, logAural => logA}
+import de.sciss.synth.proc.{ActionRaw, AudioCue, AuralAttribute, AuralContext, AuralNode, AuralObj, AuralOutput, FadeSpec, Gen, GenView, ObjKeys, Output, Proc, Runner, SoundProcesses, TimeRef, graph, UGenGraphBuilder => UGB, logAural => logA}
 
 import scala.concurrent.Future
 import scala.concurrent.stm.{Ref, TMap, TxnLocal}
@@ -843,10 +843,10 @@ object AuralProcImpl {
           cursor.step { implicit tx =>
             rb.dispose()
             val invoker = procCached()
-            invoker.attr.$[Action](actionKey).foreach { action =>
+            invoker.attr.$[ActionRaw](actionKey).foreach { action =>
 //              import context.genContext
               import context.universe
-              val au = Action.Universe[S](action, invoker = Some(invoker) /* , values = values */)
+              val au = ActionRaw.Universe[S](action, invoker = Some(invoker) /* , values = values */)
               action.execute(au)
             }
           }

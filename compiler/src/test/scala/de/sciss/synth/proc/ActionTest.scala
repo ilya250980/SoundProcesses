@@ -59,7 +59,7 @@ object ActionTest extends App {
   }
 
   def iter(name: String): Future[Array[Byte]] = {
-    val code  = Code.Action(exampleSource)
+    val code  = Code.ActionRaw(exampleSource)
     println("Compiling...")
 //    val fut   = Code.future(blocking(CodeImpl.compileToJar(name, code)))
     val fut   = Code.future(blocking(code.execute(name)))

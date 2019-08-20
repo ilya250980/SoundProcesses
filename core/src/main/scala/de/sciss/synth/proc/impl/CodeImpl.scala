@@ -126,7 +126,7 @@ object CodeImpl {
       Import("de.sciss.file", All),
       Import("de.sciss.lucre.expr.graph", All)
     ),
-    Code.Action.id -> Vec(     // what should go inside?
+    Code.ActionRaw.id -> Vec(     // what should go inside?
       Import("scala.util", List(Name("Try"), Name("Success"), Name("Failure"))),
       Import("de.sciss.file", All),
       Import("de.sciss.lucre.artifact", List(Name("Artifact"), Name("ArtifactLocation"))),

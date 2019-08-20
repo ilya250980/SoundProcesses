@@ -1,5 +1,5 @@
 /*
- *  ActionImpl.scala
+ *  ActionRawImpl.scala
  *  (SoundProcesses)
  *
  *  Copyright (c) 2010-2019 Hanns Holger Rutz. All rights reserved.
@@ -22,14 +22,14 @@ import de.sciss.lucre.stm.{Copy, Cursor, Elem, IdPeek, NoSys, Obj, Sys, TxnLike,
 import de.sciss.lucre.{stm, event => evt}
 import de.sciss.serial.{DataInput, DataOutput, Serializer}
 import de.sciss.synth.proc
-import de.sciss.synth.proc.{Action, AuralSystem, Code, GenContext, Scheduler}
+import de.sciss.synth.proc.{ActionRaw, AuralSystem, Code, GenContext, Scheduler}
 
 import scala.annotation.switch
 import scala.collection.mutable
 import scala.concurrent.stm.{InTxn, TMap}
 import scala.concurrent.{Future, Promise, blocking}
 
-object ActionImpl {
+object ActionRawImpl {
   private final val CONST_EMPTY   = 0
   private final val CONST_JAR     = 1
   private final val CONST_VAR     = 2
@@ -44,37 +44,37 @@ object ActionImpl {
     s"Action${IdPeek(id)}"
   }
 
-  def compile[S <: Sys[S]](source: Code.Action)
+  def compile[S <: Sys[S]](source: Code.ActionRaw)
                           (implicit tx: S#Tx, cursor: stm.Cursor[S],
-                           compiler: Code.Compiler): Future[stm.Source[S#Tx, Action[S]]] = {
+                           compiler: Code.Compiler): Future[stm.Source[S#Tx, ActionRaw[S]]] = {
     val name    = mkName[S]()
-    val p       = Promise[stm.Source[S#Tx, Action[S]]]()
+    val p       = Promise[stm.Source[S#Tx, ActionRaw[S]]]()
     val system  = tx.system
     tx.afterCommit(performCompile(p, name, source, system))
     p.future
   }
 
-  def empty[S <: Sys[S]](implicit tx: S#Tx): Action[S] = new ConstEmptyImpl[S](tx.newId())
+  def empty[S <: Sys[S]](implicit tx: S#Tx): ActionRaw[S] = new ConstEmptyImpl[S](tx.newId())
 
-  def newVar[S <: Sys[S]](init: Action[S])(implicit tx: S#Tx): Action.Var[S] = {
+  def newVar[S <: Sys[S]](init: ActionRaw[S])(implicit tx: S#Tx): ActionRaw.Var[S] = {
     val targets = evt.Targets[S]
     val peer    = tx.newVar(targets.id, init)
     new VarImpl[S](targets, peer)
   }
 
-  def newConst[S <: Sys[S]](name: String, jar: Array[Byte])(implicit tx: S#Tx): Action[S] =
+  def newConst[S <: Sys[S]](name: String, jar: Array[Byte])(implicit tx: S#Tx): ActionRaw[S] =
     new ConstFunImpl(tx.newId(), name, jar)
 
-  private val mapPredef = TMap.empty[String, Action.Body]
+  private val mapPredef = TMap.empty[String, ActionRaw.Body]
 
-  def predef[S <: Sys[S]](actionId: String)(implicit tx: S#Tx): Action[S] = {
+  def predef[S <: Sys[S]](actionId: String)(implicit tx: S#Tx): ActionRaw[S] = {
     if (!mapPredef.contains(actionId)(tx.peer))
       throw new IllegalArgumentException(s"Predefined action '$actionId' is not registered")
 
     new ConstBodyImpl[S](tx.newId(), actionId)
   }
 
-  def registerPredef(actionId: String, body: Action.Body)(implicit tx: TxnLike): Unit =
+  def registerPredef(actionId: String, body: ActionRaw.Body)(implicit tx: TxnLike): Unit =
     if (mapPredef.put(actionId, body)(tx.peer).nonEmpty)
       throw new IllegalArgumentException(s"Predefined action '$actionId' was already registered")
 
@@ -85,21 +85,21 @@ object ActionImpl {
     })
   }
 
-  def execute[S <: Sys[S]](universe: Action.Universe[S], name: String, jar: Array[Byte])(implicit tx: S#Tx): Unit = {
+  def execute[S <: Sys[S]](universe: ActionRaw.Universe[S], name: String, jar: Array[Byte])(implicit tx: S#Tx): Unit = {
     implicit val itx: InTxn = tx.peer
     val cl = classLoader[S]
     cl.add(name, jar)
     val fullName  = s"${Code.UserPackage}.$name"
     val clazz     = Class.forName(fullName, true, cl)
     //  println("Instantiating...")
-    val fun = clazz.newInstance().asInstanceOf[Action.Body]
+    val fun = clazz.newInstance().asInstanceOf[ActionRaw.Body]
     fun(universe)
   }
 
   // ----
 
-  private def performCompile[S <: Sys[S]](p: Promise[stm.Source[S#Tx, Action[S]]], name: String,
-                                          source: Code.Action, system: S)
+  private def performCompile[S <: Sys[S]](p: Promise[stm.Source[S#Tx, ActionRaw[S]]], name: String,
+                                          source: Code.ActionRaw, system: S)
                                          (implicit cursor: stm.Cursor[S], compiler: Code.Compiler): Unit = {
     // val jarFut = source.compileToFunction(name)
     val jarFut = Code.future(blocking(source.execute(name)))
@@ -125,10 +125,10 @@ object ActionImpl {
 
   private lazy val logHeader = new SimpleDateFormat("[d MMM yyyy, HH:mm''ss.SSS] 'action' - ", Locale.US)
 
-  final class UniverseImpl[S <: Sys[S]](val self: Action[S],
+  final class UniverseImpl[S <: Sys[S]](val self: ActionRaw[S],
                                         val invoker: Option[Obj[S]], val value: Any)
                                        (implicit val peer: proc.Universe[S])
-    extends Action.Universe[S] {
+    extends ActionRaw.Universe[S] {
 
     implicit def cursor     : Cursor    [S] = peer.cursor
     implicit def workspace  : Workspace [S] = peer.workspace
@@ -144,18 +144,18 @@ object ActionImpl {
 
   // ---- serialization ----
 
-  def serializer[S <: Sys[S]]: Serializer[S#Tx, S#Acc, Action[S]] = anySer.asInstanceOf[Ser[S]]
+  def serializer[S <: Sys[S]]: Serializer[S#Tx, S#Acc, ActionRaw[S]] = anySer.asInstanceOf[Ser[S]]
 
-  def varSerializer[S <: Sys[S]]: Serializer[S#Tx, S#Acc, Action.Var[S]] = anyVarSer.asInstanceOf[VarSer[S]]
+  def varSerializer[S <: Sys[S]]: Serializer[S#Tx, S#Acc, ActionRaw.Var[S]] = anyVarSer.asInstanceOf[VarSer[S]]
 
   private val anySer    = new Ser   [NoSys]
   private val anyVarSer = new VarSer[NoSys]
 
-  private final class Ser[S <: Sys[S]] extends ObjSerializer[S, Action[S]] {
-    def tpe: Obj.Type = Action
+  private final class Ser[S <: Sys[S]] extends ObjSerializer[S, ActionRaw[S]] {
+    def tpe: Obj.Type = ActionRaw
   }
 
-  def readIdentifiedObj[S <: Sys[S]](in: DataInput, access: S#Acc)(implicit tx: S#Tx): Action[S] =
+  def readIdentifiedObj[S <: Sys[S]](in: DataInput, access: S#Acc)(implicit tx: S#Tx): ActionRaw[S] =
     in.readByte() match {
       case 0 =>
         val targets = Targets.readIdentified(in, access)
@@ -186,13 +186,13 @@ object ActionImpl {
         }
     }
 
-  private final class VarSer[S <: Sys[S]] extends ObjSerializer[S, Action.Var[S]] {
-    def tpe: Obj.Type = Action
+  private final class VarSer[S <: Sys[S]] extends ObjSerializer[S, ActionRaw.Var[S]] {
+    def tpe: Obj.Type = ActionRaw
   }
 
   private def readIdentifiedVar[S <: Sys[S]](in: DataInput, access: S#Acc, targets: evt.Targets[S])
-                                  (implicit tx: S#Tx): Action.Var[S] = {
-    val peer = tx.readVar[Action[S]](targets.id, in)
+                                  (implicit tx: S#Tx): ActionRaw.Var[S] = {
+    val peer = tx.readVar[ActionRaw[S]](targets.id, in)
     new VarImpl[S](targets, peer)
   }
 
@@ -203,8 +203,8 @@ object ActionImpl {
   // this is why workspace should have a general caching system
   private val clMap = new mutable.WeakHashMap[Sys[_], MemoryClassLoader]
 
-  private sealed trait ConstImpl[S <: Sys[S]] extends Action[S] with evt.impl.ConstObjImpl[S, Unit] {
-    final def tpe: Obj.Type = Action
+  private sealed trait ConstImpl[S <: Sys[S]] extends ActionRaw[S] with evt.impl.ConstObjImpl[S, Unit] {
+    final def tpe: Obj.Type = ActionRaw
   }
 
   private final class ConstBodyImpl[S <: Sys[S]](val id: S#Id, val actionId: String)
@@ -213,7 +213,7 @@ object ActionImpl {
     def copy[Out <: Sys[Out]]()(implicit tx: S#Tx, txOut: Out#Tx, context: Copy[S, Out]): Elem[Out] =
       new ConstBodyImpl(txOut.newId(), actionId) // .connect()
 
-    def execute(universe: Action.Universe[S])(implicit tx: S#Tx): Unit = {
+    def execute(universe: ActionRaw.Universe[S])(implicit tx: S#Tx): Unit = {
       implicit val itx: InTxn = tx.peer
       val fun = mapPredef.getOrElse(actionId, sys.error(s"Predefined action '$actionId' not registered"))
       fun(universe)
@@ -229,8 +229,8 @@ object ActionImpl {
   private final class ConstFunImpl[S <: Sys[S]](val id: S#Id, val name: String, jar: Array[Byte])
     extends ConstImpl[S] {
 
-    def execute(universe: Action.Universe[S])(implicit tx: S#Tx): Unit = {
-      ActionImpl.execute[S](universe, name, jar)
+    def execute(universe: ActionRaw.Universe[S])(implicit tx: S#Tx): Unit = {
+      ActionRawImpl.execute[S](universe, name, jar)
     }
 
     def copy[Out <: Sys[Out]]()(implicit tx: S#Tx, txOut: Out#Tx, context: Copy[S, Out]): Elem[Out] =
@@ -252,7 +252,7 @@ object ActionImpl {
   }
 
   private final class ConstEmptyImpl[S <: Sys[S]](val id: S#Id) extends ConstImpl[S] {
-    def execute(universe: Action.Universe[S])(implicit tx: S#Tx): Unit = ()
+    def execute(universe: ActionRaw.Universe[S])(implicit tx: S#Tx): Unit = ()
 
     def copy[Out <: Sys[Out]]()(implicit tx: S#Tx, txOut: Out#Tx, context: Copy[S, Out]): Elem[Out] =
       new ConstEmptyImpl(txOut.newId()) // .connect()
@@ -261,27 +261,27 @@ object ActionImpl {
       out.writeByte(CONST_EMPTY)
   }
 
-  private final class VarImpl[S <: Sys[S]](protected val targets: evt.Targets[S], peer: S#Var[Action[S]])
-    extends Action.Var[S]
+  private final class VarImpl[S <: Sys[S]](protected val targets: evt.Targets[S], peer: S#Var[ActionRaw[S]])
+    extends ActionRaw.Var[S]
     with evt.impl.SingleNode[S, Unit] {
 
-    def tpe: Obj.Type = Action
+    def tpe: Obj.Type = ActionRaw
 
     def copy[Out <: Sys[Out]]()(implicit tx: S#Tx, txOut: Out#Tx, context: Copy[S, Out]): Elem[Out] = {
       def newTgt  = Targets[Out]
-      val newVr   = txOut.newVar[Action[Out]](newTgt.id, context(peer()))
+      val newVr   = txOut.newVar[ActionRaw[Out]](newTgt.id, context(peer()))
       new VarImpl[Out](newTgt, newVr) // .connect()
     }
 
-    def apply()(implicit tx: S#Tx): Action[S] = peer()
+    def apply()(implicit tx: S#Tx): ActionRaw[S] = peer()
 
-    def update(value: Action[S])(implicit tx: S#Tx): Unit = {
+    def update(value: ActionRaw[S])(implicit tx: S#Tx): Unit = {
       val old = peer()
       peer()  = value
       if (old != value) changed.fire(())
     }
 
-    def swap(value: Action[S])(implicit tx: S#Tx): Action[S] = {
+    def swap(value: ActionRaw[S])(implicit tx: S#Tx): ActionRaw[S] = {
       val res = apply()
       update(value)
       res
@@ -289,7 +289,7 @@ object ActionImpl {
 
     object changed extends Changed with evt.impl.RootGenerator[S, Unit]
 
-    def execute(universe: Action.Universe[S])(implicit tx: S#Tx): Unit = peer().execute(universe)
+    def execute(universe: ActionRaw.Universe[S])(implicit tx: S#Tx): Unit = peer().execute(universe)
 
     protected def disposeData()(implicit tx: S#Tx): Unit = peer.dispose()
 

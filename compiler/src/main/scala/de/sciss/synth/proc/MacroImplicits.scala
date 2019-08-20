@@ -32,8 +32,8 @@ object MacroImplicits {
       macro Macros.procGraphWithSource[S]
   }
 
-  implicit final class ActionMacroOps(private val a: Action.type) extends AnyVal {
-    def apply[S <: Sys[S]](body: Action.Universe[S] => Unit)(implicit tx: S#Tx): Action[S] =
+  implicit final class ActionMacroOps(private val a: ActionRaw.type) extends AnyVal {
+    def apply[S <: Sys[S]](body: ActionRaw.Universe[S] => Unit)(implicit tx: S#Tx): ActionRaw[S] =
     macro Macros.actionWithSource[S]
   }
 

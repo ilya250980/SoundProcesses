@@ -1,5 +1,5 @@
 /*
- *  ActionRunnerImpl.scala
+ *  ActionRawRunnerImpl.scala
  *  (SoundProcesses)
  *
  *  Copyright (c) 2010-2019 Hanns Holger Rutz. All rights reserved.
@@ -20,7 +20,7 @@ import de.sciss.lucre.stm.{Obj, Sys}
 import de.sciss.synth.proc
 import de.sciss.synth.proc.Implicits._
 import de.sciss.synth.proc.Runner.{Attr, Done, Failed, Prepared, Running, Stopped}
-import de.sciss.synth.proc.{Action, ObjViewBase, Runner, TimeRef, Universe}
+import de.sciss.synth.proc.{ActionRaw, ObjViewBase, Runner, TimeRef, Universe}
 
 import scala.concurrent.stm.Ref
 import scala.util.{Failure, Success, Try}
@@ -28,8 +28,8 @@ import scala.util.{Failure, Success, Try}
 /** The action runner supports passing a value in by
   * using the entry `"value"` in the `prepare` method's `attr` argument.
   */
-object ActionRunnerImpl {
-  def apply[S <: Sys[S]](obj: Action[S])(implicit tx: S#Tx, universe: Universe[S]): Runner[S] =
+object ActionRawRunnerImpl {
+  def apply[S <: Sys[S]](obj: ActionRaw[S])(implicit tx: S#Tx, universe: Universe[S]): Runner[S] =
     new Impl(tx.newHandle(obj), universe)
 
   abstract class Base[S <: Sys[S], Target] extends ObjViewBase[S, Target] with BasicViewBaseImpl[S] {
@@ -37,11 +37,11 @@ object ActionRunnerImpl {
 
     implicit def universe: proc.Universe[S]
 
-    type Repr = Action[S]
+    type Repr = ActionRaw[S]
 
     // ---- impl ----
 
-    final def tpe: Obj.Type = Action
+    final def tpe: Obj.Type = ActionRaw
 
     final def prepare(timeRef: TimeRef.Option)(implicit tx: S#Tx): Unit = {
       state = Prepared
@@ -56,7 +56,7 @@ object ActionRunnerImpl {
       state = Running
       val action = obj
       state = if (action.muted) Stopped else {
-        val au = Action.Universe[S](action, value = invokeValue)
+        val au = ActionRaw.Universe[S](action, value = invokeValue)
         val tr = Try(action.execute(au))
         tr match {
           case Success(_)   => Done
@@ -66,14 +66,14 @@ object ActionRunnerImpl {
     }
   }
 
-  private final class Impl[S <: Sys[S]](objH: stm.Source[S#Tx, Action[S]], override val universe: Universe[S])
+  private final class Impl[S <: Sys[S]](objH: stm.Source[S#Tx, ActionRaw[S]], override val universe: Universe[S])
     extends Base[S, Unit] with BasicRunnerImpl[S] {
 
     override def toString = s"Runner.Action${hashCode().toHexString}"
 
     protected def disposeData()(implicit tx: S#Tx): Unit = ()
 
-    override def obj(implicit tx: S#Tx): Action[S] = objH()
+    override def obj(implicit tx: S#Tx): ActionRaw[S] = objH()
 
     private[this] val invokerValRef = Ref[Any](())
 

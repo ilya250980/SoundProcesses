@@ -24,9 +24,9 @@ object ActionTest2 extends App {
   import ExecutionContext.Implicits.global
 
   val futAction = cursor.step { implicit tx =>
-    val code    = Code.Action(source1)
+    val code    = Code.ActionRaw(source1)
     println("Starting compilation...")
-    Action.compile(code)
+    ActionRaw.compile(code)
   }
 
   futAction.onComplete {

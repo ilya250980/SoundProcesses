@@ -19,7 +19,7 @@ import de.sciss.lucre.stm.TxnLike.peer
 import de.sciss.lucre.stm.{Cursor, Disposable, Obj, Workspace}
 import de.sciss.lucre.synth.{Sys => SSys}
 import de.sciss.synth.proc.Runner.Factory
-import de.sciss.synth.proc.{Action, AuralSystem, Control, GenContext, Proc, Runner, Scheduler, Timeline, Universe}
+import de.sciss.synth.proc.{ActionRaw, AuralSystem, Control, GenContext, Proc, Runner, Scheduler, Timeline, Universe}
 
 import scala.collection.immutable.{IndexedSeq => Vec}
 import scala.concurrent.stm.{Ref, TMap}
@@ -33,7 +33,7 @@ object RunnerUniverseImpl {
     Timeline        .typeId -> Runner.Timeline,
 //    Ensemble        .typeId -> AuralObj.Ensemble,
     Control         .typeId -> Runner.Control,
-    Action          .typeId -> Runner.Action
+    ActionRaw          .typeId -> Runner.ActionRaw
   )
 
   def addFactory(f: Factory): Unit = sync.synchronized {

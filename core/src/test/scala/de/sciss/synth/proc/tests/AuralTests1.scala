@@ -10,7 +10,7 @@ import de.sciss.span.Span
 import de.sciss.synth.Curve.{exponential, linear}
 import de.sciss.synth.io.{AudioFile, AudioFileType}
 import de.sciss.synth.proc.Implicits._
-import de.sciss.synth.proc.{Action, AudioCue, AuralContext, AuralObj, Ensemble, FadeSpec, Grapheme, Implicits, ObjKeys, Proc, SynthGraphObj, TimeRef, Timeline, Transport, graph, showTransportLog}
+import de.sciss.synth.proc.{ActionRaw, AudioCue, AuralContext, AuralObj, Ensemble, FadeSpec, Grapheme, Implicits, ObjKeys, Proc, SynthGraphObj, TimeRef, Timeline, Transport, graph, showTransportLog}
 import de.sciss.{numbers, synth}
 
 object AuralTests1 extends AuralTestLike.Factory {
@@ -139,14 +139,14 @@ class AuralTests1[S <: Sys[S]](name: String)(implicit cursor: stm.Cursor[S]) ext
     cursor.step { implicit tx =>
       val t = Transport[S](context)
 
-      val body: Action.Body = new Action.Body {
-        def apply[T <: stm.Sys[T]](universe: Action.Universe[T])(implicit tx: T#Tx): Unit = {
+      val body: ActionRaw.Body = new ActionRaw.Body {
+        def apply[T <: stm.Sys[T]](universe: ActionRaw.Universe[T])(implicit tx: T#Tx): Unit = {
           val secs = seconds(t.position(tx.asInstanceOf[S#Tx]))
           println(f"bang at $secs%1.3f sec.")
         }
       }
-      Action.registerPredef("test.action", body)
-      val action = Action.predef[S]("test.action")
+      ActionRaw.registerPredef("test.action", body)
+      val action = ActionRaw.predef[S]("test.action")
 
       val tl = Timeline[S]
 

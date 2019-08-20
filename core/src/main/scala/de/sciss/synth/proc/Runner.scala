@@ -20,8 +20,8 @@ import de.sciss.lucre.event.Observable
 import de.sciss.lucre.expr.{Context, IControl}
 import de.sciss.lucre.stm.{Obj, Sys}
 import de.sciss.lucre.synth.{Sys => SSys}
-import de.sciss.synth.proc.impl.{ActionRunnerImpl, BasicAuralRunnerImpl, ControlRunnerImpl, TimelineRunnerImpl, RunnerUniverseImpl => Impl}
-import de.sciss.synth.proc.{Action => _Action, Control => _Control, Proc => _Proc, Timeline => _Timeline}
+import de.sciss.synth.proc.impl.{ActionRawRunnerImpl, BasicAuralRunnerImpl, ControlRunnerImpl, TimelineRunnerImpl, RunnerUniverseImpl => Impl}
+import de.sciss.synth.proc.{ActionRaw => _ActionRaw, Control => _Control, Proc => _Proc, Timeline => _Timeline}
 
 import scala.language.higherKinds
 
@@ -125,18 +125,18 @@ object Runner {
 
   // ---- Action ----
 
-  object Action extends Factory {
-    final val prefix          = "Action"
+  object ActionRaw extends Factory {
+    final val prefix          = "ActionRaw"
     def humanName : String    = prefix
-    def tpe       : Obj.Type  = _Action
+    def tpe       : Obj.Type  = _ActionRaw
 
     def isSingleton     : Boolean = false
 //    def isInstantaneous : Boolean = true
 
-    type Repr[~ <: Sys[~]] = _Action[~]
+    type Repr[~ <: Sys[~]] = _ActionRaw[~]
 
-    def mkRunner[S <: Sys[S]](obj: _Action[S])(implicit tx: S#Tx, universe: Universe[S]): Runner[S] =
-      ActionRunnerImpl(obj)
+    def mkRunner[S <: Sys[S]](obj: _ActionRaw[S])(implicit tx: S#Tx, universe: Universe[S]): Runner[S] =
+      ActionRawRunnerImpl(obj)
   }
 
   // ---- Proc ----

@@ -99,7 +99,7 @@ object Widget extends Obj.Type {
         Import("de.sciss.lucre.expr.graph", All),
         Import("de.sciss.lucre.swing.graph", All)
       ))
-      proc.Code.registerImports(proc.Code.Action.id, Vec(
+      proc.Code.registerImports(proc.Code.ActionRaw.id, Vec(
         Import("de.sciss.synth.proc", Name("Widget") :: Nil)
       ))
     }

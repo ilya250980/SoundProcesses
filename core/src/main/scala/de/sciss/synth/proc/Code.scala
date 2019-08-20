@@ -32,7 +32,7 @@ object Code {
     Obj       .init()
     SynthGraph.init()
     Control   .init()
-    Action    .init()
+    ActionRaw    .init()
   }
 
   final val UserPackage = "user"
@@ -312,10 +312,10 @@ object Code {
 
   // ---- type: Action ----
 
-  object Action extends Type {
+  object ActionRaw extends Type {
     final val id = 2
 
-    final val prefix  = "Action"
+    final val prefix  = "ActionRaw"
 
     def humanName: String = prefix
 
@@ -334,20 +334,20 @@ object Code {
       )
     )
 
-    type Repr = Action
+    type Repr = ActionRaw
 
     def docBaseSymbol: String = s"$pkgAction$$$$Universe"
 
-    def mkCode(source: String): Repr = Action(source)
+    def mkCode(source: String): Repr = ActionRaw(source)
 
-    private def pkgAction = "de.sciss.synth.proc.Action"
+    private def pkgAction = "de.sciss.synth.proc.ActionRaw"
     private val pkgSys    = "de.sciss.lucre.stm"
   }
-  final case class Action(source: String) extends Code {
+  final case class ActionRaw(source: String) extends Code {
     type In     = String
     type Out    = Array[Byte]
 
-    def tpe: Code.Type = Action
+    def tpe: Code.Type = ActionRaw
 
     def compileBody()(implicit compiler: Code.Compiler): Future[Unit] = future(blocking { execute("Unnamed"); () })
 
@@ -356,10 +356,10 @@ object Code {
       Impl.compileToJar(in, this, prelude = mkPrelude(in), postlude = postlude)
     }
 
-    def updateSource(newText: String): Action = copy(source = newText)
+    def updateSource(newText: String): ActionRaw = copy(source = newText)
 
     private def mkPrelude(name: String): String = {
-      import Action.{pkgAction, pkgSys}
+      import ActionRaw.{pkgAction, pkgSys}
 
       s"""final class $name extends $pkgAction.Body {
          |  def apply[S <: $pkgSys.Sys[S]](universe: $pkgAction.Universe[S])(implicit tx: S#Tx): Unit = {

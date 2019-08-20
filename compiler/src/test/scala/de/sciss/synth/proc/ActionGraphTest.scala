@@ -54,12 +54,12 @@ class ActionGraphTest[S <: Sys[S]]()(implicit cursor: stm.Cursor[S]) {
     implicit val compiler: Code.Compiler = Compiler()
 
     val actionFut = cursor.step { implicit tx =>
-      val code = Code.Action(
+      val code = Code.ActionRaw(
         """val name = self.attr[StringElem]("name").map(_.value).getOrElse("<not-found>")
           |println(s"Bang! My name is $name")
           |sys.exit(0)
         """.stripMargin)
-      Action.compile[S](code)
+      ActionRaw.compile[S](code)
     }
 
     val actionH = Await.result(actionFut, Duration.Inf)

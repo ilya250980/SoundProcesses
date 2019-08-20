@@ -18,7 +18,7 @@ import de.sciss.lucre.stm
 import de.sciss.lucre.stm.{Folder, Obj}
 import de.sciss.lucre.synth.Sys
 import de.sciss.synth.proc.AuralObj.Factory
-import de.sciss.synth.proc.{Action, AuralContext, AuralObj, Ensemble, Proc, Runner, TimeRef, Timeline}
+import de.sciss.synth.proc.{ActionRaw, AuralContext, AuralObj, Ensemble, Proc, Runner, TimeRef, Timeline}
 
 object AuralObjImpl {
   private val sync = new AnyRef
@@ -45,7 +45,7 @@ object AuralObjImpl {
     Proc            .typeId -> AuralObj.Proc, // AuralProcImpl
     Timeline        .typeId -> AuralObj.Timeline,
     Ensemble        .typeId -> AuralObj.Ensemble,
-    Action          .typeId -> AuralObj.Action
+    ActionRaw          .typeId -> AuralObj.ActionRaw
     // Code            .typeId -> Code,
   )
 

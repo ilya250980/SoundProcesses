@@ -24,7 +24,7 @@ import de.sciss.synth.proc.impl.{AuralActionImpl, AuralEnsembleImpl, AuralFolder
 import scala.language.higherKinds
 
 object AuralObj {
-  import proc.{Action => _Action, Ensemble => _Ensemble, Proc => _Proc, Timeline => _Timeline}
+  import proc.{ActionRaw => _ActionRaw, Ensemble => _Ensemble, Proc => _Proc, Timeline => _Timeline}
   import stm.{Folder => _Folder}
 
   trait Factory {
@@ -208,17 +208,17 @@ object AuralObj {
 
   // ---- action ----
 
-  object Action extends AuralObj.Factory {
-    type Repr[S <: Sys[S]] = _Action[S]
+  object ActionRaw extends AuralObj.Factory {
+    type Repr[S <: Sys[S]] = _ActionRaw[S]
 
-    def tpe: Obj.Type = _Action
+    def tpe: Obj.Type = _ActionRaw
 
-    def apply[S <: SSys[S]](obj: _Action[S], attr: Runner.Attr[S])
-                           (implicit tx: S#Tx, context: AuralContext[S]): AuralObj.Action[S] =
+    def apply[S <: SSys[S]](obj: _ActionRaw[S], attr: Runner.Attr[S])
+                           (implicit tx: S#Tx, context: AuralContext[S]): AuralObj.ActionRaw[S] =
       AuralActionImpl(obj, attr)
   }
-  trait Action[S <: Sys[S]] extends AuralObj[S] {
-    type Repr = _Action[S]
+  trait ActionRaw[S <: Sys[S]] extends AuralObj[S] {
+    type Repr = _ActionRaw[S]
   }
 }
 trait AuralObj[S <: Sys[S]] extends ObjViewBase[S, Unit] {

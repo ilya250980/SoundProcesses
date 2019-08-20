@@ -64,10 +64,10 @@ final class ActionResponder[S <: Sys[S]](objH: stm.Source[S#Tx, Obj[S]], key: St
       import context.universe.cursor
       SoundProcesses.atomic { implicit tx: S#Tx =>
         val invoker = objH()
-        invoker.attr.$[proc.Action](key).foreach { action =>
+        invoker.attr.$[proc.ActionRaw](key).foreach { action =>
           if (DEBUG) println("...and found action")
-          val au = proc.Action.Universe[S](action, invoker = Some(invoker),
-            value = proc.Action.FloatVector(values))
+          val au = proc.ActionRaw.Universe[S](action, invoker = Some(invoker),
+            value = proc.ActionRaw.FloatVector(values))
           action.execute(au)
         }
       }

@@ -15,12 +15,13 @@ package de.sciss.synth.proc
 
 import de.sciss.lucre.event.Targets
 import de.sciss.lucre.expr
+import de.sciss.lucre.expr.graph.Act
 import de.sciss.lucre.expr.impl.ExprTypeImpl
 import de.sciss.lucre.stm.Sys
 import de.sciss.serial.{DataInput, DataOutput, ImmutableSerializer, Writable}
 import de.sciss.synth
 import de.sciss.synth.proc.impl.{CodeImpl => Impl}
-import de.sciss.synth.proc.{Control => _Control}
+import de.sciss.synth.proc.{Action => _Action, Control => _Control}
 
 import scala.collection.immutable.{IndexedSeq => Vec, Seq => ISeq}
 import scala.concurrent.{ExecutionContext, Future, blocking}
@@ -32,7 +33,8 @@ object Code {
     Obj       .init()
     SynthGraph.init()
     Control   .init()
-    ActionRaw    .init()
+    Action    .init()
+    ActionRaw .init()
   }
 
   final val UserPackage = "user"
@@ -227,8 +229,7 @@ object Code {
     def updateSource(newText: String): SynthGraph = copy(source = newText)
   }
 
-  // ---- type: Action ----
-
+  // ---- type: Control ----
 
   object Control extends Type {
     final val id        = 7
@@ -311,6 +312,66 @@ object Code {
   }
 
   // ---- type: Action ----
+
+  object Action extends Type {
+    final val id        = 8
+    final val prefix    = "Action"
+    final val humanName = "Action Graph"
+    type Repr           = Action
+
+    override def examples: ISeq[Example] = List(
+      Example("Hello World", 'h',
+        """PrintLn("Hello World!")
+          |""".stripMargin
+      )
+    )
+
+    override def defaultSource: String = s"${super.defaultSource}Empty()\n"
+
+    def docBaseSymbol: String = "de.sciss.lucre.expr.graph"
+
+//    private[this] lazy val _init: Unit = {
+//      proc.Code.addType(this)
+//      import Import._
+//      proc.Code.registerImports(id, Vec(
+//        Import("de.sciss.numbers.Implicits", All),
+//        Import("de.sciss.lucre.expr.ExImport", All),
+//        Import("de.sciss.synth.proc.ExImport", All),
+//        Import("de.sciss.file", All),
+//        Import("de.sciss.lucre.expr.graph", All)
+//      ))
+//    }
+
+    def mkCode(source: String): Repr = Action(source)
+  }
+  final case class Action(source: String) extends Code {
+    type In     = Unit
+    type Out    = _Action.Graph
+
+    def tpe: Type = Action
+
+    def compileBody()(implicit compiler: Code.Compiler): Future[Unit] = {
+      import reflect.runtime.universe._
+      Impl.compileBody[In, Out, Act, Action](this, typeTag[Act])
+    }
+
+    def execute(in: In)(implicit compiler: Code.Compiler): Out =
+      _Action.Graph {
+        import reflect.runtime.universe._
+        Impl.compileThunk[Act](this, typeTag[Act], execute = true)
+      }
+
+    def prelude : String =
+      s"""object Main {
+         |  def __result__ : ${classOf[Act].getName} = {
+         |""".stripMargin
+
+    def postlude: String = "\n  }\n}\n"
+
+    def updateSource(newText: String): Action = copy(source = newText)
+  }
+
+  // ---- type: ActionRaw ----
 
   object ActionRaw extends Type {
     final val id = 2

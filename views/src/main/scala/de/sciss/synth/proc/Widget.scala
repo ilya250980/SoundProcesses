@@ -80,7 +80,7 @@ object Widget extends Obj.Type {
         """val b = Bang()
           |b ---> PrintLn("Hello World!")
           |b
-        """.stripMargin
+          |""".stripMargin
       )
     )
 

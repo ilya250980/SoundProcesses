@@ -18,10 +18,11 @@ import de.sciss.lucre.expr
 import de.sciss.lucre.expr.graph.{Act, Control => _Control}
 import de.sciss.lucre.expr.impl.{ExElem, GraphBuilderMixin, GraphSerializerMixin}
 import de.sciss.lucre.expr.{Context, Expr, IAction, IControl, ITrigger}
-import de.sciss.lucre.stm.{Copy, Elem, Obj, Sys}
+import de.sciss.lucre.stm.{Copy, Elem, Folder, Obj, Sys}
 import de.sciss.serial.{DataInput, DataOutput, ImmutableSerializer, Serializer}
 import de.sciss.synth.UGenSource.Vec
-import de.sciss.synth.proc.impl.{ActionImpl => Impl}
+import de.sciss.synth.proc
+import de.sciss.synth.proc.impl.{ActionRawImpl, ActionImpl => Impl}
 import de.sciss.{lucre, model}
 
 import scala.collection.immutable.{Seq => ISeq}
@@ -215,6 +216,49 @@ object Action extends Obj.Type {
       val disposables = controls.map(_.control.expand[S])
       new Graph.ExpandedImpl(actionEx, disposables)
     }
+  }
+
+  // ---- LEGACY ----
+
+  object Universe {
+    @deprecated("Action should be used instead of ActionRaw", since = "3.31.0")
+    def apply[S <: Sys[S]](self: ActionRaw[S], invoker: Option[Obj[S]] = None, value: Any = ())
+                          (implicit peer: proc.Universe[S]): Universe[S] =
+      new ActionRawImpl.UniverseImpl(self, invoker, value)
+  }
+
+  /** Environment passed into the action body. Deliberately not a sub-type of `proc.Universe`,
+    * but carrying over some of the same methods.
+    */
+  @deprecated("Action should be used instead of ActionRaw", since = "3.31.0")
+  trait Universe[S <: Sys[S]] extends proc.Universe.Base[S] {
+    implicit def peer: proc.Universe[S]
+
+    /** The action object itself, most prominently giving access to
+      * linked objects via its attributes.
+      */
+    def self: ActionRaw[S]
+
+    /** A result object from the invoker. To permit different kind of invocations,
+      * this value is untyped. Conventionally, `Action.DoubleVector` and `Action.FloatVector`
+      * are used for collections of numbers.
+      */
+    def value: Any
+
+    /** Parent component from which the action is invoked. For example
+      * if used from within a synth-graph, this will be some `Proc.Obj`.
+      * `None` if the action is directly invoked without dedicated parent.
+      */
+    def invoker: Option[Obj[S]]
+
+    def root(implicit tx: S#Tx): Folder[S] = workspace.root
+
+    def log(what: => String)(implicit tx: S#Tx): Unit
+  }
+
+  @deprecated("Action should be used instead of ActionRaw", since = "3.31.0")
+  trait Body {
+    def apply[S <: Sys[S]](universe: Universe[S])(implicit tx: S#Tx): Unit
   }
 }
 trait Action[S <: Sys[S]] extends Obj[S] with Publisher[S, Action.Update[S]] {

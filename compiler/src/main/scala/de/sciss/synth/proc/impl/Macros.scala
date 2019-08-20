@@ -99,6 +99,28 @@ object Macros {
     }
   }
 
+  // ---- Action ----
+
+  def actionGraphWithSource[S <: Sys[S]](c: blackbox.Context)(body: c.Expr[lucre.expr.graph.Act])(tx: c.Expr[S#Tx])
+                                        /* note: implicits _are_ used! */(implicit tt: c.WeakTypeTag[S]): c.Expr[Unit] = {
+    import c.universe._
+
+    val source      = mkSource(c)("action", body.tree)
+    val sourceExpr  = c.Expr[String](Literal(Constant(source)))
+    // N.B. the cast to `InMemory` doesn't seem to cause any problems, it's just to satisfy
+    // scalac at this point, although `ProcCompilerOps` has already put all type checks into place.
+    // There is simply no way (?) to get hold of the `S` parameter in the macro implementation.
+    reify {
+      val ext                 = c.prefix.splice.asInstanceOf[MacroImplicits.ActionMacroOps[S]]
+      implicit val txc = tx.splice // don't annotate the type with `S#Tx`, it will break scalac
+      val w                   = ext.`this`
+      w.graph()               = Action.GraphObj.newConst[S](Action.Graph(body.splice))
+      val code                = Code.Action(sourceExpr.splice)
+      val codeObj             = Code.Obj.newVar[S](Code.Obj.newConst[S](code))
+      w.attr.put(Action.attrSource, codeObj)
+    }
+  }
+
   // ---- Widget ----
 
   def widgetGraphWithSource[S <: Sys[S]](c: blackbox.Context)(body: c.Expr[lucre.swing.graph.Widget])(tx: c.Expr[S#Tx])
@@ -121,15 +143,15 @@ object Macros {
     }
   }
 
-  // ---- Action ----
+  // ---- ActionRaw ----
 
   private[this] val compileCount = Ref(0)
 
   private[this] var iMainImpl: IMain  = _
   private[this] var iMainPeer: Global = _
 
-  def actionWithSource[S <: Sys[S]](c: blackbox.Context)(body: c.Expr[ActionRaw.Universe[S] => Unit])(tx: c.Expr[S#Tx])
-                                   /* note: implicits _are_ used! */ (implicit tt: c.WeakTypeTag[S]): c.Expr[ActionRaw[S]] = {
+  def actionRawWithSource[S <: Sys[S]](c: blackbox.Context)(body: c.Expr[Action.Universe[S] => Unit])(tx: c.Expr[S#Tx])
+                                      /* note: implicits _are_ used! */ (implicit tt: c.WeakTypeTag[S]): c.Expr[ActionRaw[S]] = {
     import c.universe._
     val source = body.tree match {
       case Function(ValDef(_, argName, _, _) :: Nil, _ /* funBody */) =>

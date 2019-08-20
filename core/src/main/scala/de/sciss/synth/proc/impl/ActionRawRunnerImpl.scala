@@ -20,7 +20,7 @@ import de.sciss.lucre.stm.{Obj, Sys}
 import de.sciss.synth.proc
 import de.sciss.synth.proc.Implicits._
 import de.sciss.synth.proc.Runner.{Attr, Done, Failed, Prepared, Running, Stopped}
-import de.sciss.synth.proc.{ActionRaw, ObjViewBase, Runner, TimeRef, Universe}
+import de.sciss.synth.proc.{Action, ActionRaw, ObjViewBase, Runner, TimeRef, Universe}
 
 import scala.concurrent.stm.Ref
 import scala.util.{Failure, Success, Try}
@@ -56,7 +56,7 @@ object ActionRawRunnerImpl {
       state = Running
       val action = obj
       state = if (action.muted) Stopped else {
-        val au = ActionRaw.Universe[S](action, value = invokeValue)
+        val au = Action.Universe[S](action, value = invokeValue)
         val tr = Try(action.execute(au))
         tr match {
           case Success(_)   => Done

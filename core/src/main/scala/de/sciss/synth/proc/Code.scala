@@ -326,7 +326,7 @@ object Code {
       )
     )
 
-    override def defaultSource: String = s"${super.defaultSource}Empty()\n"
+    override def defaultSource: String = s"${super.defaultSource}Act.Nop()\n"
 
     def docBaseSymbol: String = "de.sciss.lucre.expr.graph"
 
@@ -401,7 +401,7 @@ object Code {
 
     def mkCode(source: String): Repr = ActionRaw(source)
 
-    private def pkgAction = "de.sciss.synth.proc.ActionRaw"
+    private def pkgAction = "de.sciss.synth.proc.Action"
     private val pkgSys    = "de.sciss.lucre.stm"
   }
   final case class ActionRaw(source: String) extends Code {

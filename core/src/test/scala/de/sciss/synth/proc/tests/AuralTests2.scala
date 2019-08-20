@@ -9,7 +9,7 @@ import de.sciss.span.Span
 import de.sciss.synth
 import de.sciss.synth.io.AudioFile
 import de.sciss.synth.proc.Implicits._
-import de.sciss.synth.proc.{ActionRaw, AudioCue, AuralContext, EnvSegment, Grapheme, Proc, SynthGraphObj, Timeline, Transport, graph}
+import de.sciss.synth.proc.{Action, ActionRaw, AudioCue, AuralContext, EnvSegment, Grapheme, Proc, SynthGraphObj, Timeline, Transport, graph}
 
 object AuralTests2 extends AuralTestLike.Factory {
   def main(args: Array[String]): Unit = init(args)
@@ -217,8 +217,8 @@ class AuralTests2[S <: Sys[S]](name: String)(implicit cursor: stm.Cursor[S]) ext
 
       val t2 = Transport[S](context)
 
-      val body: ActionRaw.Body = new ActionRaw.Body {
-        def apply[T <: stm.Sys[T]](universe: ActionRaw.Universe[T])(implicit tx: T#Tx): Unit = {
+      val body: Action.Body = new Action.Body {
+        def apply[T <: stm.Sys[T]](universe: Action.Universe[T])(implicit tx: T#Tx): Unit = {
           val spec = AudioFile.readSpec(f)
           println(spec)
           val _proc2 = Proc[T]

@@ -22,7 +22,7 @@ import de.sciss.lucre.stm.{Copy, Cursor, Elem, IdPeek, NoSys, Obj, Sys, TxnLike,
 import de.sciss.lucre.{stm, event => evt}
 import de.sciss.serial.{DataInput, DataOutput, Serializer}
 import de.sciss.synth.proc
-import de.sciss.synth.proc.{ActionRaw, AuralSystem, Code, GenContext, Scheduler}
+import de.sciss.synth.proc.{Action, ActionRaw, AuralSystem, Code, GenContext, Scheduler}
 
 import scala.annotation.switch
 import scala.collection.mutable
@@ -65,7 +65,7 @@ object ActionRawImpl {
   def newConst[S <: Sys[S]](name: String, jar: Array[Byte])(implicit tx: S#Tx): ActionRaw[S] =
     new ConstFunImpl(tx.newId(), name, jar)
 
-  private val mapPredef = TMap.empty[String, ActionRaw.Body]
+  private val mapPredef = TMap.empty[String, Action.Body]
 
   def predef[S <: Sys[S]](actionId: String)(implicit tx: S#Tx): ActionRaw[S] = {
     if (!mapPredef.contains(actionId)(tx.peer))
@@ -74,7 +74,7 @@ object ActionRawImpl {
     new ConstBodyImpl[S](tx.newId(), actionId)
   }
 
-  def registerPredef(actionId: String, body: ActionRaw.Body)(implicit tx: TxnLike): Unit =
+  def registerPredef(actionId: String, body: Action.Body)(implicit tx: TxnLike): Unit =
     if (mapPredef.put(actionId, body)(tx.peer).nonEmpty)
       throw new IllegalArgumentException(s"Predefined action '$actionId' was already registered")
 
@@ -85,14 +85,14 @@ object ActionRawImpl {
     })
   }
 
-  def execute[S <: Sys[S]](universe: ActionRaw.Universe[S], name: String, jar: Array[Byte])(implicit tx: S#Tx): Unit = {
+  def execute[S <: Sys[S]](universe: Action.Universe[S], name: String, jar: Array[Byte])(implicit tx: S#Tx): Unit = {
     implicit val itx: InTxn = tx.peer
     val cl = classLoader[S]
     cl.add(name, jar)
     val fullName  = s"${Code.UserPackage}.$name"
     val clazz     = Class.forName(fullName, true, cl)
     //  println("Instantiating...")
-    val fun = clazz.newInstance().asInstanceOf[ActionRaw.Body]
+    val fun = clazz.newInstance().asInstanceOf[Action.Body]
     fun(universe)
   }
 
@@ -128,7 +128,7 @@ object ActionRawImpl {
   final class UniverseImpl[S <: Sys[S]](val self: ActionRaw[S],
                                         val invoker: Option[Obj[S]], val value: Any)
                                        (implicit val peer: proc.Universe[S])
-    extends ActionRaw.Universe[S] {
+    extends Action.Universe[S] {
 
     implicit def cursor     : Cursor    [S] = peer.cursor
     implicit def workspace  : Workspace [S] = peer.workspace
@@ -213,7 +213,7 @@ object ActionRawImpl {
     def copy[Out <: Sys[Out]]()(implicit tx: S#Tx, txOut: Out#Tx, context: Copy[S, Out]): Elem[Out] =
       new ConstBodyImpl(txOut.newId(), actionId) // .connect()
 
-    def execute(universe: ActionRaw.Universe[S])(implicit tx: S#Tx): Unit = {
+    def execute(universe: Action.Universe[S])(implicit tx: S#Tx): Unit = {
       implicit val itx: InTxn = tx.peer
       val fun = mapPredef.getOrElse(actionId, sys.error(s"Predefined action '$actionId' not registered"))
       fun(universe)
@@ -229,7 +229,7 @@ object ActionRawImpl {
   private final class ConstFunImpl[S <: Sys[S]](val id: S#Id, val name: String, jar: Array[Byte])
     extends ConstImpl[S] {
 
-    def execute(universe: ActionRaw.Universe[S])(implicit tx: S#Tx): Unit = {
+    def execute(universe: Action.Universe[S])(implicit tx: S#Tx): Unit = {
       ActionRawImpl.execute[S](universe, name, jar)
     }
 
@@ -252,7 +252,7 @@ object ActionRawImpl {
   }
 
   private final class ConstEmptyImpl[S <: Sys[S]](val id: S#Id) extends ConstImpl[S] {
-    def execute(universe: ActionRaw.Universe[S])(implicit tx: S#Tx): Unit = ()
+    def execute(universe: Action.Universe[S])(implicit tx: S#Tx): Unit = ()
 
     def copy[Out <: Sys[Out]]()(implicit tx: S#Tx, txOut: Out#Tx, context: Copy[S, Out]): Elem[Out] =
       new ConstEmptyImpl(txOut.newId()) // .connect()
@@ -289,7 +289,7 @@ object ActionRawImpl {
 
     object changed extends Changed with evt.impl.RootGenerator[S, Unit]
 
-    def execute(universe: ActionRaw.Universe[S])(implicit tx: S#Tx): Unit = peer().execute(universe)
+    def execute(universe: Action.Universe[S])(implicit tx: S#Tx): Unit = peer().execute(universe)
 
     protected def disposeData()(implicit tx: S#Tx): Unit = peer.dispose()
 

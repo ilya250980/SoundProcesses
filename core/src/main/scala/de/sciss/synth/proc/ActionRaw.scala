@@ -13,10 +13,9 @@
 
 package de.sciss.synth.proc
 
-import de.sciss.lucre.stm.{Folder, Obj, Sys, TxnLike}
+import de.sciss.lucre.stm.{Obj, Sys, TxnLike}
 import de.sciss.lucre.{stm, event => evt}
 import de.sciss.serial.{DataInput, Serializer}
-import de.sciss.synth.proc
 import de.sciss.synth.proc.impl.{ActionRawImpl => Impl}
 
 import scala.collection.immutable.{IndexedSeq => Vec}
@@ -24,6 +23,7 @@ import scala.concurrent.Future
 
 /** The old `Action` object backed up by raw Scala code.
   */
+@deprecated("Action should be used instead of ActionRaw", since = "3.31.0")
 object ActionRaw extends Obj.Type {
   final val typeId = 19
 
@@ -43,7 +43,7 @@ object ActionRaw extends Obj.Type {
 
   def predef[S <: Sys[S]](id: String)(implicit tx: S#Tx): ActionRaw[S] = Impl.predef(id)
 
-  def registerPredef(id: String, body: Body)(implicit tx: TxnLike): Unit = Impl.registerPredef(id, body)
+  def registerPredef(id: String, body: Action.Body)(implicit tx: TxnLike): Unit = Impl.registerPredef(id, body)
 
   object Var {
     def apply[S <: Sys[S]](init: ActionRaw[S])(implicit tx: S#Tx): Var[S] = Impl.newVar(init)
@@ -64,52 +64,19 @@ object ActionRaw extends Obj.Type {
 
   // ---- body ----
 
-  trait Body {
-    def apply[S <: Sys[S]](universe: Universe[S])(implicit tx: S#Tx): Unit
-  }
-
   /** Possible type for `universe.value`. Overcomes erasure. */
   final case class DoubleVector(xs: Vec[Double])
   /** Possible type for `universe.value`. Overcomes erasure. */
   final case class FloatVector (xs: Vec[Float ])
 
-  object Universe {
-    def apply[S <: Sys[S]](self: ActionRaw[S], invoker: Option[Obj[S]] = None, value: Any = ())
-                           (implicit peer: proc.Universe[S]): Universe[S] =
-      new Impl.UniverseImpl(self, invoker, value)
-  }
-
-  /** Environment passed into the action body. Deliberately not a sub-type of `proc.Universe`,
-    * but carrying over some of the same methods.
-    */
-  trait Universe[S <: Sys[S]] extends proc.Universe.Base[S] {
-    implicit def peer: proc.Universe[S]
-
-    /** The action object itself, most prominently giving access to
-      * linked objects via its attributes.
-      */
-    def self: ActionRaw[S]
-
-    /** A result object from the invoker. To permit different kind of invocations,
-      * this value is untyped. Conventionally, `Action.DoubleVector` and `Action.FloatVector`
-      * are used for collections of numbers.
-      */
-    def value: Any
-
-    /** Parent component from which the action is invoked. For example
-      * if used from within a synth-graph, this will be some `Proc.Obj`.
-      * `None` if the action is directly invoked without dedicated parent.
-      */
-    def invoker: Option[Obj[S]]
-
-    def root(implicit tx: S#Tx): Folder[S] = workspace.root
-
-    def log(what: => String)(implicit tx: S#Tx): Unit
-  }
-
   def readIdentifiedObj[S <: Sys[S]](in: DataInput, access: S#Acc)(implicit tx: S#Tx): Obj[S] =
     Impl.readIdentifiedObj(in, access)
+
+  type Body                           = Action.Body
+  type Universe[S <: Sys[S]]          = Action.Universe[S]
+  val  Universe: Action.Universe.type = Action.Universe
 }
+@deprecated("Action should be used instead of ActionRaw", since = "3.31.0")
 trait ActionRaw[S <: Sys[S]] extends Obj[S] with evt.Publisher[S, Unit] {
-  def execute(universe: ActionRaw.Universe[S])(implicit tx: S#Tx): Unit
+  def execute(universe: Action.Universe[S])(implicit tx: S#Tx): Unit
 }

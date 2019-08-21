@@ -23,12 +23,12 @@ import de.sciss.synth.proc
 import de.sciss.synth.proc.{ObjKeys, SynthGraphObj, AudioCue => _AudioCue}
 
 object Proc {
-  def apply(): Ex[Proc] with Obj.Make[Proc] = Apply()
+  def apply(): Ex[Proc] with Obj.Make = Apply()
 
   object Tape {
-    def apply(cue: Ex[_AudioCue]): Ex[Proc] with Obj.Make[Proc] = TapeImpl(cue)
+    def apply(cue: Ex[_AudioCue]): Ex[Proc] with Obj.Make = TapeImpl(cue)
 
-    private final case class TapeImpl(cue: Ex[_AudioCue]) extends Ex[Proc] with Act with Obj.Make[Proc] {
+    private final case class TapeImpl(cue: Ex[_AudioCue]) extends Ex[Proc] with Act with Obj.Make {
       override def productPrefix: String = s"Proc$$Tape" // serialization
 
       type Repr[S <: Sys[S]] = IExpr[S, Proc] with IAction[S]
@@ -86,7 +86,7 @@ object Proc {
     }
   }
 
-  private final case class Apply() extends Ex[Proc] with Act with Obj.Make[Proc] {
+  private final case class Apply() extends Ex[Proc] with Act with Obj.Make {
     override def productPrefix: String = "Proc" // serialization
 
     type Repr[S <: Sys[S]] = IExpr[S, Proc] with IAction[S]

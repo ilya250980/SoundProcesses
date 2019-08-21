@@ -36,7 +36,7 @@ object Timeline {
 
   def init(): Unit = _init
 
-  def apply(): Ex[Timeline] with Obj.Make[Timeline] = Apply()
+  def apply(): Ex[Timeline] with Obj.Make = Apply()
 
   private[lucre] object Empty extends Timeline {
     private[lucre] def peer[S <: Sys[S]](implicit tx: S#Tx): Option[Peer[S]] = None
@@ -53,7 +53,7 @@ object Timeline {
     }
   }
 
-  private final case class Apply() extends Ex[Timeline] with Act with Obj.Make[Timeline] {
+  private final case class Apply() extends Ex[Timeline] with Act with Obj.Make {
     override def productPrefix: String = "Timeline" // serialization
 
     type Repr[S <: Sys[S]] = IExpr[S, Timeline] with IAction[S]
@@ -205,8 +205,8 @@ object Timeline {
       } yield {
         val timeV     = time.value
         val split     = EditTimeline.split(tlm, spanObj, elemObj, timeV)
-        val leftObj   = Obj.wrap[S](tx.newHandle(split.leftObj  ), tx.system)
-        val rightObj  = Obj.wrap[S](tx.newHandle(split.rightObj ), tx.system)
+        val leftObj   = Obj.wrap[S](split.leftObj )
+        val rightObj  = Obj.wrap[S](split.rightObj)
         val leftT     = Timed[Obj](split.leftSpan .value, leftObj )
         val rightT    = Timed[Obj](split.rightSpan.value, rightObj)
         (leftT, rightT)

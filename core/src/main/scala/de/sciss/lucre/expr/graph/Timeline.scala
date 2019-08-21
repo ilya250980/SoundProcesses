@@ -17,7 +17,7 @@ import de.sciss.lucre.aux.{Aux, ProductWithAux}
 import de.sciss.lucre.edit.EditTimeline
 import de.sciss.lucre.event.impl.IGenerator
 import de.sciss.lucre.event.{Caching, IEvent, IPush, ITargets}
-import de.sciss.lucre.expr.graph.impl.{ExpandedObjMakeImpl, MappedIExpr, ObjCellViewImpl, ObjImplBase}
+import de.sciss.lucre.expr.graph.impl.{ExpandedObjMakeImpl, MappedIExpr, ObjCellViewVarImpl, ObjImplBase}
 import de.sciss.lucre.expr.impl.{IActionImpl, ITriggerConsumer}
 import de.sciss.lucre.expr.{CellView, Context, IAction, IExpr, SpanLikeObj}
 import de.sciss.lucre.stm
@@ -76,13 +76,13 @@ object Timeline {
   }
 
   private final class CellViewImpl[S <: Sys[S]](h: stm.Source[S#Tx, stm.Obj[S]], key: String)
-    extends ObjCellViewImpl[S, proc.Timeline, Timeline](h, key) {
+    extends ObjCellViewVarImpl[S, proc.Timeline, Timeline](h, key) {
 
     implicit def serializer: Serializer[S#Tx, S#Acc, Option[proc.Timeline[S]]] =
       Serializer.option
 
     protected def lower(peer: proc.Timeline[S])(implicit tx: S#Tx): Timeline =
-      new Impl(tx.newHandle(peer), tx.system)
+      wrap(tx.newHandle(peer), tx.system)
   }
 
   implicit object Bridge extends Obj.Bridge[Timeline] with Aux.Factory {
@@ -96,6 +96,11 @@ object Timeline {
       new CellViewImpl(tx.newHandle(obj), key)
 
     def cellView[S <: Sys[S]](key: String)(implicit tx: S#Tx, context: Context[S]): CellView[S#Tx, Option[Timeline]] = ???
+
+    def cellValue[S <: Sys[S]](obj: stm.Obj[S], key: String)(implicit tx: S#Tx): Option[Timeline] =
+      obj.attr.$[proc.Timeline](key).map { peer =>
+        wrap[S](tx.newHandle(peer), tx.system)
+      }
   }
 
   private final class AddExpanded[S <: Sys[S], A](in: IExpr[S, Timeline], span: IExpr[S, _SpanLike],

@@ -18,7 +18,7 @@ import de.sciss.lucre.stm.impl.ObjSerializer
 import de.sciss.lucre.stm.{Copy, Elem, NoSys, Obj, Sys}
 import de.sciss.lucre.{event => evt}
 import de.sciss.serial.{DataInput, DataOutput, Serializer}
-import de.sciss.synth.proc.Action
+import de.sciss.synth.proc.{Action, Universe}
 
 import scala.collection.immutable.{IndexedSeq => Vec}
 
@@ -68,6 +68,8 @@ object ActionImpl {
 
         connect()
       }
+
+    def execute(universe: Universe[S])(implicit tx: S#Tx): Unit = ???
 
     // ---- key maps ----
 

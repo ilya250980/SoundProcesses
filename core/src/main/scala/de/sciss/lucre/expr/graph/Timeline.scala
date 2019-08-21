@@ -17,7 +17,7 @@ import de.sciss.lucre.aux.{Aux, ProductWithAux}
 import de.sciss.lucre.edit.EditTimeline
 import de.sciss.lucre.event.impl.IGenerator
 import de.sciss.lucre.event.{Caching, IEvent, IPush, ITargets}
-import de.sciss.lucre.expr.graph.impl.{ExpandedObjMakeImpl, MappedIExpr, ObjCellViewVarImpl, ObjImplBase}
+import de.sciss.lucre.expr.graph.impl.{AbstractCtxCellView, ExpandedObjMakeImpl, MappedIExpr, ObjCellViewVarImpl, ObjImplBase}
 import de.sciss.lucre.expr.impl.{IActionImpl, ITriggerConsumer}
 import de.sciss.lucre.expr.{CellView, Context, IAction, IExpr, SpanLikeObj}
 import de.sciss.lucre.stm
@@ -95,7 +95,13 @@ object Timeline {
     def cellView[S <: Sys[S]](obj: stm.Obj[S], key: String)(implicit tx: S#Tx): CellView.Var[S, Option[Timeline]] =
       new CellViewImpl(tx.newHandle(obj), key)
 
-    def cellView[S <: Sys[S]](key: String)(implicit tx: S#Tx, context: Context[S]): CellView[S#Tx, Option[Timeline]] = ???
+    def contextCellView[S <: Sys[S]](key: String)(implicit tx: S#Tx, context: Context[S]): CellView[S#Tx, Option[Timeline]] =
+      new AbstractCtxCellView[S, Timeline](context.attr, key) {
+        protected def tryParse(value: Any)(implicit tx: S#Tx): Option[Timeline] = value match {
+          case tl: Timeline => Some(tl)
+          case _            => None
+        }
+      }
 
     def cellValue[S <: Sys[S]](obj: stm.Obj[S], key: String)(implicit tx: S#Tx): Option[Timeline] =
       obj.attr.$[proc.Timeline](key).map { peer =>

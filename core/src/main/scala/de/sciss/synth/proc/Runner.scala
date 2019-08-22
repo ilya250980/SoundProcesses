@@ -207,6 +207,20 @@ object Runner {
     /** Zero to one. Note: negative numbers indicate indeterminate progress */
     def current(implicit tx: Tx): Double
   }
+
+  // ---- extension methods ----
+
+  implicit final class RunnerOps[S <: Sys[S]](private val r: Runner[S]) extends AnyVal {
+    /** Starts the runner, and then watches it until it is stopped
+      * (or done or failed), then calling `dispose` on it.
+      */
+    def runAndDispose()(implicit tx: S#Tx): Unit = {
+      r.run()
+      r.reactNow { implicit tx => state =>
+        if (state.idle) r.dispose()
+      }
+    }
+  }
 }
 trait Runner[S <: Sys[S]] extends ViewBase[S] with IControl[S] {
   def messages: Runner.Messages[S#Tx] // (implicit tx: S#Tx): Any

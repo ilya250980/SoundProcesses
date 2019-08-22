@@ -66,8 +66,8 @@ object Timeline {
     }
   }
 
-  private[lucre] def wrap[S <: Sys[S]](peer: stm.Source[S#Tx, proc.Timeline[S]], system: S): Timeline =
-    new Impl[S](peer, system)
+  private[lucre] def wrap[S <: Sys[S]](peer: proc.Timeline[S])(implicit tx: S#Tx): Timeline =
+    new Impl[S](tx.newHandle(peer), tx.system)
 
   private final class Impl[S <: Sys[S]](in: stm.Source[S#Tx, proc.Timeline[S]], system: S)
     extends ObjImplBase[S, proc.Timeline](in, system) with Timeline {
@@ -82,7 +82,7 @@ object Timeline {
       Serializer.option
 
     protected def lower(peer: proc.Timeline[S])(implicit tx: S#Tx): Timeline =
-      wrap(tx.newHandle(peer), tx.system)
+      wrap(peer)
   }
 
   implicit object Bridge extends Obj.Bridge[Timeline] with Aux.Factory {
@@ -97,16 +97,19 @@ object Timeline {
 
     def contextCellView[S <: Sys[S]](key: String)(implicit tx: S#Tx, context: Context[S]): CellView[S#Tx, Option[Timeline]] =
       new AbstractCtxCellView[S, Timeline](context.attr, key) {
-        protected def tryParse(value: Any)(implicit tx: S#Tx): Option[Timeline] = value match {
+        protected def tryParseValue(value: Any)(implicit tx: S#Tx): Option[Timeline] = value match {
           case tl: Timeline => Some(tl)
           case _            => None
+        }
+
+        protected def tryParseObj(obj: stm.Obj[S])(implicit tx: S#Tx): Option[Timeline] = obj match {
+          case peer: proc.Timeline[S] => Some(wrap(peer))
+          case _                      => None
         }
       }
 
     def cellValue[S <: Sys[S]](obj: stm.Obj[S], key: String)(implicit tx: S#Tx): Option[Timeline] =
-      obj.attr.$[proc.Timeline](key).map { peer =>
-        wrap[S](tx.newHandle(peer), tx.system)
-      }
+      obj.attr.$[proc.Timeline](key).map(wrap(_))
   }
 
   private final class AddExpanded[S <: Sys[S], A](in: IExpr[S, Timeline], span: IExpr[S, _SpanLike],

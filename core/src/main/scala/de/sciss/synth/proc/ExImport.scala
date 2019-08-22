@@ -18,13 +18,12 @@ import de.sciss.lucre.expr.impl.{ExObjBridgeImpl => Impl}
 import de.sciss.synth.proc
 
 object ExImport {
-  // XXX TODO
-//  implicit val audioCueExAttrBridge   : Obj.Bridge[AudioCue   ] = new Impl(AudioCue   .Obj)
-//  implicit val codeExAttrBridge       : Obj.Bridge[Code       ] = new Impl(Code       .Obj)
-//  implicit val colorExAttrBridge      : Obj.Bridge[Color      ] = new Impl(Color      .Obj)
-//  implicit val curveExAttrBridge      : Obj.Bridge[Curve      ] = new Impl(CurveObj)
-//  implicit val envSegmentExAttrBridge : Obj.Bridge[EnvSegment ] = new Impl(EnvSegment .Obj)
-//  implicit val fadeSpecExAttrBridge   : Obj.Bridge[FadeSpec   ] = new Impl(FadeSpec   .Obj)
+  implicit val audioCueExAttrBridge   : Obj.Bridge[AudioCue   ] = new Impl(AudioCue   .Obj)
+  implicit val codeExAttrBridge       : Obj.Bridge[Code       ] = new Impl(Code       .Obj)
+  implicit val colorExAttrBridge      : Obj.Bridge[Color      ] = new Impl(Color      .Obj)
+  implicit val curveExAttrBridge      : Obj.Bridge[Curve      ] = new Impl(CurveObj)
+  implicit val envSegmentExAttrBridge : Obj.Bridge[EnvSegment ] = new Impl(EnvSegment .Obj)
+  implicit val fadeSpecExAttrBridge   : Obj.Bridge[FadeSpec   ] = new Impl(FadeSpec   .Obj)
 
   implicit object curveIsValue          extends Ex.Value[Curve]
   implicit object audioFileSpecIsValue  extends Ex.Value[AudioFileSpec]

@@ -4,7 +4,7 @@
  *
  *  Copyright (c) 2010-2019 Hanns Holger Rutz. All rights reserved.
  *
- *	This software is published under the GNU Lesser General Public License v2.1+
+ *	This software is published under the GNU Affero General Public License v3+
  *
  *
  *  For further information, please contact Hanns Holger Rutz at
@@ -65,7 +65,7 @@ object EditTimeline {
     }
 
   def unlinkUndo[S <: Sys[S]](tl: Timeline.Modifiable[S], span: SpanLike, source: Output[S])
-                             (implicit tx: S#Tx, undo: UndoManager[S]): Unit =
+                             (implicit tx: S#Tx /*, undo: UndoManager[S]*/): Unit =
     unlinkImpl(tl, span, source)
 
   def unlinkAndRemove[S <: Sys[S]](tl: Timeline.Modifiable[S], span: SpanLikeObj[S], elem: Obj[S])
@@ -106,7 +106,7 @@ object EditTimeline {
     }
 
   def splitUndo[S <: Sys[S]](tl: Timeline.Modifiable[S], span: SpanLikeObj[S], elem: Obj[S], time: Long)
-                            (implicit tx: S#Tx, undoManager: UndoManager[S]): Split[S] =
+                            (implicit tx: S#Tx /*, undoManager: UndoManager[S]*/): Split[S] =
     splitImpl(tl, span, elem, time)
 
   // ---- private: add ----

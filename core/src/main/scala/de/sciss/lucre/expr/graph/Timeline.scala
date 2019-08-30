@@ -4,7 +4,7 @@
  *
  *  Copyright (c) 2010-2019 Hanns Holger Rutz. All rights reserved.
  *
- *	This software is published under the GNU Lesser General Public License v2.1+
+ *	This software is published under the GNU Affero General Public License v3+
  *
  *
  *  For further information, please contact Hanns Holger Rutz at
@@ -65,6 +65,10 @@ object Timeline {
       new ApplyExpanded[S]
     }
   }
+
+  // used by Mellite (no transaction available)
+  private[lucre] def wrapH[S <: Sys[S]](peer: stm.Source[S#Tx, proc.Timeline[S]], system: S): Timeline =
+    new Impl[S](peer, system)
 
   private[lucre] def wrap[S <: Sys[S]](peer: proc.Timeline[S])(implicit tx: S#Tx): Timeline =
     new Impl[S](tx.newHandle(peer), tx.system)

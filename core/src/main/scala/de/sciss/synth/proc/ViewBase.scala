@@ -4,7 +4,7 @@
  *
  *  Copyright (c) 2010-2019 Hanns Holger Rutz. All rights reserved.
  *
- *	This software is published under the GNU Lesser General Public License v2.1+
+ *	This software is published under the GNU Affero General Public License v3+
  *
  *
  *  For further information, please contact Hanns Holger Rutz at
@@ -14,8 +14,6 @@ package de.sciss.synth.proc
 
 import de.sciss.lucre.event.Observable
 import de.sciss.lucre.stm.{Disposable, Form, Obj, Sys}
-
-import scala.language.higherKinds
 
 trait ViewBase[S <: Sys[S]] extends Observable[S#Tx, Runner.State] with Disposable[S#Tx] {
   def state(implicit tx: S#Tx): Runner.State

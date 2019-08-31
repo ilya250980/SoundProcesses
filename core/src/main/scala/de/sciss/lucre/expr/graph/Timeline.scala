@@ -40,6 +40,8 @@ object Timeline {
 
   private[lucre] object Empty extends Timeline {
     private[lucre] def peer[S <: Sys[S]](implicit tx: S#Tx): Option[Peer[S]] = None
+
+    override def toString: String = "Timeline<empty>"
   }
 
   private final class ApplyExpanded[S <: Sys[S]](implicit targets: ITargets[S])

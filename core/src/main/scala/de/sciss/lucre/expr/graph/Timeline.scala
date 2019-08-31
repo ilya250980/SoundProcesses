@@ -96,7 +96,7 @@ object Timeline {
 
     def readIdentifiedAux(in: DataInput): Aux = this
 
-    def cellView[S <: Sys[S]](obj: stm.Obj[S], key: String)(implicit tx: S#Tx): CellView.Var[S, Option[Timeline]] =
+    def cellView[S <: Sys[S]](obj: stm.Obj[S], key: String)(implicit tx: S#Tx): CellView.Var[S#Tx, Option[Timeline]] =
       new CellViewImpl(tx.newHandle(obj), key)
 
     def contextCellView[S <: Sys[S]](key: String)(implicit tx: S#Tx, context: Context[S]): CellView[S#Tx, Option[Timeline]] =

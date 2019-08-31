@@ -225,7 +225,7 @@ trait Runner extends Control {
 
 //  def runWith(attr: (String, Ex[_])*): Act = Runner.RunWith(this, attr)
 
-  /** 0 - stopped, 1 - preparing, 2 - prepared, 3 - running */
+  /** 0 - stopped, 1 - preparing, 2 - prepared, 3 - running, 4 - done, 5 - failed */
   def state: Ex[Int] = Runner.State(this)
 
   /** Zero to one. Negative if unknown */

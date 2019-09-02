@@ -13,7 +13,7 @@
 
 package de.sciss.lucre.expr.graph
 
-import de.sciss.lucre.aux.{Aux, ProductWithAux}
+import de.sciss.lucre.adjunct.{Adjunct, ProductWithAdjuncts}
 import de.sciss.lucre.edit.EditTimeline
 import de.sciss.lucre.event.impl.IGenerator
 import de.sciss.lucre.event.{Caching, IEvent, IPush, ITargets}
@@ -32,7 +32,7 @@ import scala.concurrent.stm.Ref
 
 object Timeline {
   private lazy val _init: Unit =
-    Aux.addFactory(Bridge)
+    Adjunct.addFactory(Bridge)
 
   def init(): Unit = _init
 
@@ -91,12 +91,12 @@ object Timeline {
       wrap(peer)
   }
 
-  implicit object Bridge extends Obj.Bridge[Timeline] with Aux.Factory {
+  implicit object Bridge extends Obj.Bridge[Timeline] with Adjunct.Factory {
     final val id = 2002
 
     type Repr[S <: Sys[S]] = proc.Timeline[S]
 
-    def readIdentifiedAux(in: DataInput): Aux = this
+    override def readIdentifiedAdjunct(in: DataInput): Adjunct = this
 
     def cellView[S <: Sys[S]](obj: stm.Obj[S], key: String)(implicit tx: S#Tx): CellView.Var[S#Tx, Option[Timeline]] =
       new CellViewImpl(tx.newHandle(obj), key)
@@ -137,7 +137,7 @@ object Timeline {
   }
 
   final case class Add[A](in: Ex[Timeline], span: Ex[_SpanLike], elem: Ex[A])(implicit source: Obj.Source[A])
-    extends Act with ProductWithAux {
+    extends Act with ProductWithAdjuncts {
 
     override def productPrefix: String = s"Timeline$$Add" // serialization
 
@@ -146,7 +146,7 @@ object Timeline {
     protected def mkRepr[S <: Sys[S]](implicit ctx: Context[S], tx: S#Tx): Repr[S] =
       new AddExpanded(in.expand[S], span.expand[S], elem.expand[S])
 
-    def aux: List[Aux] = source :: Nil
+    override def adjuncts: List[Adjunct] = source :: Nil
   }
 
   private final class RemoveExpanded[S <: Sys[S]](in: IExpr[S, Timeline], span: IExpr[S, _SpanLike],

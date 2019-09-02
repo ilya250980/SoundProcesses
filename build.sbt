@@ -1,8 +1,8 @@
 lazy val baseName  = "SoundProcesses"
 lazy val baseNameL = baseName.toLowerCase
 
-lazy val projectVersion = "3.31.0"
-lazy val mimaVersion    = "3.31.0" // used for migration-manager
+lazy val projectVersion = "3.32.0"
+lazy val mimaVersion    = "3.32.0" // used for migration-manager
 
 lazy val commonSettings = Seq(
   version            := projectVersion,
@@ -32,8 +32,8 @@ lazy val deps = new {
     val audioWidgets        = "1.14.3"
     val equal               = "0.1.4"
     val fileUtil            = "1.1.3"
-    val lucre               = "3.14.0"
-    val lucreSwing          = "1.18.0"
+    val lucre               = "3.15.0"
+    val lucreSwing          = "1.19.0"
     val model               = "0.3.4"
     val numbers             = "0.2.0"
     val scalaCollider       = "1.28.4"
@@ -70,7 +70,7 @@ lazy val root = project.withId(baseNameL).in(file("."))
     autoScalaLibrary := false
   )
 
-lazy val synth = project.withId("lucresynth").in(file("synth"))
+lazy val synth = project.withId("lucre-synth").in(file("synth"))
   .settings(commonSettings)
   .settings(
     description := "Transactional extension for ScalaCollider",
@@ -82,7 +82,7 @@ lazy val synth = project.withId("lucresynth").in(file("synth"))
       "de.sciss" %% "scalacollider"           % deps.main.scalaCollider,
       "de.sciss" %% "scalacolliderugens-core" % deps.main.ugens
     ),
-    mimaPreviousArtifacts := Set("de.sciss" %% "lucresynth" % mimaVersion)
+    mimaPreviousArtifacts := Set("de.sciss" %% "lucre-synth" % mimaVersion)
   )
 
 lazy val testSettings = Seq(
@@ -127,7 +127,7 @@ lazy val views = project.withId(s"$baseNameL-views").in(file("views"))
     description := "Views for Sound Processes",
     libraryDependencies ++= Seq(
       "de.sciss"        %% "span"                     % deps.main.span,              // sbt bug
-      "de.sciss"        %% "lucreswing"               % deps.main.lucreSwing,
+      "de.sciss"        %% "lucre-swing"              % deps.main.lucreSwing,
       "de.sciss"        %% "swingplus"                % deps.main.swingPlus,
       "de.sciss"        %% "audiowidgets-app"         % deps.main.audioWidgets,
       "org.scala-lang"  %  "scala-reflect"            % scalaVersion.value,
@@ -146,7 +146,7 @@ lazy val compiler = project.withId(s"$baseNameL-compiler").in(file("compiler"))
     libraryDependencies ++= Seq(
       "org.scala-lang" %  "scala-compiler"          % scalaVersion.value,
       "de.sciss"       %% s"lucre-${deps.test.bdb}" % deps.main.lucre               % Test,
-      "de.sciss"       %% "lucreswing"              % deps.main.lucreSwing          % Test,
+      "de.sciss"       %% "lucre-swing"             % deps.main.lucreSwing          % Test,
       "de.sciss"       %% "scalacolliderswing-core" % deps.test.scalaColliderSwing  % Test
     ),
     mimaPreviousArtifacts := Set("de.sciss" %% s"$baseNameL-compiler" % mimaVersion)

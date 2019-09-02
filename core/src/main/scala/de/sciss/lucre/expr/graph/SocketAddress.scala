@@ -15,7 +15,6 @@ package de.sciss.lucre.expr.graph
 
 import java.net.InetAddress
 
-import de.sciss.lucre.aux.Aux
 import de.sciss.lucre.expr.{Context, IExpr}
 import de.sciss.lucre.stm.Sys
 
@@ -46,8 +45,6 @@ object SocketAddress {
     override def productPrefix: String = s"SocketAddress$$$name"
 
     def name: String = "Apply"
-
-    def aux: List[Aux] = Nil
   }
 
   private final case class Impl(host: Ex[String], port: Ex[Int]) extends Ex[SocketAddress] {

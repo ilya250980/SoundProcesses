@@ -245,27 +245,7 @@ object Code {
       )
     )
 
-    //    override def defaultSource: String = s"${super.defaultSource}Empty()\n"
-
     def docBaseSymbol: String = "de.sciss.lucre.expr.graph"
-
-//    private[this] lazy val _init: Unit = {
-//      Code.addType(this)
-//      import Import._
-//      Code.registerImports(id, Vec(
-//        Import("de.sciss.numbers.Implicits", All),
-//        Import("de.sciss.lucre.expr.ExImport", All),
-//        Import("de.sciss.synth.proc.ExImport", All),
-//        Import("de.sciss.file", All),
-//        Import("de.sciss.lucre.expr.graph", All)
-//      ))
-////      proc.Code.registerImports(proc.Code.Action.id, Vec(
-////        Import("de.sciss.synth.proc", Name("Control") :: Nil)
-////      ))
-//    }
-//
-//    // override because we need register imports
-//    override def init(): Unit = _init
 
     def mkCode(source: String): Repr = Control(source)
   }
@@ -274,24 +254,6 @@ object Code {
     type Out    = _Control.Graph
 
     def tpe: Type = Control
-
-    //    def compileBody()(implicit compiler: proc.Code.Compiler): Future[Unit] = {
-    //      import reflect.runtime.universe._
-    //      CodeImpl.compileBody[In, Out, _Control, Code](this, typeTag[_Control])
-    //    }
-    //
-    //    def execute(in: In)(implicit compiler: proc.Code.Compiler): Out =
-    //      Graph {
-    //        import reflect.runtime.universe._
-    //        CodeImpl.compileThunk[_Control](this, typeTag[_Control], execute = true)
-    //      }
-    //
-    //    def prelude : String =
-    //      s"""object Main {
-    //         |  def __result__ : ${classOf[_Control].getName} = {
-    //         |""".stripMargin
-    //
-    //    def postlude: String = "\n  }\n}\n"
 
     def compileBody()(implicit compiler: Code.Compiler): Future[Unit] = {
       import reflect.runtime.universe._
@@ -329,18 +291,6 @@ object Code {
     override def defaultSource: String = s"${super.defaultSource}Act.Nop()\n"
 
     def docBaseSymbol: String = "de.sciss.lucre.expr.graph"
-
-//    private[this] lazy val _init: Unit = {
-//      proc.Code.addType(this)
-//      import Import._
-//      proc.Code.registerImports(id, Vec(
-//        Import("de.sciss.numbers.Implicits", All),
-//        Import("de.sciss.lucre.expr.ExImport", All),
-//        Import("de.sciss.synth.proc.ExImport", All),
-//        Import("de.sciss.file", All),
-//        Import("de.sciss.lucre.expr.graph", All)
-//      ))
-//    }
 
     def mkCode(source: String): Repr = Action(source)
   }

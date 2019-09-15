@@ -231,5 +231,6 @@ trait Runner extends Control {
   /** Zero to one. Negative if unknown */
   def progress: Ex[Double] = Runner.Progress(this)
 
+  // XXX TODO: proc.Runner.Message cannot be deconstructed from Ex
   def messages: Ex[Seq[proc.Runner.Message]] = Runner.Messages(this)
 }

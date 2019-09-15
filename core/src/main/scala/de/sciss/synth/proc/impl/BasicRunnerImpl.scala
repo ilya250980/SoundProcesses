@@ -25,6 +25,7 @@ import de.sciss.synth.proc.{AuralContext, AuralObj, Runner, TimeRef, Universe}
 
 import scala.annotation.tailrec
 import scala.concurrent.stm.Ref
+import scala.util.{Failure, Success, Try}
 
 trait BasicRunnerImpl[S <: Sys[S]]
   extends Runner[S] with BasicViewBaseImpl[S] {
@@ -40,7 +41,6 @@ trait BasicRunnerImpl[S <: Sys[S]]
 
   def initControl()(implicit tx: S#Tx): Unit = ()
 
-
   // this is implemented so there is no chance of forgetting
   // to remove the runner from the handler
   final def dispose()(implicit tx: S#Tx): Unit = {
@@ -54,10 +54,49 @@ trait BasicRunnerImpl[S <: Sys[S]]
     def current(implicit tx: S#Tx): List[Runner.Message] = ref()
 
     def current_=(value: List[Runner.Message])(implicit tx: S#Tx): Unit = {
-      ref() = value
-      fire(value)
+      val old = ref.swap(value)
+      if (value !== old) fire(value)
     }
   }
+}
+
+trait BasicRunnerInternalImpl[S <: Sys[S]]
+  extends BasicRunnerImpl[S] with Runner.Internal[S] {
+
+  private[this] val disposables = Ref(List.empty[Disposable[S#Tx]])
+
+  object progress extends Runner.Progress[S#Tx] with ObservableImpl[S, Double] {
+    private[this] val ref = Ref(-1.0)
+
+    def current(implicit tx: S#Tx): Double = ref()
+
+    def current_=(value: Double)(implicit tx: S#Tx): Unit = {
+      val old = ref.swap(value)
+      if (value !== old) fire(value)
+    }
+  }
+
+  protected def disposeData()(implicit tx: S#Tx): Unit =
+    disposables.swap(Nil).foreach(_.dispose())
+
+  def completeWith(result: Try[Unit])(implicit tx: S#Tx): Unit = {
+    state = result match {
+      case Success(_)   => Runner.Done
+      case Failure(ex)  => Runner.Failed(ex)
+    }
+  }
+
+  def setProgress(value: Double)(implicit tx: S#Tx): Unit =
+    progress.current = value
+
+  def addMessage(m: Runner.Message)(implicit tx: S#Tx): Unit =
+    messages.current = messages.current :+ m
+
+  def setMessages(m: List[Runner.Message])(implicit tx: S#Tx): Unit =
+    messages.current = m
+
+  def addDisposable(d: Disposable[S#Tx])(implicit tx: S#Tx): Unit =
+    disposables.transform(d :: _)
 }
 
 /** An implementation that maintains an `AuralObj` of the object which is run and stopped. */

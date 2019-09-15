@@ -18,12 +18,13 @@ import java.util.{Date, Locale}
 
 import de.sciss.lucre.event.Observable
 import de.sciss.lucre.expr.{Context, IControl}
-import de.sciss.lucre.stm.{Obj, Sys}
+import de.sciss.lucre.stm.{Disposable, Obj, Sys}
 import de.sciss.lucre.synth.{Sys => SSys}
 import de.sciss.synth.proc.impl.{ActionRawRunnerImpl, ActionRunnerImpl, BasicAuralRunnerImpl, ControlRunnerImpl, TimelineRunnerImpl, RunnerUniverseImpl => Impl}
 import de.sciss.synth.proc.{Action => _Action, ActionRaw => _ActionRaw, Control => _Control, Proc => _Proc, Timeline => _Timeline}
 
 import scala.language.higherKinds
+import scala.util.Try
 
 object Runner {
   sealed trait State {
@@ -206,6 +207,18 @@ object Runner {
   trait Progress[Tx] extends Observable[Tx, Double] {
     /** Zero to one. Note: negative numbers indicate indeterminate progress */
     def current(implicit tx: Tx): Double
+  }
+
+  trait Internal[S <: Sys[S]] extends Runner[S] {
+    def completeWith(result: Try[Unit])(implicit tx: S#Tx): Unit
+
+    def setProgress(value: Double)(implicit tx: S#Tx): Unit
+
+    def addMessage(m: Message)(implicit tx: S#Tx): Unit
+
+    def setMessages(m: List[Message])(implicit tx: S#Tx): Unit
+
+    def addDisposable(d: Disposable[S#Tx])(implicit tx: S#Tx): Unit
   }
 
   // ---- extension methods ----

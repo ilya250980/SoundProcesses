@@ -138,6 +138,18 @@ trait BasicAuralRunnerImpl[S <: SSys[S]] extends AuralSystemTxBridge[S] with Bas
     val newOpt = contextRef().map { implicit ctx =>
       val view  = AuralObj(obj, attr = attrRef())
       val obs   = view.react { implicit tx => viewState =>
+        // This is quite tricky:
+        // If the aural-view stops (itself, or errors), that is it
+        // goes from non-stopped to stopped or failed, then it should
+        // not matter what the target state is (it is probably
+        // `Playing`); instead, we should interpret this as
+        // the view setting the new target state.
+        // On the other hand, if the view goes to `Prepared`,
+        // and the target is `Playing`, then we should stick
+        // to the target and match the states.
+        if (viewState.idle) {
+          targetState() = viewState
+        }
         state = viewState
         matchStates()
       }

@@ -11,7 +11,7 @@ lazy val commonSettings = Seq(
   description        := "A framework for creating and managing ScalaCollider based sound processes",
   licenses           := Seq("AGPL v3+" -> url("http://www.gnu.org/licenses/agpl-3.0.txt")),
   scalaVersion       := "2.12.10",
-  crossScalaVersions := Seq("2.13.0", "2.12.10"),
+  crossScalaVersions := Seq("2.13.1", "2.12.10"),
   scalacOptions ++= {
     // "-Xfatal-warnings" -- breaks for cross-scala-build and deprecations
     // -stars-align produces wrong warnings with decomposing OSC messages

@@ -87,6 +87,7 @@ trait Server {
   def freeBuffer    (index: Int, numConsecutive: Int = 1)(implicit tx: Txn): Unit
 
   def defaultGroup: Group
+  def rootNode    : Group = Group.wrap(this, peer.rootNode)
 
   def config      : Server .Config
   def clientConfig: SClient.Config

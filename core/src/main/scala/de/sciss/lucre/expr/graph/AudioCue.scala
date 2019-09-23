@@ -22,6 +22,19 @@ import de.sciss.synth.io.{AudioFileSpec => _AudioFileSpec}
 import de.sciss.synth.proc.{AudioCue => _AudioCue}
 
 object AudioCue {
+  final case class Empty() extends Ex[_AudioCue] {
+    override def productPrefix: String = s"AudioCue$$Empty" // serialization
+
+    type Repr[S <: Sys[S]] = IExpr[S, _AudioCue]
+
+    protected def mkRepr[S <: Sys[S]](implicit ctx: Context[S], tx: S#Tx): Repr[S] =
+      new Const.Expanded(_AudioCue(
+        new File(""),
+        _AudioFileSpec(numChannels = 0, sampleRate = 0.0),
+        offset = 0L, gain = 1.0
+      ))
+  }
+
   private final class ArtifactExpanded[S <: Sys[S]](in: IExpr[S, _AudioCue], tx0: S#Tx)(implicit targets: ITargets[S])
     extends MappedIExpr[S, _AudioCue, File](in, tx0) {
 

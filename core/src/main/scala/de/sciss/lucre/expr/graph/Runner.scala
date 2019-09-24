@@ -228,6 +228,14 @@ trait Runner extends Control {
   /** 0 - stopped, 1 - preparing, 2 - prepared, 3 - running, 4 - done, 5 - failed */
   def state: Ex[Int] = Runner.State(this)
 
+  def stopped       : Trig = (state sig_== 0).toTrig
+  def done          : Trig = (state sig_== 4).toTrig
+  def failed        : Trig = (state sig_== 5).toTrig
+  def stoppedOrDone : Trig = {
+    val s = state
+    ((s sig_== 0) || (s sig_== 4)).toTrig
+  }
+
   /** Zero to one. Negative if unknown */
   def progress: Ex[Double] = Runner.Progress(this)
 

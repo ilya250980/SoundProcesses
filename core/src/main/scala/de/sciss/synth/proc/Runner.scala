@@ -33,7 +33,10 @@ object Runner {
     /** Stopped or completed. */
     def idle: Boolean
 
+    def done          : Boolean
+    def failed        : Boolean
     def idleOrPrepared: Boolean
+    def stoppedOrDone : Boolean
   }
 
   /** The initial state of an object and after `stop` has been called and performed.
@@ -43,33 +46,51 @@ object Runner {
   case object Stopped extends State {
     final val id              = 0
     final val idle            = true
+    final val done            = false
+    final val failed          = false
     final val idleOrPrepared  = true
+    final val stoppedOrDone   = true
   }
   case object Preparing extends State {
     final val id              = 1
     final val idle            = false
+    final val done            = false
+    final val failed          = false
     final val idleOrPrepared  = false
+    final val stoppedOrDone   = false
   }
   case object Prepared extends State {
     final val id              = 2
     /** Note: this reports `false` */
     final val idle            = false
+    final val done            = false
+    final val failed          = false
     final val idleOrPrepared  = true
+    final val stoppedOrDone   = false
   }
   case object Running extends State {
     final val id              = 3
     final val idle            = false
+    final val done            = false
+    final val failed          = false
     final val idleOrPrepared  = false
+    final val stoppedOrDone   = false
   }
   case object Done extends State {
     final val id              = 4
     final val idle            = true
+    final val done            = true
+    final val failed          = false
     final val idleOrPrepared  = true
+    final val stoppedOrDone   = true
   }
   final case class Failed(ex: Throwable) extends State {
     final val id              = 5
     final val idle            = true
+    final val done            = false
+    final val failed          = true
     final val idleOrPrepared  = true
+    final val stoppedOrDone   = false
   }
 
   def emptyAttr[S <: Sys[S]]: Attr[S] = Context.emptyAttr[S]

@@ -19,7 +19,7 @@ lazy val commonSettings = Seq(
     if (loggingEnabled || isSnapshot.value) ys else ys ++ Seq("-Xelide-below", "INFO")
   },
   scalacOptions in (Compile, compile) ++= (if (scala.util.Properties.isJavaAtLeast("9")) Seq("-release", "8") else Nil), // JDK >8 breaks API; skip scala-doc
-  resolvers          += "Oracle Repository" at "http://download.oracle.com/maven",  // required for sleepycat
+  // resolvers          += "Oracle Repository" at "http://download.oracle.com/maven",  // required for sleepycat
   parallelExecution in Test := false,
   updateOptions      := updateOptions.value.withLatestSnapshots(false),
   testOptions in Test += Tests.Argument("-oF"), // "show full stack traces" (?)

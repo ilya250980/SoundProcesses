@@ -26,8 +26,14 @@ final class IExprAsRunnerMap[S <: Sys[S]](pairs: Seq[IExpr[S, (String, _)]], tx0
   extends MapLike[S, String, Form] {
 
   private[this] val map = TMap[String, IExpr[S, _]]({
-    pairs.map { tupEx =>
-      tupEx.value(tx0)._1 -> new UnaryOp.Expanded(UnaryOp.Tuple2_2[String, Any](), tupEx, tx0)
+    pairs.map {
+      // it's important to check this case, because that way we
+      // don't touch the value and things like Var.Expanded remain usable
+      case tupEx: ExTuple2.Expanded[S, String, _] =>
+        tupEx._1.value(tx0) -> tupEx._2
+
+      case tupEx =>
+        tupEx.value(tx0)._1 -> new UnaryOp.Expanded(UnaryOp.Tuple2_2[String, Any](), tupEx, tx0)
     }
   }: _*)
 

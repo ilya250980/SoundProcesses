@@ -97,12 +97,16 @@ object ControlRunnerImpl {
     private def runWithRef()(implicit tx: S#Tx): Unit = {
       val trOpt = ctlRef()
       trOpt.foreach { tr =>
+        state = Running
         val tr1 = tr.flatMap { c =>
           Try(c.initControl())
         }
-        state = tr1 match {
-          case Success(_)   => Running
-          case Failure(ex)  => Failed(ex)
+        tr1 match {
+          // do not set Running here; we do that initially (above),
+          // and if the logic stops `ThisRunner`, the state
+          // will already have been set.
+          case Success(_)   => // Running
+          case Failure(ex)  => state = Failed(ex)
         }
       }
     }

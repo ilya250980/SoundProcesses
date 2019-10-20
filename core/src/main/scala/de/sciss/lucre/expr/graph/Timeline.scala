@@ -149,6 +149,37 @@ object Timeline {
     override def adjuncts: List[Adjunct] = source :: Nil
   }
 
+  private final class AddAllExpanded[S <: Sys[S], A](in: IExpr[S, Timeline], pairs: IExpr[S, Seq[(_SpanLike, A)]])
+                                                 (implicit source: Obj.Source[A])
+    extends IActionImpl[S] {
+
+    def executeAction()(implicit tx: S#Tx): Unit =
+      for {
+        tl  <- in.value.peer
+        tlm <- tl.modifiableOption
+      } {
+        val pairsV  = pairs.value
+        pairsV.foreach { case (spanV, elemV) =>
+          val spanObj = SpanLikeObj.newVar[S](spanV)
+          val elemObj = source.toObj(elemV)
+          EditTimeline.add(tlm, spanObj, elemObj)
+        }
+      }
+  }
+
+  final case class AddAll[A](in: Ex[Timeline], pairs: Ex[Seq[(_SpanLike, A)]])(implicit source: Obj.Source[A])
+    extends Act with ProductWithAdjuncts {
+
+    override def productPrefix: String = s"Timeline$$AddAll" // serialization
+
+    type Repr[S <: Sys[S]] = IAction[S]
+
+    protected def mkRepr[S <: Sys[S]](implicit ctx: Context[S], tx: S#Tx): Repr[S] =
+      new AddAllExpanded(in.expand[S], pairs.expand[S])
+
+    override def adjuncts: List[Adjunct] = source :: Nil
+  }
+
   private final class RemoveExpanded[S <: Sys[S]](in: IExpr[S, Timeline], span: IExpr[S, _SpanLike],
                                                   elem: IExpr[S, Obj])
     extends IActionImpl[S] {
@@ -291,6 +322,8 @@ object Timeline {
     def add   [A](span: Ex[_SpanLike], elem: Ex[A  ])(implicit source: Obj.Source[A]): Act   = Add   (tl, span, elem)
     def remove   (span: Ex[_SpanLike], elem: Ex[Obj])                                : Act   = Remove(tl, span, elem)
     def split    (span: Ex[_SpanLike], elem: Ex[Obj], time: Ex[Long])                : Split = Split (tl, span, elem, time)
+
+    def addAll[A](pairs: Ex[Seq[(_SpanLike, A)]])(implicit source: Obj.Source[A]): Act = AddAll(tl, pairs)
   }
 }
 trait Timeline extends Obj {

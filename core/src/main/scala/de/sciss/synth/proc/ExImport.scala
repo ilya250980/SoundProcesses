@@ -33,6 +33,9 @@ object ExImport {
   type FadeSpec       = proc              .FadeSpec
   type Curve          = de.sciss.synth    .Curve
 
+  /** The general sample-rate used in objects such as `Timeline`, `Grapheme`, `Transport`, `Scheduler`. */
+  final val SampleRate  = TimeRef.SampleRate
+
   implicit final class audioFileSpecOps(private val x: Ex[AudioFileSpec]) extends AnyVal {
     def numChannels : Ex[Int    ] = AudioFileSpec.NumChannels(x)
     def numFrames   : Ex[Long   ] = AudioFileSpec.NumFrames  (x)

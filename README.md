@@ -22,15 +22,13 @@ For tutorials, see the [Mellite website](https://www.sciss.de/mellite/tutorials.
 SoundProcesses builds with sbt and Scala 2.13, 2.12 (last version to support Scala 2.11 was 3.31.0).
 The dependencies should be downloaded automatically from maven central repository.
 
-__Note:__ Due to [scala/bug#11679](https://github.com/scala/bug/issues/11679), the project can currently only be compiled under JDK 8.
-
 ## linking
 
 The following dependency is necessary:
 
     "de.sciss" %% "soundprocesses" % v
 
-The current version `v` is `"3.32.2"`.
+The current version `v` is `"3.32.3"`.
 
 The following sub modules are available:
 
@@ -39,23 +37,19 @@ The following sub modules are available:
     "de.sciss" %% "soundprocesses-views"    % v  // common swing views
     "de.sciss" %% "soundprocesses-compiler" % v  // compiler integration
 
-For compiling the tests, the following additional resolver may be needed:
-
-    resolvers += "Oracle Repository" at "http://download.oracle.com/maven"
-
 ## contributing
 
 Please see the file [CONTRIBUTING.md](CONTRIBUTING.md)
 
 ## usage
 
-Project is still experimental, and documentation is still sparse.
-There is a graphical front-end [Mellite](https://www.sciss.de/mellite) (also experimental)...
-The Mellite website contains a [tutorial on SoundProcesses](https://www.sciss.de/mellite/tut_soundprocesses1.html).
+Project is still sparse, however
+there is a graphical front-end [Mellite](https://www.sciss.de/mellite), and
+the Mellite website contains [tutorials on SoundProcesses](https://www.sciss.de/mellite/tut_soundprocesses1.html).
 
 ## notes
 
-- in the Lucre-3 based version 3 (experimental) branch, currently constant `Expr` object do carry 
+- currently constant `Expr` object do carry 
   an `id` and thus are **not identical to each other** when created repeatedly even with the same 
   peer constant. This was done in order to satisfy `Obj` property, e.g. for any `IntObj` including 
   its constants. A future version may go back to 'cheap' constants which must be explicitly lifted 

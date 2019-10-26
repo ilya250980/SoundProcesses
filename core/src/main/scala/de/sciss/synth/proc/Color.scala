@@ -95,11 +95,15 @@ object Color {
     Predefined(15, "White"      , rgba = 0xFFFFFFFF)
   )
 
-  private final case class Predefined(id: Int, name: String, rgba: Int) extends Color
+  private final case class Predefined(id: Int, name: String, rgba: Int) extends Color {
+    override def productPrefix: String = s"Color$$Predefined" // serialization
+  }
 
   final case class User(rgba: Int) extends Color {
-    def name = "User"
-    def id = 16
+    def name  = "User"
+    def id    = 16
+
+    override def productPrefix: String = s"Color$$User" // serialization
   }
 
   implicit object ExValue extends Ex.Value[Color]

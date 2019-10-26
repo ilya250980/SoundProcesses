@@ -21,17 +21,19 @@ object ExImport {
   implicit val audioCueExAttrBridge   : Obj.Bridge[AudioCue   ] = new Impl(AudioCue   .Obj)
   implicit val codeExAttrBridge       : Obj.Bridge[Code       ] = new Impl(Code       .Obj)
   implicit val colorExAttrBridge      : Obj.Bridge[Color      ] = new Impl(Color      .Obj)
-  implicit val curveExAttrBridge      : Obj.Bridge[Curve      ] = new Impl(CurveObj)
+  implicit val curveExAttrBridge      : Obj.Bridge[Curve      ] = new Impl(CurveObj       )
   implicit val envSegmentExAttrBridge : Obj.Bridge[EnvSegment ] = new Impl(EnvSegment .Obj)
   implicit val fadeSpecExAttrBridge   : Obj.Bridge[FadeSpec   ] = new Impl(FadeSpec   .Obj)
 
-  implicit object curveIsValue          extends Ex.Value[Curve]
   implicit object audioFileSpecIsValue  extends Ex.Value[AudioFileSpec]
+  implicit object colorIsValue          extends Ex.Value[Color]
+  implicit object curveIsValue          extends Ex.Value[Curve]
 
   type AudioCue       = proc              .AudioCue
   type AudioFileSpec  = de.sciss.synth.io .AudioFileSpec
-  type FadeSpec       = proc              .FadeSpec
+  type Color          = proc              .Color
   type Curve          = de.sciss.synth    .Curve
+  type FadeSpec       = proc              .FadeSpec
 
   /** The general sample-rate used in objects such as `Timeline`, `Grapheme`, `Transport`, `Scheduler`. */
   final val SampleRate  = TimeRef.SampleRate

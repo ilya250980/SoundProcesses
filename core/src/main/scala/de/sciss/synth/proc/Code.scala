@@ -241,7 +241,7 @@ object Code {
       Example("Hello World", 'h',
         """val b = LoadBang()
           |b ---> PrintLn("Hello World!")
-        """.stripMargin
+          |""".stripMargin
       )
     )
 

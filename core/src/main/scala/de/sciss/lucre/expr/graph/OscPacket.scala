@@ -14,11 +14,10 @@
 package de.sciss.lucre.expr.graph
 
 import de.sciss.lucre.event.IPush.Parents
-import de.sciss.lucre.event.impl.{IEventImpl, IGenerator}
-import de.sciss.lucre.event.{IEvent, IPull, ITargets}
+import de.sciss.lucre.event.impl.{IChangeEventImpl, IGenerator}
+import de.sciss.lucre.event.{IChangeEvent, IEvent, IPull, ITargets}
 import de.sciss.lucre.expr.{Context, ExSeq, IAction, IExpr, ITrigger}
 import de.sciss.lucre.stm.Sys
-import de.sciss.model.Change
 import de.sciss.synth.UGenSource.Vec
 
 sealed trait OscPacket
@@ -29,7 +28,7 @@ object OscMessage {
 
   private final class NameExpanded[S <: Sys[S]](peer: IExpr[S, OscMessage], tx0: S#Tx)
                                                (implicit protected val targets: ITargets[S])
-    extends IExpr[S, String] with IEventImpl[S, Change[String]] {
+    extends IExpr[S, String] with IChangeEventImpl[S, String] {
 
     peer.changed.--->(changed)(tx0)
 
@@ -39,13 +38,12 @@ object OscMessage {
     def dispose()(implicit tx: S#Tx): Unit =
       peer.changed.-/->(changed)
 
-    def changed: IEvent[S, Change[String]] = this
+    def changed: IChangeEvent[S, String] = this
 
-    private[lucre] def pullUpdate(pull: IPull[S])(implicit tx: S#Tx): Option[Change[String]] =
-      pull(peer.changed).flatMap { ch =>
-        val chName = Change(ch.before.name, ch.now.name)
-        if (chName.isSignificant) Some(chName) else None
-      }
+    private[lucre] def pullChange(pull: IPull[S])(implicit tx: S#Tx, phase: IPull.Phase): String = {
+      val m = pull.expr(peer)
+      m.name
+    }
   }
 
   final case class Name(m: Ex[OscMessage]) extends Ex[String] {
@@ -61,7 +59,7 @@ object OscMessage {
 
   private final class ArgsExpanded[S <: Sys[S]](peer: IExpr[S, OscMessage], tx0: S#Tx)
                                                (implicit protected val targets: ITargets[S])
-    extends IExpr[S, Seq[Any]] with IEventImpl[S, Change[Seq[Any]]] {
+    extends IExpr[S, Seq[Any]] with IChangeEventImpl[S, Seq[Any]] {
 
     peer.changed.--->(changed)(tx0)
 
@@ -71,14 +69,12 @@ object OscMessage {
     def dispose()(implicit tx: S#Tx): Unit =
       peer.changed.-/->(changed)
 
-    def changed: IEvent[S, Change[Seq[Any]]] = this
+    def changed: IChangeEvent[S, Seq[Any]] = this
 
-    private[lucre] def pullUpdate(pull: IPull[S])(implicit tx: S#Tx): Option[Change[Seq[Any]]] =
-      pull(peer.changed).flatMap { ch =>
-        // XXX TODO --- map args here to valid types, e.g. Float -> Double
-        val chArgs = Change(ch.before.args.toIndexedSeq, ch.now.args.toIndexedSeq)
-        if (chArgs.isSignificant) Some(chArgs) else None
-      }
+    private[lucre] def pullChange(pull: IPull[S])(implicit tx: S#Tx, phase: IPull.Phase): Seq[Any] = {
+      val m = pull.expr(peer)
+      m.args.toIndexedSeq
+    }
   }
 
   final case class Args(m: Ex[OscMessage]) extends Ex[Seq[Any]] {
@@ -178,7 +174,7 @@ object OscMessage {
 
   private final class Expanded[S <: Sys[S]](name: IExpr[S, String], args: IExpr[S, Seq[Any]], tx0: S#Tx)
                                            (implicit protected val targets: ITargets[S])
-    extends IExpr[S, OscMessage] with IEventImpl[S, Change[OscMessage]] {
+    extends IExpr[S, OscMessage] with IChangeEventImpl[S, OscMessage] {
 
     name.changed.--->(changed)(tx0)
     args.changed.--->(changed)(tx0)
@@ -194,26 +190,12 @@ object OscMessage {
       args.changed.-/->(changed)
     }
 
-    def changed: IEvent[S, Change[OscMessage]] = this
+    def changed: IChangeEvent[S, OscMessage] = this
 
-    private[lucre] def pullUpdate(pull: IPull[S])(implicit tx: S#Tx): Option[Change[OscMessage]] = {
-      val nameEvt = name.changed
-      val argsEvt = args.changed
-      val nameOpt = if (pull.contains(nameEvt)) pull(nameEvt) else None
-      val argsOpt = if (pull.contains(argsEvt)) pull(argsEvt) else None
-      val nameCh  = nameOpt.getOrElse {
-        val nameV = name.value
-        Change(nameV, nameV)
-      }
-      val argsCh = argsOpt.getOrElse {
-        val argsV = args.value
-        Change(argsV, argsV)
-      }
-      val mBefore = new OscMessage(nameCh.before, argsCh.before : _*)
-      val mNow    = new OscMessage(nameCh.now   , argsCh.now    : _*)
-      val ch      = Change(mBefore, mNow)
-
-      if (ch.isSignificant) Some(ch) else None
+    private[lucre] def pullChange(pull: IPull[S])(implicit tx: S#Tx, phase: IPull.Phase): OscMessage = {
+      val nameV = pull.expr(name)
+      val argsV = pull.expr(args)
+      new OscMessage(nameV, argsV: _*)
     }
   }
 

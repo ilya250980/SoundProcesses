@@ -13,8 +13,8 @@
 
 package de.sciss.lucre.expr.graph
 
-import de.sciss.lucre.event.impl.IGenerator
-import de.sciss.lucre.event.{IEvent, IPull, ITargets}
+import de.sciss.lucre.event.impl.IChangeGenerator
+import de.sciss.lucre.event.{IChangeEvent, IPull, ITargets}
 import de.sciss.lucre.expr.impl.IActionImpl
 import de.sciss.lucre.expr.{Context, IAction, IExpr, IExprAsRunnerMap}
 import de.sciss.lucre.stm.Sys
@@ -84,7 +84,7 @@ object Runner {
 
   private final class ExpandedState[S <: Sys[S]](r: proc.Runner[S], tx0: S#Tx)
                                                 (implicit protected val targets: ITargets[S])
-    extends IExpr[S, Int] with IGenerator[S, Change[Int]] {
+    extends IExpr[S, Int] with IChangeGenerator[S, Int] {
 
     private[this] val beforeRef = Ref(value(tx0))
 
@@ -99,10 +99,10 @@ object Runner {
 
     def dispose()(implicit tx: S#Tx): Unit = obs.dispose()
 
-    def changed: IEvent[S, Change[Int]] = this
+    def changed: IChangeEvent[S, Int] = this
 
-    private[lucre] def pullUpdate(pull: IPull[S])(implicit tx: S#Tx): Option[Change[Int]] =
-      Some(pull.resolve)
+    private[lucre] def pullChange(pull: IPull[S])(implicit tx: S#Tx, phase: IPull.Phase): Int =
+      pull.resolveExpr(this)
   }
 
   final case class State(r: Runner) extends Ex[Int] {
@@ -119,7 +119,7 @@ object Runner {
 
   private final class ExpandedProgress[S <: Sys[S]](r: proc.Runner[S], tx0: S#Tx)
                                                 (implicit protected val targets: ITargets[S])
-    extends IExpr[S, Double] with IGenerator[S, Change[Double]] {
+    extends IExpr[S, Double] with IChangeGenerator[S, Double] {
 
     private[this] val beforeRef = Ref(value(tx0))
 
@@ -133,10 +133,10 @@ object Runner {
 
     def dispose()(implicit tx: S#Tx): Unit = obs.dispose()
 
-    def changed: IEvent[S, Change[Double]] = this
+    def changed: IChangeEvent[S, Double] = this
 
-    private[lucre] def pullUpdate(pull: IPull[S])(implicit tx: S#Tx): Option[Change[Double]] =
-      Some(pull.resolve)
+    private[lucre] def pullChange(pull: IPull[S])(implicit tx: S#Tx, phase: IPull.Phase): Double =
+      pull.resolveExpr(this)
   }
 
   final case class Progress(r: Runner) extends Ex[Double] {
@@ -155,7 +155,7 @@ object Runner {
 
   private final class ExpandedMessages[S <: Sys[S]](r: proc.Runner[S], tx0: S#Tx)
                                                    (implicit protected val targets: ITargets[S])
-    extends IExpr[S, Msg] with IGenerator[S, Change[Msg]] {
+    extends IExpr[S, Msg] with IChangeGenerator[S, Msg] {
 
     private[this] val beforeRef = Ref(value(tx0))
 
@@ -169,10 +169,10 @@ object Runner {
 
     def dispose()(implicit tx: S#Tx): Unit = obs.dispose()
 
-    def changed: IEvent[S, Change[Msg]] = this
+    def changed: IChangeEvent[S, Msg] = this
 
-    private[lucre] def pullUpdate(pull: IPull[S])(implicit tx: S#Tx): Option[Change[Msg]] =
-      Some(pull.resolve)
+    private[lucre] def pullChange(pull: IPull[S])(implicit tx: S#Tx, phase: IPull.Phase): Msg =
+      pull.resolveExpr(this)
   }
 
   final case class Messages(r: Runner) extends Ex[Seq[proc.Runner.Message]] {

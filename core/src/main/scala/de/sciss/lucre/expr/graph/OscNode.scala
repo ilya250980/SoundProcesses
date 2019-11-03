@@ -15,8 +15,8 @@ package de.sciss.lucre.expr.graph
 
 import java.net.{InetAddress, InetSocketAddress}
 
-import de.sciss.lucre.event.impl.{IEventImpl, IGenerator}
-import de.sciss.lucre.event.{IEvent, IPull, ITargets}
+import de.sciss.lucre.event.impl.{IChangeEventImpl, IChangeGenerator, IEventImpl}
+import de.sciss.lucre.event.{IChangeEvent, IEvent, IPull, ITargets}
 import de.sciss.lucre.expr.impl.{IActionImpl, IControlImpl}
 import de.sciss.lucre.expr.{Context, Graph, IAction, IControl, IExpr, ITrigger}
 import de.sciss.lucre.stm
@@ -137,7 +137,7 @@ object OscUdpNode {
 
   private final class SenderExpanded[S <: Sys[S]](peer: Repr[S], tx0: S#Tx)
                                                  (implicit protected val targets: ITargets[S])
-    extends IExpr[S, SocketAddress] with IEventImpl[S, Change[SocketAddress]] {
+    extends IExpr[S, SocketAddress] with IChangeEventImpl[S, SocketAddress] {
 
     peer.received.--->(changed)(tx0)
 
@@ -146,25 +146,17 @@ object OscUdpNode {
       SocketAddress(s.getHostString, s.getPort)
     }
 
-    private[lucre] def pullUpdate(pull: IPull[S])(implicit tx: S#Tx): Option[Change[SocketAddress]] =
-      pull(peer.received) match {
-        case Some(ch) if ch.before._2 != ch.now._2 =>
-          val addrBefore  = ch.before._2
-          val addrNow     = ch.now   ._2
-          val nameBefore  = addrBefore.getHostString
-          val portBefore  = addrBefore.getPort
-          val nameNow     = addrNow   .getHostString
-          val portNow     = addrNow   .getPort
-          val chTup       = Change(SocketAddress(nameBefore, portBefore), SocketAddress(nameNow, portNow))
-          if (chTup.isSignificant) Some(chTup) else None
-
-        case _ => None
-      }
+    private[lucre] def pullChange(pull: IPull[S])(implicit tx: S#Tx, phase: IPull.Phase): SocketAddress = {
+      val (_, addr) = pull.applyChange(peer.received)
+      val name      = addr.getHostString
+      val port      = addr.getPort
+      SocketAddress(name, port)
+    }
 
     def dispose()(implicit tx: S#Tx): Unit =
       peer.received.-/->(changed)
 
-    def changed: IEvent[S, Change[SocketAddress]] = this
+    def changed: IChangeEvent[S, SocketAddress] = this
   }
 
   final case class Sender(n: OscUdpNode) extends Ex[SocketAddress] {
@@ -180,7 +172,7 @@ object OscUdpNode {
   }
 
   private final class MessageExpanded[S <: Sys[S]](peer: Repr[S], tx0: S#Tx)(implicit protected val targets: ITargets[S])
-    extends IExpr[S, OscMessage] with IEventImpl[S, Change[OscMessage]] {
+    extends IExpr[S, OscMessage] with IChangeEventImpl[S, OscMessage] {
 
     peer.received.--->(changed)(tx0)
 
@@ -190,21 +182,15 @@ object OscUdpNode {
     def value(implicit tx: S#Tx): OscMessage =
       convert(peer.message)
 
-    private[lucre] def pullUpdate(pull: IPull[S])(implicit tx: S#Tx): Option[Change[OscMessage]] =
-      pull(peer.received) match {
-        case Some(ch) =>
-          val mBefore = convert(ch.before ._1)
-          val mNow    = convert(ch.now    ._1)
-          val chNew   = Change(mBefore, mNow)
-          if (chNew.isSignificant) Some(chNew) else None
-
-        case None => None
-      }
+    private[lucre] def pullChange(pull: IPull[S])(implicit tx: S#Tx, phase: IPull.Phase): OscMessage = {
+      val (m, _) = pull.applyChange(peer.received)
+      convert(m)
+    }
 
     def dispose()(implicit tx: S#Tx): Unit =
       peer.received.-/->(changed)
 
-    def changed: IEvent[S, Change[OscMessage]] = this
+    def changed: IChangeEvent[S, OscMessage] = this
   }
 
   final case class Message(n: OscUdpNode) extends Ex[OscMessage] {
@@ -221,7 +207,7 @@ object OscUdpNode {
   private final class Expanded[S <: Sys[S]](protected val peer: OscUdpNode, localPort: Int, localHost: String)
                                            (implicit protected val targets: ITargets[S],
                                             protected val cursor: stm.Cursor[S])
-    extends Repr[S] with IControlImpl[S] with IGenerator[S, Change[(osc.Message, InetSocketAddress)]] {
+    extends Repr[S] with IControlImpl[S] with IChangeGenerator[S, (osc.Message, InetSocketAddress)] {
 
     private[this] val dummySocket = InetSocketAddress.createUnresolved("invalid", 0)
 
@@ -233,10 +219,11 @@ object OscUdpNode {
     def message (implicit tx: S#Tx): osc.Message        = lastRcvRef()._1
     def sender  (implicit tx: S#Tx): InetSocketAddress  = lastRcvRef()._2
 
-    def received: IEvent[S, Change[(osc.Message, InetSocketAddress)]] = this
+    def received: IChangeEvent[S, (osc.Message, InetSocketAddress)] = this
 
-    private[lucre] def pullUpdate(pull: IPull[S])(implicit tx: S#Tx): Option[Change[(osc.Message, InetSocketAddress)]] =
-      Some(pull.resolve)
+    private[lucre] def pullChange(pull: IPull[S])
+                                 (implicit tx: S#Tx, phase: IPull.Phase): (osc.Message, InetSocketAddress) =
+      pull.resolveChange
 
     private[this] var addrHaveWarned = false
 
@@ -448,7 +435,7 @@ object OscUdpNode {
 
     def send(target: SocketAddress, p: OscPacket)(implicit tx: S#Tx): Unit
 
-    def received: IEvent[S, Change[(osc.Message, InetSocketAddress)]]
+    def received: IChangeEvent[S, (osc.Message, InetSocketAddress)]
   }
 }
 trait OscUdpNode extends OscNode {

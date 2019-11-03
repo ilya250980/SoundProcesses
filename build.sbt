@@ -29,11 +29,11 @@ lazy val commonSettings = Seq(
 lazy val deps = new {
   val main = new {
     val audioFile           = "1.5.3"
-    val audioWidgets        = "1.14.3"
+    val audioWidgets        = "1.14.4"
     val equal               = "0.1.4"
     val fileUtil            = "1.1.3"
     val lucre               = "3.16.0-SNAPSHOT"
-    val lucreSwing          = "1.19.1"
+    val lucreSwing          = "1.20.0-SNAPSHOT"
     val model               = "0.3.4"
     val numbers             = "0.2.0"
     val scalaCollider       = "1.28.4"
@@ -46,10 +46,10 @@ lazy val deps = new {
   
   val test = new {
     val bdb                = "bdb"  // "bdb" or "bdb6" or "bdb7"
-    val scalaColliderSwing = "1.41.4"
+    val scalaColliderSwing = "1.41.5"
     val scalaTest          = "3.0.8"
     val scallop            = "3.3.1"
-    val submin             = "0.2.5"
+    val submin             = "0.3.3"
   }
 }
 

@@ -15,8 +15,8 @@ package de.sciss.lucre.expr.graph
 
 import de.sciss.lucre.adjunct.{Adjunct, ProductWithAdjuncts}
 import de.sciss.lucre.edit.EditTimeline
-import de.sciss.lucre.event.impl.IGenerator
-import de.sciss.lucre.event.{Caching, IEvent, IPush, ITargets}
+import de.sciss.lucre.event.impl.IChangeGenerator
+import de.sciss.lucre.event.{Caching, IChangeEvent, IPush, ITargets}
 import de.sciss.lucre.expr.graph.impl.{AbstractCtxCellView, ExpandedObjMakeImpl, MappedIExpr, ObjCellViewVarImpl, ObjImplBase}
 import de.sciss.lucre.expr.impl.{IActionImpl, ITriggerConsumer}
 import de.sciss.lucre.expr.{CellView, Context, IAction, IExpr, SpanLikeObj}
@@ -217,8 +217,8 @@ object Timeline {
                                                  elem: IExpr[S, Obj], time: IExpr[S, Long])
                                                 (implicit protected val targets: ITargets[S])
     extends IAction[S] with IExpr[S, SplitPair]
-      with IGenerator       [S, Change[SplitPair]]
-      with ITriggerConsumer [S, Change[SplitPair]]
+      with IChangeGenerator [S, SplitPair]
+      with ITriggerConsumer [S, SplitPair]
       with Caching {
 
     private def empty: SplitPair = (Timed(_Span.Void, Obj.Empty), Timed(_Span.Void, Obj.Empty))
@@ -260,7 +260,7 @@ object Timeline {
       Some(Change(before, now))
     }
 
-    def changed: IEvent[S, Change[SplitPair]] = this
+    def changed: IChangeEvent[S, SplitPair] = this
   }
 
   object Split {

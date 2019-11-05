@@ -23,7 +23,6 @@ import de.sciss.lucre.expr.{CellView, Context, IAction, IExpr, SpanLikeObj}
 import de.sciss.lucre.stm
 import de.sciss.lucre.stm.Sys
 import de.sciss.lucre.stm.TxnLike.peer
-import de.sciss.model.Change
 import de.sciss.serial.{DataInput, Serializer}
 import de.sciss.span.{Span => _Span, SpanLike => _SpanLike}
 import de.sciss.synth.proc
@@ -254,10 +253,12 @@ object Timeline {
       opt.getOrElse(empty)
     }
 
-    protected def trigReceived()(implicit tx: S#Tx): Option[Change[SplitPair]] = {
-      val now     = make()
-      val before  = ref.swap(now) // needs caching
-      Some(Change(before, now))
+    protected def valueBefore ()(implicit tx: S#Tx): SplitPair = ref()
+
+    protected def trigReceived()(implicit tx: S#Tx): SplitPair = {
+      val now = make()
+      ref()   = now
+      now
     }
 
     def changed: IChangeEvent[S, SplitPair] = this

@@ -115,6 +115,11 @@ object Timeline {
 
     def cellValue[S <: Sys[S]](obj: stm.Obj[S], key: String)(implicit tx: S#Tx): Option[Timeline] =
       obj.attr.$[proc.Timeline](key).map(wrap(_))
+
+    def tryParseObj[S <: Sys[S]](obj: stm.Obj[S])(implicit tx: S#Tx): Option[Timeline] = obj match {
+      case a: proc.Timeline[S]  => Some(wrap(a))
+      case _                    => None
+    }
   }
 
   private final class AddExpanded[S <: Sys[S], A](in: IExpr[S, Timeline], span: IExpr[S, _SpanLike],

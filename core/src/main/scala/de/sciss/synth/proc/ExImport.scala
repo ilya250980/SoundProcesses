@@ -2,7 +2,7 @@
  *  ExOps.scala
  *  (SoundProcesses)
  *
- *  Copyright (c) 2010-2019 Hanns Holger Rutz. All rights reserved.
+ *  Copyright (c) 2010-2020 Hanns Holger Rutz. All rights reserved.
  *
  *	This software is published under the GNU Affero General Public License v3+
  *
@@ -18,12 +18,12 @@ import de.sciss.lucre.expr.impl.{ExObjBridgeImpl => Impl}
 import de.sciss.synth.proc
 
 object ExImport {
-  implicit val audioCueExAttrBridge   : Obj.Bridge[AudioCue   ] = new Impl(AudioCue   .Obj)
-  implicit val codeExAttrBridge       : Obj.Bridge[Code       ] = new Impl(Code       .Obj)
-  implicit val colorExAttrBridge      : Obj.Bridge[Color      ] = new Impl(Color      .Obj)
-  implicit val curveExAttrBridge      : Obj.Bridge[Curve      ] = new Impl(CurveObj       )
-  implicit val envSegmentExAttrBridge : Obj.Bridge[EnvSegment ] = new Impl(EnvSegment .Obj)
-  implicit val fadeSpecExAttrBridge   : Obj.Bridge[FadeSpec   ] = new Impl(FadeSpec   .Obj)
+  implicit val audioCueExAttrBridge   : Obj.Bridge[AudioCue   ] with Obj.CanMake[AudioCue   ] = new Impl(AudioCue   .Obj)
+  implicit val codeExAttrBridge       : Obj.Bridge[Code       ] with Obj.CanMake[Code       ] = new Impl(Code       .Obj)
+  implicit val colorExAttrBridge      : Obj.Bridge[Color      ] with Obj.CanMake[Color      ] = new Impl(Color      .Obj)
+  implicit val curveExAttrBridge      : Obj.Bridge[Curve      ] with Obj.CanMake[Curve      ] = new Impl(CurveObj       )
+  implicit val envSegmentExAttrBridge : Obj.Bridge[EnvSegment ] with Obj.CanMake[EnvSegment ] = new Impl(EnvSegment .Obj)
+  implicit val fadeSpecExAttrBridge   : Obj.Bridge[FadeSpec   ] with Obj.CanMake[FadeSpec   ] = new Impl(FadeSpec   .Obj)
 
   implicit object audioFileSpecIsValue  extends Ex.Value[AudioFileSpec]
   implicit object colorIsValue          extends Ex.Value[Color]

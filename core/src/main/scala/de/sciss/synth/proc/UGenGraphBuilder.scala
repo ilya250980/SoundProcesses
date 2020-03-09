@@ -111,7 +111,7 @@ object UGenGraphBuilder {
 
   object Input {
     object Stream {
-      def EmptySpec = Spec(0.0, 0)
+      def EmptySpec: Spec = Spec(0.0, 0)
 
       final case class Spec(maxSpeed: Double, interp: Int) {
         /** Empty indicates that the stream is solely used for information
@@ -138,7 +138,7 @@ object UGenGraphBuilder {
       type Key    = AttributeKey
       type Value  = Stream.Value
 
-      def key = AttributeKey(name)
+      def key: Key = AttributeKey(name)
 
       override def productPrefix = "Input.Stream"
     }
@@ -154,7 +154,7 @@ object UGenGraphBuilder {
       type Key    = AttributeKey
       type Value  = DiskOut.Value
 
-      def key = AttributeKey(name)
+      def key: Key = AttributeKey(name)
 
       override def productPrefix = "Input.DiskOut"
     }
@@ -176,7 +176,7 @@ object UGenGraphBuilder {
       type Key    = AttributeKey
       type Value  = Scalar.Value
 
-      def key = AttributeKey(name)
+      def key: Key = AttributeKey(name)
 
       override def productPrefix = "Input.Scalar"
     }
@@ -195,7 +195,7 @@ object UGenGraphBuilder {
       type Key    = AttributeKey
       type Value  = Attribute.Value
 
-      def key = AttributeKey(name)
+      def key: Key = AttributeKey(name)
 
       override def productPrefix = "Input.Attribute"
     }
@@ -223,7 +223,7 @@ object UGenGraphBuilder {
       type Key    = AttributeKey
       type Value  = Buffer.Value
 
-      def key = AttributeKey(name)
+      def key: Key = AttributeKey(name)
 
       override def productPrefix = "Input.Buffer"
     }
@@ -274,7 +274,7 @@ object UGenGraphBuilder {
       type Key    = AttributeKey
       type Value  = Action.Value.type
 
-      def key = AttributeKey(name)
+      def key: Key = AttributeKey(name)
 
       override def productPrefix = "Input.Action"
     }

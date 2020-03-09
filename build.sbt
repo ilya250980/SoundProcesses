@@ -1,7 +1,7 @@
 lazy val baseName  = "SoundProcesses"
 lazy val baseNameL = baseName.toLowerCase
 
-lazy val projectVersion = "3.33.1-SNAPSHOT"
+lazy val projectVersion = "3.33.1"
 lazy val mimaVersion    = "3.33.0" // used for migration-manager
 
 lazy val commonSettings = Seq(
@@ -67,7 +67,8 @@ lazy val root = project.withId(baseNameL).in(file("."))
     publishArtifact in(Compile, packageDoc) := false, // there are no javadocs
     publishArtifact in(Compile, packageSrc) := false, // there are no sources
     // packagedArtifacts := Map.empty
-    autoScalaLibrary := false
+    autoScalaLibrary := false,
+    mimaFailOnNoPrevious := false
   )
 
 lazy val synth = project.withId("lucre-synth").in(file("synth"))

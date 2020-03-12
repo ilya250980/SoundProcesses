@@ -456,9 +456,10 @@ object AuralProcImpl {
         UGB.Input.Buffer.Value(numFrames = v.size.toLong, numChannels = 1, async = false)
 
       case a: AudioCue.Obj[S] =>
-        // val spec = a.spec
-        val spec = a.value.spec
-        UGB.Input.Buffer.Value(numFrames = spec.numFrames, numChannels = spec.numChannels, async = false)
+        val cue       = a.value
+        val spec      = cue.spec
+        val numFrames = math.max(0L, spec.numFrames - cue.fileOffset)
+        UGB.Input.Buffer.Value(numFrames = numFrames, numChannels = spec.numChannels, async = false)
 
       case a: Gen[S] =>
         // bloody hell --- what should we return now?
@@ -481,9 +482,10 @@ object AuralProcImpl {
         case v: Vec[_] if v.forall(_.isInstanceOf[Int]) =>
           UGB.Input.Buffer.Value(numFrames = v.size.toLong, numChannels = 1, async = false)
 
-        case a: AudioCue =>
-          val spec = a.spec
-          UGB.Input.Buffer.Value(numFrames = spec.numFrames, numChannels = spec.numChannels, async = false)
+        case cue: AudioCue =>
+          val spec      = cue.spec
+          val numFrames = math.max(0L, spec.numFrames - cue.fileOffset)
+          UGB.Input.Buffer.Value(numFrames = numFrames, numChannels = spec.numChannels, async = false)
 
         case _ =>
           throw new IllegalStateException(s"Unsupported input attribute buffer source $ex")
@@ -729,11 +731,12 @@ object AuralProcImpl {
       val spec      = cue.spec
       val path      = cue.artifact.getAbsolutePath
       val offset    = cue.fileOffset
+      val numFrames = math.max(0L, spec.numFrames - offset)
       // XXX TODO - for now, gain is ignored.
       // one might add an auxiliary control proxy e.g. Buffer(...).gain
       // val _gain     = audioElem.gain    .value
-      if (spec.numFrames > 0x3FFFFFFF)
-        sys.error(s"File too large for in-memory buffer: $path (${spec.numFrames} frames)")
+      if (numFrames > 0x3FFFFFFF)
+        sys.error(s"File too large for in-memory buffer: $path ($numFrames frames)")
       val bufSize   = spec.numFrames.toInt
       val _buf      = Buffer(server)(numFrames = bufSize, numChannels = spec.numChannels)
       _buf.read(path = path, fileStartFrame = offset)
@@ -982,12 +985,13 @@ object AuralProcImpl {
       val spec      = cue.spec
       val f         = cue.artifact
       val offset    = cue.fileOffset
+      val numFrames = math.max(0L, spec.numFrames - offset)
       // XXX TODO - for now, gain is ignored.
       // one might add an auxiliary control proxy e.g. Buffer(...).gain
       // val _gain     = audioElem.gain    .value
-      if (spec.numFrames > 0x3FFFFFFF)
-        sys.error(s"File too large for in-memory buffer: $f (${spec.numFrames} frames)")
-      val bufSize   = spec.numFrames.toInt
+      if (numFrames > 0x3FFFFFFF)
+        sys.error(s"File too large for in-memory buffer: $f ($numFrames frames)")
+      val bufSize   = numFrames.toInt
       val buf       = Buffer(server)(numFrames = bufSize, numChannels = spec.numChannels)
       val cfg       = BufferPrepare.Config(f = f, spec = spec, offset = offset, buf = buf, key = key)
       b.resources ::= BufferPrepare[S](cfg)

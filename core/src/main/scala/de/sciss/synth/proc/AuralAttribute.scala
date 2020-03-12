@@ -14,6 +14,7 @@
 package de.sciss.synth.proc
 
 import de.sciss.lucre.event.Observable
+import de.sciss.lucre.expr.{ExprLike, IExpr}
 import de.sciss.lucre.stm.{Obj, Sys}
 import de.sciss.lucre.synth.{AudioBus, NodeRef, Sys => SSys}
 import de.sciss.synth.ControlSet
@@ -26,6 +27,11 @@ object AuralAttribute {
   def apply[S <: SSys[S]](key: String, value: Obj[S], observer: Observer[S])
                          (implicit tx: S#Tx, context: AuralContext[S]): AuralAttribute[S] =
     Impl(key, value, observer)
+
+  /** Attempts to create an aural attribute from an in-memory expression */
+  def expr[S <: SSys[S], A](key: String, value: IExpr[S, A], observer: Observer[S])
+                           (implicit tx: S#Tx, context: AuralContext[S]): AuralAttribute[S] =
+    Impl.expr(key, value, observer)
 
   // ---- Observer ----
 

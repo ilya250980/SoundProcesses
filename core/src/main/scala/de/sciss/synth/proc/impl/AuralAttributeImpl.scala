@@ -14,7 +14,7 @@
 package de.sciss.synth.proc.impl
 
 import de.sciss.lucre.event.impl.DummyObservableImpl
-import de.sciss.lucre.expr.{BooleanObj, DoubleObj, DoubleVector, Expr, IntObj}
+import de.sciss.lucre.expr.{BooleanObj, DoubleObj, DoubleVector, Expr, ExprLike, IExpr, IntObj, IntVector}
 import de.sciss.lucre.stm
 import de.sciss.lucre.stm.{Disposable, Folder, NoSys, Obj, TxnLike}
 import de.sciss.lucre.synth.Sys
@@ -54,12 +54,29 @@ object AuralAttributeImpl {
     }
   }
 
+  def expr[S <: Sys[S], A](key: String, value: IExpr[S, A], observer: Observer[S])
+                          (implicit tx: S#Tx, context: AuralContext[S]): AuralAttribute[S] = 
+    value.value match {
+      case _: Int       => IntExprLike      (key, value.asInstanceOf[ExprLike[S, Int      ]], observer)
+      case _: Double    => DoubleExprLike   (key, value.asInstanceOf[ExprLike[S, Double   ]], observer)
+      case _: Boolean   => BooleanExprLike  (key, value.asInstanceOf[ExprLike[S, Boolean  ]], observer)
+      case _: FadeSpec  => FadeSpecExprLike (key, value.asInstanceOf[ExprLike[S, FadeSpec ]], observer)
+      case sq: Vec[_] if sq.forall(_.isInstanceOf[Double]) =>
+        DoubleVectorExprLike (key, value.asInstanceOf[ExprLike[S, Vec[Double]]], observer)
+      case sq: Vec[_] if (sq.forall(_.isInstanceOf[Int])) =>
+        IntVectorExprLike    (key, value.asInstanceOf[ExprLike[S, Vec[Int]   ]], observer)
+      case _ => 
+        Console.err.println(s"Warning: AuralAttribute - no factory for $value")
+        new DummyExprLike(key, value)
+  }
+
   private[this] var map = Map[Int, Factory](
     IntObj      .typeId -> IntAttribute,
     DoubleObj   .typeId -> DoubleAttribute,
     BooleanObj  .typeId -> BooleanAttribute,
     FadeSpec    .typeId -> FadeSpecAttribute,
     DoubleVector.typeId -> DoubleVectorAttribute,
+    IntVector   .typeId -> IntVectorAttribute,
     Grapheme    .typeId -> AuralGraphemeAttribute,
     Output      .typeId -> AuralOutputAttribute,
     Folder      .typeId -> AuralFolderAttribute,
@@ -74,6 +91,7 @@ object AuralAttributeImpl {
     DoubleObj   .typeId -> DoubleAttribute,
     BooleanObj  .typeId -> BooleanAttribute,
     DoubleVector.typeId -> DoubleVectorAttribute,
+    IntVector   .typeId -> IntVectorAttribute,
 //    Grapheme    .typeId -> AuralGraphemeAttribute,
     EnvSegment  .typeId -> AuralEnvSegmentAttribute
   )
@@ -118,7 +136,7 @@ object AuralAttributeImpl {
 
     protected val context: AuralContext[S]
 
-    type Repr <: Expr[S, A]
+    type Repr <: ExprLike[S, A]
 
     /** Creates a value representation of this input. If the value is a `Stream`,
       * that stream's node reference will be disposed when the input stops (is replaced by other input).
@@ -170,7 +188,7 @@ object AuralAttributeImpl {
       }
     }
 
-    def init(expr: Expr[S, A])(implicit tx: S#Tx): this.type = {
+    def init(expr: ExprLike[S, A])(implicit tx: S#Tx): this.type = {
       obs = expr.changed.react { implicit tx => change =>
         valueChanged(change.now)
       }
@@ -250,9 +268,28 @@ object AuralAttributeImpl {
 
     def mkValue(in: Int): Scalar = in.toFloat
 
-    override def obj(implicit tx: S#Tx): IntObj[S] = objH()
+    override def obj(implicit tx: S#Tx): Repr = objH()
 
     override def toString = s"IntAttribute($key)@${hashCode.toHexString}"
+  }
+
+  private[this] object IntExprLike {
+    def apply[S <: Sys[S]](key: String, value: ExprLike[S, Int], observer: Observer[S])
+                          (implicit tx: S#Tx, context: AuralContext[S]): AuralAttribute[S] =
+      new IntExprLike(key, value).init(value)
+  }
+
+  private final class IntExprLike[S <: Sys[S]](val key: String, _obj: ExprLike[S, Int])
+                                              (implicit val context: AuralContext[S])
+    extends SingleChannelImpl[S, Int] with NumericExprImpl[S, Int] {
+
+    type Repr = ExprLike[S, Int]
+
+    def mkValue(in: Int): Scalar = in.toFloat
+
+    override def obj(implicit tx: S#Tx): Repr = _obj
+
+    override def toString = s"IntExprLike($key)@${hashCode.toHexString}"
   }
 
   // ------------------- DoubleObj ------------------- 
@@ -286,9 +323,28 @@ object AuralAttributeImpl {
 
     def mkValue(value: Double): Scalar = value.toFloat
 
-    def obj(implicit tx: S#Tx): DoubleObj[S] = objH()
+    def obj(implicit tx: S#Tx): Repr = objH()
 
     override def toString = s"DoubleAttribute($key)@${hashCode.toHexString}"
+  }
+
+  private[this] object DoubleExprLike {
+    def apply[S <: Sys[S]](key: String, value: ExprLike[S, Double], observer: Observer[S])
+                          (implicit tx: S#Tx, context: AuralContext[S]): AuralAttribute[S] =
+      new DoubleExprLike(key, value).init(value)
+  }
+
+  private final class DoubleExprLike[S <: Sys[S]](val key: String, _obj: ExprLike[S, Double])
+                                              (implicit val context: AuralContext[S])
+    extends SingleChannelImpl[S, Double] with NumericExprImpl[S, Double] {
+
+    type Repr = ExprLike[S, Double]
+
+    def mkValue(in: Double): Scalar = in.toFloat
+
+    override def obj(implicit tx: S#Tx): Repr = _obj
+
+    override def toString = s"DoubleExprLike($key)@${hashCode.toHexString}"
   }
 
   // ------------------- BooleanObj ------------------- 
@@ -322,9 +378,28 @@ object AuralAttributeImpl {
 
     def mkValue(in: Boolean): Scalar = if (in) 1f else 0f
 
-    def obj(implicit tx: S#Tx): BooleanObj[S] = objH()
+    def obj(implicit tx: S#Tx): Repr = objH()
 
     override def toString = s"BooleanAttribute($key)@${hashCode.toHexString}"
+  }
+
+  private[this] object BooleanExprLike {
+    def apply[S <: Sys[S]](key: String, value: ExprLike[S, Boolean], observer: Observer[S])
+                          (implicit tx: S#Tx, context: AuralContext[S]): AuralAttribute[S] =
+      new BooleanExprLike(key, value).init(value)
+  }
+
+  private final class BooleanExprLike[S <: Sys[S]](val key: String, _obj: ExprLike[S, Boolean])
+                                                 (implicit val context: AuralContext[S])
+    extends SingleChannelImpl[S, Boolean] with NumericExprImpl[S, Boolean] {
+
+    type Repr = ExprLike[S, Boolean]
+
+    def mkValue(in: Boolean): Scalar = if (in) 1f else 0f
+
+    override def obj(implicit tx: S#Tx): Repr = _obj
+
+    override def toString = s"BooleanExprLike($key)@${hashCode.toHexString}"
   }
 
   // ------------------- FadeSpec.Obj ------------------- 
@@ -358,9 +433,40 @@ object AuralAttributeImpl {
       v
     }
 
-    def obj(implicit tx: S#Tx): FadeSpec.Obj[S] = objH()
+    def obj(implicit tx: S#Tx): Repr = objH()
 
     override def toString = s"FadeSpecAttribute($key)@${hashCode.toHexString}"
+  }
+
+  private[this] object FadeSpecExprLike {
+    def apply[S <: Sys[S]](key: String, value: ExprLike[S, FadeSpec], observer: Observer[S])
+                          (implicit tx: S#Tx, context: AuralContext[S]): AuralAttribute[S] =
+      new FadeSpecExprLike(key, value).init(value)
+  }
+
+  private final class FadeSpecExprLike[S <: Sys[S]](val key: String, _obj: ExprLike[S, FadeSpec])
+                                                   (implicit val context: AuralContext[S])
+    extends ExprImpl[S, FadeSpec] {
+
+    def tpe: Obj.Type = FadeSpec.Obj
+
+    type Repr = ExprLike[S, FadeSpec]
+
+    def preferredNumChannels(implicit tx: S#Tx): Int = 4
+
+    def mkValue(timeRef: TimeRef, spec: FadeSpec)(implicit tx: S#Tx): Scalar = {
+      val v = Vector[Float](
+        (spec.numFrames / TimeRef.SampleRate).toFloat, spec.curve.id.toFloat, spec.curve match {
+          case Curve.parametric(c)  => c
+          case _                    => 0f
+        }, spec.floor
+      )
+      v
+    }
+
+    def obj(implicit tx: S#Tx): Repr = _obj
+
+    override def toString = s"FadeSpecExprLike($key)@${hashCode.toHexString}"
   }
 
   // ------------------- DoubleVector ------------------- 
@@ -396,36 +502,144 @@ object AuralAttributeImpl {
 
     def mkValue(in: Vec[Double]): Scalar = in.map(_.toFloat)
 
-    def obj(implicit tx: S#Tx): DoubleVector[S] = objH()
+    def obj(implicit tx: S#Tx): Repr = objH()
 
     override def toString = s"DoubleVectorAttribute($key)@${hashCode.toHexString}"
   }
 
+  private[this] object DoubleVectorExprLike {
+    def apply[S <: Sys[S]](key: String, value: ExprLike[S, Vec[Double]], observer: Observer[S])
+                          (implicit tx: S#Tx, context: AuralContext[S]): AuralAttribute[S] =
+      new DoubleVectorExprLike(key, value).init(value)
+  }
+
+  private final class DoubleVectorExprLike[S <: Sys[S]](val key: String, _obj: ExprLike[S, Vec[Double]])
+                                                        (implicit val context: AuralContext[S])
+    extends ExprImpl[S, Vec[Double]] with NumericExprImpl[S, Vec[Double]] {
+
+    def tpe: Obj.Type = DoubleVector
+
+    type Repr = ExprLike[S, Vec[Double]]
+
+    def preferredNumChannels(implicit tx: S#Tx): Int = mkValue0(_obj.value).size
+
+    def mkValue(in: Vec[Double]): Scalar = mkValue0(in)
+
+    // no element type to avoid runtime class-cast-exceptions
+    private def mkValue0(in: Vec[_]): Vec[Float] = in.collect {
+      case d: Double => d.toFloat
+    }
+
+    def obj(implicit tx: S#Tx): Repr = _obj
+
+    override def toString = s"DoubleVectorExprLike($key)@${hashCode.toHexString}"
+  }
+
+  // ------------------- IntVector ------------------- 
+
+  private[this] object IntVectorAttribute extends Factory with StartLevelViewFactory {
+    type Repr[S <: stm.Sys[S]] = IntVector[S]
+
+    def tpe: Obj.Type = IntVector
+
+    def apply[S <: Sys[S]](key: String, value: IntVector[S], observer: Observer[S])
+                          (implicit tx: S#Tx, context: AuralContext[S]): AuralAttribute[S] =
+      new IntVectorAttribute(key, tx.newHandle(value)).init(value)
+
+    def mkStartLevelView[S <: Sys[S]](value: Repr[S])(implicit tx: S#Tx): ControlValuesView[S] =
+      new IntVectorStartLevel(tx.newHandle(value))
+  }
+
+  private final class IntVectorStartLevel[S <: Sys[S]](obj: stm.Source[S#Tx, IntVector[S]])
+    extends NumericExprStartLevel(obj) {
+
+    def mkValue(in: Vec[Int]): ControlValues = in.map(_.toFloat)
+  }
+
+  private final class IntVectorAttribute[S <: Sys[S]](val key: String, objH: stm.Source[S#Tx, IntVector[S]])
+                                                        (implicit val context: AuralContext[S])
+    extends ExprImpl[S, Vec[Int]] with NumericExprImpl[S, Vec[Int]] {
+
+    def tpe: Obj.Type = IntVector
+
+    type Repr = IntVector[S]
+
+    def preferredNumChannels(implicit tx: S#Tx): Int = objH().value.size
+
+    def mkValue(in: Vec[Int]): Scalar = in.map(_.toFloat)
+
+    def obj(implicit tx: S#Tx): Repr = objH()
+
+    override def toString = s"IntVectorAttribute($key)@${hashCode.toHexString}"
+  }
+
+  private[this] object IntVectorExprLike {
+    def apply[S <: Sys[S]](key: String, value: ExprLike[S, Vec[Int]], observer: Observer[S])
+                          (implicit tx: S#Tx, context: AuralContext[S]): AuralAttribute[S] =
+      new IntVectorExprLike(key, value).init(value)
+  }
+
+  private final class IntVectorExprLike[S <: Sys[S]](val key: String, _obj: ExprLike[S, Vec[Int]])
+                                                       (implicit val context: AuralContext[S])
+    extends ExprImpl[S, Vec[Int]] with NumericExprImpl[S, Vec[Int]] {
+
+    def tpe: Obj.Type = IntVector
+
+    type Repr = ExprLike[S, Vec[Int]]
+
+    def preferredNumChannels(implicit tx: S#Tx): Int = mkValue0(_obj.value).size
+
+    def mkValue(in: Vec[Int]): Scalar = mkValue0(in)
+
+    // no element type to avoid runtime class-cast-exceptions
+    private def mkValue0(in: Vec[_]): Vec[Float] = in.collect {
+      case d: Int => d.toFloat
+    }
+
+    def obj(implicit tx: S#Tx): Repr = _obj
+
+    override def toString = s"IntVectorExprLike($key)@${hashCode.toHexString}"
+  }
+
   // ------------------- generic (dummy) -------------------
 
-  private final class DummyAttribute[S <: Sys[S]](val key: String, objH: stm.Source[S#Tx, Obj[S]])
+  private abstract class DummyBase[S <: Sys[S]](val key: String)
     extends AuralAttribute[S] with DummyObservableImpl[S] {
 
-    def tpe: Obj.Type = throw new UnsupportedOperationException("DummyAttribute.tpe")
+    final def tpe: Obj.Type = throw new UnsupportedOperationException("DummyAttribute.tpe")
+
+    final def preferredNumChannels(implicit tx: S#Tx): Int = 0
+
+    final def targetOption(implicit tx: S#Tx): Option[Target[S]] = None
+
+    final def state(implicit tx: S#Tx): State = Stopped
+
+    final def prepare(timeRef: TimeRef.Option)(implicit tx: S#Tx): Unit = ()
+
+    final def run(timeRef: TimeRef.Option, target: Target[S])(implicit tx: S#Tx): Unit = ()
+    
+    final def stop   ()(implicit tx: S#Tx): Unit = ()
+    final def dispose()(implicit tx: S#Tx): Unit = ()
+  }
+
+  private final class DummyAttribute[S <: Sys[S]](key: String, objH: stm.Source[S#Tx, Obj[S]])
+    extends DummyBase[S](key) {
 
     type Repr = Obj[S]
 
-    def preferredNumChannels(implicit tx: S#Tx): Int = 0
-
-    def targetOption(implicit tx: S#Tx): Option[Target[S]] = None
-
-    def state(implicit tx: S#Tx): State = Stopped
-
-    def prepare(timeRef: TimeRef.Option)(implicit tx: S#Tx): Unit = ()
-
-    def run(timeRef: TimeRef.Option, target: Target[S])(implicit tx: S#Tx): Unit = ()
-
-    def obj(implicit tx: S#Tx): Obj[S] = objH()
-
-    def stop   ()(implicit tx: S#Tx): Unit = ()
-    def dispose()(implicit tx: S#Tx): Unit = ()
+    def obj(implicit tx: S#Tx): Repr = objH()
 
     override def toString = s"DummyAttribute($key)@${hashCode.toHexString}"
+  }
+  
+  private final class DummyExprLike[S <: Sys[S], A](key: String, _obj: ExprLike[S, A])
+    extends DummyBase[S](key) {
+
+    type Repr = ExprLike[S, A]
+
+    def obj(implicit tx: S#Tx): Repr = _obj
+
+    override def toString = s"DummyExprLike($key)@${hashCode.toHexString}"
   }
 }
 trait AuralAttributeImpl[S <: Sys[S]] extends AuralAttribute[S] with BasicViewBaseImpl[S]

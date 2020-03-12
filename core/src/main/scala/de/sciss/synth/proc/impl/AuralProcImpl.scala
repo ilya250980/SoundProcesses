@@ -17,7 +17,7 @@ import de.sciss.equal.Implicits._
 import de.sciss.file._
 import de.sciss.lucre.artifact.Artifact
 import de.sciss.lucre.event.impl.ObservableImpl
-import de.sciss.lucre.expr.{DoubleVector, Expr, StringObj}
+import de.sciss.lucre.expr.{DoubleVector, Expr, ExprLike, IExpr, StringObj}
 import de.sciss.lucre.stm
 import de.sciss.lucre.stm.{Disposable, Obj, TxnLike}
 import de.sciss.lucre.synth.{AudioBus, Buffer, Bus, BusNodeSetter, NodeRef, Server, Sys}
@@ -115,7 +115,7 @@ object AuralProcImpl {
         node.dispose()
       }
 
-      def nodeOption = Some(node)
+      def nodeOption: Option[AuralNode[S]] = Some(node)
     }
     private final class PlayingPrepare(val resources: List[AsyncResource[S]]) extends PlayingRef {
       def dispose()(implicit tx: S#Tx): Unit = resources.foreach(_.dispose())
@@ -399,6 +399,15 @@ object AuralProcImpl {
         view
       }
 
+    // XXX TODO DRY with `mkAuralAttribute`
+    private def mkAuralExprLike(key: String, value: IExpr[S, _])(implicit tx: S#Tx): AuralAttribute[S] =
+      auralAttrMap.get(key).getOrElse {
+        val view = AuralAttribute.expr(key, value, this)
+        auralAttrMap.put(key, view)
+        ports(AuralObj.Proc.AttrAdded(this, view))
+        view
+      }
+
     // AuralAttribute.Observer
     final def attrNumChannelsChanged(attr: AuralAttribute[S])(implicit tx: S#Tx): Unit = {
       val aKey = UGB.AttributeKey(attr.key)
@@ -459,31 +468,49 @@ object AuralProcImpl {
         throw new IllegalStateException(s"Unsupported input attribute buffer source $value")
     }
 
+    // XXX TODO the integration of runnerAttr is a bad hack
     /** Sub-classes may override this if invoking the super-method. */
     def requestInput[Res](in: UGB.Input { type Value = Res }, st: UGB.Requester[S])
                          (implicit tx: S#Tx): Res = in match {
       case i: UGB.Input.Scalar =>
         val procObj   = procCached()
         val aKey      = i.name
-        val valueOpt  = procObj.attr.get(aKey)
 
-        def auralChans(value: Obj[S]): Int = {
-          val view = mkAuralAttribute(aKey, value)
-          view.preferredNumChannels
+        def tryRunnerAttr(): Int = {
+          val valueOpt = runnerAttr.get(aKey)
+          valueOpt.fold(-1) {
+            case value: IExpr[S, _] =>
+              val view = mkAuralExprLike(aKey, value)
+              view.preferredNumChannels
+            case _ => -1
+          }
         }
 
-        val found: Int = valueOpt.fold(-1) {
-          case a: Gen[S] =>
-            val genView   = mkGenView(a, aKey)
-            genView.value match {
-              case Some(tr) =>
-                val value = tr.get
-                auralChans(value)
-              case None => -1
-            }
+        def tryObjAttr(): Int = {
+          def channels(value: Obj[S]): Int = {
+            val view = mkAuralAttribute(aKey, value)
+            view.preferredNumChannels
+          }
 
-          case value =>
-            auralChans(value)
+          val valueOpt = procObj.attr.get(aKey)
+          valueOpt.fold(-1) {
+            case a: Gen[S] =>
+              val genView = mkGenView(a, aKey)
+              genView.value match {
+                case Some(tr) =>
+                  val value = tr.get
+                  channels(value)
+                case None => -1
+              }
+
+            case value =>
+              channels(value)
+          }
+        }
+
+        val found: Int = {
+          val tmp = tryRunnerAttr()
+          if (tmp == -1) tryObjAttr() else tmp
         }
 
         import i.{defaultNumChannels => defNum, requiredNumChannels => reqNum}

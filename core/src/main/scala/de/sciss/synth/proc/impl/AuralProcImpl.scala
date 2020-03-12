@@ -545,15 +545,24 @@ object AuralProcImpl {
         UGB.Input.Scalar.Value(res) // IntelliJ highlight bug
 
       case i: UGB.Input.Stream =>
-        val procObj       = procCached()
         val aKey          = i.name
-        val valueOpt      = procObj.attr.get(aKey)
-        val value0        = valueOpt match {
-          case Some(value) =>
-            requestAttrStreamValue(aKey, value)
-          case None =>
-            simpleInputStreamValue(-1)
-        }
+        val value0: UGB.Input.Stream.Value =
+          runnerAttr.get(aKey) match {
+            case Some(ex: IExpr[S, _]) =>
+              requestAttrStreamValueFromExpr(aKey, ex)
+            case Some(a) =>
+              sys.error(s"Cannot use attribute $a as an audio stream")
+            case None =>
+              val procObj       = procCached()
+              val valueOpt      = procObj.attr.get(aKey)
+              valueOpt match {
+                case Some(value) =>
+                  requestAttrStreamValue(aKey, value)
+                case None =>
+                  simpleInputStreamValue(-1)
+              }
+          }
+
         val chansUnknown  = value0.numChannels < 0
         if (chansUnknown && !i.spec.isEmpty) throw MissingIn(i.key)
         val value1        = if (chansUnknown) value0.copy(numChannels = 1) else value0 // simply default to 1
@@ -657,20 +666,45 @@ object AuralProcImpl {
       }
     }
 
+    private def requestAttrStreamValueFromExpr(key: String, ex: IExpr[S, _])
+                                        (implicit tx: S#Tx): UGB.Input.Stream.Value = {
+      ex.value match {
+        case sq: Vec[_] if (sq.forall(_.isInstanceOf[Double])) =>
+          simpleInputStreamValue(sq.size)
+        case sq: Vec[_] if (sq.forall(_.isInstanceOf[Int])) =>
+          simpleInputStreamValue(sq.size)
+        case a: AudioCue =>
+          val spec = a.spec
+          UGB.Input.Stream.Value(numChannels = spec.numChannels, sampleRate = spec.sampleRate, specs = Nil)
+        case _: FadeSpec => simpleInputStreamValue(4)
+
+        case a => sys.error(s"Cannot use attribute $a as an audio stream")
+      }
+    }
+
     /** Sub-classes may override this if invoking the super-method. */
     protected def buildAttrStreamInput(nr: NodeRef.Full[S], timeRef: TimeRef, key: String,
                                        info: UGB.Input.Stream.Spec, idx: Int, bufSize: Int)
-                                      (implicit tx: S#Tx): BufferAndGain =
-      procCached().attr.get(key) match {
-        case Some(value) =>
-          buildAttrStreamInput(nr = nr, timeRef = timeRef, key = key,
-            info = info, idx = idx, bufSize = bufSize, value = value)
+                                      (implicit tx: S#Tx): BufferAndGain = {
+      runnerAttr.get(key) match {
+        case Some(ex: IExpr[S, _]) =>
+          buildAttrStreamInputFromExpr(nr = nr, timeRef = timeRef, key = key,
+            info = info, idx = idx, bufSize = bufSize, ex = ex)
+        case Some(a) =>
+          sys.error(s"Cannot use attribute $a as an audio stream")
         case None =>
-          // DiskIn and VDiskIn are fine with an empty non-streaming buffer, as far as I can tell...
-          // So instead of aborting when the attribute is not set, fall back to zero
-          val _buf = Buffer(server)(numFrames = bufSize, numChannels = 1)
-          new BufferAndGain(_buf, 0f)
+          procCached().attr.get(key) match {
+            case Some(value) =>
+              buildAttrStreamInput(nr = nr, timeRef = timeRef, key = key,
+                info = info, idx = idx, bufSize = bufSize, value = value)
+            case None =>
+              // DiskIn and VDiskIn are fine with an empty non-streaming buffer, as far as I can tell...
+              // So instead of aborting when the attribute is not set, fall back to zero
+              val _buf = Buffer(server)(numFrames = bufSize, numChannels = 1)
+              new BufferAndGain(_buf, 0f)
+          }
       }
+    }
 
     /** Sub-classes may override this if invoking the super-method. */
     protected def buildAttrStreamInput(nr: NodeRef.Full[S], timeRef: TimeRef, key: String,
@@ -690,6 +724,17 @@ object AuralProcImpl {
 
         val newValue = valueOpt.getOrElse(sys.error(s"Missing attribute $key for stream content"))
         buildAttrStreamInput(nr, timeRef, key = key, info = info, idx = idx, bufSize = bufSize, value = newValue)
+
+      case a => sys.error(s"Cannot use attribute $a as an audio stream")
+    }
+
+    private def buildAttrStreamInputFromExpr(nr: NodeRef.Full[S], timeRef: TimeRef, key: String,
+                                       info: UGB.Input.Stream.Spec, idx: Int,
+                                       bufSize: Int, ex: IExpr[S, _])
+                                      (implicit tx: S#Tx): BufferAndGain = ex.value match {
+      case a: AudioCue =>
+        streamAudioCueToBuffer(cue = a, nr = nr, timeRef = timeRef, key = key, info = info,
+          idx = idx, bufSize = bufSize)
 
       case a => sys.error(s"Cannot use attribute $a as an audio stream")
     }

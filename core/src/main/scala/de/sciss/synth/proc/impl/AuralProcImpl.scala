@@ -17,13 +17,14 @@ import de.sciss.equal.Implicits._
 import de.sciss.file._
 import de.sciss.lucre.artifact.Artifact
 import de.sciss.lucre.event.impl.ObservableImpl
-import de.sciss.lucre.expr.{DoubleVector, Expr, ExprLike, IExpr, StringObj}
+import de.sciss.lucre.expr.{DoubleVector, ExprLike, IExpr, IntVector, StringObj}
 import de.sciss.lucre.stm
 import de.sciss.lucre.stm.{Disposable, Obj, TxnLike}
 import de.sciss.lucre.synth.{AudioBus, Buffer, Bus, BusNodeSetter, NodeRef, Server, Sys}
 import de.sciss.numbers
 import de.sciss.span.Span
 import de.sciss.synth.ControlSet
+import de.sciss.synth.UGenSource.Vec
 import de.sciss.synth.io.AudioFileType
 import de.sciss.synth.proc.AuralObj.{TargetPlaying, TargetPrepared, TargetState, TargetStop}
 import de.sciss.synth.proc.Implicits._
@@ -36,6 +37,7 @@ import de.sciss.synth.proc.{Action, ActionRaw, AudioCue, AuralAttribute, AuralCo
 import scala.concurrent.Future
 import scala.concurrent.stm.{Ref, TMap, TxnLocal}
 
+// We proudly present: The horror object
 object AuralProcImpl {
   def apply[S <: Sys[S]](proc: Proc[S], attr: Runner.Attr[S])
                         (implicit tx: S#Tx, context: AuralContext[S]): AuralObj.Proc[S] = {
@@ -449,6 +451,10 @@ object AuralProcImpl {
         val v = a.value   // XXX TODO: would be better to write a.peer.size.value
         UGB.Input.Buffer.Value(numFrames = v.size.toLong, numChannels = 1, async = false)
 
+      case a: IntVector[S] =>
+        val v = a.value   // XXX TODO: would be better to write a.peer.size.value
+        UGB.Input.Buffer.Value(numFrames = v.size.toLong, numChannels = 1, async = false)
+
       case a: AudioCue.Obj[S] =>
         // val spec = a.spec
         val spec = a.value.spec
@@ -468,13 +474,27 @@ object AuralProcImpl {
         throw new IllegalStateException(s"Unsupported input attribute buffer source $value")
     }
 
-    // XXX TODO the integration of runnerAttr is a bad hack
+    private def requestInputBufferFromExpr(key: String, ex: IExpr[S, _])(implicit tx: S#Tx): UGB.Input.Buffer.Value =
+      ex.value match {
+        case v: Vec[_] if v.forall(_.isInstanceOf[Double]) =>
+          UGB.Input.Buffer.Value(numFrames = v.size.toLong, numChannels = 1, async = false)
+        case v: Vec[_] if v.forall(_.isInstanceOf[Int]) =>
+          UGB.Input.Buffer.Value(numFrames = v.size.toLong, numChannels = 1, async = false)
+
+        case a: AudioCue =>
+          val spec = a.spec
+          UGB.Input.Buffer.Value(numFrames = spec.numFrames, numChannels = spec.numChannels, async = false)
+
+        case _ =>
+          throw new IllegalStateException(s"Unsupported input attribute buffer source $ex")
+      }
+
+      // XXX TODO the integration of runnerAttr is a bad hack
     /** Sub-classes may override this if invoking the super-method. */
     def requestInput[Res](in: UGB.Input { type Value = Res }, st: UGB.Requester[S])
                          (implicit tx: S#Tx): Res = in match {
       case i: UGB.Input.Scalar =>
-        val procObj   = procCached()
-        val aKey      = i.name
+        val aKey = i.name
 
         def tryRunnerAttr(): Int = {
           val valueOpt = runnerAttr.get(aKey)
@@ -492,7 +512,8 @@ object AuralProcImpl {
             view.preferredNumChannels
           }
 
-          val valueOpt = procObj.attr.get(aKey)
+          val procObj   = procCached()
+          val valueOpt  = procObj.attr.get(aKey)
           valueOpt.fold(-1) {
             case a: Gen[S] =>
               val genView = mkGenView(a, aKey)
@@ -546,21 +567,31 @@ object AuralProcImpl {
         value2
 
       case i: UGB.Input.Buffer =>
-        val procObj   = procCached()
         val aKey      = i.name
-        val attrValue = procObj.attr.get(aKey).getOrElse(throw MissingIn(i.key))
-        val res0      = requestInputBuffer(aKey, attrValue)
+        val res0: UGB.Input.Buffer.Value = runnerAttr.get(aKey) match {
+          case Some(ex: IExpr[S, _]) =>
+            requestInputBufferFromExpr(aKey, ex)
+          case Some(a) =>
+            throw new IllegalStateException(s"Unsupported input attribute buffer source $a")
+          case None =>
+            val procObj   = procCached()
+            val attrValue = procObj.attr.get(aKey).getOrElse(throw MissingIn(i.key))
+            requestInputBuffer(aKey, attrValue)
+        }
         // larger files are asynchronously prepared, smaller ones read on the fly
-        val async     = res0.numSamples > UGB.Input.Buffer.AsyncThreshold   // XXX TODO - that threshold should be configurable
+        val async = res0.numSamples > UGB.Input.Buffer.AsyncThreshold   // XXX TODO - that threshold should be configurable
         if (async == res0.async) res0 else res0.copy(async = async)
 
       case i: UGB.Input.Attribute =>
-        val procObj = procCached()
-        // WARNING: Scala compiler bug, cannot use `collect` with
-        // `PartialFunction` here, only total function works.
-        val opt: Option[Any] = procObj.attr.get(i.name).flatMap {
-          case x: Expr[S, _] => Some(x.value)
-          case _ => None
+        val aKey      = i.name
+        val valueOpt  = runnerAttr.get(aKey).orElse {
+          val procObj   = procCached()
+          procObj.attr.get(aKey)
+        }
+
+        val opt: Option[Any] = valueOpt match {
+          case Some(x: ExprLike[S, _])  => Some(x.value)
+          case _                        => None
         }
         UGB.Input.Attribute.Value(opt)
 
@@ -597,6 +628,8 @@ object AuralProcImpl {
                                         (implicit tx: S#Tx): UGB.Input.Stream.Value = {
       value match {
         case a: DoubleVector[S] =>
+          simpleInputStreamValue(a.value.size) // XXX TODO: would be better to write a.peer.size.value
+        case a: IntVector[S] =>
           simpleInputStreamValue(a.value.size) // XXX TODO: would be better to write a.peer.size.value
         case a: AudioCue.Obj[S] =>
           val spec = a.value.spec
@@ -746,22 +779,50 @@ object AuralProcImpl {
           }
 
         case UGB.Input.Buffer.Value(_ /* numFr */, _ /* numCh */, false) =>   // ----------------------- random access buffer
-          val rb = procCached().attr.get(key).fold[Buffer] {
-            sys.error(s"Missing attribute $key for buffer content")
-          } {
-            case a: AudioCue.Obj[S] =>
-              readAudioCueToBuffer(a.value)
-
-            case dv: DoubleVector[S] =>
-              val values    = dv.value.map(_.toFloat)
-              val bufSize   = values.size
-              val _buf      = Buffer(server)(numFrames = bufSize, numChannels = 1)
-              _buf.setn(values)
-              _buf
-
-            case a => sys.error(s"Cannot use attribute $a as a buffer content")
+          def fromSeq(values: Vec[Float]): Buffer = {
+            val bufSize   = values.size
+            val _buf      = Buffer(server)(numFrames = bufSize, numChannels = 1)
+            _buf.setn(values)
+            _buf
           }
-          val ctlName    = graph.Buffer.controlName(key)
+
+          // XXX TODO ugly ugly ugly
+          val rb: Buffer = runnerAttr.get(key) match {
+            case Some(ex: IExpr[S, _]) =>
+              ex.value match {
+                case a: AudioCue => readAudioCueToBuffer(a)
+                case sq: Vec[_] if sq.forall(_.isInstanceOf[Double]) =>
+                  val values = sq.asInstanceOf[Vec[Double]].map(_.toFloat)
+                  fromSeq(values)
+                case sq: Vec[_] if sq.forall(_.isInstanceOf[Int]) =>
+                  val values = sq.asInstanceOf[Vec[Int]].map(_.toFloat)
+                  fromSeq(values)
+                case a =>
+                  sys.error(s"Cannot use attribute $a as a buffer content")
+              }
+            case Some(a) =>
+              sys.error(s"Cannot use attribute $a as a buffer content")
+            case None =>
+              val valueOpt = procCached().attr.get(key)
+              valueOpt.fold[Buffer] {
+                sys.error(s"Missing attribute $key for buffer content")
+              } {
+                case a: AudioCue.Obj[S] =>
+                  readAudioCueToBuffer(a.value)
+
+                case dv: DoubleVector[S] =>
+                  val values = dv.value.map(_.toFloat)
+                  fromSeq(values)
+
+                case dv: IntVector[S] =>
+                  val values = dv.value.map(_.toFloat)
+                  fromSeq(values)
+
+                case a => sys.error(s"Cannot use attribute $a as a buffer content")
+              }
+          }
+
+          val ctlName = graph.Buffer.controlName(key)
           nr.addControl(ctlName -> rb.id)
           val late = Buffer.disposeWithNode(rb, nr)
           nr.addResource(late)
@@ -901,19 +962,7 @@ object AuralProcImpl {
     protected def buildAsyncAttrBufferInput(b: AsyncProcBuilder[S], key: String, value: Obj[S])
                                            (implicit tx: S#Tx): Unit = value match {
       case a: AudioCue.Obj[S] =>
-        val audioVal  = a.value
-        val spec      = audioVal.spec
-        val f         = audioVal.artifact
-        val offset    = audioVal.fileOffset
-        // XXX TODO - for now, gain is ignored.
-        // one might add an auxiliary control proxy e.g. Buffer(...).gain
-        // val _gain     = audioElem.gain    .value
-        if (spec.numFrames > 0x3FFFFFFF)
-          sys.error(s"File too large for in-memory buffer: $f (${spec.numFrames} frames)")
-        val bufSize   = spec.numFrames.toInt
-        val buf       = Buffer(server)(numFrames = bufSize, numChannels = spec.numChannels)
-        val cfg       = BufferPrepare.Config(f = f, spec = spec, offset = offset, buf = buf, key = key)
-        b.resources ::= BufferPrepare[S](cfg)
+        buildAsyncAttrBufferInputFromAudioCue(b, key, a.value)
 
       case _: Gen[S] =>
         val valueOpt: Option[Obj[S]] = for {
@@ -928,12 +977,40 @@ object AuralProcImpl {
       case a => sys.error(s"Cannot use attribute $a as a buffer content")
     }
 
+    private def buildAsyncAttrBufferInputFromAudioCue(b: AsyncProcBuilder[S], key: String, cue: AudioCue)
+                                                     (implicit tx: S#Tx): Unit = {
+      val spec      = cue.spec
+      val f         = cue.artifact
+      val offset    = cue.fileOffset
+      // XXX TODO - for now, gain is ignored.
+      // one might add an auxiliary control proxy e.g. Buffer(...).gain
+      // val _gain     = audioElem.gain    .value
+      if (spec.numFrames > 0x3FFFFFFF)
+        sys.error(s"File too large for in-memory buffer: $f (${spec.numFrames} frames)")
+      val bufSize   = spec.numFrames.toInt
+      val buf       = Buffer(server)(numFrames = bufSize, numChannels = spec.numChannels)
+      val cfg       = BufferPrepare.Config(f = f, spec = spec, offset = offset, buf = buf, key = key)
+      b.resources ::= BufferPrepare[S](cfg)
+    }
+
+    private def buildAsyncAttrBufferInputFromExpr(b: AsyncProcBuilder[S], key: String, value: IExpr[S, _])
+                                                 (implicit tx: S#Tx): Unit = value.value match {
+      case a: AudioCue  => buildAsyncAttrBufferInputFromAudioCue(b, key, a)
+      case a            => sys.error(s"Cannot use attribute $a as a buffer content")
+    }
+
     /** Sub-classes may override this if invoking the super-method. */
     protected def buildAsyncAttrInput(b: AsyncProcBuilder[S], key: String, value: UGB.Value)
                                      (implicit tx: S#Tx): Unit = value match {
       case UGB.Input.Buffer.Value(_ /* numFr */, _ /* numCh */, true) =>   // ----------------------- random access buffer
-        val bValue = b.obj.attr.get(key).getOrElse(sys.error(s"Missing attribute $key for buffer content"))
-        buildAsyncAttrBufferInput(b, key, bValue)
+        runnerAttr.get(key) match {
+          case Some(a: IExpr[S, _]) => buildAsyncAttrBufferInputFromExpr(b, key, a)
+          case Some(a) =>
+            sys.error(s"Cannot use attribute $a as a buffer content")
+          case None =>
+            val bValue = b.obj.attr.get(key).getOrElse(sys.error(s"Missing attribute $key for buffer content"))
+            buildAsyncAttrBufferInput(b, key, bValue)
+        }
 
       case _ =>
         throw new IllegalStateException(s"Unsupported input attribute request $value")

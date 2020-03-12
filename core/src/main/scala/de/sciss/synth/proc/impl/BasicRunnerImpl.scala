@@ -175,14 +175,17 @@ trait BasicAuralRunnerImpl[S <: SSys[S]] extends AuralSystemTxBridge[S] with Bas
         if (tgt !== src) tgt match {
           case Stopped => view.stop()
           case Preparing | Running =>
-            if (!src.idleOrPrepared) {
-              view.stop()
-            }
-            if (!attrDirty()) {
-              if (tgt == Running) view.play() else view.prepare(TimeRef.Undefined)
-            } else {
-              mkRef()
-              matchStates()
+            val dirty = attrDirty()
+            if (dirty || (src !== Preparing)) {
+              if (!src.idleOrPrepared) {
+                view.stop()
+              }
+              if (!dirty) {
+                if (tgt == Running) view.play() else view.prepare(TimeRef.Undefined)
+              } else {
+                mkRef()
+                matchStates()
+              }
             }
 
           case _ => assert(assertion = false, tgt.toString)

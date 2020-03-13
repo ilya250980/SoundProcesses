@@ -16,9 +16,10 @@ package de.sciss.synth.proc.graph.impl
 import de.sciss.lucre.synth.Server
 import de.sciss.synth
 import de.sciss.synth.Ops.stringToControl
-import de.sciss.synth.UGenInLike
+import de.sciss.synth.{UGen, UGenInLike, control}
 import de.sciss.synth.proc.UGenGraphBuilder
 import de.sciss.synth.proc.UGenGraphBuilder.Input
+import de.sciss.synth.ugen.{UGenInGroup, UGenOutProxy}
 
 object Stream {
   def controlName(key: String, idx: Int): String = s"$$str${idx}_$key"
@@ -26,6 +27,67 @@ object Stream {
   trait Info extends Stream {
     protected def maxSpeed  = 0.0
     protected def interp    = 0
+  }
+
+  /** Creates a `Done` trigger UGen for a `DiskIn` or `VDiskIn` */
+  def mkDoneUGen(in: Stream): UGenInLike = {
+    // these are the `flatOutputs` we may discover:
+    //
+    //     println(in.expand.flatOutputs)
+    //
+    //  mono file, no mce:
+    //  Vector(
+    //    BinaryOpUGen.ar(DiskIn.ar(_, _), _)
+    //  )
+    //
+    //  mono file, mce for loop:
+    //    Vector(
+    //    BinaryOpUGen.ar(DiskIn.ar(_, _), _),
+    //    BinaryOpUGen.ar(DiskIn.ar(_, _), _)
+    //  )
+    //
+    //  stereo file, no mce:
+    //  Vector(
+    //    BinaryOpUGen.ar(DiskIn.ar(_, _).\(0), _),
+    //    BinaryOpUGen.ar(DiskIn.ar(_, _).\(1), _)
+    //  )
+    //
+    //  stereo file, mce for loop:
+    //
+    //  Vector(
+    //    BinaryOpUGen.ar(DiskIn.ar(_, _).\(0), _),
+    //    BinaryOpUGen.ar(DiskIn.ar(_, _).\(1), _),
+    //    BinaryOpUGen.ar(DiskIn.ar(_, _).\(0), _),
+    //    BinaryOpUGen.ar(DiskIn.ar(_, _).\(1), _)
+    //  )
+    //
+    // Note that `UGen.MultiOutImpl` is not a case class,
+    // wo we just have to collect the DiskIn UGens in a distinct set,
+    // and produce `Done` UGens for them.
+    //
+    // We use a "dumb" pattern matching here and `.head`, so that if we
+    // actually change the implementation or the UGen has zero outputs,
+    // we get a runtime error instead of silently failing to correctly produce the done UGen.
+
+    val doneIn = in.expand.flatOutputs.map {
+      case bin: UGen.SingleOut if bin.name == "BinaryOpUGen" =>
+        val diskIn = bin.inputs.head match {
+          case u: UGen.MultiOut   => u
+          case UGenOutProxy(u, _) => u
+        }
+        assert (diskIn.name == "DiskIn" || diskIn.name == "VDiskIn")
+        diskIn
+
+    } .distinct
+
+    //      println(doneIn)
+
+    val seq = doneIn.map { in =>
+      UGen.SingleOut("Done", control, Vector(in.outputs.head), hasSideEffect = true).expand
+    }
+
+    if (seq.size == 1) seq.head else UGenInGroup(seq)
+    //      Impulse.kr(0)
   }
 }
 trait Stream extends synth.GE.Lazy {

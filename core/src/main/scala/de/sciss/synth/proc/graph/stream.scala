@@ -21,18 +21,38 @@ import de.sciss.synth.proc.UGenGraphBuilder.Input
 import de.sciss.synth.proc.graph.impl.Stream
 import de.sciss.synth.proc.impl.StreamBuffer
 import de.sciss.synth.ugen.Constant
-import de.sciss.synth.{GE, IsIndividual, Rate, UGenInLike, WritesBuffer, audio, control, scalar, ugen}
+import de.sciss.synth.{ControlRated, GE, IsIndividual, Rate, UGenInLike, WritesBuffer, audio, control, scalar, ugen}
 
 // ---- ugen wrappers ----
 
 object DiskIn {
+  /** A SoundProcesses aware variant of `DiskIn`. It takes its streaming buffer input from
+    * an attribute with the given `key`. Like the original `DiskIn` UGen, this does not perform
+    * sample-rate-conversion if server rate and file rate diverge.
+    *
+    * The `done` method can be used to determine when the file has been played completely.
+    *
+    * @param key      key into the containing object's attribute map, where an `AudioCue` is to be found.
+    * @param loop     whether to loop (greater than zero) or not (zero, the default).
+    */
   def ar(key: String, loop: synth.GE = 0): DiskIn = apply(audio, key = key, loop = loop)
+
+  final case class Done(in: DiskIn) extends GE.Lazy with ControlRated {
+    override def productPrefix = s"DiskIn$$Done"  // for serialization
+
+    protected def makeUGens: UGenInLike = Stream.mkDoneUGen(in)
+  }
 }
 final case class DiskIn(rate: Rate, key: String, loop: synth.GE)
   extends Stream with IsIndividual {
 
   protected def maxSpeed: Double  = 1.0
   protected def interp  : Int     = -1
+
+  /** A trigger signal for when the UGen has gone through the entire file.
+    * Note that this is only signalled if the UGen is not looping.
+    */
+  def done: GE = DiskIn.Done(this)
 
   protected def makeUGen(server: Server, numChannels: Int, sampleRate: Double, idx: Int,
                          buf: synth.GE, gain: synth.GE): UGenInLike =
@@ -62,6 +82,12 @@ object VDiskIn {
     }
     apply(audio, key = key, speed = speed, loop = loop, interp = interp, maxSpeed = maxSpeed1)
   }
+
+  final case class Done(in: VDiskIn) extends GE.Lazy with ControlRated {
+    override def productPrefix = s"VDiskIn$$Done"  // for serialization
+
+    protected def makeUGens: UGenInLike = Stream.mkDoneUGen(in)
+  }
 }
 
 /** A SoundProcesses aware variant of `VDiskIn`. It takes its streaming buffer input from
@@ -85,6 +111,14 @@ final case class VDiskIn(rate: Rate, key: String, speed: synth.GE, loop: synth.G
 
   // VDiskIn uses cubic interpolation. Thus provide native streaming if that interpolation
   // is chosen; otherwise use the `StreamBuffer` functionality.
+
+  /** A trigger signal for when the UGen has gone through the entire file.
+    * This requires that interpolation is '''not 2''' (linear) which is currently not supported to produce
+    * `done` information.
+    *
+    * Note that this is only signalled if the UGen is not looping.
+    */
+  def done: GE = VDiskIn.Done(this)
 
   protected def makeUGen(server: Server, numChannels: Int, sampleRate: Double, idx: Int,
                          buf: synth.GE, gain: synth.GE): UGenInLike = {

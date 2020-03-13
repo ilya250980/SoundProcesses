@@ -14,7 +14,7 @@
 package de.sciss.synth.proc
 
 import de.sciss.lucre.event.Observable
-import de.sciss.lucre.expr.{ExprLike, IExpr}
+import de.sciss.lucre.expr.IExpr
 import de.sciss.lucre.stm.{Obj, Sys}
 import de.sciss.lucre.synth.{AudioBus, NodeRef, Sys => SSys}
 import de.sciss.synth.ControlSet

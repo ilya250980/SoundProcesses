@@ -21,7 +21,6 @@ import de.sciss.lucre.stm.{Obj, Sys, UndoManager}
 import de.sciss.synth.proc.Runner.{Attr, Done, Failed, Prepared, Running, Stopped}
 import de.sciss.synth.proc.{Action, ExprContext, Runner, Universe}
 
-import scala.annotation.tailrec
 import scala.concurrent.stm.Ref
 import scala.util.{Failure, Success, Try}
 
@@ -57,40 +56,44 @@ object ActionRunnerImpl {
         case _ =>
       }
 
-    @tailrec
     def prepare(attr: Attr[S])(implicit tx: S#Tx): Unit = {
-      state match {
-        case Stopped  =>
-          attrRef() = attr
-          val tr    = mkRef()
-          state = tr match {
-            case Success(_)   => Prepared
-            case Failure(ex)  => Failed(ex)
-          }
+      def ok(): Unit = {
+        attrRef() = attr
+        val tr    = mkRef()
+        state = tr match {
+          case Success(_)   => Prepared
+          case Failure(ex)  => Failed(ex)
+        }
+      }
 
+      state match {
+        case Stopped  => ok()
         case Prepared =>
 
         case _ => // running or done/failed; go back to square one
-          stop()
-          prepare(attr)
+//          stop()
+//          prepare(attr)
+          disposeData()
+          ok()
       }
     }
 
-    @tailrec
     def run()(implicit tx: S#Tx): Unit = {
+      def ok(): Unit = {
+        mkRef()
+        runWithRef()
+      }
+
       state match {
-        case Stopped =>
-          mkRef()
-          runWithRef()
-
-        case Prepared =>
-          runWithRef()
-
-        case Running =>
+        case Stopped  => ok()
+        case Prepared => runWithRef()
+        case Running  =>
 
         case _ => // done/failed; go back to square one
-          stop()
-          run()
+//          stop()
+//          run()
+          disposeData()
+          ok()
       }
     }
 

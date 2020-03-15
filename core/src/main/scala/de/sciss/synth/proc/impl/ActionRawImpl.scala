@@ -63,7 +63,7 @@ object ActionRawImpl {
   }
 
   def newConst[S <: Sys[S]](name: String, jar: Array[Byte])(implicit tx: S#Tx): ActionRaw[S] =
-    new ConstFunImpl(tx.newId(), name, jar)
+    new ConstJarImpl(tx.newId(), name, jar)
 
   private val mapPredef = TMap.empty[String, Action.Body]
 
@@ -174,7 +174,7 @@ object ActionRawImpl {
             val jar     = new Array[Byte](jarSize)
             in.readFully(jar)
             // val system  = tx.system
-            new ConstFunImpl[S](id, name, jar)
+            new ConstJarImpl[S](id, name, jar)
 
           case CONST_BODY   =>
             val actionId = in.readUTF()
@@ -225,8 +225,7 @@ object ActionRawImpl {
     }
   }
 
-  // XXX TODO - should be called ConstJarImpl in next major version
-  private final class ConstFunImpl[S <: Sys[S]](val id: S#Id, val name: String, jar: Array[Byte])
+  private final class ConstJarImpl[S <: Sys[S]](val id: S#Id, val name: String, jar: Array[Byte])
     extends ConstImpl[S] {
 
     def execute(universe: Action.Universe[S])(implicit tx: S#Tx): Unit = {
@@ -234,7 +233,7 @@ object ActionRawImpl {
     }
 
     def copy[Out <: Sys[Out]]()(implicit tx: S#Tx, txOut: Out#Tx, context: Copy[S, Out]): Elem[Out] =
-      new ConstFunImpl(txOut.newId(), name, jar) // .connect()
+      new ConstJarImpl(txOut.newId(), name, jar) // .connect()
 
     protected def writeData(out: DataOutput): Unit = {
       out.writeByte(CONST_JAR)
@@ -246,7 +245,7 @@ object ActionRawImpl {
     override def hashCode(): Int = name.hashCode
 
     override def equals(that: Any): Boolean = that match {
-      case cf: ConstFunImpl[_] => cf.name == name
+      case cf: ConstJarImpl[_] => cf.name == name
       case _ => super.equals(that)
     }
   }

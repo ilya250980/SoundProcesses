@@ -780,6 +780,9 @@ object AuralProcImpl {
       // XXX TODO - for now, gain is ignored.
       // one might add an auxiliary control proxy e.g. Buffer(...).gain
       // val _gain     = audioElem.gain    .value
+      if (cue.gain != 1.0) {
+        println(s"Warning: cue gain  ${cue.gain} ignored in Buffer.read")
+      }
       if (numFrames > 0x3FFFFFFF)
         sys.error(s"File too large for in-memory buffer: $path ($numFrames frames)")
       val bufSize   = spec.numFrames.toInt
@@ -1034,6 +1037,9 @@ object AuralProcImpl {
       // XXX TODO - for now, gain is ignored.
       // one might add an auxiliary control proxy e.g. Buffer(...).gain
       // val _gain     = audioElem.gain    .value
+      if (cue.gain != 1.0) {
+        println(s"Warning: cue gain  ${cue.gain} ignored in Buffer.read")
+      }
       if (numFrames > 0x3FFFFFFF)
         sys.error(s"File too large for in-memory buffer: $f ($numFrames frames)")
       val bufSize   = numFrames.toInt

@@ -76,7 +76,7 @@ object AsyncBounceTest {
     }
     implicit val u: Universe[S] = system.step { implicit tx => Universe.dummy }
     val bounce              = Bounce[S]()
-    val bCfg                = Bounce.Config[S]
+    val bCfg                = Bounce.Config[S]()
     bCfg.group              = groupH :: Nil
     bCfg.span               = Span(frame(0.0), frame(dur * 0.5 + 0.4))
     val sCfg                = bCfg.server

@@ -19,14 +19,8 @@ import de.sciss.lucre.stm
 import de.sciss.lucre.stm.{Cursor, Obj, Sys, UndoManager}
 
 object ExprContext {
-  // XXX TODO: merge with overloaded method in next major version
   def apply[S <: Sys[S]](selfH: Option[stm.Source[S#Tx, Obj[S]]] = None,
-                         attr: Context.Attr[S] = Context.emptyAttr[S])
-                        (implicit universe: Universe[S], undoManager: UndoManager[S]): Context[S] =
-    new Impl[S](selfH, attr, runner = None)
-
-  def apply[S <: Sys[S]](selfH: Option[stm.Source[S#Tx, Obj[S]]], attr: Context.Attr[S],
-                         runner: Option[Runner.Internal[S]])
+                         attr: Context.Attr[S] = Context.emptyAttr[S], runner: Option[Runner.Internal[S]] = None)
                         (implicit universe: Universe[S], undoManager: UndoManager[S]): Context[S] =
     new Impl[S](selfH, attr, runner)
 

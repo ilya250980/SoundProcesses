@@ -24,7 +24,6 @@ import de.sciss.synth.proc
 import de.sciss.synth.proc.{Universe, UGenGraphBuilder => UGB}
 
 import scala.concurrent.stm.Ref
-import scala.language.higherKinds
 
 object Runner {
   private final class ExpandedRun[S <: Sys[S]](r: proc.Runner[S]) extends IActionImpl[S] {
@@ -151,7 +150,12 @@ object Runner {
     }
   }
 
-  private type Msg = Seq[proc.Runner.Message]
+  private type Message  = (Long, Int, String)
+  private type Msg      = Seq[Message]
+
+//  final case class Message(time: Long, level: Int, text: String) {
+//    override def productPrefix: String = s"Runner$$Message" // serialization
+//  }
 
   private final class ExpandedMessages[S <: Sys[S]](r: proc.Runner[S], tx0: S#Tx)
                                                    (implicit protected val targets: ITargets[S])
@@ -159,13 +163,16 @@ object Runner {
 
     private[this] val beforeRef = Ref(value(tx0))
 
-    private[this] val obs = r.messages.react { implicit tx => now =>
+    private def msgOf(in: proc.Runner.Message): Message = (in.time, in.level.value, in.text)
+
+    private[this] val obs = r.messages.react { implicit tx => now0 =>
+      val now     = now0.map(msgOf)
       val before  = beforeRef.swap(now)(tx.peer)
       val ch      = Change(before, now)
       if (ch.isSignificant) fire(ch)
     } (tx0)
 
-    def value(implicit tx: S#Tx): Msg = r.messages.current
+    def value(implicit tx: S#Tx): Msg = r.messages.current.map(msgOf)
 
     def dispose()(implicit tx: S#Tx): Unit = obs.dispose()
 
@@ -175,8 +182,8 @@ object Runner {
       pull.resolveExpr(this)
   }
 
-  final case class Messages(r: Runner) extends Ex[Seq[proc.Runner.Message]] {
-    type Repr[S <: Sys[S]] = IExpr[S, Seq[proc.Runner.Message]]
+  final case class Messages(r: Runner) extends Ex[Seq[(Long, Int, String)]] {
+    type Repr[S <: Sys[S]] = IExpr[S, Seq[(Long, Int, String)]]
 
     override def productPrefix: String = s"Runner$$Messages" // serialization
 
@@ -228,17 +235,30 @@ trait Runner extends Control {
   /** 0 - stopped, 1 - preparing, 2 - prepared, 3 - running, 4 - done, 5 - failed */
   def state: Ex[Int] = Runner.State(this)
 
+  /** Triggers if the state becomes 0 */
   def stopped       : Trig = (state sig_== 0).toTrig
+
+  /** Triggers if the state becomes 4 */
   def done          : Trig = (state sig_== 4).toTrig
+
+  /** Triggers if the state becomes 5 */
   def failed        : Trig = (state sig_== 5).toTrig
+
+  /** Triggers if the state becomes 0 or 4 */
   def stoppedOrDone : Trig = {
     val s = state
     ((s sig_== 0) || (s sig_== 4)).toTrig
   }
 
+  /** Triggers if the state becomes 0, 4, or 5 */
+  def idle          : Trig = {
+    val s = state
+    ((s sig_== 0) || (s >= 4)).toTrig
+  }
+
   /** Zero to one. Negative if unknown */
   def progress: Ex[Double] = Runner.Progress(this)
 
-  // XXX TODO: proc.Runner.Message cannot be deconstructed from Ex
-  def messages: Ex[Seq[proc.Runner.Message]] = Runner.Messages(this)
+  /** A message tuple is (time, level, text) where level is 0 (info), 1 (warn) or 2 (error). */
+  def messages: Ex[Seq[(Long, Int, String)]] = Runner.Messages(this)
 }

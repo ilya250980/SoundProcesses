@@ -11,7 +11,9 @@ import de.sciss.span.Span
 import de.sciss.synth.SynthGraph
 import de.sciss.synth.io.AudioFile
 import org.scalactic.source
-import org.scalatest.{Assertion, FutureOutcome, Matchers, compatible, fixture}
+import org.scalatest.flatspec.FixtureAsyncFlatSpec
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.{Assertion, FutureOutcome, compatible}
 
 import scala.collection.immutable.{Iterable => IIterable}
 import scala.concurrent.duration._
@@ -20,7 +22,7 @@ import scala.concurrent.{ExecutionContext, Future, Promise}
 import scala.language.implicitConversions
 import scala.util.Try
 
-abstract class BounceSpec extends fixture.AsyncFlatSpec with Matchers {
+abstract class BounceSpec extends FixtureAsyncFlatSpec with Matchers {
   // ---- abstract ----
 
   def blockSize : Int     = 1

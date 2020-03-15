@@ -2,11 +2,13 @@ package de.sciss
 package synth
 package proc
 
-import de.sciss.lucre.stm.{Folder, Obj}
 import de.sciss.lucre.stm.store.BerkeleyDB
+import de.sciss.lucre.stm.{Folder, Obj}
 import de.sciss.span.Span
 import de.sciss.synth.proc.Implicits._
-import org.scalatest.{Matchers, Outcome, fixture}
+import org.scalatest.Outcome
+import org.scalatest.flatspec.FixtureAnyFlatSpec
+import org.scalatest.matchers.should.Matchers
 
 /*
  To test only this suite:
@@ -14,7 +16,7 @@ import org.scalatest.{Matchers, Outcome, fixture}
  testOnly de.sciss.synth.proc.TimelineSerializationSpec
 
  */
-class TimelineSerializationSpec extends fixture.FlatSpec with Matchers {
+class TimelineSerializationSpec extends FixtureAnyFlatSpec with Matchers {
   type S = Durable
   type FixtureParam = Durable
 

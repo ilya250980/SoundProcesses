@@ -23,7 +23,6 @@ import de.sciss.lucre.synth.{Sys => SSys}
 import de.sciss.synth.proc.impl.{ActionRawRunnerImpl, ActionRunnerImpl, BasicAuralRunnerImpl, ControlRunnerImpl, TimelineRunnerImpl, RunnerUniverseImpl => Impl}
 import de.sciss.synth.proc.{Action => _Action, ActionRaw => _ActionRaw, Control => _Control, Proc => _Proc, Timeline => _Timeline}
 
-import scala.language.higherKinds
 import scala.util.Try
 
 object Runner {
@@ -211,10 +210,10 @@ object Runner {
   private lazy val fmtMessageDate = new SimpleDateFormat("[HH:mm''ss.SSS]", Locale.US)
 
   object Message {
-    sealed trait Level
-    case object Error   extends Level
-    case object Warning extends Level
-    case object Info    extends Level
+    sealed trait Level { def value: Int }
+    case object Info    extends Level { final val value = 0 }
+    case object Warning extends Level { final val value = 1 }
+    case object Error   extends Level { final val value = 2 }
   }
   final case class Message(time: Long, level: Message.Level, text: String) {
     override def toString: String =

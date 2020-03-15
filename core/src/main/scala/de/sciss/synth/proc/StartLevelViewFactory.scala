@@ -16,8 +16,6 @@ package de.sciss.synth.proc
 import de.sciss.lucre.stm.{Obj, Sys}
 import de.sciss.lucre.synth.{Sys => SSys}
 
-import scala.language.higherKinds
-
 trait StartLevelViewFactory {
   def tpe: Obj.Type
 

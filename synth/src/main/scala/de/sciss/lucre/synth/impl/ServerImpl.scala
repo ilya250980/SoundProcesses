@@ -271,17 +271,7 @@ object ServerImpl {
         inOff += 1
       }
 
-      if (outOff == num) b else {
-        val outT = new Array[osc.Packet](outOff)
-        System.arraycopy(out, 0, outT, 0, outOff)
-        // XXX TODO 2.13: val outTW = ArraySeq.unsafeWrapArray(outT)
-        val res = osc.Bundle(b.timeTag, outT: _*)
-        //        Console.err.println("----------- BEFORE COMPRESSION -----------")
-        //        osc.Packet.printTextOn(b  , Server.codec, Console.err)
-        //        Console.err.println("----------- AFTER  COMPRESSION -----------")
-        //        osc.Packet.printTextOn(res, Server.codec, Console.err)
-        res
-      }
+      if (outOff == num) b else mkBundle(b.timeTag, out, outOff)
     }
 
     // ---- side effects ----
@@ -469,7 +459,7 @@ object ServerImpl {
       }
   }
 
-  private abstract class Impl extends Server { server =>
+  private abstract class Impl extends ServerBase { server =>
 
     implicit def executionContext: ExecutionContext = peer.clientConfig.executionContext
 

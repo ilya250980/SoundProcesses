@@ -19,7 +19,6 @@ import de.sciss.lucre.stm.Sys
 import de.sciss.synth.proc
 import de.sciss.synth.proc.ExprContext
 
-import scala.language.higherKinds
 import scala.util.{Failure, Success}
 
 object ThisRunner {

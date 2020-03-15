@@ -21,8 +21,6 @@ import de.sciss.lucre.synth.{NodeRef, Sys => SSys}
 import de.sciss.synth.proc
 import de.sciss.synth.proc.impl.{AuralActionImpl, AuralEnsembleImpl, AuralFolderImpl, AuralProcImpl, AuralTimelineImpl, AuralObjImpl => Impl}
 
-import scala.language.higherKinds
-
 object AuralObj {
   import proc.{ActionRaw => _ActionRaw, Ensemble => _Ensemble, Proc => _Proc, Timeline => _Timeline}
   import stm.{Folder => _Folder}

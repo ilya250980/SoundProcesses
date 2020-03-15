@@ -3,9 +3,11 @@ package de.sciss.synth.proc
 import de.sciss.lucre.expr
 import de.sciss.lucre.stm.store.BerkeleyDB
 import de.sciss.lucre.swing.{Graph => WGraph, graph => wgraph}
-import org.scalatest.{Matchers, Outcome, fixture}
+import org.scalatest.Outcome
+import org.scalatest.flatspec.FixtureAnyFlatSpec
+import org.scalatest.matchers.should.Matchers
 
-class SerializationSpec extends fixture.FlatSpec with Matchers {
+class SerializationSpec extends FixtureAnyFlatSpec with Matchers {
   type S = Durable
   type FixtureParam = S
 

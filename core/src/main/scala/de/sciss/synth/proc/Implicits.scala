@@ -17,7 +17,6 @@ import de.sciss.lucre.expr.{BooleanObj, Expr, StringObj}
 import de.sciss.lucre.stm.{Folder, Obj, Sys}
 import de.sciss.span.SpanLike
 
-import scala.language.higherKinds
 import scala.reflect.ClassTag
 
 object Implicits {

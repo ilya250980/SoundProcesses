@@ -21,7 +21,7 @@ import de.sciss.synth.ControlSet
 import de.sciss.synth.proc.impl.{AuralAttributeImpl => Impl}
 
 import scala.collection.immutable.{IndexedSeq => Vec}
-import scala.language.{higherKinds, implicitConversions}
+import scala.language.implicitConversions
 
 object AuralAttribute {
   def apply[S <: SSys[S]](key: String, value: Obj[S], observer: Observer[S])

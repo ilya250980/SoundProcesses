@@ -18,7 +18,6 @@ import de.sciss.lucre.stm.{Disposable, Obj, Sys}
 import de.sciss.lucre.synth.{Sys => SSys}
 import de.sciss.synth.proc.impl.{GenViewImpl => Impl}
 
-import scala.language.higherKinds
 import scala.util.Try
 
 object GenView {

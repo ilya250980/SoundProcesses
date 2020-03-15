@@ -6,7 +6,7 @@ import de.sciss.serial.{DataInput, DataOutput}
 import de.sciss.synth.Curve.cubed
 import de.sciss.synth.Ops.stringToControl
 import de.sciss.synth.ugen._
-import org.scalatest.FunSpec
+import org.scalatest.funspec.AnyFunSpec
 
 /*
   To run only this suite:
@@ -14,7 +14,7 @@ import org.scalatest.FunSpec
   testOnly de.sciss.synth.proc.SynthGraphSerializationSpec
 
  */
-class SynthGraphSerializationSpec extends FunSpec {
+class SynthGraphSerializationSpec extends AnyFunSpec {
   var dfs = Map.empty[String, SynthGraph]
 
   dfs += "AnalogBubbles" -> SynthGraph {

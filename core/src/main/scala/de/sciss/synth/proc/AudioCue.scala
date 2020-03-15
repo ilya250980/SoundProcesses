@@ -295,7 +295,7 @@ object AudioCue {
     }
 
     object ReplaceOffset {
-      def unapply[S <: Sys[S]](ex: _Ex[S]): Option[(_Ex[S], LongObj[S])] = ex match {
+      def unapply[S <: Sys[S]](ex: Obj[S]): Option[(Obj[S], LongObj[S])] = ex match {
         case s: ReplaceOffset[S] => Some((s.peer, s.offset))
         case _ => None
       }
@@ -304,7 +304,7 @@ object AudioCue {
       }
     }
     final class ReplaceOffset[S <: Sys[S]](protected val targets: Targets[S],
-                                           val peer: _Ex[S],
+                                           val peer: Obj[S],
                                            val offset: LongObj[S])
       extends LongOpImpl[S] {
 
@@ -320,16 +320,16 @@ object AudioCue {
     }
 
     object Shift {
-      def unapply[S <: Sys[S]](ex: _Ex[S]): Option[(_Ex[S], LongObj[S])] = ex match {
+      def unapply[S <: Sys[S]](ex: Obj[S]): Option[(Obj[S], LongObj[S])] = ex match {
         case s: Shift[S] => Some((s.peer, s.amount))
         case _ => None
       }
-      def apply[S <: Sys[S]](peer: _Ex[S], amount: LongObj[S])(implicit tx: S#Tx): Shift[S] = {
+      def apply[S <: Sys[S]](peer: Obj[S], amount: LongObj[S])(implicit tx: S#Tx): Shift[S] = {
         new Shift(Targets[S], peer, amount).connect()
       }
     }
     final class Shift[S <: Sys[S]](protected val targets: Targets[S],
-                                   val peer: _Ex[S],
+                                   val peer: Obj[S],
                                    val amount: LongObj[S])
       extends LongOpImpl[S] {
 
@@ -405,7 +405,7 @@ object AudioCue {
       def value(a: AudioCue): Long = a.offset
     }
   }
-  trait Obj[S <: Sys[S]] extends _Expr[S, AudioCue] {
+  sealed trait Obj[S <: Sys[S]] extends _Expr[S, AudioCue] {
     def spec(implicit tx: S#Tx): AudioFileSpec
 
     /** A simple forward to `spec.numChannels` */

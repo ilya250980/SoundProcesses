@@ -1,8 +1,8 @@
 lazy val baseName  = "SoundProcesses"
 lazy val baseNameL = baseName.toLowerCase
 
-lazy val projectVersion = "3.33.3"
-lazy val mimaVersion    = "3.33.0" // used for migration-manager
+lazy val projectVersion = "3.34.0-SNAPSHOT"
+lazy val mimaVersion    = "3.34.0" // used for migration-manager
 
 lazy val commonSettings = Seq(
   version            := projectVersion,
@@ -10,8 +10,8 @@ lazy val commonSettings = Seq(
   homepage           := Some(url(s"https://git.iem.at/sciss/$baseName")),
   description        := "A framework for creating and managing ScalaCollider based sound processes",
   licenses           := Seq("AGPL v3+" -> url("http://www.gnu.org/licenses/agpl-3.0.txt")),
-  scalaVersion       := "2.12.10",
-  crossScalaVersions := Seq("2.13.0", "2.12.10"),  // N.B. nsc API has breakage in minor versions (2.13.0 versus 2.13.1)
+  scalaVersion       := "2.13.1",
+  crossScalaVersions := Seq("2.13.1", "2.12.10"),  // N.B. nsc API has breakage in minor versions (2.13.0 versus 2.13.1)
   scalacOptions ++= {
     // "-Xfatal-warnings" -- breaks for cross-scala-build and deprecations
     // -stars-align produces wrong warnings with decomposing OSC messages
@@ -48,7 +48,7 @@ lazy val deps = new {
     val bdb                = "bdb"  // "bdb" or "bdb6" or "bdb7"
     val scalaColliderSwing = "1.41.6"
     val scalaTest          = "3.1.1"
-    val scallop            = "3.3.2"
+    val scallop            = "3.4.0"
     val submin             = "0.3.4"
   }
 }

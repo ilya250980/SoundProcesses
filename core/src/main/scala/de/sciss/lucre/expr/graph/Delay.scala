@@ -16,7 +16,7 @@ package de.sciss.lucre.expr.graph
 import de.sciss.lucre.event.impl.IGenerator
 import de.sciss.lucre.event.{IEvent, IPull, ITargets}
 import de.sciss.lucre.expr.impl.IActionImpl
-import de.sciss.lucre.expr.{Context, IAction, IExpr, ITrigger}
+import de.sciss.lucre.expr.{Context, IAction, IControl, IExpr, ITrigger}
 import de.sciss.lucre.stm.Sys
 import de.sciss.lucre.stm.TxnLike.peer
 import de.sciss.synth.proc.{ExprContext, Scheduler, TimeRef}
@@ -24,7 +24,18 @@ import de.sciss.synth.proc.{ExprContext, Scheduler, TimeRef}
 import scala.concurrent.stm.Ref
 
 object Delay {
-  /**
+  /** Creates a new unconnected delay.
+    *
+    * In order to specify the action taken after the delay, the `apply` method can be used,
+    * e.g. `Delay(1.0)(PrintLn("After one second"))`. That is equivalent to writing
+    * `val d = Delay(1.0); d ---> PrintLn("After one second"); d`.
+    *
+    * '''Note:''' There is currently a subtle difference with disposal. If a runner goes into
+    * `Stop` state, the delay is cancelled and disposed. If a runner goes into `Done` state,
+    * the delay is '''not''' cancelled. This also affects `Action` objects. We will determine
+    * in the future whether this behavior is to be kept, or delays are always disposed upon
+    * `done`.
+    *
     * @param time Delay time in seconds. Negative numbers are clipped to zero.
     */
   def apply(time: Ex[Double]): Delay = Impl(time)
@@ -55,9 +66,12 @@ object Delay {
       Trig.Some
 
     override def dispose()(implicit tx: S#Tx): Unit = {
+      // println("DELAY DISPOSE")
       super.dispose()
       cancel()
     }
+
+    def initControl()(implicit tx: S#Tx): Unit = ()
 
     def changed: IEvent[S, Unit] = this
   }
@@ -81,6 +95,13 @@ object Delay {
 
     def cancel: Act = Cancel(this)
 
+    def apply(xs: Act*): this.type = {
+      xs.foreach { a =>
+        this ---> a
+      }
+      this
+    }
+
     protected def mkRepr[S <: Sys[S]](implicit ctx: Context[S], tx: S#Tx): Repr[S] = {
       // Note: we can't just run `Universe()` because Sys is not synth.Sys,
       // and also we may want to preserve the possibility to provide custom schedulers
@@ -93,7 +114,7 @@ object Delay {
     }
   }
 
-  trait Repr[S <: Sys[S]] extends ITrigger[S] with IAction[S] {
+  trait Repr[S <: Sys[S]] extends IControl[S] with IAction[S] with ITrigger[S] {
     def cancel()(implicit tx: S#Tx): Unit
   }
 }
@@ -101,11 +122,14 @@ object Delay {
   * If a new trigger input arrives before the delay has expired,
   * the previous trigger is cancelled and the delay is rescheduled.
   */
-trait Delay extends Act with Trig {
+trait Delay extends Control with Act with Trig {
   type Repr[S <: Sys[S]] = Delay.Repr[S]
 
   /* *Delay time in seconds. */
   def time: Ex[Double]
 
   def cancel: Act
+
+  /** Convenient way to connect this delay to actions */
+  def apply(xs: Act*): this.type
 }

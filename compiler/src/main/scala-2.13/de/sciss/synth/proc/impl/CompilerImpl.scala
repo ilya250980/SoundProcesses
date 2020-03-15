@@ -106,17 +106,18 @@ object CompilerImpl {
 
     def interpret(source: String, print: Boolean, execute: Boolean): Any = {
       intp.reset()
-      val th  = Thread.currentThread()
-      val cl  = th.getContextClassLoader
-      // work-around for SI-8521 (Scala 2.11.0)
-      val res = try {
-        if (print)
+//      val th  = Thread.currentThread()
+//      val cl  = th.getContextClassLoader
+      val res: Results.Result =
+        if (print) {
           intp.interpret(source)
-        else
-          intp.beQuietDuring(intp.interpret(source))
-      } finally {
-        th.setContextClassLoader(cl)
-      }
+        } else {
+          // Scala 2.13.1 for unknown reasons changed to `Unit` result in `beQuietDuring`
+//            intp.beQuietDuring(intp.interpret(source))
+          intp.reporter.withoutPrintingResults(intp.interpret(source))
+        }
+
+//      assert (th.getContextClassLoader == cl)
 
       // commented out to chase ClassNotFoundException
       // i.reset()

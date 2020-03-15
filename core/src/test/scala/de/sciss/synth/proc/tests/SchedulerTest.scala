@@ -6,7 +6,7 @@ import de.sciss.synth.proc.{Scheduler, TimeRef, showTransportLog}
 // TODO - could be rather easily converted into a unit test
 object SchedulerTest extends App {
   type S = InMemory
-  implicit val cursor = InMemory()
+  implicit val cursor: S = InMemory()
   showTransportLog = true
 
   def frames(secs: Double) = (TimeRef.SampleRate * secs).toLong

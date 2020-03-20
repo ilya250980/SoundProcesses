@@ -59,6 +59,10 @@ object SoundProcesses {
 
   /** Spawns a transactional function on the default `executionContext`. Throws
     * an exception if this method is called within a transaction.
+    *
+    * '''Warning:''' This returns a future, which '''must''' be observed to
+    * handle errors that happen during the transaction. If the `Future` is ignored,
+    * the safer way is to call `step` which invokes an error handler in that case.
     */
   def atomic[S <: Sys[S], A](fun: S#Tx => A)(implicit cursor: stm.Cursor[S]): Future[A] = {
     if (Txn.findCurrent.isDefined) throw new IllegalStateException("Cannot nest transactions")
@@ -67,9 +71,34 @@ object SoundProcesses {
     } (executionContext)
   }
 
+  // called from `step` if an error occurs, passing the context name and the error.
+  var errorHandler: (String, Throwable) => Unit = {
+    (ctx, t) =>
+      Console.err.println(s"From '$ctx'")
+      t.printStackTrace()
+  }
+
+  /** Spawns a transactional function on the default `executionContext`. Throws
+    * an exception if this method is called within a transaction.
+    *
+    * If an error occurs within the `fun`, `errorHandler` is invoked with the
+    * `context` string argument and the error.
+    */
+  def step[S <: Sys[S]](context: String)(fun: S#Tx => Unit)(implicit cursor: stm.Cursor[S]): Unit = {
+    if (Txn.findCurrent.isDefined) throw new IllegalStateException("Cannot nest transactions")
+    Future {
+      try {
+        cursor.step(fun)
+      } catch {
+        case t: Throwable =>
+          errorHandler(context, t)
+      }
+    } (executionContext)
+  }
+
   private[this] lazy val _init: Unit = {
     LucreExpr     .init()
-    ActionRaw      .init()
+    ActionRaw     .init()
     AudioCue      .init()
     Code          .init()
     Color         .init()

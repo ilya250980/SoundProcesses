@@ -44,11 +44,11 @@ trait AuralSystemTxBridge[S <: Sys[S]] extends AuralSystem.Client with Disposabl
   }
 
   final def auralStarted(server: Server)(implicit tx: Txn): Unit = {
-    // XXX TODO -- what was the reasoning for the txn decoupling?
-    // (perhaps the discrepancy between Txn and S#Tx ?)
+    // The reasoning for the txn decoupling
+    // is the discrepancy between Txn and S#Tx
     tx.afterCommit {
       import universe.cursor
-      SoundProcesses.atomic { implicit tx: S#Tx =>
+      SoundProcesses.step("auralStarted") { implicit tx: S#Tx =>
         auralStartedTx(server)
       }
     }
@@ -62,7 +62,7 @@ trait AuralSystemTxBridge[S <: Sys[S]] extends AuralSystem.Client with Disposabl
   final def auralStopped()(implicit tx: Txn): Unit =
     tx.afterCommit {
       import universe.cursor
-      SoundProcesses.atomic { implicit tx: S#Tx =>
+      SoundProcesses.step("auralStopped") { implicit tx: S#Tx =>
         auralStoppedTx()
       }
     }

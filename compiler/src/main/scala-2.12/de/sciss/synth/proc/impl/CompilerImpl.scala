@@ -104,20 +104,11 @@ object CompilerImpl {
 
     def interpret(source: String, print: Boolean, execute: Boolean): Any = {
       intp.reset()
-      val th  = Thread.currentThread()
-      val cl  = th.getContextClassLoader
-      // work-around for SI-8521 (Scala 2.11.0)
-      val res = try {
-        if (print)
+      val res = if (print)
           intp.interpret(source)
         else
           intp.beQuietDuring(intp.interpret(source))
-      } finally {
-        th.setContextClassLoader(cl)
-      }
 
-      // commented out to chase ClassNotFoundException
-      // i.reset()
       res match {
         case Results.Success =>
           if (/* aTpe == "Unit" || */ !execute) () else {

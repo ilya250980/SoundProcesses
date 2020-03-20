@@ -62,7 +62,7 @@ final class ActionResponder[S <: Sys[S]](objH: stm.Source[S#Tx, Obj[S]], key: St
       }
       import context.universe
       import context.universe.cursor
-      SoundProcesses.atomic { implicit tx: S#Tx =>
+      SoundProcesses.step(s"ActionResponder($synth, $key)") { implicit tx: S#Tx =>
         val invoker = objH()
         invoker.attr.$[proc.ActionRaw](key).foreach { action =>
           if (DEBUG) println("...and found action")

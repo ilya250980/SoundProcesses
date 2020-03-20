@@ -21,22 +21,21 @@ import scala.annotation.tailrec
 import scala.concurrent.{ExecutionContext, ExecutionContextExecutor}
 import scala.tools.nsc
 import scala.tools.nsc.interpreter.shell.ReplReporterImpl
+import scala.tools.nsc.interpreter.{IMain, Results}
 import scala.tools.nsc.io.AbstractFile
 import scala.tools.nsc.{ConsoleWriter, NewLinePrintWriter}
-import scala.tools.nsc.interpreter.{IMain, Results}
 
 object CompilerImpl {
   def apply(): Code.Compiler = new Impl({
     val cSet = new nsc.Settings()
     cSet.classpath.value += File.pathSeparator + sys.props("java.class.path")
     val c = new IMainImpl(cSet)
-    // c.initializeSynchronous()
     c.initializeCompiler()
     c
   })
 
   private[impl] final class Impl(intp0: => IMain) extends Code.Compiler {
-    private lazy val intp = intp0
+    private lazy val intp: IMain = intp0
 
     override def toString = s"Compiler@${hashCode().toHexString}"
 
@@ -105,27 +104,22 @@ object CompilerImpl {
     }
 
     def interpret(source: String, print: Boolean, execute: Boolean): Any = {
-      intp.reset()
-//      val th  = Thread.currentThread()
-//      val cl  = th.getContextClassLoader
+      val _intp = intp
+      _intp.reset()
       val res: Results.Result =
         if (print) {
-          intp.interpret(source)
+          _intp.interpret(source)
         } else {
           // Scala 2.13.1 for unknown reasons changed to `Unit` result in `beQuietDuring`
 //            intp.beQuietDuring(intp.interpret(source))
-          intp.reporter.withoutPrintingResults(intp.interpret(source))
+          _intp.reporter.withoutPrintingResults(_intp.interpret(source))
         }
 
-//      assert (th.getContextClassLoader == cl)
-
-      // commented out to chase ClassNotFoundException
-      // i.reset()
       res match {
         case Results.Success =>
           if (/* aTpe == "Unit" || */ !execute) () else {
-            val n = intp.mostRecentVar
-            intp.valueOfTerm(n).getOrElse(sys.error(s"No value for term $n"))
+            val n = _intp.mostRecentVar
+            _intp.valueOfTerm(n).getOrElse(sys.error(s"No value for term $n"))
           }
 
         case Results.Error      => throw Code.CompilationFailed()
@@ -139,6 +133,66 @@ object CompilerImpl {
       val writer = new NewLinePrintWriter(new ConsoleWriter, autoFlush = true)
       new ReplReporterImpl(cSet, writer)
     }) {
+
+    import scala.util.{Try => Trying}
+    import scala.reflect.runtime.{universe => ru}
+    import global._
+
+    // this is private in super
+    private lazy val importToGlobal  = global mkImporter ru
+    private implicit def importFromRu(sym: ru.Symbol): Symbol = importToGlobal importSymbol sym
+
+    // we have to override this to insert a fresh `runtimeMirror`
+    // to work around https://github.com/scala/bug/issues/11915
+    // except for `val runtimeMirror`, to code remains the same.
+    override def valueOfTerm(id: String): Option[Any] = {
+      def value(fullName: String) = {
+        val runtimeMirror = ru.runtimeMirror(classLoader) // !!!
+        import runtimeMirror.universe.{Symbol, InstanceMirror, TermName}
+        val pkg :: rest = (fullName split '.').toList
+        val top = runtimeMirror.staticPackage(pkg)
+        @annotation.tailrec
+        def loop(inst: InstanceMirror, cur: Symbol, path: List[String]): Option[Any] = {
+          def mirrored =
+            if (inst != null) inst
+            else {
+              val res = runtimeMirror.reflect((runtimeMirror reflectModule cur.asModule).instance)
+              res
+            }
+
+          path match {
+            case last :: Nil  =>
+              val decls = cur.typeSignature.decls
+              val declOpt = decls.find { x =>
+                x.name.toString == last && x.isAccessor
+              }
+              declOpt.map { m =>
+                val mm = m.asMethod
+                val mr = mirrored.reflectMethod(mm)
+                mr.apply()
+              }
+            case next :: rest =>
+              val s = cur.typeSignature.member(TermName(next))
+              val i =
+                if (s.isModule) {
+                  if (inst == null) null
+                  else runtimeMirror.reflect((inst reflectModule s.asModule).instance)
+                }
+                else if (s.isAccessor) {
+                  runtimeMirror.reflect(mirrored.reflectMethod(s.asMethod).apply())
+                }
+                else {
+                  assert(false, originalPath(s))
+                  inst
+                }
+              loop(i, s, rest)
+            case Nil => None
+          }
+        }
+        loop(null, top, rest)
+      }
+      Option(symbolOfTerm(id)).filter(_.exists).flatMap(s => Trying(value(originalPath(s))).toOption.flatten)
+    }
 
     override protected def parentClassLoader: ClassLoader =
       CompilerImpl.getClass.getClassLoader

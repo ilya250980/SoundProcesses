@@ -1,4 +1,4 @@
-package de.sciss.synth.proc
+package de.sciss.synth.proc.tests
 
 import de.sciss.lucre.expr.StringObj
 import de.sciss.lucre.stm
@@ -6,6 +6,7 @@ import de.sciss.lucre.stm.store.BerkeleyDB
 import de.sciss.lucre.synth.{Server, Sys}
 import de.sciss.synth
 import de.sciss.synth.SynthGraph
+import de.sciss.synth.proc.{ActionRaw, AuralSystem, Code, Compiler, Confluent, Durable, Proc, Transport, Universe, graph}
 
 import scala.concurrent.Await
 import scala.concurrent.duration.Duration

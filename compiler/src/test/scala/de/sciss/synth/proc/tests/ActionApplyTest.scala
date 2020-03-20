@@ -1,8 +1,9 @@
-package de.sciss.synth.proc
+package de.sciss.synth.proc.tests
 
 import de.sciss.file._
 import de.sciss.lucre.expr.StringObj
 import de.sciss.lucre.stm.store.BerkeleyDB
+import de.sciss.synth.proc.{ActionRaw, Code, Durable, MacroImplicits, SoundProcesses, Workspace}
 
 object ActionApplyTest {
   import MacroImplicits._

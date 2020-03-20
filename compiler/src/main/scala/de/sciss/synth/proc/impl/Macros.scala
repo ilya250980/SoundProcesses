@@ -186,7 +186,7 @@ object Macros {
       res
     }
 
-    implicit val compiler: Code.Compiler = ??? // new CompilerImpl.Impl(iMain)
+    implicit val compiler: Code.Compiler = new CompilerImpl.Impl(iMain)
 
     val jar         = code0.execute(name)
     val jarS0       = new String(jar, "ISO-8859-1")

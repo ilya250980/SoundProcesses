@@ -1,8 +1,9 @@
-package de.sciss.synth.proc
+package de.sciss.synth.proc.tests
 
 import de.sciss.file.File
 import de.sciss.lucre.stm
 import de.sciss.lucre.stm.store.BerkeleyDB
+import de.sciss.synth.proc.{ActionRaw, Code, Compiler, Confluent}
 
 import scala.concurrent.ExecutionContext
 import scala.util.Failure

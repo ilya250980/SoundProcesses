@@ -141,9 +141,11 @@ lazy val views = project.withId(s"$baseNameL-views").in(file("views"))
 lazy val compiler = project.withId(s"$baseNameL-compiler").in(file("compiler"))
   .dependsOn(core, views)
   .settings(commonSettings)
+  .settings(testSettings)
   .settings(
     description := "Compiler-support for Sound Processes",
     scalacOptions += "-Yrangepos",  // this is needed to extract source code
+    fork in Test := true, // required for compiler
     libraryDependencies ++= Seq(
       "org.scala-lang" %  "scala-compiler"          % scalaVersion.value,
       "de.sciss"       %% s"lucre-${deps.test.bdb}" % deps.main.lucre               % Test,

@@ -1,6 +1,8 @@
-package de.sciss.synth.proc
+package de.sciss.synth.proc.tests
 
-object IntpTest extends App{
+import de.sciss.synth.proc.Compiler
+
+object IntpTest extends App {
   val c         = Compiler()
   val observed0 = c.interpret("1234", print = true, execute = true)
   println(s"observed0 = $observed0")

@@ -19,6 +19,8 @@ import java.util.concurrent.Executors
 
 import scala.annotation.tailrec
 import scala.concurrent.{ExecutionContext, ExecutionContextExecutor}
+import scala.language.implicitConversions
+import scala.reflect.internal.FatalError
 import scala.tools.nsc
 import scala.tools.nsc.interpreter.shell.ReplReporterImpl
 import scala.tools.nsc.interpreter.{IMain, Results}
@@ -138,16 +140,49 @@ object CompilerImpl {
     import scala.reflect.runtime.{universe => ru}
     import global._
 
+    // XXX TODO --- this will unnecessary in Scala 2.13.2
+    private[this] var _runtimeMirror: ru.Mirror = null
+    private def runtimeMirrorFix: ru.Mirror = {
+      if (_runtimeMirror == null) {
+        _runtimeMirror = ru.runtimeMirror(classLoader)
+      }
+      _runtimeMirror
+    }
+
+    // XXX TODO --- this will unnecessary in Scala 2.13.2
+    override def resetClassLoader(): Unit = {
+      super.resetClassLoader()
+      _runtimeMirror = null
+    }
+
     // this is private in super
     private lazy val importToGlobal  = global mkImporter ru
     private implicit def importFromRu(sym: ru.Symbol): Symbol = importToGlobal importSymbol sym
 
+    // XXX TODO --- this will be fixed in Scala 2.13.2
+    override lazy val runtimeMirror: ru.Mirror =
+      throw new UnsupportedOperationException("Disabled due to Scala issue 11915")
+
+    private def noFatal(body: => Symbol): Symbol = try body catch { case _: FatalError => NoSymbol }
+
+    // XXX TODO --- this will unnecessary in Scala 2.13.2
+    override def getClassIfDefined(path: String): Symbol  = (
+      noFatal(runtimeMirrorFix staticClass path)
+        orElse noFatal(rootMirror staticClass path)
+      )
+
+    override def getModuleIfDefined(path: String): Symbol = (
+      noFatal(runtimeMirrorFix staticModule path)
+        orElse noFatal(rootMirror staticModule path)
+      )
+
     // we have to override this to insert a fresh `runtimeMirror`
     // to work around https://github.com/scala/bug/issues/11915
     // except for `val runtimeMirror`, to code remains the same.
+    // XXX TODO --- this will be fixed in Scala 2.13.2
     override def valueOfTerm(id: String): Option[Any] = {
       def value(fullName: String) = {
-        val runtimeMirror = ru.runtimeMirror(classLoader) // !!!
+        val runtimeMirror = runtimeMirrorFix // !!!
         import runtimeMirror.universe.{Symbol, InstanceMirror, TermName}
         val pkg :: rest = (fullName split '.').toList
         val top = runtimeMirror.staticPackage(pkg)

@@ -13,7 +13,6 @@
 
 package de.sciss.synth.proc.impl
 
-import de.sciss.lucre.event.impl.DummyObservableImpl
 import de.sciss.lucre.expr.{Context, IAction, IControl}
 import de.sciss.lucre.stm
 import de.sciss.lucre.stm.TxnLike.peer
@@ -29,7 +28,7 @@ object ActionRunnerImpl {
     new Impl(tx.newHandle(obj))
 
   private final class Impl[S <: Sys[S]](objH: stm.Source[S#Tx, Action[S]])(implicit val universe: Universe[S])
-    extends BasicRunnerImpl[S] {
+    extends BasicRunnerInternalImpl[S] {
 
     type Repr = Action[S]
 
@@ -45,7 +44,8 @@ object ActionRunnerImpl {
 
     override def toString = s"Runner.Action${hashCode().toHexString}"
 
-    protected def disposeData()(implicit tx: S#Tx): Unit = {
+    override protected def disposeData()(implicit tx: S#Tx): Unit = {
+      super.disposeData()
       attrRef() = Context.emptyAttr
       disposeCtl()
     }
@@ -118,15 +118,11 @@ object ActionRunnerImpl {
       val ctl   = objH()
       implicit val u: UndoManager[S]  = UndoManager()
       val attr  = attrRef()
-      implicit val ctx: Context[S]    = ExprContext(Some(objH), attr)
+      implicit val ctx: Context[S]    = ExprContext(Some(objH), attr, Some(this))
       val g     = ctl.graph.value
       val res   = Try(g.expand[S])
       actRef()  = Some(res)
       res
-    }
-
-    object progress extends Runner.Progress[S#Tx] with DummyObservableImpl[S] {
-      def current(implicit tx: S#Tx): Double = -1
     }
   }
 }

@@ -13,8 +13,10 @@
 
 package de.sciss.lucre.expr.graph
 
+import de.sciss.lucre.adjunct.{Adjunct, ProductWithAdjuncts}
+import de.sciss.lucre.expr.graph.{Attr => _Attr}
 import de.sciss.lucre.expr.impl.IActionImpl
-import de.sciss.lucre.expr.{Context, Graph, IAction, IExpr}
+import de.sciss.lucre.expr.{Context, Graph, IAction, IControl, IExpr}
 import de.sciss.lucre.stm.Sys
 import de.sciss.synth.proc
 import de.sciss.synth.proc.ExprContext
@@ -110,6 +112,89 @@ object ThisRunner {
     }
   }
 
+  private final class ExpandedUpdateAttr[S <: Sys[S], A, B](source: IExpr[S, A], vr: Var.Expanded[S, B], tx0: S#Tx)
+    extends IControl[S] {
+
+    private[this] val obs = source.changed.react { implicit tx =>upd =>
+      val v = Some(upd.now)
+      vr.fromAny.fromAny(v.get).foreach { vT =>
+        vr.update(new Const.Expanded(vT))
+      }
+    } (tx0)
+
+    def dispose()(implicit tx: S#Tx): Unit =
+      obs.dispose()
+
+    def initControl()(implicit tx: S#Tx): Unit = ()
+  }
+
+  private final class ExpandedSetAttr[S <: Sys[S], A, B](source: IExpr[S, A], vr: Var.Expanded[S, B])
+    extends IActionImpl[S] {
+
+    def executeAction()(implicit tx: S#Tx): Unit = {
+      val v = source.value
+      vr.fromAny.fromAny(v).foreach { vT =>
+        vr.update(new Const.Expanded(vT))
+      }
+    }
+  }
+
+  object Attr {
+    final case class Update[A](source: Ex[A], key: String)
+      extends Control {
+
+      override def productPrefix: String = s"ThisRunner$$Attr$$Update"  // serialization
+
+      type Repr[S <: Sys[S]] = IControl[S]
+
+      protected def mkRepr[S <: Sys[S]](implicit ctx: Context[S], tx: S#Tx): Repr[S] = {
+        ctx.attr.get(key) match {
+          case Some(vr: Var.Expanded[S, _]) =>
+            new ExpandedUpdateAttr(source.expand[S], vr, tx)
+
+          case _ =>
+            IControl.empty
+        }
+      }
+    }
+
+    final case class Set[A](source: Ex[A], key: String)
+      extends Act {
+
+      override def productPrefix: String = s"ThisRunner$$Attr$$Set"  // serialization
+
+      type Repr[S <: Sys[S]] = IAction[S]
+
+      protected def mkRepr[S <: Sys[S]](implicit ctx: Context[S], tx: S#Tx): Repr[S] = {
+        ctx.attr.get(key) match {
+          case Some(vr: Var.Expanded[S, _]) =>
+            new ExpandedSetAttr(source.expand[S], vr)
+
+          case _ =>
+            IAction.empty
+        }
+      }
+    }
+  }
+  final case class Attr[A](r: ThisRunner, key: String)(implicit bridge: Obj.Bridge[A])
+    extends Ex[Option[A]] with _Attr.Like[A] with ProductWithAdjuncts {
+
+    override def productPrefix: String = s"ThisRunner$$Attr"  // serialization
+
+    type Repr[S <: Sys[S]] = IExpr[S, Option[A]]
+
+    def update(in: Ex[A]): Control  = Attr.Update (in, key)
+    def set   (in: Ex[A]): Act      = Attr.Set    (in, key)
+
+    protected def mkRepr[S <: Sys[S]](implicit ctx: Context[S], tx: S#Tx): Repr[S] = {
+      import ctx.targets
+      val ctxFull = bridge.contextCellView(key)
+      new _Attr.Expanded[S, A](key, ctxFull, tx)
+    }
+
+    def adjuncts: List[Adjunct] = bridge :: Nil
+  }
+
 //  final case class Messages(r: ThisRunner) extends Ex[Seq[Message]] {
 //    type Repr[S <: Sys[S]] = IExpr[S, Seq[Message]]
 //
@@ -142,6 +227,8 @@ object ThisRunner {
 //      b.putProperty(this, keyMessages, value)
 //    }
 
+    def attr[A: Obj.Bridge](key: String): Attr[A] = Attr(this, key)
+
     def done: Act = ThisRunner.Done(this)
 
     def fail(cause: Ex[String]): Act = ThisRunner.Fail(this, cause)
@@ -173,10 +260,16 @@ trait ThisRunner extends Control {
   def stop: Act
 
   def done: Act
-  
+
   def fail(cause: Ex[String]): Act
 
   var progress: Ex[Double]
+
+  /** A runner attribute that can be read or updated (if the runner was called with a `Var`).
+    * This does not fall back to the self object's attribute map, which would be the case
+    * for `key.attr[A]`.
+    */
+  def attr[A: Obj.Bridge](key: String): ThisRunner.Attr[A]
 
   // XXX TODO: proc.Runner.Message is not serializable or constructable from Ex
 

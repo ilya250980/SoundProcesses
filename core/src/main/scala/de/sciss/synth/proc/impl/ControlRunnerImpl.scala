@@ -126,9 +126,5 @@ object ControlRunnerImpl {
       ctlRef()  = Some(res)
       res
     }
-
-//    object progress extends Runner.Progress[S#Tx] with DummyObservableImpl[S] {
-//      def current(implicit tx: S#Tx): Double = -1
-//    }
   }
 }

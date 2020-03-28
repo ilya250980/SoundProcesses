@@ -188,8 +188,11 @@ object ThisRunner {
 
     protected def mkRepr[S <: Sys[S]](implicit ctx: Context[S], tx: S#Tx): Repr[S] = {
       import ctx.targets
+      val rEx     = r.expand[S]
       val ctxFull = bridge.contextCellView(key)
-      new _Attr.Expanded[S, A](key, ctxFull, tx)
+      val res     = new _Attr.Expanded[S, A](key, ctxFull, tx)
+      rEx.addDisposable(res)
+      res
     }
 
     def adjuncts: List[Adjunct] = bridge :: Nil

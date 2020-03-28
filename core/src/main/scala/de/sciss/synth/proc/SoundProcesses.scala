@@ -121,6 +121,7 @@ object SoundProcesses {
     lucre.expr.graph.ArtifactLocation .init()
     lucre.expr.graph.Folder           .init()
     lucre.expr.graph.Timeline         .init()
+    lucre.expr.graph.AudioCue         .init()
   }
 
   /** Registers all known types. */

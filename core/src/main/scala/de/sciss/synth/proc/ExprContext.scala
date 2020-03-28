@@ -34,11 +34,6 @@ object ExprContext {
                                        (implicit val universe: Universe[S], val undoManager: UndoManager[S])
     extends ContextMixin[S] with ExprContext[S] {
 
-    // XXX TODO: remove in next major version
-    def this(selfH: Option[stm.Source[S#Tx, Obj[S]]], attr: Context.Attr[S])
-            (implicit universe: Universe[S], undoManager: UndoManager[S]) =
-      this(selfH, attr, runner = None)
-
     implicit def cursor   : Cursor    [S] = universe.cursor
     implicit def workspace: Workspace [S] = universe.workspace
   }

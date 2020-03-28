@@ -24,6 +24,7 @@ import de.sciss.lucre.stm.Sys
 import de.sciss.lucre.stm.TxnLike.{peer => txPeer}
 import de.sciss.model.Change
 import de.sciss.osc
+import de.sciss.synth.proc.SoundProcesses
 
 import scala.concurrent.stm.Ref
 import scala.util.control.NonFatal
@@ -230,8 +231,7 @@ object OscUdpNode {
     private[this] val receiverFun: osc.Receiver.Undirected.Action = { (p, addr) =>
       addr match {
         case iAddr: InetSocketAddress =>
-          // XXX TODO --- should we use SoundProcesses.atomic()?
-          cursor.step { implicit tx =>
+          SoundProcesses.step[S]("OscUdpNode.receive") { implicit tx =>
             def fire1(m: osc.Message): Unit = {
               val tupNow    = (m, iAddr)
               val tupBefore = lastRcvRef.swap(tupNow)

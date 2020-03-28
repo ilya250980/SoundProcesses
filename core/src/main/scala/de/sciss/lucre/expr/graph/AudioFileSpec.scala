@@ -89,7 +89,7 @@ object AudioFileSpec {
       ).toOption
   }
 
-  // Note: we cannot serializer `_AudioFileSpec` without further ado, because we have
+  // Note: we cannot use serializer `_AudioFileSpec` without further ado, because we have
   // singleton objects like `AIFF`.
 //  def Empty(): Ex[_AudioFileSpec] = Const(_AudioFileSpec(numChannels = 0, sampleRate = 0.0))
 

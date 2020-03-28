@@ -13,6 +13,7 @@
 
 package de.sciss.lucre.expr.graph
 
+import de.sciss.lucre.adjunct.Adjunct.HasDefault
 import de.sciss.lucre.adjunct.{Adjunct, ProductWithAdjuncts}
 import de.sciss.lucre.edit.EditTimeline
 import de.sciss.lucre.event.impl.IChangeGenerator
@@ -90,10 +91,12 @@ object Timeline {
       wrap(peer)
   }
 
-  implicit object Bridge extends Obj.Bridge[Timeline] with Adjunct.Factory {
+  implicit object Bridge extends Obj.Bridge[Timeline] with HasDefault[Timeline] with Adjunct.Factory {
     final val id = 2002
 
     type Repr[S <: Sys[S]] = proc.Timeline[S]
+
+    def defaultValue: Timeline = Empty
 
     override def readIdentifiedAdjunct(in: DataInput): Adjunct = this
 

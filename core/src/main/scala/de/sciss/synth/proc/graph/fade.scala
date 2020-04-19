@@ -19,7 +19,7 @@ import de.sciss.synth.proc.{ObjKeys, UGenGraphBuilder}
 import de.sciss.synth.ugen._
 import de.sciss.synth.{Curve, GE, Rate, UGenInLike, audio, control}
 
-import scala.Predef.{any2stringadd => _, _}
+import scala.Predef.{any2stringadd => _, assert}
 
 private[graph] object fade {
   abstract class Base extends GE.Lazy {

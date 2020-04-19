@@ -75,8 +75,6 @@ object ControlImpl {
 
     // ---- key maps ----
 
-    def isConnected(implicit tx: S#Tx): Boolean = targets.nonEmpty
-
     final def connect()(implicit tx: S#Tx): this.type = {
       graph.changed ---> changed
       this

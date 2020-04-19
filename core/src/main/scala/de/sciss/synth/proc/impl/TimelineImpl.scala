@@ -77,7 +77,7 @@ object TimelineImpl {
 
     def tpe: Obj.Type = Timeline
 
-    def elemSerializer: Serializer[S#Tx, S#Acc, Obj[S]] = Obj.serializer[S]
+//    def elemSerializer: Serializer[S#Tx, S#Acc, Obj[S]] = Obj.serializer[S]
 
     override def toString: String = s"Timeline${tree.id}"
   }

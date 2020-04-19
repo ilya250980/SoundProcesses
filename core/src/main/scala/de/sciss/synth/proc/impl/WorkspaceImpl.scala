@@ -190,8 +190,8 @@ object WorkspaceImpl {
       root.write(out)
     }
 
-    final def dispose()(implicit tx: S#Tx): Unit =
-      root.dispose()
+//    final def dispose()(implicit tx: S#Tx): Unit =
+//      root.dispose()
 
     override def toString = s"Data ($root)"
   }
@@ -209,21 +209,21 @@ object WorkspaceImpl {
 
     private[this] val _dependents  = Ref(Vec.empty[Disposable[S#Tx]])
 
-    final val rootH: stm.Source[S#Tx, Folder[S]] = stm.Source.map(access)(_.root)
+//    final val rootH: stm.Source[S#Tx, Folder[S]] = stm.Source.map(access)(_.root)
 
-    final def root(implicit tx: S#Tx): Folder[S] = access().root
+    final override def root(implicit tx: S#Tx): Folder[S] = access().root
 
-    final def addDependent   (dep: Disposable[S#Tx])(implicit tx: TxnLike): Unit =
+    final override def addDependent   (dep: Disposable[S#Tx])(implicit tx: TxnLike): Unit =
       _dependents.transform(_ :+ dep)(tx.peer)
 
-    final def removeDependent(dep: Disposable[S#Tx])(implicit tx: TxnLike): Unit =
+    final override def removeDependent(dep: Disposable[S#Tx])(implicit tx: TxnLike): Unit =
       _dependents.transform { in =>
         val idx = in.indexOf(dep)
         require(idx >= 0, s"Dependent $dep was not registered")
         in.patch(idx, Nil, 1)
       } (tx.peer)
 
-    final def dependents(implicit tx: TxnLike): Iterable[Disposable[S#Tx]] = _dependents.get(tx.peer)
+    final override def dependents(implicit tx: TxnLike): Iterable[Disposable[S#Tx]] = _dependents.get(tx.peer)
 
 //    final def collectObjects[A](pf: PartialFunction[Obj[S], A])(implicit tx: S#Tx): Vec[A] = {
 //      val b   = Vector.newBuilder[A]
@@ -242,7 +242,7 @@ object WorkspaceImpl {
 //      b.result()
 //    }
 
-    final def close(): Unit = {
+    final override def close(): Unit = {
       // XXX TODO --- why did we have this asynchronously?
 //      SoundProcesses.atomic[S, Unit] { implicit tx =>
 //        dispose()
@@ -275,9 +275,10 @@ object WorkspaceImpl {
     def folder: Option[File]  = Some(_folder)
     def name  : String        = _folder.base
 
-    type I = system.I
-    val inMemoryBridge: S#Tx => S#I#Tx  = _.inMemory
-    def inMemoryCursor: stm.Cursor[I]   = system.inMemory
+//    type I = system.I
+//
+//    val inMemoryBridge: S#Tx => S#I#Tx  = _.inMemory
+//    def inMemoryCursor: stm.Cursor[I]   = system.inMemory
 
     // def cursor = cursors.cursor
     val cursor: stm.Cursor[S] = confluent.Cursor.wrap(cursors.cursor)(system)
@@ -290,9 +291,10 @@ object WorkspaceImpl {
     def folder: Option[File]  = Some(_folder)
     def name  : String        = _folder.base
 
-    type I = system.I
-    val inMemoryBridge: S#Tx => S#I#Tx  = Dur.inMemory
-    def inMemoryCursor: stm.Cursor[I]   = system.inMemory
+//    type I = system.I
+//
+//    val inMemoryBridge: S#Tx => S#I#Tx  = Dur.inMemory
+//    def inMemoryCursor: stm.Cursor[I]   = system.inMemory
 
     def cursor: stm.Cursor[S] = system
   }
@@ -302,9 +304,9 @@ object WorkspaceImpl {
 
     // val systemType = implicitly[reflect.runtime.universe.TypeTag[InMem]]
 
-    type I = system.I
-    val inMemoryBridge: S#Tx => S#I#Tx  = tx => tx
-    def inMemoryCursor: stm.Cursor[I]   = system.inMemory
+//    type I = system.I
+//    val inMemoryBridge: S#Tx => S#I#Tx  = tx => tx
+//    def inMemoryCursor: stm.Cursor[I]   = system.inMemory
 
     def cursor: stm.Cursor[S] = system
 

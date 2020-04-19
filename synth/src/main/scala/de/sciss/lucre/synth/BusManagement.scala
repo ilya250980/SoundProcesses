@@ -206,8 +206,8 @@ object Bus {
       if (cnt == 0) remove()
     }
 
-    final def index      : Int = peer.index
-    final def numChannels: Int = peer.numChannels
+//    final def index      : Int = peer.index
+//    final def numChannels: Int = peer.numChannels
   }
 
   private type AudioBusHolder   = BusHolder[SAudioBus  ]

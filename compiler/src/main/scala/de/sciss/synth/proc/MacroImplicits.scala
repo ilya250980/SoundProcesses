@@ -34,20 +34,20 @@ object MacroImplicits {
 
   implicit final class ActionRawMacroOps(private val a: ActionRaw.type) extends AnyVal {
     def apply[S <: Sys[S]](body: Action.Universe[S] => Unit)(implicit tx: S#Tx): ActionRaw[S] =
-    macro Macros.actionRawWithSource[S]
+      macro Macros.actionRawWithSource[S]
   }
 
   implicit final class ControlMacroOps[S <: Sys[S]](val `this`: Control[S]) extends AnyVal {
     def setGraph(body: Unit)(implicit tx: S#Tx): Unit =
-    macro Macros.controlGraphWithSource[S]
+      macro Macros.controlGraphWithSource[S]
   }
 
   implicit final class ActionMacroOps[S <: Sys[S]](val `this`: Action[S]) extends AnyVal {
     def setGraph(body: lucre.expr.graph.Act)(implicit tx: S#Tx): Unit =
-    macro Macros.actionGraphWithSource[S]
+      macro Macros.actionGraphWithSource[S]
   }
   implicit final class WidgetMacroOps[S <: Sys[S]](val `this`: Widget[S]) extends AnyVal {
     def setGraph(body: lucre.swing.graph.Widget)(implicit tx: S#Tx): Unit =
-      macro Macros.widgetGraphWithSource[S]
+        macro Macros.widgetGraphWithSource[S]
   }
 }

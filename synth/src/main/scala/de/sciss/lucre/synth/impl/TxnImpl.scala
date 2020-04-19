@@ -34,7 +34,7 @@ sealed trait TxnImpl extends Txn { tx =>
   final protected def flush(): Unit =
     bundlesMap.foreach { case (server, bundles) =>
       log(s"flush $server -> ${bundles.size} bundles")
-      server.send(bundles, systemTimeNanoSec: Long)
+      server.send(bundles, systemTimeNanoSec)
     }
 
   // indicate that we have bundles to flush after the transaction commits
@@ -88,12 +88,12 @@ sealed trait TxnImpl extends Txn { tx =>
       txnStampRef += 2
       val vm        = Vector.empty :+ m
       val messages  = if (msgAsync) {
-        val b1 = new Txn.Bundle(txnStartStamp     , vm)
-        val b2 = new Txn.Bundle(txnStartStamp + 1 , Vector.empty)
+        val b1 = new Txn.Bundle(txnStamp     , vm)
+        val b2 = new Txn.Bundle(txnStamp + 1 , Vector.empty)
         Vector.empty :+ b1 :+ b2
       } else {
-        val b1 = new Txn.Bundle(txnStartStamp     , Vector.empty)
-        val b2 = new Txn.Bundle(txnStartStamp + 1 , vm)
+        val b1 = new Txn.Bundle(txnStamp     , Vector.empty)
+        val b2 = new Txn.Bundle(txnStamp + 1 , vm)
         Vector.empty :+ b1 :+ b2
       }
       messages: Txn.Bundles
@@ -103,12 +103,12 @@ sealed trait TxnImpl extends Txn { tx =>
         // append to back
         val vm      = Vector.empty :+ m
         val payNew  = if (msgAsync) {
-          val b1 = new Txn.Bundle(txnStartStamp     , vm)
-          val b2 = new Txn.Bundle(txnStartStamp + 1 , Vector.empty)
+          val b1 = new Txn.Bundle(txnStamp     , vm)
+          val b2 = new Txn.Bundle(txnStamp + 1 , Vector.empty)
           payOld :+ b1 :+ b2
         } else {
-          val b1 = new Txn.Bundle(txnStartStamp     , Vector.empty)
-          val b2 = new Txn.Bundle(txnStartStamp + 1 , vm)
+          val b1 = new Txn.Bundle(txnStamp     , Vector.empty)
+          val b2 = new Txn.Bundle(txnStamp + 1 , vm)
           payOld :+ b1 :+ b2
         }
         txnStampRef += 2

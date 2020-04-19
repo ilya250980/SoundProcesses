@@ -177,6 +177,8 @@ object CodeImpl {
 
   /** Compiles a source code consisting of a body which is wrapped in its prelude/postlude,
     * and returns the raw jar file produced in the compilation.
+    *
+    * @param  name  Note: it is currently unused
     */
   def compileToJar(name: String, code: Code, prelude: String, postlude: String)
                   (implicit compiler: Code.Compiler): Array[Byte] = {

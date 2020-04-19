@@ -40,7 +40,10 @@ object ServerImpl {
   /** If `true`, check that wire-buffers are not exceeded before sending synth def */
   var VERIFY_WIRE_BUFFERS = true
   /** If `true` debug sending out stuff */
-  var DEBUG               = false
+  def DEBUG                   : Boolean = _DEBUG
+  def DEBUG_=(value: Boolean) : Unit    = _DEBUG =value
+
+  private[this] var _DEBUG = false
 
   private final val MaxOnlinePacketSize   = 0x8000 // 0x10000 // 64K
   private final val MaxOfflinePacketSize  = 0x2000 // 8192
@@ -318,7 +321,7 @@ object ServerImpl {
         case b: osc.Bundle if VERIFY_BUNDLE_SIZE =>
           val sz0 = Server.codec.encodedBundleSize(b)
           if (sz0 <= MaxOnlinePacketSize) {
-            if (DEBUG) printSystemTime()
+            if (_DEBUG) printSystemTime()
             peer ! b
           } else {
             // Since the bundle is synchronous, it is not trivial to split it
@@ -338,13 +341,13 @@ object ServerImpl {
               Iterator.single(message.NodeRun(gid -> true ))
 
             splitAndSend[Unit, Unit](init = (), it = iterator, addSize = 0) { packets =>
-              if (DEBUG) printSystemTime()
+              if (_DEBUG) printSystemTime()
               peer ! osc.Bundle(b.timeTag, packets: _*)
             } ((_, _) => ())
           }
 
         case _ =>
-          if (DEBUG) printSystemTime()
+          if (_DEBUG) printSystemTime()
           peer ! p
       }
     }
@@ -378,7 +381,7 @@ object ServerImpl {
       val syncMsg = peer.syncMsg()
       val syncId  = syncMsg.id
       val bundleS = osc.Bundle(tt, packets :+ syncMsg: _*)
-      if (DEBUG) printSystemTime()
+      if (_DEBUG) printSystemTime()
       peer.!!(bundleS) {
         case message.Synced(`syncId`) =>
       }
@@ -657,7 +660,7 @@ object ServerImpl {
     final private[this] class Scheduled(bundle: Txn.Bundle, timeTag: TimeTag, promise: Promise[Unit],
                                         asap: Boolean) {
 
-      // makes MiMa happy
+      // makes MiMa happy XXX TODO remove in next major version
       def this(bundle: Txn.Bundle, timeTag: TimeTag, promise: Promise[Unit]) =
         this(bundle, timeTag, promise, asap = false)
 
@@ -669,7 +672,7 @@ object ServerImpl {
     }
 
     final private[this] def sendAdvance(stamp: Int): Future[Unit] = {
-      if (DEBUG) println(s"ADVANCE $stamp")
+      if (_DEBUG) println(s"ADVANCE $stamp")
       val futures: Vec[Future[Unit]] = sync.synchronized {
         val i = bundleReplySeen + 1
         if (i <= stamp) {
@@ -699,7 +702,7 @@ object ServerImpl {
 //      // the disadvantage of the forced sync will be that high frequency
 //      // parameter changes might be jammed, even though correctness is preserved.
 //      val allSync = (stamp & 1) == 1 && timeTag == TimeTag.now
-//      if (DEBUG) println(s"SEND NOW $messages - allSync? $allSync; stamp = $stamp")
+//      if (_DEBUG) println(s"SEND NOW $messages - allSync? $allSync; stamp = $stamp")
 //      if (allSync) {
 //        val p = if (messages.size == 1 && timeTag == TimeTag.now) messages.head
 //        else osc.Bundle(timeTag, messages: _*)
@@ -740,7 +743,7 @@ object ServerImpl {
       // the disadvantage of the forced sync will be that high frequency
       // parameter changes might be jammed, even though correctness is preserved.
       val isSync = (stamp & 1) == 1
-      if (DEBUG) println(s"SEND NOW $messages - isSync? $isSync; stamp = $stamp")
+      if (_DEBUG) println(s"SEND NOW $messages - isSync? $isSync; stamp = $stamp")
 
       def mkBundle(): osc.Bundle = {
         // until ScalaCollider supports booting with `-V -1`
@@ -779,7 +782,8 @@ object ServerImpl {
     private[this] val useLatency      = latencyNanoSec > 0
 
     final def send(bundles: Txn.Bundles, systemTimeNanoSec: Long): Future[Unit] = {
-      if (DEBUG) {
+      val __DEBUG = _DEBUG
+      if (__DEBUG) {
         val ms1 = systemTimeNanoSec / 1000 / 1000
         val ts1 = if (ms1 == 0) "<now>" else de.sciss.osc.TimeTag.millis(ms1).toString
         val ts2 = de.sciss.osc.TimeTag.millis(System.currentTimeMillis()).toString
@@ -836,6 +840,9 @@ object ServerImpl {
             }
           } else {
             (TimeTag.now, false)
+          }
+          if (__DEBUG) {
+            println(s":::: send isSync $isSync, tt $tt, asap $asap, m.depStamp ${m.depStamp}, bundleReplySeen $bundleReplySeen")
           }
 
           if (m.depStamp <= bundleReplySeen) {

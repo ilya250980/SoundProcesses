@@ -38,7 +38,7 @@ object TransportViewImpl {
                          model: TimelineModel, hasMillis: Boolean, hasLoop: Boolean, hasShortcuts: Boolean)
                         (implicit tx: S#Tx, cursor: Cursor[S]): TransportView[S] = {
     val view    = new Impl(transport, model)
-    val srk     = 1000 / TimeRef.SampleRate // transport.sampleRate
+    // val srk     = 1000 / TimeRef.SampleRate // transport.sampleRate
 
     view.observer = transport.react { implicit tx => {
       case Transport.Play(_, time) => view.startedPlaying(time)
@@ -49,9 +49,9 @@ object TransportViewImpl {
     }}
 
     val initPlaying = transport.isPlaying // .playing.value
-    val initMillis = (transport.position * srk).toLong
+    // val initMillis = (transport.position * srk).toLong
     deferTx {
-      view.guiInit(initPlaying, initMillis, hasMillis = hasMillis, hasLoop = hasLoop, hasShortcuts = hasShortcuts)
+      view.guiInit(initPlaying, /*initMillis,*/ hasMillis = hasMillis, hasLoop = hasLoop, hasShortcuts = hasShortcuts)
     }
     view
   }
@@ -282,7 +282,7 @@ object TransportViewImpl {
       case _ =>
     }
 
-    def guiInit(initPlaying: Boolean, initMillis: Long, hasMillis: Boolean, hasLoop: Boolean,
+    def guiInit(initPlaying: Boolean, /*initMillis: Long,*/ hasMillis: Boolean, hasLoop: Boolean,
                 hasShortcuts: Boolean): Unit = {
       val timeDisplay = TimeDisplay(timelineModel, hasMillis = hasMillis)
 

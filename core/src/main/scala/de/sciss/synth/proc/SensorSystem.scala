@@ -43,7 +43,7 @@ object SensorSystem {
 
     var command: String = defaultCommand
 
-    def build = Config(osc.build, command = command)
+    def build: Config = Config(osc.build, command = command)
   }
 
   // ---- instantiation ----

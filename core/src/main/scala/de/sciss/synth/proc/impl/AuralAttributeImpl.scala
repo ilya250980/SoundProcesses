@@ -63,7 +63,7 @@ object AuralAttributeImpl {
       case _: FadeSpec  => FadeSpecExprLike (key, value.asInstanceOf[ExprLike[S, FadeSpec ]], observer)
       case sq: Vec[_] if sq.forall(_.isInstanceOf[Double]) =>
         DoubleVectorExprLike (key, value.asInstanceOf[ExprLike[S, Vec[Double]]], observer)
-      case sq: Vec[_] if (sq.forall(_.isInstanceOf[Int])) =>
+      case sq: Vec[_] if sq.forall(_.isInstanceOf[Int]) =>
         IntVectorExprLike    (key, value.asInstanceOf[ExprLike[S, Vec[Int]   ]], observer)
       case _ => 
         Console.err.println(s"Warning: AuralAttribute - no factory for $value")
@@ -262,7 +262,7 @@ object AuralAttributeImpl {
                                                (implicit val context: AuralContext[S])
     extends SingleChannelImpl[S, Int] with NumericExprImpl[S, Int] {
 
-    def tpe: Obj.Type = IntObj
+    // def tpe: Obj.Type = IntObj
 
     type Repr = IntObj[S]
 
@@ -317,7 +317,7 @@ object AuralAttributeImpl {
                                                   (implicit val context: AuralContext[S])
     extends SingleChannelImpl[S, Double] with NumericExprImpl[S, Double] {
 
-    def tpe: Obj.Type = DoubleObj
+    // def tpe: Obj.Type = DoubleObj
 
     type Repr = DoubleObj[S]
 
@@ -372,7 +372,7 @@ object AuralAttributeImpl {
                                                    (implicit val context: AuralContext[S])
     extends SingleChannelImpl[S, Boolean] with NumericExprImpl[S, Boolean] {
 
-    def tpe: Obj.Type = BooleanObj
+    // def tpe: Obj.Type = BooleanObj
 
     type Repr = BooleanObj[S]
 
@@ -417,7 +417,7 @@ object AuralAttributeImpl {
                                                     (implicit val context: AuralContext[S])
     extends ExprImpl[S, FadeSpec] {
 
-    def tpe: Obj.Type = FadeSpec.Obj
+    // def tpe: Obj.Type = FadeSpec.Obj
 
     type Repr = FadeSpec.Obj[S]
 
@@ -448,7 +448,7 @@ object AuralAttributeImpl {
                                                    (implicit val context: AuralContext[S])
     extends ExprImpl[S, FadeSpec] {
 
-    def tpe: Obj.Type = FadeSpec.Obj
+    // def tpe: Obj.Type = FadeSpec.Obj
 
     type Repr = ExprLike[S, FadeSpec]
 
@@ -494,7 +494,7 @@ object AuralAttributeImpl {
                                                         (implicit val context: AuralContext[S])
     extends ExprImpl[S, Vec[Double]] with NumericExprImpl[S, Vec[Double]] {
 
-    def tpe: Obj.Type = DoubleVector
+    // def tpe: Obj.Type = DoubleVector
 
     type Repr = DoubleVector[S]
 
@@ -517,7 +517,7 @@ object AuralAttributeImpl {
                                                         (implicit val context: AuralContext[S])
     extends ExprImpl[S, Vec[Double]] with NumericExprImpl[S, Vec[Double]] {
 
-    def tpe: Obj.Type = DoubleVector
+    // def tpe: Obj.Type = DoubleVector
 
     type Repr = ExprLike[S, Vec[Double]]
 
@@ -560,7 +560,7 @@ object AuralAttributeImpl {
                                                         (implicit val context: AuralContext[S])
     extends ExprImpl[S, Vec[Int]] with NumericExprImpl[S, Vec[Int]] {
 
-    def tpe: Obj.Type = IntVector
+    // def tpe: Obj.Type = IntVector
 
     type Repr = IntVector[S]
 
@@ -583,7 +583,7 @@ object AuralAttributeImpl {
                                                        (implicit val context: AuralContext[S])
     extends ExprImpl[S, Vec[Int]] with NumericExprImpl[S, Vec[Int]] {
 
-    def tpe: Obj.Type = IntVector
+    // def tpe: Obj.Type = IntVector
 
     type Repr = ExprLike[S, Vec[Int]]
 
@@ -606,7 +606,7 @@ object AuralAttributeImpl {
   private abstract class DummyBase[S <: Sys[S]](val key: String)
     extends AuralAttribute[S] with DummyObservableImpl[S] {
 
-    final def tpe: Obj.Type = throw new UnsupportedOperationException("DummyAttribute.tpe")
+    // final def tpe: Obj.Type = throw new UnsupportedOperationException("DummyAttribute.tpe")
 
     final def preferredNumChannels(implicit tx: S#Tx): Int = 0
 

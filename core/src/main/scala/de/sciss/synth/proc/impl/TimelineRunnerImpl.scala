@@ -34,7 +34,7 @@ object TimelineRunnerImpl {
 
     override def toString = s"Runner.Timeline${hashCode().toHexString}"
 
-    def tpe: Obj.Type = Timeline
+    // def tpe: Obj.Type = Timeline
 
     private[this] val schToken = Ref(-1)
 

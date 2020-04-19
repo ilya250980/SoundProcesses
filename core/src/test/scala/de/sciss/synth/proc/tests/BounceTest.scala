@@ -28,7 +28,7 @@ object BounceTest {
 
       verify()
 
-      val config = Config(realtime = realtime(), inMemory = inMemory())
+      val config: Config = Config(realtime = realtime(), inMemory = inMemory())
     }
 
     import p.config._

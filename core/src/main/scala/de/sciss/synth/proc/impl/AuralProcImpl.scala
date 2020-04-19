@@ -134,7 +134,7 @@ object AuralProcImpl {
     final def state      (implicit tx: S#Tx): Runner.State = currentStateRef()
     final def targetState(implicit tx: S#Tx): Runner.State = targetStateRef ().completed
 
-    private def state_=(value: Runner.State)(implicit tx: S#Tx): Unit = {
+    private def state_=(value: Runner.State)(implicit tx: S#Tx): Unit = { // IntelliJ highlight bug -- it is used
       val old = currentStateRef.swap(value)
       if (value != old) {
         fire(value)
@@ -157,9 +157,9 @@ object AuralProcImpl {
       val attr = proc.attr
       observers ::= attr.changed.react { implicit tx => upd => upd.changes.foreach {
         case Obj.AttrAdded   (key, value) => attrAdded  (key, value)
-        case Obj.AttrRemoved (key, value) => attrRemoved(key, value)
-        case Obj.AttrReplaced(key, before, now) =>
-          attrRemoved(key, before)
+        case Obj.AttrRemoved (key, _ /*value*/) => attrRemoved(key /*, value*/)
+        case Obj.AttrReplaced(key, _ /*before*/, now) =>
+          attrRemoved(key /*, before*/)
           attrAdded  (key, now   )
       }}
 
@@ -267,7 +267,7 @@ object AuralProcImpl {
       }
     }
 
-    private def attrRemoved(key: String, value: Obj[S])(implicit tx: S#Tx): Unit = {
+    private def attrRemoved(key: String /*, value: Obj[S]*/)(implicit tx: S#Tx): Unit = {
       logA(s"AttrRemoved from ${procCached()} ($key)")
       auralAttrMap.remove(key).foreach { view =>
         ports(AuralObj.Proc.AttrRemoved(this, view))
@@ -475,7 +475,7 @@ object AuralProcImpl {
         throw new IllegalStateException(s"Unsupported input attribute buffer source $value")
     }
 
-    private def requestInputBufferFromExpr(key: String, ex: IExpr[S, _])(implicit tx: S#Tx): UGB.Input.Buffer.Value =
+    private def requestInputBufferFromExpr(/*key: String,*/ ex: IExpr[S, _])(implicit tx: S#Tx): UGB.Input.Buffer.Value =
       ex.value match {
         case v: Vec[_] if v.forall(_.isInstanceOf[Double]) =>
           UGB.Input.Buffer.Value(numFrames = v.size.toLong, numChannels = 1, async = false)
@@ -549,7 +549,7 @@ object AuralProcImpl {
         val value0: UGB.Input.Stream.Value =
           runnerAttr.get(aKey) match {
             case Some(ex: IExpr[S, _]) =>
-              requestAttrStreamValueFromExpr(aKey, ex)
+              requestAttrStreamValueFromExpr(/*aKey,*/ ex)
             case Some(a) =>
               sys.error(s"Cannot use attribute $a as an audio stream")
             case None =>
@@ -581,7 +581,7 @@ object AuralProcImpl {
         val aKey      = i.name
         val res0: UGB.Input.Buffer.Value = runnerAttr.get(aKey) match {
           case Some(ex: IExpr[S, _]) =>
-            requestInputBufferFromExpr(aKey, ex)
+            requestInputBufferFromExpr(/*aKey,*/ ex)
           case Some(a) =>
             throw new IllegalStateException(s"Unsupported input attribute buffer source $a")
           case None =>
@@ -666,12 +666,12 @@ object AuralProcImpl {
       }
     }
 
-    private def requestAttrStreamValueFromExpr(key: String, ex: IExpr[S, _])
+    private def requestAttrStreamValueFromExpr(/*key: String,*/ ex: IExpr[S, _])
                                         (implicit tx: S#Tx): UGB.Input.Stream.Value = {
       ex.value match {
-        case sq: Vec[_] if (sq.forall(_.isInstanceOf[Double])) =>
+        case sq: Vec[_] if sq.forall(_.isInstanceOf[Double]) =>
           simpleInputStreamValue(sq.size)
-        case sq: Vec[_] if (sq.forall(_.isInstanceOf[Int])) =>
+        case sq: Vec[_] if sq.forall(_.isInstanceOf[Int]) =>
           simpleInputStreamValue(sq.size)
         case a: AudioCue =>
           val spec = a.spec
@@ -920,7 +920,7 @@ object AuralProcImpl {
       buildState match {
         case s: UGB.Complete[S] =>
           state match {
-            case Stopped   => prepareAndLaunch(s, tr)
+            case Stopped   => prepareAndLaunch(s /*, tr*/)
             case Prepared  => launch          (s, tr)
             case _ =>
           }
@@ -936,8 +936,8 @@ object AuralProcImpl {
       if (state === Running) return
 
       (buildState, targetStateRef()) match {
-        case (s: UGB.Complete[S], tp: TargetPlaying) =>
-          prepareAndLaunch(s, tp.shiftTo(sched.time))
+        case (s: UGB.Complete[S], _ /*tp*/: TargetPlaying) =>
+          prepareAndLaunch(s /*, tp.shiftTo(sched.time)*/)
         case _ =>
       }
     }
@@ -1072,7 +1072,7 @@ object AuralProcImpl {
     }
 
     // ---- asynchronous preparation ----
-    private def prepareAndLaunch(ugen: UGB.Complete[S], timeRef: TimeRef)(implicit tx: S#Tx): Unit = {
+    private def prepareAndLaunch(ugen: UGB.Complete[S] /*, timeRef: TimeRef*/)(implicit tx: S#Tx): Unit = {
       val p = procCached()
       logA(s"begin prepare $p (${hashCode.toHexString})")
 

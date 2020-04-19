@@ -132,18 +132,24 @@ object BusNodeSetter {
   }
 
   private sealed trait AudioSetterLike extends ImplLike {
-    final def busChanged(b: SAudioBus, isDummy: Boolean)(implicit tx: Txn): Unit =
+    _: AudioBus.User =>
+
+    final override def busChanged(b: SAudioBus, isDummy: Boolean)(implicit tx: Txn): Unit =
       if (node.isOnline) node.set(controlName -> b.index)
   }
 
   private sealed trait ControlSetterLike extends ImplLike {
-    final def busChanged(b: SControlBus)(implicit tx: Txn): Unit =
+    _: ControlBus.User =>
+
+    final override def busChanged(b: SControlBus)(implicit tx: Txn): Unit =
       if (node.isOnline) node.set(controlName -> b.index)
   }
 
   // implements `busChanged` in terms of a `mapan` command
   private trait AudioMapperLike extends ImplLike {
-    final def busChanged(b: SAudioBus, isDummy: Boolean)(implicit tx: Txn): Unit = {
+    _: AudioBus.User =>
+
+    final override def busChanged(b: SAudioBus, isDummy: Boolean)(implicit tx: Txn): Unit = {
 //      val value: ControlABusMap = if (isDummy) controlName -> -1 else controlName -> b
 //      node.mapan(true, value)
 
@@ -157,7 +163,9 @@ object BusNodeSetter {
   }
 
   private sealed trait ControlMapperLike extends ImplLike {
-    final def busChanged(b: SControlBus)(implicit tx: Txn): Unit =
+    _: ControlBus.User =>
+
+    final override def busChanged(b: SControlBus)(implicit tx: Txn): Unit =
       node.mapn(controlName -> b)
   }
 

@@ -94,7 +94,7 @@ object AuralEnvSegmentAttribute extends Factory with StartLevelViewFactory {
     private[this] val _endLevel = Ref(Option.empty[SegmentEnd[S]])
     private[this] val _grObs    = Ref(Disposable.empty[S#Tx])
 
-    def tpe: Obj.Type = EnvSegment.Obj
+    // def tpe: Obj.Type = EnvSegment.Obj
 
     type Repr = AuralEnvSegmentAttribute.Repr[S]
 

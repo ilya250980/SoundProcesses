@@ -16,7 +16,7 @@ package de.sciss.synth.proc.impl
 import de.sciss.lucre.expr.{Context, IControl}
 import de.sciss.lucre.stm
 import de.sciss.lucre.stm.TxnLike.peer
-import de.sciss.lucre.stm.{Obj, Sys, UndoManager}
+import de.sciss.lucre.stm.{Sys, UndoManager}
 import de.sciss.synth.proc.Runner.{Attr, Failed, Prepared, Running, Stopped}
 import de.sciss.synth.proc.{Control, ExprContext, Runner, Universe}
 
@@ -35,7 +35,8 @@ object ControlRunnerImpl {
     private[this] val ctlRef  = Ref(Option.empty[Try[IControl[S]]])
     private[this] val attrRef = Ref(Context.emptyAttr[S])(NoManifest)
 
-    def tpe: Obj.Type = Control
+    // XXX TODO --- should unify Runner and ObjViewBase
+    // def tpe: Obj.Type = Control
 
     def stop()(implicit tx: S#Tx): Unit = {
       disposeData()

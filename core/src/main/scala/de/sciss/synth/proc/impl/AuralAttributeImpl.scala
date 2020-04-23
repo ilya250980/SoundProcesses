@@ -24,7 +24,7 @@ import de.sciss.synth.proc.Runner.{Prepared, Running, State, Stopped}
 import de.sciss.synth.proc.{AuralAttribute, AuralContext, ControlValuesView, EnvSegment, FadeSpec, Grapheme, Output, StartLevelViewFactory, TimeRef, Timeline}
 import de.sciss.synth.ugen.ControlValues
 
-import scala.collection.immutable.{IndexedSeq => Vec}
+import scala.collection.immutable.{IndexedSeq => Vec, Seq => ISeq}
 import scala.concurrent.stm.Ref
 
 object AuralAttributeImpl {
@@ -55,19 +55,21 @@ object AuralAttributeImpl {
   }
 
   def expr[S <: Sys[S], A](key: String, value: IExpr[S, A], observer: Observer[S])
-                          (implicit tx: S#Tx, context: AuralContext[S]): AuralAttribute[S] = 
-    value.value match {
+                          (implicit tx: S#Tx, context: AuralContext[S]): AuralAttribute[S] = {
+    val v = value.value
+    v match {
       case _: Int       => IntExprLike      (key, value.asInstanceOf[ExprLike[S, Int      ]], observer)
       case _: Double    => DoubleExprLike   (key, value.asInstanceOf[ExprLike[S, Double   ]], observer)
       case _: Boolean   => BooleanExprLike  (key, value.asInstanceOf[ExprLike[S, Boolean  ]], observer)
       case _: FadeSpec  => FadeSpecExprLike (key, value.asInstanceOf[ExprLike[S, FadeSpec ]], observer)
-      case sq: Vec[_] if sq.forall(_.isInstanceOf[Double]) =>
-        DoubleVectorExprLike (key, value.asInstanceOf[ExprLike[S, Vec[Double]]], observer)
-      case sq: Vec[_] if sq.forall(_.isInstanceOf[Int]) =>
-        IntVectorExprLike    (key, value.asInstanceOf[ExprLike[S, Vec[Int]   ]], observer)
+      case sq: ISeq[_] if sq.forall(_.isInstanceOf[Double]) =>
+        DoubleVectorExprLike (key, value.asInstanceOf[ExprLike[S, ISeq[Double]]], observer)
+      case sq: ISeq[_] if sq.forall(_.isInstanceOf[Int]) =>
+        IntVectorExprLike    (key, value.asInstanceOf[ExprLike[S, ISeq[Int]   ]], observer)
       case _ => 
         Console.err.println(s"Warning: AuralAttribute - no factory for $value")
         new DummyExprLike(key, value)
+    }
   }
 
   private[this] var map = Map[Int, Factory](
@@ -508,27 +510,27 @@ object AuralAttributeImpl {
   }
 
   private[this] object DoubleVectorExprLike {
-    def apply[S <: Sys[S]](key: String, value: ExprLike[S, Vec[Double]], observer: Observer[S])
+    def apply[S <: Sys[S]](key: String, value: ExprLike[S, ISeq[Double]], observer: Observer[S])
                           (implicit tx: S#Tx, context: AuralContext[S]): AuralAttribute[S] =
       new DoubleVectorExprLike(key, value).init(value)
   }
 
-  private final class DoubleVectorExprLike[S <: Sys[S]](val key: String, _obj: ExprLike[S, Vec[Double]])
+  private final class DoubleVectorExprLike[S <: Sys[S]](val key: String, _obj: ExprLike[S, ISeq[Double]])
                                                         (implicit val context: AuralContext[S])
-    extends ExprImpl[S, Vec[Double]] with NumericExprImpl[S, Vec[Double]] {
+    extends ExprImpl[S, ISeq[Double]] with NumericExprImpl[S, ISeq[Double]] {
 
     // def tpe: Obj.Type = DoubleVector
 
-    type Repr = ExprLike[S, Vec[Double]]
+    type Repr = ExprLike[S, ISeq[Double]]
 
     def preferredNumChannels(implicit tx: S#Tx): Int = mkValue0(_obj.value).size
 
-    def mkValue(in: Vec[Double]): Scalar = mkValue0(in)
+    def mkValue(in: ISeq[Double]): Scalar = mkValue0(in)
 
     // no element type to avoid runtime class-cast-exceptions
-    private def mkValue0(in: Vec[_]): Vec[Float] = in.collect {
+    private def mkValue0(in: ISeq[_]): Vec[Float] = in.iterator.collect {
       case d: Double => d.toFloat
-    }
+    } .toIndexedSeq
 
     def obj(implicit tx: S#Tx): Repr = _obj
 
@@ -574,27 +576,27 @@ object AuralAttributeImpl {
   }
 
   private[this] object IntVectorExprLike {
-    def apply[S <: Sys[S]](key: String, value: ExprLike[S, Vec[Int]], observer: Observer[S])
+    def apply[S <: Sys[S]](key: String, value: ExprLike[S, ISeq[Int]], observer: Observer[S])
                           (implicit tx: S#Tx, context: AuralContext[S]): AuralAttribute[S] =
       new IntVectorExprLike(key, value).init(value)
   }
 
-  private final class IntVectorExprLike[S <: Sys[S]](val key: String, _obj: ExprLike[S, Vec[Int]])
+  private final class IntVectorExprLike[S <: Sys[S]](val key: String, _obj: ExprLike[S, ISeq[Int]])
                                                        (implicit val context: AuralContext[S])
-    extends ExprImpl[S, Vec[Int]] with NumericExprImpl[S, Vec[Int]] {
+    extends ExprImpl[S, ISeq[Int]] with NumericExprImpl[S, ISeq[Int]] {
 
     // def tpe: Obj.Type = IntVector
 
-    type Repr = ExprLike[S, Vec[Int]]
+    type Repr = ExprLike[S, ISeq[Int]]
 
     def preferredNumChannels(implicit tx: S#Tx): Int = mkValue0(_obj.value).size
 
-    def mkValue(in: Vec[Int]): Scalar = mkValue0(in)
+    def mkValue(in: ISeq[Int]): Scalar = mkValue0(in)
 
     // no element type to avoid runtime class-cast-exceptions
-    private def mkValue0(in: Vec[_]): Vec[Float] = in.collect {
+    private def mkValue0(in: ISeq[_]): Vec[Float] = in.iterator.collect {
       case d: Int => d.toFloat
-    }
+    } .toIndexedSeq
 
     def obj(implicit tx: S#Tx): Repr = _obj
 

@@ -883,19 +883,32 @@ object AuralProcImpl {
           nr.addUser(resp)
 
         case UGB.Input.DiskOut.Value(numCh) =>
-          val rb = procCached().attr.get(key).fold[Buffer] {
-            sys.error(s"Missing attribute $key for disk-out artifact")
-          } {
-            case a: Artifact[S] =>
-              val artifact  = a
-              val f         = artifact.value.absolute
-              val ext       = f.ext.toLowerCase
-              val tpe       = AudioFileType.writable.find(_.extensions.contains(ext)).getOrElse(AudioFileType.AIFF)
-              val _buf      = Buffer.diskOut(server)(path = f.path, fileType = tpe, numChannels = numCh)
-              _buf
-
-            case a => sys.error(s"Cannot use attribute $a as an artifact")
+          // XXX TODO ugly ugly ugly
+          val f: File = runnerAttr.get(key) match {
+            case Some(ex: IExpr[S, _]) =>
+              ex.value match {
+                case a: File => a
+                case a =>
+                  sys.error(s"Cannot use attribute $a as disk-out artifact")
+              }
+            case Some(a) =>
+              sys.error(s"Cannot use attribute $a as disk-out artifact")
+            case None =>
+              val valueOpt = procCached().attr.get(key)
+              valueOpt.fold[File] {
+                sys.error(s"Missing attribute $key for disk-out artifact")
+              } {
+                case a: Artifact[S] => a.value.absolute
+                case a => sys.error(s"Cannot use attribute $a as an artifact")
+              }
           }
+          val rb: Buffer = {
+            val ext       = f.ext.toLowerCase
+            val tpe       = AudioFileType.writable.find(_.extensions.contains(ext)).getOrElse(AudioFileType.AIFF)
+            val _buf      = Buffer.diskOut(server)(path = f.path, fileType = tpe, numChannels = numCh)
+            _buf
+          }
+
           val ctlName    = graph.DiskOut.controlName(key)
           nr.addControl(ctlName -> rb.id)
           val late = Buffer.disposeWithNode(rb, nr)

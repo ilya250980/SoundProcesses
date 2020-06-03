@@ -21,6 +21,7 @@ import de.sciss.model
 import de.sciss.serial.{DataInput, Serializer}
 import de.sciss.synth.proc.impl.{EnsembleImpl => Impl}
 
+@deprecated("Should only use Folder now with Control/Action", since = "3.35.3")
 object Ensemble extends Obj.Type {
   final val typeId = 0x10007
 
@@ -50,6 +51,7 @@ object Ensemble extends Obj.Type {
   * from stopped to playing, the `offset` member determines
   * the "seek" position.
   */
+@deprecated("Should only use Folder now with Control/Action", since = "3.35.3")
 trait Ensemble[S <: Sys[S]] extends Obj[S] with Publisher[S, Ensemble.Update[S]] {
   def folder (implicit tx: S#Tx): Folder /* Elem.Obj */ [S]
   def offset (implicit tx: S#Tx): LongObj[S]

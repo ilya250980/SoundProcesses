@@ -18,7 +18,7 @@ import de.sciss.lucre.stm
 import de.sciss.lucre.stm.{Folder, Obj}
 import de.sciss.lucre.synth.Sys
 import de.sciss.synth.proc.AuralObj.Factory
-import de.sciss.synth.proc.{Action, ActionRaw, AuralContext, AuralObj, Ensemble, Proc, Runner, TimeRef, Timeline}
+import de.sciss.synth.proc.{Action, ActionRaw, AuralContext, AuralObj, Control, Ensemble, Proc, Runner, TimeRef, Timeline}
 
 object AuralObjImpl {
   private val sync = new AnyRef
@@ -43,6 +43,7 @@ object AuralObjImpl {
   private var factoryMap = Map[Int, Factory](
     Action    .typeId -> AuralObj.Action,
     ActionRaw .typeId -> AuralObj.ActionRaw,
+    Control   .typeId -> AuralObj.Control,
     Ensemble  .typeId -> AuralObj.Ensemble,
     Folder    .typeId -> AuralObj.Folder,
     Proc      .typeId -> AuralObj.Proc,

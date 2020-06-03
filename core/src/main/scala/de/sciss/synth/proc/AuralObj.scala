@@ -19,10 +19,10 @@ import de.sciss.lucre.stm
 import de.sciss.lucre.stm.{Obj, Sys, TxnLike}
 import de.sciss.lucre.synth.{NodeRef, Sys => SSys}
 import de.sciss.synth.proc
-import de.sciss.synth.proc.impl.{AuralActionImpl, AuralActionRawImpl, AuralEnsembleImpl, AuralFolderImpl, AuralProcImpl, AuralTimelineImpl, AuralObjImpl => Impl}
+import de.sciss.synth.proc.impl.{AuralActionImpl, AuralActionRawImpl, AuralControlImpl, AuralEnsembleImpl, AuralFolderImpl, AuralProcImpl, AuralTimelineImpl, AuralObjImpl => Impl}
 
 object AuralObj {
-  import proc.{Action => _Action, ActionRaw => _ActionRaw, Ensemble => _Ensemble, Proc => _Proc, Timeline => _Timeline}
+  import proc.{Action => _Action, ActionRaw => _ActionRaw, Control => _Control, Ensemble => _Ensemble, Proc => _Proc, Timeline => _Timeline}
   import stm.{Folder => _Folder}
 
   trait Factory {
@@ -217,6 +217,21 @@ object AuralObj {
   }
   trait Action[S <: Sys[S]] extends AuralObj[S] {
     type Repr = _Action[S]
+  }
+
+  // ---- action ----
+
+  object Control extends AuralObj.Factory {
+    type Repr[S <: Sys[S]] = _Control[S]
+
+    def tpe: Obj.Type = _Control
+
+    def apply[S <: SSys[S]](obj: _Control[S], attr: Runner.Attr[S])
+                           (implicit tx: S#Tx, context: AuralContext[S]): AuralObj.Control[S] =
+      AuralControlImpl(obj, attr)
+  }
+  trait Control[S <: Sys[S]] extends AuralObj[S] {
+    type Repr = _Control[S]
   }
 
   // ---- action-raw (OBSOLETE) ----

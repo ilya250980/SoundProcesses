@@ -16,7 +16,7 @@ package de.sciss.synth.proc.impl
 import de.sciss.lucre.event.impl.ObservableImpl
 import de.sciss.lucre.stm
 import de.sciss.lucre.stm.TxnLike.peer
-import de.sciss.lucre.stm.{Cursor, Disposable, Obj, Workspace}
+import de.sciss.lucre.stm.{Cursor, Disposable, Folder, Obj, Workspace}
 import de.sciss.lucre.synth.{Sys => SSys}
 import de.sciss.synth.proc.Runner.Factory
 import de.sciss.synth.proc.{Action, ActionRaw, AuralSystem, Control, GenContext, Proc, Runner, Scheduler, Timeline, Universe}
@@ -31,6 +31,8 @@ object RunnerUniverseImpl {
     Action    .typeId -> Runner.Action,
     ActionRaw .typeId -> Runner.ActionRaw,
     Control   .typeId -> Runner.Control,
+    // Ensemble  .typeId -> Runner.Ensemble,
+    Folder    .typeId -> Runner.Folder,
     Proc      .typeId -> Runner.Proc,
     Timeline  .typeId -> Runner.Timeline,
   )

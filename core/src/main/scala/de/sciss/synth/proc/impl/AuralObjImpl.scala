@@ -18,35 +18,35 @@ import de.sciss.lucre.stm
 import de.sciss.lucre.stm.{Folder, Obj}
 import de.sciss.lucre.synth.Sys
 import de.sciss.synth.proc.AuralObj.Factory
-import de.sciss.synth.proc.{ActionRaw, AuralContext, AuralObj, Ensemble, Proc, Runner, TimeRef, Timeline}
+import de.sciss.synth.proc.{Action, ActionRaw, AuralContext, AuralObj, Ensemble, Proc, Runner, TimeRef, Timeline}
 
 object AuralObjImpl {
   private val sync = new AnyRef
 
   def addFactory(f: Factory): Unit = sync.synchronized {
     val tid = f.tpe.typeId
-    if (map.contains(tid)) throw new IllegalArgumentException(s"View factory for type $tid already installed")
-    map += tid -> f
+    if (factoryMap.contains(tid)) throw new IllegalArgumentException(s"View factory for type $tid already installed")
+    factoryMap += tid -> f
   }
 
-  def factories: Iterable[Factory] = map.values
+  def factories: Iterable[Factory] = factoryMap.values
 
   def apply[S <: Sys[S]](obj: Obj[S], attr: Runner.Attr[S])(implicit tx: S#Tx, context: AuralContext[S]): AuralObj[S] = {
     val tid = obj.tpe.typeId
-    val opt: Option[Factory] = map.get(tid)
+    val opt: Option[Factory] = factoryMap.get(tid)
     opt.fold[AuralObj[S]](Generic(obj)) { f =>
       f.apply[S](obj.asInstanceOf[f.Repr[S]], attr = attr)
     }
   }
 
-  private var map = scala.Predef.Map[Int, Factory](
-    // AudioGrapheme   .typeId -> AudioGrapheme,
-    Folder          .typeId -> AuralObj.Folder,
-    Proc            .typeId -> AuralObj.Proc, // AuralProcImpl
-    Timeline        .typeId -> AuralObj.Timeline,
-    Ensemble        .typeId -> AuralObj.Ensemble,
-    ActionRaw          .typeId -> AuralObj.ActionRaw
-    // Code            .typeId -> Code,
+  // XXX TODO: we should have one map -- in RunnerUniverseImpl -- and give up AuralObj.Factory ?
+  private var factoryMap = Map[Int, Factory](
+    Action    .typeId -> AuralObj.Action,
+    ActionRaw .typeId -> AuralObj.ActionRaw,
+    Ensemble  .typeId -> AuralObj.Ensemble,
+    Folder    .typeId -> AuralObj.Folder,
+    Proc      .typeId -> AuralObj.Proc,
+    Timeline  .typeId -> AuralObj.Timeline,
   )
 
   // -------- Generic --------

@@ -28,13 +28,11 @@ object RunnerUniverseImpl {
   private val sync = new AnyRef
 
   private var factoryMap = Map[Int, Factory](
-//    Folder          .typeId -> AuralObj.Folder,
-    Proc            .typeId -> Runner.Proc,
-    Timeline        .typeId -> Runner.Timeline,
-//    Ensemble        .typeId -> AuralObj.Ensemble,
-    Control         .typeId -> Runner.Control,
-    Action          .typeId -> Runner.Action,
-    ActionRaw          .typeId -> Runner.ActionRaw
+    Action    .typeId -> Runner.Action,
+    ActionRaw .typeId -> Runner.ActionRaw,
+    Control   .typeId -> Runner.Control,
+    Proc      .typeId -> Runner.Proc,
+    Timeline  .typeId -> Runner.Timeline,
   )
 
   def addFactory(f: Factory): Unit = sync.synchronized {

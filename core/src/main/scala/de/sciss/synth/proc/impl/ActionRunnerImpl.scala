@@ -27,6 +27,17 @@ object ActionRunnerImpl {
   def apply[S <: Sys[S]](obj: Action[S])(implicit tx: S#Tx, universe: Universe[S]): Runner[S] =
     new Impl(tx.newHandle(obj))
 
+//  private[impl] def tryExpand[S <: Sys[S]](objH: stm.Source[S#Tx, Action[S]], attr: Context.Attr[S],
+//                                           runner: Option[Runner.Internal[S]])
+//                                          (implicit tx: S#Tx, universe: Universe[S]): Try[IAction[S] with IControl[S]] = {
+//    val ctl   = objH()
+//    implicit val u: UndoManager[S]  = UndoManager()
+//    implicit val ctx: Context[S]    = ExprContext[S](Some(objH), attr, runner)
+//    val g     = ctl.graph.value
+//    val res   = Try(g.expand[S])
+//    res
+//  }
+
   private final class Impl[S <: Sys[S]](objH: stm.Source[S#Tx, Action[S]])(implicit val universe: Universe[S])
     extends BasicRunnerInternalImpl[S] {
 

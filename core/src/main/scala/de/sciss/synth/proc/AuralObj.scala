@@ -19,10 +19,10 @@ import de.sciss.lucre.stm
 import de.sciss.lucre.stm.{Obj, Sys, TxnLike}
 import de.sciss.lucre.synth.{NodeRef, Sys => SSys}
 import de.sciss.synth.proc
-import de.sciss.synth.proc.impl.{AuralActionImpl, AuralEnsembleImpl, AuralFolderImpl, AuralProcImpl, AuralTimelineImpl, AuralObjImpl => Impl}
+import de.sciss.synth.proc.impl.{AuralActionImpl, AuralActionRawImpl, AuralEnsembleImpl, AuralFolderImpl, AuralProcImpl, AuralTimelineImpl, AuralObjImpl => Impl}
 
 object AuralObj {
-  import proc.{ActionRaw => _ActionRaw, Ensemble => _Ensemble, Proc => _Proc, Timeline => _Timeline}
+  import proc.{Action => _Action, ActionRaw => _ActionRaw, Ensemble => _Ensemble, Proc => _Proc, Timeline => _Timeline}
   import stm.{Folder => _Folder}
 
   trait Factory {
@@ -206,6 +206,22 @@ object AuralObj {
 
   // ---- action ----
 
+  object Action extends AuralObj.Factory {
+    type Repr[S <: Sys[S]] = _Action[S]
+
+    def tpe: Obj.Type = _Action
+
+    def apply[S <: SSys[S]](obj: _Action[S], attr: Runner.Attr[S])
+                           (implicit tx: S#Tx, context: AuralContext[S]): AuralObj.Action[S] =
+      AuralActionImpl(obj, attr)
+  }
+  trait Action[S <: Sys[S]] extends AuralObj[S] {
+    type Repr = _Action[S]
+  }
+
+  // ---- action-raw (OBSOLETE) ----
+
+  @deprecated("Action should be used instead of ActionRaw", since = "3.35.3")
   object ActionRaw extends AuralObj.Factory {
     type Repr[S <: Sys[S]] = _ActionRaw[S]
 
@@ -213,7 +229,7 @@ object AuralObj {
 
     def apply[S <: SSys[S]](obj: _ActionRaw[S], attr: Runner.Attr[S])
                            (implicit tx: S#Tx, context: AuralContext[S]): AuralObj.ActionRaw[S] =
-      AuralActionImpl(obj, attr)
+      AuralActionRawImpl(obj, attr)
   }
   trait ActionRaw[S <: Sys[S]] extends AuralObj[S] {
     type Repr = _ActionRaw[S]

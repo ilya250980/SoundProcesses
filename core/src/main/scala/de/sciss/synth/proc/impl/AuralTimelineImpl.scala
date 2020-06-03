@@ -16,6 +16,7 @@ package de.sciss.synth.proc.impl
 import de.sciss.lucre.bitemp.BiGroup
 import de.sciss.lucre.data.SkipOctree
 import de.sciss.lucre.event.impl.ObservableImpl
+import de.sciss.lucre.expr.Context
 import de.sciss.lucre.geom.{LongPoint2D, LongSpace}
 import de.sciss.lucre.stm
 import de.sciss.lucre.stm.{DummySerializerFactory, Obj}
@@ -32,11 +33,12 @@ object AuralTimelineImpl {
   def apply[S <: Sys[S]](timeline: Timeline[S], attr: Runner.Attr[S])
                         (implicit tx: S#Tx, context: AuralContext[S]): AuralObj.Timeline[S] = {
     val system  = tx.system
-    val res     = prepare[S, system.I](timeline, system)  // XXX TODO: should we pass on `attr`?
+    val res     = prepare[S, system.I](timeline, system, attr)
     res.init(timeline)
   }
 
-  private def prepare[S <: Sys[S], I1 <: stm.Sys[I1]](timeline: Timeline[S], system: S { type I = I1 })
+  private def prepare[S <: Sys[S], I1 <: stm.Sys[I1]](timeline: Timeline[S], system: S { type I = I1 },
+                                                      attr: Context.Attr[S])
                                                      (implicit tx: S#Tx, context: AuralContext[S]): Impl[S, I1] = {
     implicit val iSys: S#Tx => I1#Tx = system.inMemoryTx
     implicit val itx: I1#Tx = iSys(tx)
@@ -46,19 +48,20 @@ object AuralTimelineImpl {
 
     val tree = SkipOctree.empty[I1, LongSpace.TwoDim, Leaf[S]](BiGroup.MaxSquare)
 
-    val res = new Impl[S, I1](tx.newHandle(timeline), tree)
+    val res = new Impl[S, I1](tx.newHandle(timeline), tree, attr)
     res
   }
 
   private final class Impl[S <: Sys[S], I <: stm.Sys[I]](objH: stm.Source[S#Tx, Timeline[S]],
-                                                         protected val tree: SkipOctree[I, LongSpace.TwoDim, Leaf[S]])
+                                                         protected val tree: SkipOctree[I, LongSpace.TwoDim, Leaf[S]],
+                                                         attr: Context.Attr[S])
                                                         (implicit protected val context: AuralContext[S],
                                                          protected val iSys: S#Tx => I#Tx)
     extends AuralTimelineBase[S, I, Unit, AuralObj[S]] with AuralObj.Timeline.Manual[S] { impl =>
 
     override type Repr = Timeline[S]
 
-    protected def makeViewElem(obj: Obj[S])(implicit tx: S#Tx): AuralObj[S] = AuralObj(obj)
+    protected def makeViewElem(obj: Obj[S])(implicit tx: S#Tx): AuralObj[S] = AuralObj(obj, attr)
 
     def obj(implicit tx: S#Tx): Timeline[S] = objH()
 

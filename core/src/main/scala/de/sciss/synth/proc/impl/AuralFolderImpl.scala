@@ -21,7 +21,7 @@ import de.sciss.synth.proc.{AuralContext, AuralObj, Runner, TimeRef, Transport}
 object AuralFolderImpl {
   def apply[S <: Sys[S]](folder: Folder[S], attr: Runner.Attr[S])
                         (implicit tx: S#Tx, context: AuralContext[S]): AuralObj.Folder[S] = {
-    val transport = Transport[S](context)
+    val transport = Transport[S](context, attr)
     folder.iterator.foreach(transport.addObject)  // XXX TODO: should we pass `attr`?
     new Impl(tx.newHandle(folder), transport).init(folder)
   }

@@ -14,6 +14,7 @@
 package de.sciss.synth.proc.impl
 
 import de.sciss.lucre.event.impl.ObservableImpl
+import de.sciss.lucre.expr.Context
 import de.sciss.lucre.stm
 import de.sciss.lucre.stm.{IdentifierMap, Obj, TxnLike}
 import de.sciss.lucre.synth.Sys
@@ -24,29 +25,36 @@ import de.sciss.synth.proc.{AuralContext, AuralObj, Scheduler, TimeRef, Transpor
 import scala.concurrent.stm.{Ref, TSet}
 
 object TransportImpl {
-  def apply[S <: Sys[S]](universe: Universe[S])(implicit tx: S#Tx): Transport[S] = {
+  // XXX TODO in next major version: remove overloaded methods without `attr`
+  def apply[S <: Sys[S]](universe: Universe[S])(implicit tx: S#Tx): Transport[S] =
+    apply(universe, Context.emptyAttr[S])
+
+  def apply[S <: Sys[S]](universe: Universe[S], attr: Context.Attr[S])(implicit tx: S#Tx): Transport[S] = {
     implicit val u: Universe[S] = universe
-    val res = mkTransport()
+    val res = mkTransport(attr)
     res.connectAuralSystem()
     res
   }
 
-  def apply[S <: Sys[S]](context: AuralContext[S])(implicit tx: S#Tx): Transport[S] = {
+  def apply[S <: Sys[S]](context: AuralContext[S])(implicit tx: S#Tx): Transport[S] =
+    apply(context, Context.emptyAttr[S])
+
+  def apply[S <: Sys[S]](context: AuralContext[S], attr: Context.Attr[S])(implicit tx: S#Tx): Transport[S] = {
     import context.universe
-    val res = mkTransport()
+    val res = mkTransport(attr)
     res.auralStartedTx()(tx, context)
     res
   }
 
-  private def mkTransport[S <: Sys[S]]()(implicit tx: S#Tx, universe: Universe[S]): Impl[S] = {
+  private def mkTransport[S <: Sys[S]](attr: Context.Attr[S])(implicit tx: S#Tx, universe: Universe[S]): Impl[S] = {
     val objMap  = tx.newInMemoryIdMap[stm.Source[S#Tx, Obj[S]]]
     val viewMap = tx.newInMemoryIdMap[AuralObj[S]]
     // (new Throwable).printStackTrace()
-    new Impl(objMap, viewMap)
+    new Impl(objMap, viewMap, attr)
   }
 
   private final class Impl[S <: Sys[S]](objMap : IdentifierMap[S#Id, S#Tx, stm.Source[S#Tx, Obj[S]]],
-                                        viewMap: IdentifierMap[S#Id, S#Tx, AuralObj[S]])
+                                        viewMap: IdentifierMap[S#Id, S#Tx, AuralObj[S]], attr: Context.Attr[S])
                                        (implicit val universe: Universe[S])
     extends Transport[S] with ObservableImpl[S, Transport.Update[S]] with AuralSystemTxBridge[S] {
 
@@ -172,7 +180,7 @@ object TransportImpl {
     private def mkTimeRef()(implicit tx: S#Tx) = TimeRef(Span.from(0L), offset = position)
 
     private def mkView(obj: Obj[S])(implicit tx: S#Tx, context: AuralContext[S]): AuralObj[S] = {
-      val view = AuralObj(obj)
+      val view = AuralObj(obj, attr)
       viewMap.put(obj.id, view)
       viewSet.add(view)
       fire(Transport.ViewAdded(this, view))

@@ -178,6 +178,7 @@ object AuralObj {
     def getView(obj: Obj[S])(implicit tx: S#Tx): Option[AuralObj[S]]
   }
 
+  @deprecated("Should only use Folder now with Control/Action", since = "3.35.3")
   object Ensemble extends AuralObj.Factory {
     type Repr[S <: Sys[S]] = _Ensemble[S]
 
@@ -187,6 +188,7 @@ object AuralObj {
                            (implicit tx: S#Tx, context: AuralContext[S]): AuralObj.Ensemble[S] =
       AuralEnsembleImpl(obj, attr)
   }
+  @deprecated("Should only use Folder now with Control/Action", since = "3.35.3")
   trait Ensemble[S <: Sys[S]] extends FolderLike[S, Ensemble[S]] {
     type Repr = _Ensemble[S]
   }

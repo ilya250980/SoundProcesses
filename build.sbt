@@ -42,10 +42,14 @@ lazy val deps = new {
     val topology            = "1.1.2"
     val ugens               = "1.19.6"
   }
+
+  val views = new {
+    val scalaColliderSwing = "1.41.7-SNAPSHOT"
+  }
   
   val test = new {
     val bdb                = "bdb"  // "bdb" or "bdb6" or "bdb7"
-    val scalaColliderSwing = "1.41.6"
+    def scalaColliderSwing: String = views.scalaColliderSwing
     val scalaTest          = "3.1.2"
     val scallop            = "3.4.0"
     val submin             = "0.3.4"
@@ -130,6 +134,7 @@ lazy val views = project.withId(s"$baseNameL-views").in(file("views"))
       "de.sciss"        %% "lucre-swing"              % deps.main.lucreSwing,
       "de.sciss"        %% "swingplus"                % deps.main.swingPlus,
       "de.sciss"        %% "audiowidgets-app"         % deps.main.audioWidgets,
+      "de.sciss"        %% "scalacolliderswing-core"  % deps.views.scalaColliderSwing,
       "org.scala-lang"  %  "scala-reflect"            % scalaVersion.value,
       "de.sciss"        %  "submin"                   % deps.test.submin    % Test,
       "de.sciss"        %% s"lucre-${deps.test.bdb}"  % deps.main.lucre     % Test,

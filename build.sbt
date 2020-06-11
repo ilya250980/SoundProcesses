@@ -44,7 +44,7 @@ lazy val deps = new {
   }
 
   val views = new {
-    val scalaColliderSwing = "1.41.7-SNAPSHOT"
+    val scalaColliderSwing = "1.41.7"
   }
   
   val test = new {

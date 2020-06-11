@@ -19,6 +19,7 @@ import de.sciss.lucre.swing.LucreSwing._
 import de.sciss.lucre.swing.impl.ComponentHolder
 import de.sciss.lucre.synth.{AudioBus, Buffer, Bus, ControlBus, Group, Server, Synth, Txn}
 import de.sciss.synth.swing.j.AbstractScopePanel
+import de.sciss.synth.swing.j.JScopeView.Config
 import de.sciss.synth.{AddAction, SynthGraph, addToTail, AudioBus => SAudioBus, Bus => SBus, ControlBus => SControlBus}
 
 import scala.concurrent.stm.{Ref, atomic}
@@ -140,19 +141,27 @@ object Oscilloscope {
         val gr = SynthGraph {
           panel.mkSynthGraph(_bus)
         }
-        val b         = Buffer(server)(numFrames = panel.bufferSize, numChannels = numChannels)
+        val useFrames = panel.bufferSize
+        val s         = _bus.server
+        // this is a bit tricky; we don't know the buffer and node at this point, so we have to copy the object
+        val cfg0      = Config.default(s, bufId = -1, useFrames = useFrames, numChannels = numChannels, nodeId = -1)
+        val bufFrames = cfg0.bufFrames
+        val b         = Buffer(server)(numFrames = bufFrames, numChannels = numChannels)
+        val trFreq    = Config.defaultTrigFreq(s)
         val syn       = Synth.play(gr, nameHint = Some("scope"))(target = target,
-          args = List("out" -> _bus.index, "buf" -> b.id), addAction = addAction, dependencies = b :: Nil)
+          args = List("out" -> _bus.index, "buf" -> b.id, "freq" -> trFreq),
+          addAction = addAction, dependencies = b :: Nil)
+        val cfg       = cfg0.copy(bufId = b.id, nodeId = syn.peer.id)
         syn.onEndTxn { implicit tx => b.dispose() }
         synRef()      = Some(syn)
 
         deferTx {
-          panel.view.buffer = b.peer
+          panel.view.config = cfg
         }
 
       } else {
         deferTx {
-          panel.view.buffer = null
+          panel.view.config = Config.Empty
         }
       }
       oldSyn.foreach(_.dispose())

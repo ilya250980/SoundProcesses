@@ -29,7 +29,7 @@ object Runner {
   sealed trait State {
     def id: Int
 
-    /** Stopped or completed. */
+    /** Stopped, failed or done. */
     def idle: Boolean
 
     def done          : Boolean

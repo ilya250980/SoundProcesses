@@ -15,121 +15,39 @@ package de.sciss.synth.proc.impl
 
 import de.sciss.lucre.expr.{Context, IControl}
 import de.sciss.lucre.stm
-import de.sciss.lucre.stm.TxnLike.peer
-import de.sciss.lucre.stm.{Disposable, Sys, UndoManager}
-import de.sciss.synth.proc.Runner.{Attr, Failed, Prepared, Running, Stopped}
-import de.sciss.synth.proc.{Control, ExprContext, Runner, Universe}
+import de.sciss.lucre.stm.Sys
+import de.sciss.synth.proc.Runner.{Failed, Running}
+import de.sciss.synth.proc.{Control, Runner, Universe}
 
-import scala.concurrent.stm.Ref
 import scala.util.{Failure, Success, Try}
 
 object ControlRunnerImpl {
   def apply[S <: Sys[S]](obj: Control[S])(implicit tx: S#Tx, universe: Universe[S]): Runner[S] =
     new Impl(tx.newHandle(obj))
 
-  private final class Impl[S <: Sys[S]](objH: stm.Source[S#Tx, Control[S]])(implicit val universe: Universe[S])
-    extends BasicRunnerInternalImpl[S] {
-
-    type Repr = Control[S]
-
-    private type CtlCtx = (Try[IControl[S]], Disposable[S#Tx])
-
-    private[this] val ctlRef  = Ref(Option.empty[CtlCtx])
-    private[this] val attrRef = Ref(Context.emptyAttr[S])(NoManifest)
-
-    // XXX TODO --- should unify Runner and ObjViewBase
-    // def tpe: Obj.Type = Control
-
-    def stop()(implicit tx: S#Tx): Unit = {
-      disposeData()
-      state = Stopped
-    }
+  private final class Impl[S <: Sys[S]](objH: stm.Source[S#Tx, Control[S]])(implicit universe: Universe[S])
+    extends BasicControlRunnerImpl[S, IControl[S]](objH) {
 
     override def toString = s"Runner.Control${hashCode().toHexString}"
 
-    override protected def disposeData()(implicit tx: S#Tx): Unit = {
-      super.disposeData()
-      attrRef() = Context.emptyAttr
-      disposeCtl()
-    }
-
-    private def disposeCtl()(implicit tx: S#Tx): Unit =
-      ctlRef.swap(None) match {
-        case Some((_, ctx)) =>
-//          tr.foreach(_.dispose())
-          ctx.dispose()
-        case _ =>
-      }
-
-    def prepare(attr: Attr[S])(implicit tx: S#Tx): Unit = {
-      def ok(): Unit = {
-        attrRef() = attr
-        val tr    = mkRef()
-        state = tr match {
-          case Success(_)   => Prepared
-          case Failure(ex)  => Failed(ex)
-        }
-      }
-
-      state match {
-        case Stopped  => ok()
-        case Prepared =>
-
-        case _ => // running or done/failed; go back to square one
-          // stop()
-          // prepare(attr)
-          disposeData()
-          ok()
-      }
-    }
-
-    def run()(implicit tx: S#Tx): Unit = {
-      def ok(): Unit = {
-        mkRef()
-        runWithRef()
-      }
-
-      state match {
-        case Stopped  => ok()
-        case Prepared => runWithRef()
-
-        case Running =>
-
-        case _ => // done/failed; go back to square one
-//          stop()
-//          run()
-          disposeData()
-          ok()
-      }
-    }
-
-    private def runWithRef()(implicit tx: S#Tx): Unit = {
-      val ctlOpt = ctlRef()
-      ctlOpt.foreach { case (tr, _) =>
+    protected def run(tr: Try[IRepr])(implicit tx: S#Tx): Unit = {
+      val tr1 = tr.flatMap { c =>
         state = Running
-        val tr1 = tr.flatMap { c =>
-          Try(c.initControl())
-        }
-        tr1 match {
-          // do not set Running here; we do that initially (above),
-          // and if the logic stops `ThisRunner`, the state
-          // will already have been set.
-          case Success(_)   => // Running
-          case Failure(ex)  => state = Failed(ex)
-        }
+        Try(c.initControl())
+      }
+      tr1 match {
+        // do not set Running here; we do that initially (above),
+        // and if the logic stops `ThisRunner`, the state
+        // will already have been set.
+        case Success(_)   => // Running
+        case Failure(ex)  => state = Failed(ex)
       }
     }
 
-    private def mkRef()(implicit tx: S#Tx): Try[IControl[S]] = {
-      disposeCtl()
-      val ctl   = objH()
-      implicit val u: UndoManager[S]  = UndoManager()
-      val attr  = attrRef()
-      implicit val ctx: Context[S]    = ExprContext(Some(objH), attr, Some(this))
-      val g     = ctl.graph.value
-      val res   = Try(g.expand[S])
-      ctlRef()  = Some((res, ctx))
-      res
+    protected def expandGraph()(implicit tx: S#Tx, ctx: Context[S]): IRepr = {
+      val ctl = objH()
+      val g   = ctl.graph.value
+      g.expand[S]
     }
   }
 }

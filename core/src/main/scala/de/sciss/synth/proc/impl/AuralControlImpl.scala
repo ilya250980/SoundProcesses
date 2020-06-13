@@ -13,16 +13,16 @@
 
 package de.sciss.synth.proc.impl
 
-import de.sciss.lucre.expr.{Context, IControl}
+import de.sciss.lucre.expr.Context
 import de.sciss.lucre.stm
-import de.sciss.lucre.stm.{Obj, Sys, UndoManager}
+import de.sciss.lucre.stm.TxnLike.peer
+import de.sciss.lucre.stm.{Disposable, Obj, Sys, UndoManager}
 import de.sciss.lucre.synth.{Sys => SSys}
 import de.sciss.synth.proc.{AuralContext, AuralObj, Control, ExprContext, Runner, TimeRef, Universe}
-import de.sciss.lucre.stm.TxnLike.peer
 
 import scala.concurrent.stm.Ref
-import scala.util.{Failure, Success, Try}
 import scala.util.control.NonFatal
+import scala.util.{Failure, Success, Try}
 
 object AuralControlImpl extends AuralObj.Factory {
   type Repr[S <: Sys[S]]  = Control[S]
@@ -40,7 +40,7 @@ object AuralControlImpl extends AuralObj.Factory {
 
     implicit def universe: Universe[S] = context.universe
 
-    private[this] val ctlRef = Ref(Option.empty[IControl[S]])
+    private[this] val ctlCtxRef = Ref[Disposable[S#Tx]](Disposable.empty)
 
     override type Repr = Control[S]
 
@@ -58,7 +58,7 @@ object AuralControlImpl extends AuralObj.Factory {
       implicit val ctx: Context[S]    = ExprContext(Some(objH), attr, None) // XXX TODO --- we lose Runner.Internal here
       val g   = ctl.graph.value
       val ct  = Try(g.expand[S])
-      ctlRef.swap(ct.toOption).foreach(_.dispose())
+      ctlCtxRef.swap(ctx).dispose()
       ct match {
         case Success(c) =>
           state = Runner.Running
@@ -66,9 +66,11 @@ object AuralControlImpl extends AuralObj.Factory {
             c.initControl()
           } catch {
             case NonFatal(ex) =>
+              disposeCtlCtx()
               state = Runner.Failed(ex)
           }
         case Failure(ex) =>
+          disposeCtlCtx()
           state = Runner.Failed(ex)
       }
     }
@@ -76,14 +78,14 @@ object AuralControlImpl extends AuralObj.Factory {
     override def toString = s"AuralControl@${hashCode().toHexString}"
 
     def stop()(implicit tx: S#Tx): Unit = {
-      disposeCtl()
+      disposeCtlCtx()
       state = Runner.Stopped
     }
 
-    private def disposeCtl()(implicit tx: S#Tx): Unit =
-      ctlRef.swap(None).foreach(_.dispose())
+    private def disposeCtlCtx()(implicit tx: S#Tx): Unit =
+      ctlCtxRef.swap(Disposable.empty).dispose()
 
     def dispose()(implicit tx: S#Tx): Unit =
-      disposeCtl()
+      disposeCtlCtx()
   }
 }

@@ -32,7 +32,9 @@ object ControlRunnerImpl {
 
     type Repr = Control[S]
 
-    private[this] val ctlRef  = Ref(Option.empty[Try[IControl[S]]])
+    private type Ctl = (Try[IControl[S]], Context[S])
+
+    private[this] val ctlRef  = Ref(Option.empty[Ctl])
     private[this] val attrRef = Ref(Context.emptyAttr[S])(NoManifest)
 
     // XXX TODO --- should unify Runner and ObjViewBase
@@ -53,7 +55,9 @@ object ControlRunnerImpl {
 
     private def disposeCtl()(implicit tx: S#Tx): Unit =
       ctlRef.swap(None) match {
-        case Some(Success(c)) => c.dispose()
+        case Some((tr, ctx)) =>
+          tr.foreach(_.dispose())
+          ctx.dispose()
         case _ =>
       }
 
@@ -100,8 +104,8 @@ object ControlRunnerImpl {
     }
 
     private def runWithRef()(implicit tx: S#Tx): Unit = {
-      val trOpt = ctlRef()
-      trOpt.foreach { tr =>
+      val ctlOpt = ctlRef()
+      ctlOpt.foreach { case (tr, _) =>
         state = Running
         val tr1 = tr.flatMap { c =>
           Try(c.initControl())
@@ -124,7 +128,7 @@ object ControlRunnerImpl {
       implicit val ctx: Context[S]    = ExprContext(Some(objH), attr, Some(this))
       val g     = ctl.graph.value
       val res   = Try(g.expand[S])
-      ctlRef()  = Some(res)
+      ctlRef()  = Some((res, ctx))
       res
     }
   }

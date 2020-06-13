@@ -37,6 +37,8 @@ object AudioCue {
   private object TypeImpl extends AbstractExObjBridgeImpl[_AudioCue, _AudioCue, _AudioCue.Obj](_AudioCue.Obj)
     with HasDefault[_AudioCue] with Adjunct.Factory {
 
+    override def toString: String = "AudioCue"
+
     type A                = _AudioCue
     type _Ex[S <: Sys[S]] = _AudioCue.Obj[S]
     import _AudioCue.{Obj => tpe}

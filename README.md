@@ -1,15 +1,15 @@
 # SoundProcesses
 
 [![Gitter](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/Sciss/Mellite?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
-[![Build Status](https://travis-ci.org/Sciss/SoundProcesses.svg?branch=master)](https://travis-ci.org/Sciss/SoundProcesses)
+[![Build Status](https://travis-ci.org/Sciss/SoundProcesses.svg?branch=main)](https://travis-ci.org/Sciss/SoundProcesses)
 [![Maven Central](https://maven-badges.herokuapp.com/maven-central/de.sciss/soundprocesses_2.13/badge.svg)](https://maven-badges.herokuapp.com/maven-central/de.sciss/soundprocesses_2.13)
 
 ## statement
 
 SoundProcesses is an extension for ScalaCollider to describe, create and manage sound processes in the Scala 
 programming language. It is (C)opyright 2010&ndash;2020 by Hanns Holger Rutz. All rights reserved. SoundProcesses 
-is released under the [GNU Affero General Public License](https://git.iem.at/sciss/SoundProcesses/raw/master/LICENSE) v3+
-and comes with absolutely no warranties. To contact the author, send an email to `contact at sciss.de`.
+is released under the [GNU Affero General Public License](https://git.iem.at/sciss/SoundProcesses/raw/main/LICENSE) v3+
+and comes with absolutely no warranties. To contact the author, send an e-mail to `contact at sciss.de`.
 
 Further reading:
 
@@ -20,7 +20,7 @@ For tutorials, see the [Mellite website](https://www.sciss.de/mellite/tutorials.
 ## building
 
 SoundProcesses builds with sbt and Scala 2.13, 2.12 (last version to support Scala 2.11 was 3.31.0).
-The dependencies should be downloaded automatically from maven central repository.
+The dependencies should be downloaded automatically from Maven Central repository.
 
 ## linking
 
@@ -28,7 +28,7 @@ The following dependency is necessary:
 
     "de.sciss" %% "soundprocesses" % v
 
-The current version `v` is `"3.35.4"`.
+The current version `v` is `"3.35.5"`.
 
 The following sub modules are available:
 

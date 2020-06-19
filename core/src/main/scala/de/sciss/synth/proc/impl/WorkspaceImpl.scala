@@ -157,7 +157,7 @@ object WorkspaceImpl {
 
     } { implicit tx =>
       val c   = Cursors[S, S#D](confluent.Access.root[S])
-      c.name_=("master")
+      c.name_=("root")
       c
     }
 

@@ -58,7 +58,7 @@ object Bounce {
     def client: Client.ConfigLike
 
     /** An arbitrary function may be provided which is called when the server is initialized (logical time zero).
-      * This entry is typically used to set up extra routing synths, master volume, etc.
+      * This entry is typically used to set up extra routing synths, main volume, etc.
       */
     def beforePrepare: (S#Tx, Server) => Unit
     def beforePlay   : (S#Tx, Server) => Unit

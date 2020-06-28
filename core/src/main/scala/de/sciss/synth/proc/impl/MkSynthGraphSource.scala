@@ -291,17 +291,19 @@ object MkSynthGraphSource {
           case op: BinaryOpUGen.Op =>
             val opS = op.methodName // uncapitalize(op.name)
             val Seq(_, a, b) = args
-            //            val a = if ((opS == "min" || opS == "max") && line.args(1).value.isInstanceOf[Constant])
-            //              s"Constant(${a0}f)"
-            //            else a0
-            s"$a $opS $b"
+            // there is trouble with constants because not all operations
+            // are defined on plain numbers (e.g. `.hypot`) and not all
+            // operations on numbers yield numbers (e.g. `<=`)
+            if (line.args(1).value.isInstanceOf[Constant]) s"($a: GE) $opS $b" else s"$a $opS $b"
         }
       } else if (line.elemName == "UnaryOpUGen") {
         line.args.head.value match {
           case op: UnaryOpUGen.Op =>
-            val opS = op.methodName //uncapitalize(op.name)
+            val opS = op.methodName
             val Seq(_, a) = args
-            s"$a.$opS"
+            // there is trouble with constants because not all operations
+            // are defined on plain numbers (e.g. `.sCurve`)
+            if (line.args(1).value.isInstanceOf[Constant]) s"($a: GE).$opS" else s"$a.$opS"
         }
       } else {
         val cons      = if (line.constructor == "apply") "" else s".${line.constructor}"

@@ -77,7 +77,7 @@ object Bounce {
       val bnc                 = proc.Bounce[S]()
       val specV               = spec.value
       val objV                = obj.value
-      val objH                = objV.flatMap(_.peer[S].map(tx.newHandle(_: stm.Obj[S])))
+      val objH                = objV.iterator.flatMap(_.peer[S].map(tx.newHandle(_: stm.Obj[S]))).toList
       cfg.group               = objH
       // Application.applyAudioPreferences(cfg.server, cfg.client, useDevice = false, pickPort = false)
 //      applyAudioPreferences(cfg.server, cfg.client)

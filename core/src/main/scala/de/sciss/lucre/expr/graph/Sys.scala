@@ -19,6 +19,7 @@ import de.sciss.equal.Implicits._
 import de.sciss.file.File
 import de.sciss.lucre.event.impl.{DummyObservableImpl, IChangeGenerator}
 import de.sciss.lucre.event.{IChangeEvent, IPull, ITargets}
+import de.sciss.lucre.expr.graph.impl.MappedIExpr
 import de.sciss.lucre.expr.{Context, Graph, IExpr}
 import de.sciss.lucre.stm.Sys
 import de.sciss.lucre.stm.TxnLike.peer
@@ -34,6 +35,46 @@ import scala.sys.process.{Process => SProcess}
 
 /** Access to operating system functions. */
 object Sys {
+  private final class ExpandedProperty[S <: Sys[S]](key: IExpr[S, String], tx0: S#Tx)
+                                                   (implicit targets: ITargets[S])
+    extends MappedIExpr[S, String, Option[String]](key, tx0) {
+
+    protected def mapValue(inValue: String)(implicit tx: S#Tx): Option[String] =
+      sys.props.get(inValue)
+  }
+
+  /** A system property. */
+  final case class Property(key: Ex[String]) extends Ex[Option[String]] {
+    override def productPrefix: String = s"Sys$$Property" // serialization
+
+    type Repr[S <: Sys[S]] = IExpr[S, Option[String]]
+
+    protected def mkRepr[S <: Sys[S]](implicit ctx: Context[S], tx: S#Tx): Repr[S] = {
+      import ctx.targets
+      new ExpandedProperty[S](key.expand[S], tx)
+    }
+  }
+
+  private final class ExpandedEnv[S <: Sys[S]](key: IExpr[S, String], tx0: S#Tx)
+                                                   (implicit targets: ITargets[S])
+    extends MappedIExpr[S, String, Option[String]](key, tx0) {
+
+    protected def mapValue(inValue: String)(implicit tx: S#Tx): Option[String] =
+      sys.env.get(inValue)
+  }
+
+  /** An environment variable. */
+  final case class Env(key: Ex[String]) extends Ex[Option[String]] {
+    override def productPrefix: String = s"Sys$$Env" // serialization
+
+    type Repr[S <: Sys[S]] = IExpr[S, Option[String]]
+
+    protected def mkRepr[S <: Sys[S]](implicit ctx: Context[S], tx: S#Tx): Repr[S] = {
+      import ctx.targets
+      new ExpandedEnv[S](key.expand[S], tx)
+    }
+  }
+
   /** A shell process. */
   object Process {
 

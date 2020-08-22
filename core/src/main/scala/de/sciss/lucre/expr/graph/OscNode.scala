@@ -239,7 +239,7 @@ object OscUdpNode {
             }
 
             def fireAll(pp: osc.Packet): Unit =
-              p match {
+              pp match {
                 case m: osc.Message => fire1(m)
                 case b: osc.Bundle  =>
                   b.packets.foreach(fireAll)

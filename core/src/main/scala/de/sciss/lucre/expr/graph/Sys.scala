@@ -20,7 +20,8 @@ import de.sciss.file.File
 import de.sciss.lucre.event.impl.{DummyObservableImpl, IChangeGenerator}
 import de.sciss.lucre.event.{IChangeEvent, IPull, ITargets}
 import de.sciss.lucre.expr.graph.impl.MappedIExpr
-import de.sciss.lucre.expr.{Context, Graph, IExpr}
+import de.sciss.lucre.expr.impl.IActionImpl
+import de.sciss.lucre.expr.{Context, Graph, IAction, IExpr}
 import de.sciss.lucre.stm.Sys
 import de.sciss.lucre.stm.TxnLike.peer
 import de.sciss.lucre.synth
@@ -53,6 +54,24 @@ object Sys {
       import ctx.targets
       new ExpandedProperty[S](key.expand[S], tx)
     }
+  }
+
+  private final class ExpandedExit[S <: Sys[S]](code: IExpr[S, Int]) extends IActionImpl[S] {
+    def executeAction()(implicit tx: S#Tx): Unit = {
+      val codeV = code.value
+      tx.afterCommit {
+        sys.exit(codeV)
+      }
+    }
+  }
+
+  final case class Exit(code: Ex[Int] = 0) extends Act {
+    override def productPrefix: String = s"Sys$$Exit" // serialization
+
+    type Repr[S <: Sys[S]] = IAction[S]
+
+    protected def mkRepr[S <: Sys[S]](implicit ctx: Context[S], tx: S#Tx): Repr[S] =
+      new ExpandedExit[S](code.expand[S])
   }
 
   private final class ExpandedEnv[S <: Sys[S]](key: IExpr[S, String], tx0: S#Tx)

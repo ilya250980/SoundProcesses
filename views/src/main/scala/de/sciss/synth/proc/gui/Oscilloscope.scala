@@ -51,8 +51,8 @@ object Oscilloscope {
     with AudioBus   .User
     with ControlBus .User {
 
-    private[this] val busRef  = Ref.make[Bus]
-    private[this] val tgtRef  = Ref.make[Group]
+    private[this] val busRef  = Ref.make[Bus]()
+    private[this] val tgtRef  = Ref.make[Group]()
     private[this] val aaRef   = Ref[AddAction](addToTail)
     private[this] val synRef  = Ref(Option.empty[Synth])
     private[this] var panel: PanelImpl = _

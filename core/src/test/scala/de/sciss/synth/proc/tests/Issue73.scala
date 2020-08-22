@@ -35,7 +35,7 @@ class Issue73[S <: Sys[S]](val system: S)(implicit cursor: stm.Cursor[S]) {
   println(s"numFrames ${specIn.numFrames}; numChannels ${specIn.numChannels}") // numFrames 208338; numChannels 1
 
   val groupH: Source[S#Tx, Timeline.Modifiable[S]] = cursor.step { implicit tx =>
-    val proc      = Proc[S]
+    val proc      = Proc[S]()
     proc.name     = "issue"
     proc.graph()  = SynthGraph {
       import de.sciss.numbers.Implicits._
@@ -50,7 +50,7 @@ class Issue73[S <: Sys[S]](val system: S)(implicit cursor: stm.Cursor[S]) {
     val artIn = Artifact(locIn, fIn)
     val cueIn = AudioCue.Obj(artIn, specIn, 0L, 1.0)
     proc.attr.put("in", cueIn)
-    val group     = Timeline[S]
+    val group     = Timeline[S]()
     group.add(Span(frame(0.0), frame(durBounceSec)), proc)
     tx.newHandle(group)
   }

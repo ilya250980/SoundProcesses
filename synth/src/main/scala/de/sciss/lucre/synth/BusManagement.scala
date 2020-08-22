@@ -343,7 +343,7 @@ object Bus {
   }
 
   private abstract class BasicAudioImpl extends AbstractAudioImpl {
-    final protected val bus: Ref[AudioBusHolder] = Ref.make[AudioBusHolder]
+    final protected val bus: Ref[AudioBusHolder] = Ref.make[AudioBusHolder]()
 
     final def busOption(implicit tx: Txn): Option[SAudioBus] = {
       val bh = bus()
@@ -532,7 +532,7 @@ object Bus {
   private final class ControlImpl(val server: Server, val numChannels: Int) extends ControlBus {
     import ControlBus.{User => CU}
 
-    private val bus     = Ref.make[ControlBusHolder]
+    private val bus     = Ref.make[ControlBusHolder]()
     private val readers = Ref(Set.empty[CU])
     private val writers = Ref(Set.empty[CU])
 

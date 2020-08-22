@@ -24,10 +24,10 @@ class Issue15 extends ConfluentEventSpec {
 
     // ---- we create the "workspace" ----
     val (fH, pObjH, tlH, _ /* timedIdH */ , _ /* spanH */) = system.step { implicit tx =>
-      val p         = Proc[S]
+      val p         = Proc[S]()
       val pObj      = p // Obj(Proc.Elem(p))
       // pObj.attr // initialize for debugger
-      val tl        = Timeline[S]
+      val tl        = Timeline[S]()
       val span      = SpanLikeObj.newConst[S](Span(0L, 10000L)): SpanLikeObj[S] // Expr[S, SpanLike]
       val timed     = tl.add(span, pObj)
       val _pObjH    = tx.newHandle(pObj)
@@ -36,7 +36,7 @@ class Issue15 extends ConfluentEventSpec {
       val _timedIdH = tx.newHandle(timed.id)(Identifier.serializer[S])
       // import SpanLikeObj.serializer
       val _spanH    = tx.newHandle(span)
-      val f         = Folder[S]
+      val f         = Folder[S]()
       val tlObj     = tl // Obj(Timeline.Elem(tl))
       f.addLast(tlObj)
       implicit val fSer: Serializer[S#Tx, S#Acc, Folder[S]] = Folder.serializer[S]

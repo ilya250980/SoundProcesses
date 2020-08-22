@@ -19,7 +19,7 @@ import impl.{SchedulerImpl => Impl}
 
 object Scheduler {
   /** Creates a real-time scheduler. */
-  def apply[S <: Sys[S]]()(implicit tx: S#Tx, cursor: stm.Cursor[S]): Scheduler[S] = Impl[S]
+  def apply[S <: Sys[S]]()(implicit tx: S#Tx, cursor: stm.Cursor[S]): Scheduler[S] = Impl[S]()
 
   /** Creates a non-real-time scheduler. */
   def offline[S <: Sys[S]](implicit tx: S#Tx, cursor: stm.Cursor[S]): Offline[S] = Impl.offline[S]

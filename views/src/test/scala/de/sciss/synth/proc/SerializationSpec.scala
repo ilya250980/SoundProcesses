@@ -26,7 +26,7 @@ class SerializationSpec extends FixtureAnyFlatSpec with Matchers {
 
   "An Widget object" should "be serializable" in { cursor =>
     val (wH, gIn) = cursor.step { implicit tx =>
-      val w = Widget[S]
+      val w = Widget[S]()
       val g = WGraph {
         import expr.ExImport._
         import wgraph._

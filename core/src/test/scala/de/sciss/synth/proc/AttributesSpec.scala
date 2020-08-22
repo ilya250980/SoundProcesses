@@ -19,7 +19,7 @@ class AttributesSpec extends ConfluentEventSpec {
 
   "Attrs" should "serialize and de-serialize" in { system =>
     val pH = system.step { implicit tx =>
-      val p     = Proc[S]
+      val p     = Proc[S]()
       val obj   = p // Obj(peer)
       obj.attr.put("foo", IntObj.newVar[S](1234))
       tx.newHandle(obj)
@@ -58,7 +58,7 @@ class AttributesSpec extends ConfluentEventSpec {
       val art = Artifact(loc, Artifact.Child("bar")) // loc.add(file("foo") / "bar")
       attr.put("audio"  , AudioCue.Obj(art, spec, offset = n, gain = d))
       attr.put("loc",     loc)
-      val group = Timeline[S]
+      val group = Timeline[S]()
       attr.put("group",   group)
       // implicit val groupSer = ProcGroup.Modifiable.serializer[S]
       tx.newHandle(group)

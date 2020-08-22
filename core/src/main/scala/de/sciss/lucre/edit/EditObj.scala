@@ -39,7 +39,7 @@ object EditObj {
         val valueOpt = attrIn.get(Proc.mainIn).collect {
           case op: proc.Output[S] => op
           case fIn: Folder[S] =>
-            val fOut = Folder[S]
+            val fOut = Folder[S]()
             fIn.iterator.foreach { op => fOut.addLast(op) }
             fOut
         }

@@ -67,7 +67,7 @@ class ActionGraphTest[S <: Sys[S]]()(implicit cursor: stm.Cursor[S]) {
     println(" ok.")
 
     cursor.step { implicit tx =>
-      val p = Proc[S]
+      val p = Proc[S]()
       // import ExprImplicits._
 
       p.graph() = SynthGraph {

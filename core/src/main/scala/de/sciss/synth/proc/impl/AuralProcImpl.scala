@@ -750,7 +750,7 @@ object AuralProcImpl {
         // XXX DIRTY HACK
         val offset1 = if (key.contains("!rnd")) {
           val fOffset = cue.fileOffset
-          fOffset + (math.random * (spec.numFrames - fOffset)).toLong
+          fOffset + (math.random() * (spec.numFrames - fOffset)).toLong
         } else {
           offsetT
         }
@@ -824,7 +824,7 @@ object AuralProcImpl {
             }
             val bufAndGain = buildAttrStreamInput(nr = nr, timeRef = timeRef, key = key,
               info = info, idx = idx, bufSize = bufSize)
-            nr.addControl(ctlName -> Seq[Float](bufAndGain.buf.id, bufAndGain.gain): ControlSet)
+            nr.addControl(ctlName -> Seq[Float](bufAndGain.buf.id.toFloat, bufAndGain.gain): ControlSet)
             val late = Buffer.disposeWithNode(bufAndGain.buf, nr)
             nr.addResource(late)
           }

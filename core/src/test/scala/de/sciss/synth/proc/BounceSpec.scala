@@ -90,7 +90,7 @@ abstract class BounceSpec extends FixtureAsyncFlatSpec with Matchers {
       } {
         case f: Folder[S] => f.addLast(`this`)
         case prev =>
-          val f = Folder[S]
+          val f = Folder[S]()
           f.addLast(prev)
           f.addLast(`this`)
           attr.put(key, f)
@@ -118,7 +118,7 @@ abstract class BounceSpec extends FixtureAsyncFlatSpec with Matchers {
   def seconds(frames: Long  ): Double = frames / TimeRef.SampleRate
 
   def proc(graph: => Unit)(implicit tx: S#Tx): Proc[S] = {
-    val p = Proc[S]
+    val p = Proc[S]()
     val g = SynthGraph {
       graph
     }
@@ -187,7 +187,7 @@ abstract class BounceSpec extends FixtureAsyncFlatSpec with Matchers {
   final def mkLine(len: Int, start: Float = 0f, end: Float = 1f, startFrame: Int = 0, lineLen: Int = 0): Array[Float] = {
     val lineLen0 = if (lineLen == 0) len else lineLen
     import numbers.Implicits._
-    Array.tabulate(len)(i => (i + startFrame).clip(0, lineLen0).linLin(0, lineLen0, start, end))
+    Array.tabulate(len)(i => (i + startFrame).clip(0, lineLen0).linLin(0, lineLen0.toFloat, start, end))
   }
 
   final def mkSilent(len: Int): Array[Float] = new Array(len)

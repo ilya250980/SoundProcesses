@@ -71,7 +71,7 @@ class AuralTests1[S <: Sys[S]](name: String)(implicit cursor: stm.Cursor[S]) ext
         |""".stripMargin)
 
     cursor.step { implicit tx =>
-      val tl = Timeline[S]
+      val tl = Timeline[S]()
 
       val pGen = proc {
         val sig = PinkNoise.ar
@@ -86,7 +86,7 @@ class AuralTests1[S <: Sys[S]](name: String)(implicit cursor: stm.Cursor[S]) ext
         Out.ar(0, Pan2.ar(sig * 0.2))
       }
       pDif.name = "dif"
-      val difIn = Timeline[S]
+      val difIn = Timeline[S]()
       pDif.attr.put(Proc.mainIn, difIn)
 
       val pFlt = proc {
@@ -97,7 +97,7 @@ class AuralTests1[S <: Sys[S]](name: String)(implicit cursor: stm.Cursor[S]) ext
       }
       pFlt.name = "flt"
       val fltOut = pFlt.outputs.add(Proc.mainOut)
-      val fltIn = Timeline[S]
+      val fltIn = Timeline[S]()
       pFlt.attr.put(Proc.mainIn, fltIn)
 
       difIn.add(Span.until(            frame(2.0)), genOut)
@@ -148,7 +148,7 @@ class AuralTests1[S <: Sys[S]](name: String)(implicit cursor: stm.Cursor[S]) ext
       ActionRaw.registerPredef("test.action", body)
       val action = ActionRaw.predef[S]("test.action")
 
-      val tl = Timeline[S]
+      val tl = Timeline[S]()
 
       def time(sec: Double) = Span(frame(sec), frame(sec + 0.1))
 
@@ -187,14 +187,14 @@ class AuralTests1[S <: Sys[S]](name: String)(implicit cursor: stm.Cursor[S]) ext
         Out.ar(0, Pan2.ar(sin * 0.1))
       }
 
-      val tl = Timeline[S]
+      val tl = Timeline[S]()
       tl.add(Span.from(frame(4.0)), p)
 
       import numbers.Implicits._
       def freq(midi: Int)(implicit tx: S#Tx) = DoubleObj.newConst[S](midi.midiCps)
 
-      val gr = Grapheme[S]
-      val in = Grapheme[S]
+      val gr = Grapheme[S]()
+      val in = Grapheme[S]()
       gr.add(frame(-1.0), freq(100))
       gr.add(frame( 0.0), freq( 70))
       gr.add(frame( 1.0), freq( 72))
@@ -218,7 +218,7 @@ class AuralTests1[S <: Sys[S]](name: String)(implicit cursor: stm.Cursor[S]) ext
       after(10.0) { implicit tx =>
         val p     = pH()
         val attr  = p.attr
-        val gr = Grapheme[S]
+        val gr = Grapheme[S]()
         gr.add(frame(-1.0 + 6.0), freq(100))
         gr.add(frame( 0.0 + 6.0), freq( 78))
         gr.add(frame( 1.0 + 6.0), freq( 76))
@@ -258,7 +258,7 @@ class AuralTests1[S <: Sys[S]](name: String)(implicit cursor: stm.Cursor[S]) ext
       val f1  = DoubleObj.newConst[S](441.0)
       val f2  = out
       val f3  = DoubleObj.newConst[S](661.5)
-      val gr  = Grapheme[S]
+      val gr  = Grapheme[S]()
       gr.add(frame(0.0), f1)
       gr.add(frame(2.0), f2)
       gr.add(frame(6.0), f3)
@@ -311,7 +311,7 @@ class AuralTests1[S <: Sys[S]](name: String)(implicit cursor: stm.Cursor[S]) ext
 //      pin.add(frame(0.0), f1)
 //      pin.add(frame(2.0), f2)
 //      pin.add(frame(8.0), f3)
-      val pin = Timeline[S]
+      val pin = Timeline[S]()
       pin.add(SpanLikeObj.newConst(0.0 -> 2.0), f1)
       pin.add(SpanLikeObj.newConst(2.0 -> 6.0), f2)
       pin.add(SpanLikeObj.newConst(Span.from(frame(6.0))), f3)
@@ -462,9 +462,9 @@ class AuralTests1[S <: Sys[S]](name: String)(implicit cursor: stm.Cursor[S]) ext
 
     cursor.step { implicit tx =>
       val playing = BooleanObj.newVar[S](false)
-      val foldIn  = Folder[S]
+      val foldIn  = Folder[S]()
       val ensIn   = Ensemble[S](foldIn , 0L, true)     // inner ensemble already active
-      val foldOut = Folder[S]
+      val foldOut = Folder[S]()
       val ensOut  = Ensemble[S](foldOut, 0L, playing)  // outer ensemble will be activated later
 
       val gen = proc {
@@ -665,7 +665,7 @@ class AuralTests1[S <: Sys[S]](name: String)(implicit cursor: stm.Cursor[S]) ext
         |""".stripMargin)
 
     val (tr, proc1H, proc2H) = cursor.step { implicit tx =>
-      val p     = Proc[S]
+      val p     = Proc[S]()
       val g     = SynthGraphObj.tape[S]
       p.graph() = g
       val _proc1 = p // Obj(Proc.Elem(p))
@@ -695,9 +695,9 @@ class AuralTests1[S <: Sys[S]](name: String)(implicit cursor: stm.Cursor[S]) ext
       addOutput(_proc1, "out") ~> addScanIn(_proc2, "in")
 
       val _tl = timeline()
-      _tl += (1.0 -> 8.0, _proc1)
+      _tl.add (1.0 -> 8.0, _proc1)
       // _tl += (1.0 -> 6.0, _proc2)
-      _tl += (Span.all, _proc2)
+      _tl.add (Span.all, _proc2)
       val _tr = Transport(context)
       _tr.addObject(_tl)
 
@@ -774,7 +774,7 @@ class AuralTests1[S <: Sys[S]](name: String)(implicit cursor: stm.Cursor[S]) ext
       attr.put("fadeOut", fadeExprOut)
 
       val _tl = timeline()
-      _tl += (2.0 -> 10.0, _proc1)
+      _tl.add (2.0 -> 10.0, _proc1)
       val _tr = Transport(context)
       _tr.addObject(_tl)
       _tr
@@ -829,13 +829,13 @@ class AuralTests1[S <: Sys[S]](name: String)(implicit cursor: stm.Cursor[S]) ext
 
       val _tl = timelineV()
       val tlObj = _tl.obj
-      tlObj += (0.0 -> 10.0, _proc1)
+      tlObj.add (0.0 -> 10.0, _proc1)
       // the problem occurs (occurred! now it's fixed) when we add the scan _before_ creating
       // adding _proc2. like here:
       println("--add scan--")
       addOutput(_proc2, "out") ~> addScanIn(_proc1, "in")
       println("--add proc2--")
-      tlObj += (2.0 ->  4.0, _proc2)
+      tlObj.add (2.0 ->  4.0, _proc2)
       println("--alright--")
       _tl
     }
@@ -932,7 +932,7 @@ class AuralTests1[S <: Sys[S]](name: String)(implicit cursor: stm.Cursor[S]) ext
 
       val _tl = timeline()
 
-      _tl += (10.0 -> 13.0, _proc1)
+      _tl.add (10.0 -> 13.0, _proc1)
 
       val _tr = Transport(context)
       _tr.addObject(_tl)
@@ -995,8 +995,8 @@ class AuralTests1[S <: Sys[S]](name: String)(implicit cursor: stm.Cursor[S]) ext
 
       val _tl   = timelineV()
       val tlObj = _tl.obj
-      tlObj += (1.0 -> 3.0, _view1)
-      tlObj += (2.0 -> 4.0, _view2)
+      tlObj.add (1.0 -> 3.0, _view1)
+      tlObj.add (2.0 -> 4.0, _view2)
       val it = tlObj.debugList
       println("--debug print--")
       println(it)
@@ -1029,7 +1029,7 @@ class AuralTests1[S <: Sys[S]](name: String)(implicit cursor: stm.Cursor[S]) ext
             Out.ar(0, sig)
           }
 
-          tlObj += (3.5 -> 8.5, _view3.obj)
+          tlObj.add (3.5 -> 8.5, _view3.obj)
 
           val _view4 = procV {
             val sig  = PinkNoise.ar(0.5)

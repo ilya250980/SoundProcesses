@@ -42,7 +42,7 @@ object Control extends Obj.Type {
     Code    .init()
   }
 
-  def apply[S <: Sys[S]]()(implicit tx: S#Tx): Control[S] = Impl[S]
+  def apply[S <: Sys[S]]()(implicit tx: S#Tx): Control[S] = Impl[S]()
 
   def read[S <: Sys[S]](in: DataInput, access: S#Acc)(implicit tx: S#Tx): Control[S] = Impl.read(in, access)
 

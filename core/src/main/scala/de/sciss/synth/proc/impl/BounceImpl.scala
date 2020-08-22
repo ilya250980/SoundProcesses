@@ -122,7 +122,7 @@ final class BounceImpl[S <: Sys[S] /*, I <: stm.Sys[I] */](val parentUniverse: U
       val pServer = Promise[Server]()
       promiseSync.synchronized { promise = Some(pServer) }
       val (span, scheduler, transport, __aural) = cursor.step { implicit tx =>
-        val _scheduler  = Scheduler[S]
+        val _scheduler  = Scheduler[S]()
         addActions(_scheduler)
         val _span       = config.span
 
@@ -248,8 +248,7 @@ final class BounceImpl[S <: Sys[S] /*, I <: stm.Sys[I] */](val parentUniverse: U
                     }
                   }
               }
-              p.tryCompleteWith(futSync)
-              // p.tryComplete(Success(()))
+              p.completeWith(futSync)
             }
           }
           transport.stop()

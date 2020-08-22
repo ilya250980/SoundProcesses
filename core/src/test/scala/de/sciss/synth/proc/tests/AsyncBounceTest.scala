@@ -41,7 +41,7 @@ object AsyncBounceTest {
       // val expr      = ExprImplicits[S]
       // import ExprImplicits._
 
-      val proc      = Proc[S]
+      val proc      = Proc[S]()
       val peer      = proc // Proc.Elem(proc)
       val obj       = peer // Obj(peer)
       proc.graph() = SynthGraph {
@@ -67,7 +67,7 @@ object AsyncBounceTest {
       val gr      = AudioCue.Obj[S](art, aSpec, 0L, 1.0)
       obj.attr.put("foo", gr)
 
-      val group     = Timeline[S]
+      val group     = Timeline[S]()
       // XXX TODO -- not yet supported: asynchronous objects that begin after the transport position
       // group.add(Span(frame(0.2), frame(0.2 + dur * 0.5)), obj)
       group.add(Span(frame(0.0), frame(0.0 + dur * 0.5)), obj)

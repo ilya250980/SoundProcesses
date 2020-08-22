@@ -34,8 +34,8 @@ class TimelineSerializationSpec extends FixtureAnyFlatSpec with Matchers {
 
   "Timeline" should "serialize and deserialize" in { system =>
     val tH = system.step { implicit tx =>
-      val t = Timeline[S]
-      val p = Proc[S]
+      val t = Timeline[S]()
+      val p = Proc[S]()
       p.name = "Schoko"
       assert(p.name === "Schoko")
       t.add(Span(0L, 10000L), p)
@@ -57,7 +57,7 @@ class TimelineSerializationSpec extends FixtureAnyFlatSpec with Matchers {
 
     val fH = system.step { implicit tx =>
       val t = tH()
-      val f = Folder[S]
+      val f = Folder[S]()
       f.addLast(t)
       tx.newHandle(f)
     }

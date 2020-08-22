@@ -16,7 +16,7 @@ object ProcSetGraphTest {
     val ds      = BerkeleyDB.factory(dir)
     val ws      = Workspace.Durable.empty(dir, ds)
     ws.cursor.step { implicit tx =>
-      val p = Proc[S]
+      val p = Proc[S]()
       import de.sciss.synth._
       import ugen._
       p.setGraph {

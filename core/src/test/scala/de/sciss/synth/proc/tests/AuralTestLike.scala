@@ -100,7 +100,7 @@ abstract class AuralTestLike[S <: Sys[S]](implicit cursor: stm.Cursor[S]) {
   }
 
   final def proc(graph: => Unit)(implicit tx: S#Tx): Proc[S] = {
-    val p = Proc[S]
+    val p = Proc[S]()
     val g = SynthGraph {
       graph
     }
@@ -115,7 +115,7 @@ abstract class AuralTestLike[S <: Sys[S]](implicit cursor: stm.Cursor[S]) {
   }
 
   final def timeline()(implicit tx: S#Tx): Timeline[S] = {
-    val tl    = Timeline[S]
+    val tl    = Timeline[S]()
     tl // Obj(Timeline.Elem(tl))
   }
 
@@ -151,7 +151,7 @@ abstract class AuralTestLike[S <: Sys[S]](implicit cursor: stm.Cursor[S]) {
       } {
         case f: Folder[S] => f.addLast(`this`)
         case prev =>
-          val f = Folder[S]
+          val f = Folder[S]()
           f.addLast(prev)
           f.addLast(`this`)
           attr.put(key, f)
@@ -180,12 +180,12 @@ abstract class AuralTestLike[S <: Sys[S]](implicit cursor: stm.Cursor[S]) {
   }
 
   implicit final class TimelineOps(tl: Timeline[S]) /* extends AnyVal */ {
-    def += (span: SpanLike, obj: Obj[S])(implicit tx: S#Tx): Unit = {
+    def add(span: SpanLike, obj: Obj[S])(implicit tx: S#Tx): Unit = {
       val tlm = tl.modifiableOption.get  // yo
       tlm.add(SpanLikeObj.newConst(span), obj)
     }
 
-    def -= (span: SpanLike, obj: Obj[S])(implicit tx: S#Tx): Unit = {
+    def remove(span: SpanLike, obj: Obj[S])(implicit tx: S#Tx): Unit = {
       val tlm = tl.modifiableOption.get  // yo
       val res = tlm.remove(SpanLikeObj.newConst(span), obj)
       if (!res) Console.err.println(s"Warning: object $obj at $span not found in timeline")

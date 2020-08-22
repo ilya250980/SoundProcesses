@@ -46,10 +46,10 @@ object Issue35 {
       pitch.poll(strike, "note")
     }
 
-    val p = Proc[S]
+    val p = Proc[S]()
     p.graph() = gr
 
-    val g = Grapheme[S]
+    val g = Grapheme[S]()
     (78 to 86).zipWithIndex.foreach { case (pch, beat) =>
       val time = (beat * 0.5 * TimeRef.SampleRate).toLong
       g.add(time, IntObj.newConst(pch))

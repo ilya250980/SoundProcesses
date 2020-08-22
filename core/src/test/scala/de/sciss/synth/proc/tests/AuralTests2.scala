@@ -56,7 +56,7 @@ class AuralTests2[S <: Sys[S]](name: String)(implicit cursor: stm.Cursor[S]) ext
         Out.ar(0, Pan2.ar(osc))
       }
 
-      val gr = Grapheme[S]
+      val gr = Grapheme[S]()
       val f1 =  400
       val f2 = 1000
       val t0 =  1.0
@@ -123,7 +123,7 @@ class AuralTests2[S <: Sys[S]](name: String)(implicit cursor: stm.Cursor[S]) ext
         Out.ar(0, Pan2.ar(osc))
       }
 
-      val gr = Grapheme[S]
+      val gr = Grapheme[S]()
       gr.add(frame(0.0), EnvSegment.Obj.newConst(EnvSegment.Single( 600, Curve.exp)))
       val ev = EnvSegment.Obj.newVar(EnvSegment.Single(1000, Curve.lin))
       val evH = tx.newHandle(ev)
@@ -169,7 +169,7 @@ class AuralTests2[S <: Sys[S]](name: String)(implicit cursor: stm.Cursor[S]) ext
         Out.ar(0, Pan2.ar(osc))
       }
 
-      val gr = Grapheme[S]
+      val gr = Grapheme[S]()
       gr.add(frame(0.0), EnvSegment.Obj.newConst(EnvSegment.Single( 400, Curve.exp)))
       gr.add(frame(3.0), EnvSegment.Obj.newConst(EnvSegment.Single(1000, Curve.lin)))
       gr.add(frame(6.0), IntObj.newConst(400))
@@ -221,7 +221,7 @@ class AuralTests2[S <: Sys[S]](name: String)(implicit cursor: stm.Cursor[S]) ext
         def apply[T <: stm.Sys[T]](universe: Action.Universe[T])(implicit tx: T#Tx): Unit = {
           val spec = AudioFile.readSpec(f)
           println(spec)
-          val _proc2 = Proc[T]
+          val _proc2 = Proc[T]()
           val g = SynthGraph {
             val in = graph.DiskIn.ar("file")
             Out.ar(0, Pan2.ar(in * 0.5))
@@ -270,7 +270,7 @@ class AuralTests2[S <: Sys[S]](name: String)(implicit cursor: stm.Cursor[S]) ext
         |""".stripMargin)
 
     cursor.step { implicit tx =>
-      val tl = Timeline[S]
+      val tl = Timeline[S]()
 
       val pGen = proc {
         val sig = PinkNoise.ar(Seq(1, 1))
@@ -284,7 +284,7 @@ class AuralTests2[S <: Sys[S]](name: String)(implicit cursor: stm.Cursor[S]) ext
         Out.ar(0, sig * 0.2)
       }
       pDif.name = "dif"
-      val difIn = Timeline[S]
+      val difIn = Timeline[S]()
       pDif.attr.put(Proc.mainIn, difIn)
 
       difIn.add(Span.from(frame(0.0)), genOut)

@@ -43,7 +43,7 @@ object FolderRunnerImpl {
 
     private[this] var obsF: Disposable[S#Tx] = _
 
-    private[this] val rHead = Ref.make[Entry[S]]
+    private[this] val rHead = Ref.make[Entry[S]]()
 
     object progress extends Runner.Progress[S#Tx] with DummyObservableImpl[S] {
       def current(implicit tx: S#Tx): Double = -1

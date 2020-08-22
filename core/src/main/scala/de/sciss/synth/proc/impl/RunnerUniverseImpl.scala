@@ -55,8 +55,8 @@ object RunnerUniverseImpl {
     */
   def apply[S <: SSys[S]]()(implicit tx: S#Tx, cursor: Cursor[S], workspace: Workspace[S]): Universe[S] = {
     val res = handlerMap.get(workspace).getOrElse {
-      val gen       = GenContext[S]
-      val scheduler = Scheduler [S]
+      val gen       = GenContext[S]()
+      val scheduler = Scheduler [S]()
       val aural     = AuralSystem(global = true)
       val res0      = new Impl[S](gen, scheduler, aural, tx)
       handlerMap.put(workspace, res0)

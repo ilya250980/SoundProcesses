@@ -65,7 +65,7 @@ class BounceTest[S <: Sys[S]](val system: S, realtime: Boolean)(implicit cursor:
 //    import expr._
     // import ExprImplicits._
 
-    val proc      = Proc[S]
+    val proc      = Proc[S]()
     proc.name     = "sinosc"
     proc.graph()  = SynthGraph {
       import ugen._
@@ -73,7 +73,7 @@ class BounceTest[S <: Sys[S]](val system: S, realtime: Boolean)(implicit cursor:
       // sig.poll(5, "sig-out")
       Out.ar(0, sig)
     }
-    val group     = Timeline[S]
+    val group     = Timeline[S]()
     group.add(Span(frame(if (realtime) 0.25 else 0.1), frame(if (realtime) 1.25 else 0.2)), proc)
     // import ProcGroup.serializer
     tx.newHandle(group)

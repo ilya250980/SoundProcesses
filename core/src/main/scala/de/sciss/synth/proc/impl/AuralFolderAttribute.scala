@@ -81,7 +81,7 @@ final class AuralFolderAttribute[S <: Sys[S]](val key: String, objH: stm.Source[
 
   def obj(implicit tx: S#Tx): Folder[S] = objH()
 
-  private[this] val childAttrRef  = Ref.make[Vector[Elem]]
+  private[this] val childAttrRef  = Ref.make[Vector[Elem]]()
   private[this] val _IStopped     = IStopped[S]()
   private[this] val internalRef   = Ref[InternalState[S]](_IStopped)
   private[this] val prefChansRef  = Ref(-2)    // -2 = cache invalid

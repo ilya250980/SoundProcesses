@@ -97,9 +97,9 @@ object DynamicBusUser {
     final def migrateTo(newBus: ControlBus)(implicit tx: Txn): DynamicControlBusUser = {
       require(newBus.numChannels == bus.numChannels)
       val wasAdded = added.get(tx.peer)
-      if (wasAdded) remove
+      if (wasAdded) remove()
       val res = newInstance(newBus)
-      if (wasAdded) res.add
+      if (wasAdded) res.add()
       res
     }
 

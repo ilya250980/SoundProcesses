@@ -28,7 +28,7 @@ object SchedulerTest extends App {
    */
 
   cursor.step { implicit tx =>
-    val sched = Scheduler[S]
+    val sched = Scheduler[S]()
     val now   = sched.time
     val token2 = sched.schedule(now + frames(2.0)) { implicit tx =>
       println("After 2 seconds - should have been cancelled")

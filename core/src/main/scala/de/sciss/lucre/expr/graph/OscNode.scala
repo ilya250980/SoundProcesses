@@ -272,7 +272,7 @@ object OscUdpNode {
 
 //        case _: OscBundle => ...
       }
-      tryThunk("send from") {
+      tryThunk(s"send to $target from") {
         val t = transmitter
         if (t != null) t.send(p1, target)
       }
@@ -281,7 +281,7 @@ object OscUdpNode {
     private def sendNow(target: SocketAddress, p: OscPacket): Unit = {
       val (lastTarget, lastSck) = lastTrnsRef.single.get
       if (lastTarget == target) sendWith(lastSck, p)
-      else tryThunk("resolve target in") {
+      else tryThunk(s"resolve target $target in") {
         val res = new InetSocketAddress(target.host, target.port)
         lastTrnsRef.single.set((target, res))
         sendWith(res, p)
@@ -300,13 +300,17 @@ object OscUdpNode {
       }
     }
 
-    private def tryThunk(op: String)(thunk: => Unit): Unit =
+    private def tryThunk(op: => String)(thunk: => Unit): Unit =
       try {
         thunk
       } catch {
         case NonFatal(ex) =>
           println(s"Could not $op OscUdpNode")
-          ex.printStackTrace()
+          if (ex.isInstanceOf[java.nio.channels.UnresolvedAddressException]) {
+            Console.err.println(ex.getClass.getName)
+          } else {
+            ex.printStackTrace()
+          }
       }
 
     private[this] var codec: osc.PacketCodec = _

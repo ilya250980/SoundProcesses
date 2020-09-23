@@ -15,20 +15,18 @@ package de.sciss.synth.proc
 
 import java.util
 
-import de.sciss.lucre.event.{Dummy, Event, EventLike, Targets}
-import de.sciss.lucre.expr
-import de.sciss.lucre.expr.Expr
-import de.sciss.lucre.stm.{Copy, Elem, Obj, Sys}
+import de.sciss.lucre.Event.Targets
+import de.sciss.lucre.impl.{DummyEvent, ExprTypeImpl}
+import de.sciss.lucre.{Copy, Elem, Event, EventLike, Expr, Ident, Obj, Txn, Var => LVar}
 import de.sciss.model.Change
-import de.sciss.serial.{DataInput, DataOutput, ImmutableSerializer}
-import de.sciss.synth.proc.Implicits._
+import de.sciss.serial.{ConstFormat, DataInput, DataOutput}
 import de.sciss.synth.ugen.{Constant, ControlProxyLike}
 import de.sciss.synth.{Lazy, MaybeRate, SynthGraph, proc}
 
 import scala.annotation.{switch, tailrec}
 import scala.util.control.NonFatal
 
-object SynthGraphObj extends expr.impl.ExprTypeImpl[SynthGraph, SynthGraphObj] {
+object SynthGraphObj extends ExprTypeImpl[SynthGraph, SynthGraphObj] {
   final val typeId = 16
 
   import proc.{SynthGraphObj => Repr}
@@ -38,24 +36,24 @@ object SynthGraphObj extends expr.impl.ExprTypeImpl[SynthGraph, SynthGraphObj] {
     case _              => None
   }
 
-  protected def mkConst[S <: Sys[S]](id: S#Id, value: A)(implicit tx: S#Tx): Const[S] =
-    new _Const[S](id, value)
+  protected def mkConst[T <: Txn[T]](id: Ident[T], value: A)(implicit tx: T): Const[T] =
+    new _Const[T](id, value)
 
-  protected def mkVar[S <: Sys[S]](targets: Targets[S], vr: S#Var[_Ex[S]], connect: Boolean)
-                                  (implicit tx: S#Tx): Var[S] = {
-    val res = new _Var[S](targets, vr)
+  protected def mkVar[T <: Txn[T]](targets: Targets[T], vr: LVar[T, E[T]], connect: Boolean)
+                                  (implicit tx: T): Var[T] = {
+    val res = new _Var[T](targets, vr)
     if (connect) res.connect()
     res
   }
 
-  private final class _Const[S <: Sys[S]](val id: S#Id, val constValue: A)
-    extends ConstImpl[S] with Repr[S]
+  private final class _Const[T <: Txn[T]](val id: Ident[T], val constValue: A)
+    extends ConstImpl[T] with Repr[T]
 
-  private final class _Var[S <: Sys[S]](val targets: Targets[S], val ref: S#Var[_Ex[S]])
-    extends VarImpl[S] with Repr[S]
+  private final class _Var[T <: Txn[T]](val targets: Targets[T], val ref: LVar[T, E[T]])
+    extends VarImpl[T] with Repr[T]
 
   /** A serializer for synth graphs. */
-  object valueSerializer extends ImmutableSerializer[SynthGraph] {
+  object valueSerializer extends ConstFormat[SynthGraph] {
     private final val SER_VERSION = 0x5347
 
     // we use an identity hash map, because we do _not_
@@ -254,12 +252,12 @@ object SynthGraphObj extends expr.impl.ExprTypeImpl[SynthGraph, SynthGraphObj] {
   private final val emptyCookie   = 4
   private final val tapeCookie    = 5
 
-  override protected def readCookie[S <: Sys[S]](in: DataInput, access: S#Acc, cookie: Byte)(implicit tx: S#Tx): _Ex[S] =
+  override protected def readCookie[T <: Txn[T]](in: DataInput, cookie: Byte)(implicit tx: T): E[T] =
     cookie match {
       case /* `oldTapeCookie` | */ `emptyCookie` | `tapeCookie` =>
-        val id = tx.readId(in, access)
+        val id = tx.readId(in)
         new Predefined(id, cookie)
-      case _ => super.readCookie(in, access, cookie)
+      case _ => super.readCookie(in, cookie)
     }
 
   private lazy val tapeSynthGraph: SynthGraph =
@@ -288,30 +286,30 @@ object SynthGraphObj extends expr.impl.ExprTypeImpl[SynthGraph, SynthGraphObj] {
 
   private val emptySynthGraph = SynthGraph {}
 
-  def tape   [S <: Sys[S]](implicit tx: S#Tx): _Ex[S] = apply(tapeCookie   )
-  // def tapeOld[S <: Sys[S]](implicit tx: S#Tx): Ex[S] = apply(oldTapeCookie)
-  def empty  [S <: Sys[S]](implicit tx: S#Tx): _Ex[S] = apply(emptyCookie  )
+  def tape   [T <: Txn[T]](implicit tx: T): E[T] = apply(tapeCookie   )
+  // def tapeOld[T <: Txn[T]](implicit tx: T): Ex[T] = apply(oldTapeCookie)
+  def empty  [T <: Txn[T]](implicit tx: T): E[T] = apply(emptyCookie  )
 
-  def tapeSource[S <: Sys[S]](implicit tx: S#Tx): Code.Obj[S] = {
+  def tapeSource[T <: Txn[T]](implicit tx: T): Code.Obj[T] = {
     val v     = Code.SynthGraph(tapeSynthGraphSource)
-    val res   = Code.Obj.newVar[S](v)
+    val res   = Code.Obj.newVar[T](v)
     res.name  = "tape"
     res
   }
 
-  private def apply[S <: Sys[S]](cookie: Int)(implicit tx: S#Tx): _Ex[S] = {
+  private def apply[T <: Txn[T]](cookie: Int)(implicit tx: T): E[T] = {
     val id = tx.newId()
     new Predefined(id, cookie)
   }
 
-  private final class Predefined[S <: Sys[S]](val id: S#Id, cookie: Int)
-    extends SynthGraphObj[S] with Expr.Const[S, SynthGraph] {
+  private final class Predefined[T <: Txn[T]](val id: Ident[T], cookie: Int)
+    extends SynthGraphObj[T] with Expr.Const[T, SynthGraph] {
 
-    def event(slot: Int): Event[S, Any] = throw new UnsupportedOperationException
+    def event(slot: Int): Event[T, Any] = throw new UnsupportedOperationException
 
     def tpe: Obj.Type = SynthGraphObj
 
-    def copy[Out <: Sys[Out]]()(implicit tx: S#Tx, txOut: Out#Tx, context: Copy[S, Out]): Elem[Out] =
+    def copy[Out <: Txn[Out]]()(implicit tx: T, txOut: Out, context: Copy[T, Out]): Elem[Out] =
       new Predefined(txOut.newId(), cookie) // .connect()
 
     def write(out: DataOutput): Unit = {
@@ -320,11 +318,11 @@ object SynthGraphObj extends expr.impl.ExprTypeImpl[SynthGraph, SynthGraphObj] {
       id.write(out)
     }
 
-    def value(implicit tx: S#Tx): SynthGraph = constValue
+    def value(implicit tx: T): SynthGraph = constValue
 
-    def changed: EventLike[S, Change[SynthGraph]] = Dummy[S, Change[SynthGraph]]
+    def changed: EventLike[T, Change[SynthGraph]] = DummyEvent[T, Change[SynthGraph]]
 
-    def dispose()(implicit tx: S#Tx): Unit = ()
+    def dispose()(implicit tx: T): Unit = ()
 
     def constValue: SynthGraph = cookie match {
       // case `oldTapeCookie`  => oldTapeSynthGraph
@@ -333,4 +331,4 @@ object SynthGraphObj extends expr.impl.ExprTypeImpl[SynthGraph, SynthGraphObj] {
     }
   }
 }
-trait SynthGraphObj[S <: Sys[S]] extends Expr[S, SynthGraph]
+trait SynthGraphObj[T <: Txn[T]] extends Expr[T, SynthGraph]

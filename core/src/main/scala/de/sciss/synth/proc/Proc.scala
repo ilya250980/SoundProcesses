@@ -13,12 +13,11 @@
 
 package de.sciss.synth.proc
 
-import de.sciss.lucre.event.Publisher
-import de.sciss.lucre.stm.{Obj, Sys}
+import de.sciss.lucre.{Obj, Publisher, Txn}
 import de.sciss.model
-import de.sciss.serial.{DataInput, Serializer}
+import de.sciss.serial.{DataInput, TFormat}
 import de.sciss.synth.SynthGraph
-import de.sciss.synth.proc.impl.{ProcImpl => Impl}
+import de.sciss.synth.proc.impl.{OutputImpl, ProcImpl => Impl}
 
 import scala.collection.immutable.{IndexedSeq => Vec}
 
@@ -27,31 +26,29 @@ object Proc extends Obj.Type {
 
   // ---- implementation forwards ----
 
-  def apply[S <: Sys[S]]()(implicit tx: S#Tx): Proc[S] = Impl[S]()
+  def apply[T <: Txn[T]]()(implicit tx: T): Proc[T] = Impl[T]()
 
-  def read[S <: Sys[S]](in: DataInput, access: S#Acc)(implicit tx: S#Tx): Proc[S] = Impl.read(in, access)
+  def read[T <: Txn[T]](in: DataInput)(implicit tx: T): Proc[T] = Impl.read(in)
 
-  implicit def serializer[S <: Sys[S]]: Serializer[S#Tx, S#Acc, Proc[S]] = Impl.serializer[S]
+  implicit def format[T <: Txn[T]]: TFormat[T, Proc[T]] = Impl.format[T]
 
   // ---- event types ----
 
   /** An update is a sequence of changes */
-  final case class Update[S <: Sys[S]](proc: Proc[S], changes: Vec[Change[S]])
+  final case class Update[T <: Txn[T]](proc: Proc[T], changes: Vec[Change[T]])
 
   /** A change is either a state change, or a scan or a grapheme change */
-  sealed trait Change[S <: Sys[S]]
+  sealed trait Change[T <: Txn[T]]
 
-  final case class GraphChange[S <: Sys[S]](change: model.Change[SynthGraph]) extends Change[S]
+  final case class GraphChange[T <: Txn[T]](change: model.Change[SynthGraph]) extends Change[T]
 
   /** An associative change is either adding or removing an association */
-  sealed trait OutputsChange[S <: Sys[S]] extends Change[S] {
-    def output: Output[S]
+  sealed trait OutputsChange[T <: Txn[T]] extends Change[T] {
+    def output: Output[T]
   }
 
-//  final case class InputAdded   [S <: Sys[S]](key: String, scan: Scan[S]) extends ScanMapChange[S]
-//  final case class InputRemoved [S <: Sys[S]](key: String, scan: Scan[S]) extends ScanMapChange[S]
-  final case class OutputAdded  [S <: Sys[S]](output: Output[S]) extends OutputsChange[S]
-  final case class OutputRemoved[S <: Sys[S]](output: Output[S]) extends OutputsChange[S]
+  final case class OutputAdded  [T <: Txn[T]](output: Output[T]) extends OutputsChange[T]
+  final case class OutputRemoved[T <: Txn[T]](output: Output[T]) extends OutputsChange[T]
 
   /** Source code of the graph function. */
   final val attrSource = "graph-source"
@@ -63,20 +60,53 @@ object Proc extends Obj.Type {
   final val graphAudio = "sig"
 
   /** NOT USED ANY LONGER. Hint key for copying scan connections during `copy`. Value should be a
-    * predicate function `(Proc[S]) => Boolean`. If absent, all connections
+    * predicate function `(Proc[T]) => Boolean`. If absent, all connections
     * are copied.
     */
   final val hintFilterLinks = "links"
 
-  override def readIdentifiedObj[S <: Sys[S]](in: DataInput, access: S#Acc)(implicit tx: S#Tx): Obj[S] =
-    Impl.readIdentifiedObj(in, access)
+  override def readIdentifiedObj[T <: Txn[T]](in: DataInput)(implicit tx: T): Obj[T] =
+    Impl.readIdentifiedObj(in)
+
+  // ---- Outputs ----
+
+  import de.sciss.lucre.{Obj, Txn}
+  import de.sciss.serial.{DataInput, TFormat}
+
+  object Output extends Obj.Type {
+    final val typeId = 0x10009
+
+    def read[T <: Txn[T]](in: DataInput)(implicit tx: T): Output[T] = OutputImpl.read(in)
+
+    implicit def format[T <: Txn[T]]: TFormat[T, Output[T]] = OutputImpl.format
+
+    override def readIdentifiedObj[T <: Txn[T]](in: DataInput)(implicit tx: T): Obj[T] =
+      OutputImpl.readIdentifiedObj(in)
+  }
+  trait Output[T <: Txn[T]] extends Obj[T] {
+    def proc: Proc[T]
+    def key : String  // or `StringObj`?
+  }
+
+  trait Outputs[T <: Txn[T]] {
+    def get(key: String)(implicit tx: T): Option[Output[T]]
+
+    def keys(implicit tx: T): Set[String]
+
+    def iterator(implicit tx: T): Iterator[Output[T]]
+
+    /** Adds a new scan by the given key. If a span by that name already exists, the old scan is returned. */
+    def add   (key: String)(implicit tx: T): Output[T]
+
+    def remove(key: String)(implicit tx: T): Boolean
+  }
 }
 
 /** The `Proc` trait is the basic entity representing a sound process. */
-trait Proc[S <: Sys[S]] extends Obj[S] with Publisher[S, Proc.Update[S]] {
+trait Proc[T <: Txn[T]] extends Obj[T] with Publisher[T, Proc.Update[T]] {
   /** The variable synth graph function of the process. */
-  def graph: SynthGraphObj.Var[S]
+  def graph: SynthGraphObj.Var[T]
 
   /** The real-time outputs of the process. */
-  def outputs: Outputs[S]
+  def outputs: Proc.Outputs[T]
 }

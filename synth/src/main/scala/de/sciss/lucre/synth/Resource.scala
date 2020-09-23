@@ -13,7 +13,7 @@
 
 package de.sciss.lucre.synth
 
-import de.sciss.lucre.stm.Disposable
+import de.sciss.lucre.Disposable
 
 object Resource {
   type TimeStamp = Int

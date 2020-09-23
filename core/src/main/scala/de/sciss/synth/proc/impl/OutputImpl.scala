@@ -11,58 +11,57 @@
  *  contact@sciss.de
  */
 
-package de.sciss.synth.proc.impl
+package de.sciss.synth.proc
+package impl
 
-import de.sciss.lucre.event.impl.ConstObjImpl
-import de.sciss.lucre.stm.impl.ObjSerializer
-import de.sciss.lucre.stm.{Copy, Elem, NoSys, Obj, Sys}
-import de.sciss.serial.{DataInput, DataOutput, Serializer}
-import de.sciss.synth.proc.{Output, Proc}
+import de.sciss.lucre.impl.{ConstObjImpl, ObjFormat}
+import de.sciss.lucre.{AnyTxn, Copy, Elem, Ident, Obj, Txn}
+import de.sciss.serial.{DataInput, DataOutput, TFormat}
 
 object OutputImpl {
   private final val SER_VERSION = 0x5370  // was "Sn"
 
-  sealed trait Update[S]
+  sealed trait Update[T]
 
-  def apply[S <: Sys[S]](proc: Proc[S], key: String)(implicit tx: S#Tx): Output[S] = {
+  def apply[T <: Txn[T]](proc: Proc[T], key: String)(implicit tx: T): Proc.Output[T] = {
     val id = tx.newId()
     new Impl(id, proc, key)
   }
 
-  def read[S <: Sys[S]](in: DataInput, access: S#Acc)(implicit tx: S#Tx): Output[S] =
-    serializer[S].read(in, access)
+  def read[T <: Txn[T]](in: DataInput)(implicit tx: T): Proc.Output[T] =
+    format[T].readT(in)
 
-  def serializer[S <: Sys[S]]: Serializer[S#Tx, S#Acc, Output[S]] = anySer.asInstanceOf[Ser[S]]
+  def format[T <: Txn[T]]: TFormat[T, Proc.Output[T]] = anyFmt.asInstanceOf[Fmt[T]]
 
-  private val anySer = new Ser[NoSys]
+  private val anyFmt = new Fmt[AnyTxn]
 
-  private final class Ser[S <: Sys[S]] extends ObjSerializer[S, Output[S]] {
-    def tpe: Obj.Type = Output
+  private final class Fmt[T <: Txn[T]] extends ObjFormat[T, Proc.Output[T]] {
+    def tpe: Obj.Type = Proc.Output
   }
 
-  def readIdentifiedObj[S <: Sys[S]](in: DataInput, access: S#Acc)(implicit tx: S#Tx): Output[S] = {
+  def readIdentifiedObj[T <: Txn[T]](in: DataInput)(implicit tx: T): Proc.Output[T] = {
     val cookie  = in.readByte()
     if (cookie != 3) sys.error(s"Unexpected cookie, expected 3 found $cookie")
-    val id      = tx.readId(in, access)
+    val id      = tx.readId(in)
     val serVer  = in.readShort()
     if (serVer != SER_VERSION)
       sys.error(s"Incompatible serialized version (found ${serVer.toInt.toHexString}, required ${SER_VERSION.toHexString})")
 
-    val proc  = Proc.read(in, access)
+    val proc  = Proc.read(in)
     val key   = in.readUTF()
     new Impl(id, proc, key)
   }
 
   // private final val filterAll: Any => Boolean = _ => true
 
-  private final class Impl[S <: Sys[S]](val id: S#Id, val proc: Proc[S], val key: String)
-    extends Output[S] with ConstObjImpl[S, Any] {
+  private final class Impl[T <: Txn[T]](val id: Ident[T], val proc: Proc[T], val key: String)
+    extends Proc.Output[T] with ConstObjImpl[T, Any] {
 
-    def tpe: Obj.Type = Output
+    def tpe: Obj.Type = Proc.Output
 
     override def toString: String = s"Output($id, $proc, $key)"
 
-    def copy[Out <: Sys[Out]]()(implicit tx: S#Tx, txOut: Out#Tx, context: Copy[S, Out]): Elem[Out] = {
+    def copy[Out <: Txn[Out]]()(implicit tx: T, txOut: Out, context: Copy[T, Out]): Elem[Out] = {
       val out = new Impl(txOut.newId(), context(proc), key)
       out // .connect()
     }

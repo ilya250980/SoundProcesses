@@ -11,73 +11,71 @@
  *  contact@sciss.de
  */
 
-package de.sciss.synth.proc.impl
+package de.sciss.synth.proc
+package impl
 
-import de.sciss.lucre.bitemp.impl.BiGroupImpl
-import de.sciss.lucre.bitemp.impl.BiGroupImpl.TreeImpl
-import de.sciss.lucre.event.Targets
-import de.sciss.lucre.stm.impl.ObjSerializer
-import de.sciss.lucre.stm.{Copy, Elem, NoSys, Obj, Sys}
-import de.sciss.lucre.{event => evt}
-import de.sciss.serial.{DataInput, Serializer}
-import de.sciss.synth.proc.Timeline
+import de.sciss.lucre.Event.Targets
+import de.sciss.lucre.impl.BiGroupImpl.TreeImpl
+import de.sciss.lucre.impl.{BiGroupImpl, ObjFormat}
+import de.sciss.lucre.{AnyTxn, Copy, Elem, Obj, Txn}
+import de.sciss.serial.{DataInput, TFormat}
 
 object TimelineImpl {
-  def apply[S <: Sys[S]]()(implicit tx: S#Tx): Timeline.Modifiable[S] =
-    new Impl[S](evt.Targets[S]) {
-      val tree: TreeImpl[S, Obj] = newTree()
+  def apply[T <: Txn[T]]()(implicit tx: T): Timeline.Modifiable[T] =
+    new Impl[T](Targets[T]()) {
+      val tree: TreeImpl[T, Obj] = newTree()
     }
 
   // ---- serialization ----
 
-  implicit def serializer[S <: Sys[S]]: Serializer[S#Tx, S#Acc, Timeline[S]] =
-    anySer.asInstanceOf[Ser[S]]
+  implicit def format[T <: Txn[T]]: TFormat[T, Timeline[T]] =
+    anyFmt.asInstanceOf[Fmt[T]]
 
-  implicit def modSerializer[S <: Sys[S]]: Serializer[S#Tx, S#Acc, Timeline.Modifiable[S]] =
-    anyModSer.asInstanceOf[ModSer[S]]
+  implicit def modFormat[T <: Txn[T]]: TFormat[T, Timeline.Modifiable[T]] =
+    anyModFmt.asInstanceOf[ModFmt[T]]
 
-  //  def modRead[S <: Sys[S]](in: DataInput, access: S#Acc)(implicit tx: S#Tx): Timeline.Modifiable[S] = {
-  //    val targets = evt.Targets.read[S](in, access)
+  //  def modRead[T <: Txn[T]](in: DataInput, access: S#Acc)(implicit tx: T): Timeline.Modifiable[T] = {
+  //    val targets = evt.Targets.read[T](in, access)
   //    read(in, access, targets)
   //  }
 
-  private val anySer    = new Ser   [NoSys]
-  private val anyModSer = new ModSer[NoSys]
+  private val anyFmt    = new Fmt   [AnyTxn]
+  private val anyModFmt = new ModFmt[AnyTxn]
 
-  private class Ser[S <: Sys[S]] extends ObjSerializer[S, Timeline[S]] {
+  private class Fmt[T <: Txn[T]] extends ObjFormat[T, Timeline[T]] {
     def tpe: Obj.Type = Timeline
   }
 
-  private class ModSer[S <: Sys[S]] extends ObjSerializer[S, Timeline.Modifiable[S]] {
+  private class ModFmt[T <: Txn[T]] extends ObjFormat[T, Timeline.Modifiable[T]] {
     def tpe: Obj.Type = Timeline
   }
 
-  def readIdentifiedObj[S <: Sys[S]](in: DataInput, access: S#Acc)(implicit tx: S#Tx): Timeline[S] = {
-    val targets = Targets.read(in, access)
-    new Impl[S](targets) {
-      val tree: TreeImpl[S, Obj] = readTree(in,access)
+  def readIdentifiedObj[T <: Txn[T]](in: DataInput)(implicit tx: T): Timeline[T] = {
+    val targets = Targets.read(in)
+    new Impl[T](targets) {
+      val tree: TreeImpl[T, Obj] = readTree(in)
     }
   }
 
   // ---- impl ----
 
-  private abstract class Impl[S <: Sys[S]](protected val targets: evt.Targets[S])
-    extends BiGroupImpl.Impl[S, Obj, Impl[S]] with Timeline.Modifiable[S] { in =>
+  private abstract class Impl[T <: Txn[T]](protected val targets: Targets[T])
+    extends BiGroupImpl.Impl[T, Obj, Impl[T]] with Timeline.Modifiable[T] { in =>
 
-    // type A = Obj[S]
+    // type A = Obj[T]
 
-    override def modifiableOption: Option[Timeline.Modifiable[S]] = Some(this)
+    override def modifiableOption: Option[Timeline.Modifiable[T]] = Some(this)
 
-    def copy[Out <: Sys[Out]]()(implicit tx: S#Tx, txOut: Out#Tx, context: Copy[S, Out]): Elem[Out] =
-      new Impl(Targets[Out]) { out =>
+    def copy[Out <: Txn[Out]]()(implicit tx: T, txOut: Out, context: Copy[T, Out]): Elem[Out] =
+      new Impl(Targets[Out]()) { out =>
         val tree: TreeImpl[Out, Obj] = newTree()
-        context.defer(in, out)(BiGroupImpl.copyTree[S, Out, Obj, Impl[Out]](in.tree, out.tree, out))
+        context.defer(in, out)(BiGroupImpl.copyTree[T, Out, Obj, Impl[Out]](in.tree, out.tree, out))
         // .connect()
       }
 
     def tpe: Obj.Type = Timeline
 
-//    def elemSerializer: Serializer[S#Tx, S#Acc, Obj[S]] = Obj.serializer[S]
+//    def elemFormat: Format[T, S#Acc, Obj[T]] = Obj.serializer[T]
 
     override def toString: String = s"Timeline${tree.id}"
   }

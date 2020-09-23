@@ -13,18 +13,16 @@
 
 package de.sciss.synth.proc
 
-import de.sciss.lucre.event.Targets
-import de.sciss.lucre.expr
-import de.sciss.lucre.expr.graph.Act
-import de.sciss.lucre.expr.impl.ExprTypeImpl
-import de.sciss.lucre.stm.Sys
-import de.sciss.serial.{DataInput, DataOutput, ImmutableSerializer, Writable}
-import de.sciss.synth
+import de.sciss.lucre.Event.Targets
+import de.sciss.lucre.impl.ExprTypeImpl
+import de.sciss.lucre.{Ident, Txn, Var => LVar}
+import de.sciss.serial.{ConstFormat, DataInput, DataOutput, Writable}
+import de.sciss.{lucre, synth}
 import de.sciss.synth.proc.impl.{CodeImpl => Impl}
 import de.sciss.synth.proc.{Action => _Action, Control => _Control}
 
 import scala.collection.immutable.{IndexedSeq => Vec, Seq => ISeq}
-import scala.concurrent.{ExecutionContext, Future, blocking}
+import scala.concurrent.{ExecutionContext, Future}
 
 object Code {
   final val typeId = 0x20001
@@ -34,7 +32,6 @@ object Code {
     SynthGraph.init()
     Control   .init()
     Action    .init()
-    ActionRaw .init()
   }
 
   final val UserPackage = "user"
@@ -84,9 +81,9 @@ object Code {
     def sourceString: String = s"import $expr"
   }
 
-  implicit def serializer: ImmutableSerializer[Code] = Impl.serializer
+  implicit def format: ConstFormat[Code] = Impl.format
 
-  def read(in: DataInput): Code = serializer.read(in)
+  def read(in: DataInput): Code = format.read(in)
 
   def future[A](fun: => A)(implicit compiler: Code.Compiler): Future[A] = Impl.future(fun)
 
@@ -321,68 +318,6 @@ object Code {
     def updateSource(newText: String): Action = copy(source = newText)
   }
 
-  // ---- type: ActionRaw ----
-
-  object ActionRaw extends Type {
-    final val id = 2
-
-    final val prefix  = "ActionRaw"
-
-    def humanName: String = prefix
-
-    override def examples: ISeq[Example] = List(
-      Example("Hello World", 'h',
-        """println("Hello World!")
-          |""".stripMargin
-      ),
-      Example("Attributes", 'a',
-        /* this is OK, no missing interpolator */ """for {
-          |  i <- self.attr.$[IntObj]("int")
-          |} {
-          |  println(s"Value is ${i.value}")
-          |}
-          |""".stripMargin
-      )
-    )
-
-    type Repr = ActionRaw
-
-    def docBaseSymbol: String = s"$pkgAction$$$$Universe"
-
-    def mkCode(source: String): Repr = ActionRaw(source)
-
-    private def pkgAction = "de.sciss.synth.proc.Action"
-    private val pkgSys    = "de.sciss.lucre.stm"
-  }
-  final case class ActionRaw(source: String) extends Code {
-    type In     = String
-    type Out    = Array[Byte]
-
-    def tpe: Code.Type = ActionRaw
-
-    def compileBody()(implicit compiler: Code.Compiler): Future[Unit] = future(blocking { execute("Unnamed"); () })
-
-    def execute(in: In)(implicit compiler: Code.Compiler): Out = {
-      // Impl.execute[In, Out, Action](this, in)
-      Impl.compileToJar(in, this, prelude = mkPrelude(in), postlude = postlude)
-    }
-
-    def updateSource(newText: String): ActionRaw = copy(source = newText)
-
-    private def mkPrelude(name: String): String = {
-      import ActionRaw.{pkgAction, pkgSys}
-
-      s"""final class $name extends $pkgAction.Body {
-         |  def apply[S <: $pkgSys.Sys[S]](universe: $pkgAction.Universe[S])(implicit tx: S#Tx): Unit = {
-         |    import universe._
-         |""".stripMargin
-    }
-
-    def prelude: String = mkPrelude("Main")
-
-    def postlude: String = "\n  }\n}\n"
-  }
-
   // ---- expr ----
 
   object Obj extends ExprTypeImpl[Code, Obj] {
@@ -390,29 +325,29 @@ object Code {
 
     def typeId: Int = Code.typeId
 
-    def valueSerializer: ImmutableSerializer[Code] = Code.serializer
+    def valueSerializer: ConstFormat[Code] = Code.format
 
     def tryParse(value: Any): Option[Code] = value match {
       case x: Code  => Some(x)
       case _        => None
     }
 
-    protected def mkConst[S <: Sys[S]](id: S#Id, value: A)(implicit tx: S#Tx): Const[S] =
-      new _Const[S](id, value)
+    protected def mkConst[T <: Txn[T]](id: Ident[T], value: A)(implicit tx: T): Const[T] =
+      new _Const[T](id, value)
 
-    protected def mkVar[S <: Sys[S]](targets: Targets[S], vr: S#Var[_Ex[S]], connect: Boolean)(implicit tx: S#Tx): Var[S] = {
-      val res = new _Var[S](targets, vr)
+    protected def mkVar[T <: Txn[T]](targets: Targets[T], vr: LVar[T, E[T]], connect: Boolean)(implicit tx: T): Var[T] = {
+      val res = new _Var[T](targets, vr)
       if (connect) res.connect()
       res
     }
 
-    private final class _Const[S <: Sys[S]](val id: S#Id, val constValue: A)
-      extends ConstImpl[S] with Repr[S]
+    private final class _Const[T <: Txn[T]](val id: Ident[T], val constValue: A)
+      extends ConstImpl[T] with Repr[T]
 
-    private final class _Var[S <: Sys[S]](val targets: Targets[S], val ref: S#Var[_Ex[S]])
-      extends VarImpl[S] with Repr[S]
+    private final class _Var[T <: Txn[T]](val targets: Targets[T], val ref: LVar[T, E[T]])
+      extends VarImpl[T] with Repr[T]
   }
-  trait Obj[S <: Sys[S]] extends expr.Expr[S, Code]
+  trait Obj[T <: Txn[T]] extends lucre.Expr[T, Code]
 
   type T[I, O] = Code { type In = I; type Out = O }
 }
@@ -453,5 +388,5 @@ trait Code extends Product with Writable { me =>
   /** Compiles and executes the code. Returns the wrapped result. */
   def execute(in: In)(implicit compiler: Code.Compiler): Out // = compile()(in)
 
-  def write(out: DataOutput): Unit = Code.serializer.write(this, out)
+  def write(out: DataOutput): Unit = Code.format.write(this, out)
 }

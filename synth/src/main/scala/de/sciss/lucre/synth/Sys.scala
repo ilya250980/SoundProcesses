@@ -13,15 +13,15 @@
 
 package de.sciss.lucre.synth
 
-import de.sciss.lucre.{stm, synth}
+import de.sciss.lucre.{synth, Sys => LSys, Txn => LTxn}
 
 object Sys {
-  trait Txn[S <: Sys[S]] extends stm.Txn[S] with synth.Txn
+  trait Txn[T <: Txn[T]] extends LTxn[T] with synth.Txn
 }
 
-trait Sys[S <: Sys[S]] extends stm.Sys[S] {
-  type Tx <: Sys.Txn[S]
-  type I <: InMemoryLike[I]
+trait Sys /*[S <: Sys[S]]*/ extends LSys /*[S]*/ {
+  type T <: Sys.Txn[T]
+//  type I <: InMemoryLike[I]
 }
 
-trait NoSys extends Sys[NoSys]
+//trait NoSys extends Sys[NoSys]

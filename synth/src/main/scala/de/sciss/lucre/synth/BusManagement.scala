@@ -13,7 +13,7 @@
 
 package de.sciss.lucre.synth
 
-import de.sciss.lucre.stm.TxnLike.{peer => itx}
+import de.sciss.lucre.TxnLike.{peer => itx}
 import de.sciss.numbers
 import de.sciss.synth.{AudioRated, ControlRated, Rate, AudioBus => SAudioBus, Bus => SBus, ControlBus => SControlBus}
 

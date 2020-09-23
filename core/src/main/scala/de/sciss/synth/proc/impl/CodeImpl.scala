@@ -15,7 +15,7 @@ package de.sciss.synth.proc.impl
 
 import java.io.{ByteArrayInputStream, ByteArrayOutputStream}
 
-import de.sciss.serial.{DataInput, DataOutput, ImmutableSerializer}
+import de.sciss.serial.{ConstFormat, DataInput, DataOutput}
 import de.sciss.synth.proc.Code
 import de.sciss.synth.proc.Code.Import
 
@@ -82,7 +82,7 @@ object CodeImpl {
     path.substring(0, path.length - 6).replace("/", ".")
   }
 
-  implicit object serializer extends ImmutableSerializer[Code] {
+  implicit object format extends ConstFormat[Code] {
     def write(v: Code, out: DataOutput): Unit = {
       out.writeInt(COOKIE)
       out.writeInt(v.tpe.id)
@@ -133,22 +133,6 @@ object CodeImpl {
       Import("de.sciss.file", All),
       Import("de.sciss.lucre.expr.graph", All)
     ),
-    Code.ActionRaw.id -> Vec(     // what should go inside?
-      Import("scala.util", List(Name("Try"), Name("Success"), Name("Failure"))),
-      Import("de.sciss.file", All),
-      Import("de.sciss.lucre.artifact", List(Name("Artifact"), Name("ArtifactLocation"))),
-      Import("de.sciss.lucre.expr", List(Name("Expr"), Name("BooleanObj"), Name("IntObj"), Name("LongObj"),
-        Name("DoubleObj"), Name("StringObj"), Name("IntVector"), Name("DoubleVector"), Name("SpanObj"),
-        Name("SpanLikeObj"))),
-      Import("de.sciss.lucre.expr.Ops", All),
-      Import("de.sciss.lucre.stm", List(Name("Obj"), Name("Folder"))),
-      Import("de.sciss.numbers.Implicits", All),
-      Import("de.sciss", Name("osc") :: Nil),
-      Import("de.sciss.span", All),
-      Import("de.sciss.synth", Name("io") :: Nil),
-      Import("de.sciss.synth.proc", All),
-      Import("de.sciss.synth.proc.Implicits", All)
-    )
   )
 
   def registerImports(id: Int, imports: Seq[Import]): Unit = sync.synchronized {

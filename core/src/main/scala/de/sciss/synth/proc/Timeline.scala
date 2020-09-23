@@ -13,54 +13,52 @@
 
 package de.sciss.synth.proc
 
-import de.sciss.lucre.bitemp.BiGroup
-import de.sciss.lucre.event.EventLike
-import de.sciss.lucre.stm.{Obj, Sys}
-import de.sciss.serial.{DataInput, Serializer}
+import de.sciss.lucre.{BiGroup, EventLike, Obj, Txn}
+import de.sciss.serial.{DataInput, TFormat}
 import de.sciss.synth.proc.impl.{TimelineImpl => Impl}
 
 object Timeline extends Obj.Type {
   final val typeId = 0x10006
 
-  type Update[S <: Sys[S]]          = BiGroup.Update[S, Obj[S], Timeline[S]]
+  type Update[T <: Txn[T]]          = BiGroup.Update[T, Obj[T], Timeline[T]]
   val  Update: BiGroup.Update.type  = BiGroup.Update
 
-  def apply[S <: Sys[S]]()(implicit tx: S#Tx): Modifiable[S] = Impl[S]()
+  def apply[T <: Txn[T]]()(implicit tx: T): Modifiable[T] = Impl[T]()
 
   object Modifiable {
-    implicit def serializer[S <: Sys[S]]: Serializer[S#Tx, S#Acc, Modifiable[S]] = Impl.modSerializer[S]
+    implicit def format[T <: Txn[T]]: TFormat[T, Modifiable[T]] = Impl.modFormat[T]
 
-    def read[S <: Sys[S]](in: DataInput, access: S#Acc)(implicit tx: S#Tx): Modifiable[S] =
-      serializer[S].read(in, access)
+    def read[T <: Txn[T]](in: DataInput)(implicit tx: T): Modifiable[T] =
+      format[T].readT(in)
   }
-  trait Modifiable[S <: Sys[S]] extends Timeline[S] with BiGroup.Modifiable[S, Obj[S]] {
-    override def changed: EventLike[S, BiGroup.Update[S, Obj[S], Modifiable[S]]]
+  trait Modifiable[T <: Txn[T]] extends Timeline[T] with BiGroup.Modifiable[T, Obj[T]] {
+    override def changed: EventLike[T, BiGroup.Update[T, Obj[T], Modifiable[T]]]
   }
 
-  implicit def serializer[S <: Sys[S]]: Serializer[S#Tx, S#Acc, Timeline[S]] = Impl.serializer[S]
+  implicit def format[T <: Txn[T]]: TFormat[T, Timeline[T]] = Impl.format[T]
 
-  def read[S <: Sys[S]](in: DataInput, access: S#Acc)(implicit tx: S#Tx): Timeline[S] =
-    serializer[S].read(in, access)
+  def read[T <: Txn[T]](in: DataInput)(implicit tx: T): Timeline[T] =
+    format[T].readT(in)
 
   // ---- events ----
-  type Added   [S <: Sys[S]] = BiGroup.Added  [S, Obj[S]]
-  type Removed [S <: Sys[S]] = BiGroup.Removed[S, Obj[S]]
-  type Moved   [S <: Sys[S]] = BiGroup.Moved  [S, Obj[S]]
+  type Added   [T <: Txn[T]] = BiGroup.Added  [T, Obj[T]]
+  type Removed [T <: Txn[T]] = BiGroup.Removed[T, Obj[T]]
+  type Moved   [T <: Txn[T]] = BiGroup.Moved  [T, Obj[T]]
 
   val Added  : BiGroup.Added  .type = BiGroup.Added
   val Removed: BiGroup.Removed.type = BiGroup.Removed
   val Moved  : BiGroup.Moved  .type = BiGroup.Moved
 
-  type Timed[S <: Sys[S]] = BiGroup.Entry[S, Obj[S]]
-  type Leaf [S <: Sys[S]] = BiGroup.Leaf[S, Obj[S]]
+  type Timed[T <: Txn[T]] = BiGroup.Entry[T, Obj[T]]
+  type Leaf [T <: Txn[T]] = BiGroup.Leaf[T, Obj[T]]
 
   val Timed : BiGroup.Entry.type = BiGroup.Entry
 
-  override def readIdentifiedObj[S <: Sys[S]](in: DataInput, access: S#Acc)(implicit tx: S#Tx): Obj[S] =
-    Impl.readIdentifiedObj(in, access)
+  override def readIdentifiedObj[T <: Txn[T]](in: DataInput)(implicit tx: T): Obj[T] =
+    Impl.readIdentifiedObj(in)
 }
-trait Timeline[S <: Sys[S]] extends BiGroup[S, Obj[S]] {
-  override def modifiableOption: Option[Timeline.Modifiable[S]]
+trait Timeline[T <: Txn[T]] extends BiGroup[T, Obj[T]] {
+  override def modifiableOption: Option[Timeline.Modifiable[T]]
 
-  override def changed: EventLike[S, BiGroup.Update[S, Obj[S], Timeline[S]]]
+  override def changed: EventLike[T, BiGroup.Update[T, Obj[T], Timeline[T]]]
 }

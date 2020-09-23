@@ -15,14 +15,12 @@ package de.sciss.synth.proc
 
 import de.sciss.file.File
 import de.sciss.lucre
-import de.sciss.lucre.artifact.Artifact
-import de.sciss.lucre.event.{Pull, Targets}
+import de.sciss.lucre.Event.Targets
+import de.sciss.lucre.{Artifact, Copy, DoubleObj, Elem, Expr, LongObj, Sys, Txn, expr, stm, Var => LVar}
 import de.sciss.lucre.expr.graph.{Ex, AudioCue => _AudioCue}
-import de.sciss.lucre.expr.{DoubleObj, LongExtensions, LongObj, Type, Expr => _Expr}
-import de.sciss.lucre.stm.{Copy, Elem, Sys}
-import de.sciss.lucre.{expr, stm}
+import de.sciss.lucre.impl.ExprTypeImpl
 import de.sciss.model.Change
-import de.sciss.serial.{DataInput, DataOutput, ImmutableSerializer}
+import de.sciss.serial.{ConstFormat, DataInput, DataOutput}
 import de.sciss.synth.io.AudioFileSpec
 import de.sciss.synth.proc
 import de.sciss.synth.proc.ExImport.audioFileSpecOps
@@ -36,7 +34,7 @@ object AudioCue {
 
   private final val COOKIE = 0x4143 // 'AC'
 
-  implicit object serializer extends ImmutableSerializer[AudioCue] {
+  implicit object format extends ConstFormat[AudioCue] {
     def write(v: AudioCue, out: DataOutput): Unit = {
       import v._
       // out.writeByte(audioCookie)
@@ -58,7 +56,7 @@ object AudioCue {
     }
   }
 
-  object Obj extends expr.impl.ExprTypeImpl[AudioCue, AudioCue.Obj] {
+  object Obj extends ExprTypeImpl[AudioCue, AudioCue.Obj] {
     def typeId: Int = AudioCue.typeId
 
     import AudioCue.{Obj => Repr}
@@ -78,39 +76,39 @@ object AudioCue {
       case _            => None
     }
 
-    protected def mkConst[S <: Sys[S]](id: S#Id, value: A)(implicit tx: S#Tx): Const[S] =
-      new _Const[S](id, value)
+    protected def mkConst[T <: Txn[T]](id: Ident[T], value: A)(implicit tx: T): Const[T] =
+      new _Const[T](id, value)
 
-    protected def mkVar[S <: Sys[S]](targets: Targets[S], vr: S#Var[_Ex[S]], connect: Boolean)
-                                    (implicit tx: S#Tx): Var[S] = {
-      val res = new _Var[S](targets, vr)
+    protected def mkVar[T <: Txn[T]](targets: Targets[T], vr: LVar[T, E[T]], connect: Boolean)
+                                    (implicit tx: T): Var[T] = {
+      val res = new _Var[T](targets, vr)
       if (connect) res.connect()
       res
     }
 
-    private final class _Const[S <: Sys[S]](val id: S#Id, val constValue: A)
-      extends ConstImpl[S] with Repr[S] {
+    private final class _Const[T <: Txn[T]](val id: Ident[T], val constValue: A)
+      extends ConstImpl[T] with Repr[T] {
 
-      def spec(implicit tx: S#Tx): AudioFileSpec = constValue.spec
+      def spec(implicit tx: T): AudioFileSpec = constValue.spec
     }
 
-    private final class _Var[S <: Sys[S]](val targets: Targets[S], val ref: S#Var[_Ex[S]])
-      extends VarImpl[S] with Repr[S] {
+    private final class _Var[T <: Txn[T]](val targets: Targets[T], val ref: LVar[T, E[T]])
+      extends VarImpl[T] with Repr[T] {
 
-      def spec(implicit tx: S#Tx): AudioFileSpec = ref().spec
+      def spec(implicit tx: T): AudioFileSpec = ref().spec
     }
 
-    def valueSerializer: ImmutableSerializer[AudioCue] = AudioCue.serializer
+    def valueSerializer: ConstFormat[AudioCue] = AudioCue.format
 
-    def apply[S <: Sys[S]](artifact: Artifact[S], spec: AudioFileSpec, offset: LongObj[S], gain: DoubleObj[S])
-                          (implicit tx: S#Tx): Obj[S] = {
-      val targets = Targets[S]
+    def apply[T <: Txn[T]](artifact: Artifact[T], spec: AudioFileSpec, offset: LongObj[T], gain: DoubleObj[T])
+                          (implicit tx: T): Obj[T] = {
+      val targets = Targets[T]
       new Apply(targets, artifact = artifact, specValue = spec, offset = offset, gain = gain).connect()
     }
 
-    def unapply[S <: Sys[S]](expr: Obj[S]): Option[(Artifact[S], AudioFileSpec, LongObj[S], DoubleObj[S])] =
+    def unapply[T <: Txn[T]](expr: Obj[T]): Option[(Artifact[T], AudioFileSpec, LongObj[T], DoubleObj[T])] =
       expr match {
-        case impl: Apply[S] => Some((impl.artifact, impl.specValue, impl.offset, impl.gain))
+        case impl: Apply[T] => Some((impl.artifact, impl.specValue, impl.offset, impl.gain))
         case _ => None
       }
 
@@ -119,8 +117,8 @@ object AudioCue {
       final val replaceOffsetOpId = 1
       final val shiftOpId         = 2
 
-      def readExtension[S <: Sys[S]](opId: Int, in: DataInput, access: S#Acc, targets: Targets[S])
-                                    (implicit tx: S#Tx): Obj[S] = {
+      def readExtension[T <: Txn[T]](opId: Int, in: DataInput, access: S#Acc, targets: Targets[T])
+                                    (implicit tx: T): Obj[T] = {
         (opId: @switch) match {
           case `applyOpId` =>
             val artifact  = Artifact .read(in, access)
@@ -146,26 +144,26 @@ object AudioCue {
       val opLo: Int = applyOpId
       val opHi: Int = shiftOpId
     }
-    final class Apply[S <: Sys[S]](protected val targets: Targets[S],
-                                   val artifact: Artifact[S],
+    final class Apply[T <: Txn[T]](protected val targets: Targets[T],
+                                   val artifact: Artifact[T],
                                    val specValue: AudioFileSpec,
-                                   val offset: LongObj[S],
-                                   val gain: DoubleObj[S])
-      extends lucre.expr.impl.NodeImpl[S, AudioCue] with Obj[S] {
+                                   val offset: LongObj[T],
+                                   val gain: DoubleObj[T])
+      extends lucre.expr.impl.NodeImpl[T, AudioCue] with Obj[T] {
 
       def tpe: stm.Obj.Type = AudioCue.Obj
 
-      def spec(implicit tx: S#Tx): AudioFileSpec = specValue
+      def spec(implicit tx: T): AudioFileSpec = specValue
 
-      def copy[Out <: Sys[Out]]()(implicit tx: S#Tx, txOut: Out#Tx, context: Copy[S, Out]): Elem[Out] =
+      def copy[Out <: Sys[Out]]()(implicit tx: T, txOut: Out#Tx, context: Copy[T, Out]): Elem[Out] =
         new Apply(Targets[Out], artifact = context(artifact), specValue = specValue, offset = context(offset),
           gain = context(gain)).connect()
 
-      def value(implicit tx: S#Tx): AudioCue =
+      def value(implicit tx: T): AudioCue =
         AudioCue(artifact = artifact.value, spec = specValue, offset = offset.value, gain = gain.value)
 
       object changed extends Changed {
-        def pullUpdate(pull: Pull[S])(implicit tx: S#Tx): Option[Change[AudioCue]] = {
+        def pullUpdate(pull: Pull[T])(implicit tx: T): Option[Change[AudioCue]] = {
           val artifactEvt = artifact.changed
           val artifactChO = if (pull.contains(artifactEvt)) pull(artifactEvt) else None
           val offsetEvt   = offset.changed
@@ -197,7 +195,7 @@ object AudioCue {
         }
       }
 
-      protected def disposeData()(implicit tx: S#Tx): Unit = disconnect()
+      protected def disposeData()(implicit tx: T): Unit = disconnect()
 
       protected def writeData(out: DataOutput): Unit = {
         out.writeByte(1)  // 'node' not 'var'
@@ -208,28 +206,28 @@ object AudioCue {
         gain     .write(out)
       }
 
-      def connect()(implicit tx: S#Tx): this.type = {
+      def connect()(implicit tx: T): this.type = {
         artifact.changed ---> changed
         offset  .changed ---> changed
         gain    .changed ---> changed
         this
       }
 
-      private def disconnect()(implicit tx: S#Tx): Unit = {
+      private def disconnect()(implicit tx: T): Unit = {
         artifact.changed -/-> changed
         offset  .changed -/-> changed
         gain    .changed -/-> changed
       }
     }
 
-    sealed trait LongOpImpl[S <: Sys[S]]
-      extends lucre.expr.impl.NodeImpl[S, AudioCue] with Obj[S] {
+    sealed trait LongOpImpl[T <: Txn[T]]
+      extends lucre.expr.impl.NodeImpl[T, AudioCue] with Obj[T] {
 
       // ---- abstract ----
 
-      def peer: _Ex[S]
+      def peer: E[T]
 
-      protected def num: LongObj[S]
+      protected def num: LongObj[T]
 
       protected def opId: Int
 
@@ -239,16 +237,16 @@ object AudioCue {
 
       final def tpe: stm.Obj.Type = AudioCue.Obj
 
-      final def spec (implicit tx: S#Tx): AudioFileSpec = peer.spec
+      final def spec (implicit tx: T): AudioFileSpec = peer.spec
 
-      final def value(implicit tx: S#Tx): AudioCue = {
+      final def value(implicit tx: T): AudioCue = {
         val peerValue = peer.value
         val numValue  = num .value
         mapNum(peerValue, numValue)
       }
 
       object changed extends Changed {
-        def pullUpdate(pull: Pull[S])(implicit tx: S#Tx): Option[Change[AudioCue]] = {
+        def pullUpdate(pull: Pull[T])(implicit tx: T): Option[Change[AudioCue]] = {
           val peerEvt     = peer.changed
           val peerChO     = if (pull.contains(peerEvt)) pull(peerEvt) else None
           val numEvt      = num.changed
@@ -273,13 +271,13 @@ object AudioCue {
         }
       }
 
-      final def connect()(implicit tx: S#Tx): this.type = {
+      final def connect()(implicit tx: T): this.type = {
         peer.changed ---> changed
         num .changed ---> changed
         this
       }
 
-      private def disconnect()(implicit tx: S#Tx): Unit = {
+      private def disconnect()(implicit tx: T): Unit = {
         peer.changed -/-> changed
         num .changed -/-> changed
       }
@@ -291,88 +289,88 @@ object AudioCue {
         num .write(out)
       }
 
-      protected def disposeData()(implicit tx: S#Tx): Unit = disconnect()
+      protected def disposeData()(implicit tx: T): Unit = disconnect()
     }
 
     object ReplaceOffset {
-      def unapply[S <: Sys[S]](ex: Obj[S]): Option[(Obj[S], LongObj[S])] = ex match {
-        case s: ReplaceOffset[S] => Some((s.peer, s.offset))
+      def unapply[T <: Txn[T]](ex: Obj[T]): Option[(Obj[T], LongObj[T])] = ex match {
+        case s: ReplaceOffset[T] => Some((s.peer, s.offset))
         case _ => None
       }
-      def apply[S <: Sys[S]](peer: _Ex[S], offset: LongObj[S])(implicit tx: S#Tx): ReplaceOffset[S] = {
-        new ReplaceOffset(Targets[S], peer, offset).connect()
+      def apply[T <: Txn[T]](peer: E[T], offset: LongObj[T])(implicit tx: T): ReplaceOffset[T] = {
+        new ReplaceOffset(Targets[T], peer, offset).connect()
       }
     }
-    final class ReplaceOffset[S <: Sys[S]](protected val targets: Targets[S],
-                                           val peer: Obj[S],
-                                           val offset: LongObj[S])
-      extends LongOpImpl[S] {
+    final class ReplaceOffset[T <: Txn[T]](protected val targets: Targets[T],
+                                           val peer: Obj[T],
+                                           val offset: LongObj[T])
+      extends LongOpImpl[T] {
 
-      protected def num: LongObj[S] = offset
+      protected def num: LongObj[T] = offset
 
       protected def opId: Int = Ext.replaceOffsetOpId
 
       protected def mapNum(peerValue: AudioCue, numValue: Long): AudioCue =
         peerValue.copy(offset = numValue)
 
-      def copy[Out <: Sys[Out]]()(implicit tx: S#Tx, txOut: Out#Tx, context: Copy[S, Out]): Elem[Out] =
+      def copy[Out <: Sys[Out]]()(implicit tx: T, txOut: Out#Tx, context: Copy[T, Out]): Elem[Out] =
         new ReplaceOffset(Targets[Out], peer = context(peer), offset = context(offset)).connect()
     }
 
     object Shift {
-      def unapply[S <: Sys[S]](ex: Obj[S]): Option[(Obj[S], LongObj[S])] = ex match {
-        case s: Shift[S] => Some((s.peer, s.amount))
+      def unapply[T <: Txn[T]](ex: Obj[T]): Option[(Obj[T], LongObj[T])] = ex match {
+        case s: Shift[T] => Some((s.peer, s.amount))
         case _ => None
       }
-      def apply[S <: Sys[S]](peer: Obj[S], amount: LongObj[S])(implicit tx: S#Tx): Shift[S] = {
-        new Shift(Targets[S], peer, amount).connect()
+      def apply[T <: Txn[T]](peer: Obj[T], amount: LongObj[T])(implicit tx: T): Shift[T] = {
+        new Shift(Targets[T], peer, amount).connect()
       }
     }
-    final class Shift[S <: Sys[S]](protected val targets: Targets[S],
-                                   val peer: Obj[S],
-                                   val amount: LongObj[S])
-      extends LongOpImpl[S] {
+    final class Shift[T <: Txn[T]](protected val targets: Targets[T],
+                                   val peer: Obj[T],
+                                   val amount: LongObj[T])
+      extends LongOpImpl[T] {
 
-      protected def num: LongObj[S] = amount
+      protected def num: LongObj[T] = amount
 
       protected def opId: Int = Ext.shiftOpId
 
       protected def mapNum(peerValue: AudioCue, numValue: Long): AudioCue =
         if (numValue == 0L) peerValue else peerValue.copy(offset = peerValue.offset + numValue)
 
-      def copy[Out <: Sys[Out]]()(implicit tx: S#Tx, txOut: Out#Tx, context: Copy[S, Out]): Elem[Out] =
+      def copy[Out <: Sys[Out]]()(implicit tx: T, txOut: Out#Tx, context: Copy[T, Out]): Elem[Out] =
         new Shift(Targets[Out], peer = context(peer), amount = context(amount)).connect()
     }
 
-    final class Ops[S <: Sys[S]](val `this`: _Ex[S]) extends AnyVal { me =>
+    final class Ops[T <: Txn[T]](val `this`: E[T]) extends AnyVal { me =>
       import me.{`this` => ex}
 
-      def replaceOffset(newValue: LongObj[S])(implicit tx: S#Tx): _Ex[S] = (ex, newValue) match {
-        case (a: Apply[S], _) => Obj(artifact = a.artifact, spec = a.specValue, offset = newValue, gain = a.gain)
-        case (_Expr.Const(c), _Expr.Const(offset)) => newConst(c.copy(offset = offset))
+      def replaceOffset(newValue: LongObj[T])(implicit tx: T): E[T] = (ex, newValue) match {
+        case (a: Apply[T], _) => Obj(artifact = a.artifact, spec = a.specValue, offset = newValue, gain = a.gain)
+        case (Epr.Const(c), Epr.Const(offset)) => newConst(c.copy(offset = offset))
         case _ =>
-          new ReplaceOffset(Targets[S], peer = ex, offset = newValue).connect()
+          new ReplaceOffset(Targets[T], peer = ex, offset = newValue).connect()
       }
 
-      def offset(implicit tx: S#Tx): LongObj[S] = ex match {
-        case a: Apply[S]    => a.offset
-        case _Expr.Const(c) => LongObj.newConst[S](c.offset)
-        case _              => Offset[S](ex)
+      def offset(implicit tx: T): LongObj[T] = ex match {
+        case a: Apply[T]    => a.offset
+        case Epr.Const(c) => LongObj.newConst[T](c.offset)
+        case _              => Offset[T](ex)
       }
 
-      def shift(amount: LongObj[S])(implicit tx: S#Tx): _Ex[S] = (ex, amount) match {
-        case (_Expr.Const(c), _Expr.Const(amountC)) => newConst(c.copy(offset = c.offset + amountC))
-        case (s: Shift[S], _) =>
+      def shift(amount: LongObj[T])(implicit tx: T): E[T] = (ex, amount) match {
+        case (Epr.Const(c), Epr.Const(amountC)) => newConst(c.copy(offset = c.offset + amountC))
+        case (s: Shift[T], _) =>
           import proc.Ops.longObjOps
 //          s.amount match {
 //            case LongObj.Var(amtVr) =>
 //              amtVr() = amtVr() + amount
 //              ex
 //            case _ =>
-              new Shift(Targets[S], peer = s.peer, amount = s.amount + amount).connect()
+              new Shift(Targets[T], peer = s.peer, amount = s.amount + amount).connect()
 //          }
         case _ =>
-          new Shift(Targets[S], peer = ex, amount = amount).connect()
+          new Shift(Targets[T], peer = ex, amount = amount).connect()
       }
     }
 
@@ -383,20 +381,20 @@ object AudioCue {
 
       val name = "AudioCue-Long Ops"
 
-      def readExtension[S <: Sys[S]](opId: Int, in: DataInput, access: S#Acc, targets: Targets[S])
-                                    (implicit tx: S#Tx): LongObj[S] = {
+      def readExtension[T <: Txn[T]](opId: Int, in: DataInput, targets: Targets[T])
+                                    (implicit tx: T): LongObj[T] = {
         val op: LongOp = opId match {
           case Offset.id => Offset
         }
-        op.read(in, access, targets)
+        op.read(in, targets)
       }
     }
 
     sealed abstract class LongOp extends LongExtensions.UnaryOp.Op[AudioCue, Obj] {
-      final def read[S <: Sys[S]](in: DataInput, access: S#Acc, targets: Targets[S])
-                                 (implicit tx: S#Tx): LongObj[S] = {
-        val _1 = Obj.read(in, access)
-        new LongExtensions.Tuple1[S, AudioCue, Obj](targets, this, _1)
+      final def read[T <: Txn[T]](in: DataInput, targets: Targets[T])
+                                 (implicit tx: T): LongObj[T] = {
+        val _1 = Obj.read(in)
+        new LongExtensions.Tuple1[T, AudioCue, Obj](targets, this, _1)
       }
     }
 
@@ -405,17 +403,17 @@ object AudioCue {
       def value(a: AudioCue): Long = a.offset
     }
   }
-  sealed trait Obj[S <: Sys[S]] extends _Expr[S, AudioCue] {
-    def spec(implicit tx: S#Tx): AudioFileSpec
+  sealed trait Obj[T <: Txn[T]] extends Expr[T, AudioCue] {
+    def spec(implicit tx: T): AudioFileSpec
 
     /** A simple forward to `spec.numChannels` */
-    def numChannels(implicit tx: S#Tx): Int = spec.numChannels
+    def numChannels(implicit tx: T): Int = spec.numChannels
 
     /** A simple forward to `spec.numFrames` */
-    def numFrames(implicit tx: S#Tx): Long = spec.numFrames
+    def numFrames(implicit tx: T): Long = spec.numFrames
 
     /** A simple forward to `spec.sampleRate` */
-    def sampleRate(implicit tx: S#Tx): Double = spec.sampleRate
+    def sampleRate(implicit tx: T): Double = spec.sampleRate
   }
 
   implicit final class ExOps(private val x: Ex[AudioCue]) extends AnyVal {

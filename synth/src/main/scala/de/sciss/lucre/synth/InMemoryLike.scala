@@ -13,11 +13,11 @@
 
 package de.sciss.lucre.synth
 
-import de.sciss.lucre.stm
+import de.sciss.lucre.{InMemoryLike => LInMemoryLike}
 
 object InMemoryLike {
-  trait Txn[S <: Sys[S]] extends stm.InMemoryLike.Txn[S] with Sys.Txn[S]
+  trait Txn[T <: Txn[T]] extends LInMemoryLike.Txn[T] with Sys.Txn[T]
 }
-trait InMemoryLike[S <: InMemoryLike[S]] extends stm.InMemoryLike[S] with Sys[S] {
-  type Tx <: InMemoryLike.Txn[S]
+trait InMemoryLike[T <: InMemoryLike.Txn[T]] extends LInMemoryLike[T] with Sys /*[T]*/ {
+//  type Tx <: InMemoryLike.Txn[T]
 }

@@ -13,17 +13,17 @@
 
 package de.sciss.lucre.edit
 
-import de.sciss.lucre.stm.{Folder, Sys}
-import de.sciss.synth.proc.{Output, Proc}
+import de.sciss.lucre.{Folder, Txn}
+import de.sciss.synth.proc.Proc
 
 object EditProc {
-  def addLink[S <: Sys[S]](source: Output[S], sink: Proc[S], key: String = Proc.mainIn)
-                          (implicit tx: S#Tx): Unit = {
+  def addLink[T <: Txn[T]](source: Proc.Output[T], sink: Proc[T], key: String = Proc.mainIn)
+                          (implicit tx: T): Unit = {
     sink.attr.get(key) match {
-      case Some(f: Folder[S]) =>
+      case Some(f: Folder[T]) =>
         EditFolder.append(parent = f, child = source)
       case Some(other) =>
-        val f = Folder[S]()
+        val f = Folder[T]()
         f.addLast(other)
         f.addLast(source)
         EditAttrMap.put(sink.attr, key = key, value = f)
@@ -33,12 +33,12 @@ object EditProc {
     }
   }
 
-  def hasLink[S <: Sys[S]](source: Output[S], sink: Proc[S], key: String = Proc.mainIn)
-                           (implicit tx: S#Tx): Boolean = {
+  def hasLink[T <: Txn[T]](source: Proc.Output[T], sink: Proc[T], key: String = Proc.mainIn)
+                           (implicit tx: T): Boolean = {
     sink.attr.get(key) match {
       case Some(`source`) => true
 
-      case Some(f: Folder[S]) =>
+      case Some(f: Folder[T]) =>
         val idx = f.indexOf(source)
         idx >= 0
 
@@ -46,15 +46,15 @@ object EditProc {
     }
   }
 
-  def removeLink[S <: Sys[S]](source: Output[S], sink: Proc[S], key: String = Proc.mainIn)
-                             (implicit tx: S#Tx): Boolean = {
+  def removeLink[T <: Txn[T]](source: Proc.Output[T], sink: Proc[T], key: String = Proc.mainIn)
+                             (implicit tx: T): Boolean = {
     val a = sink.attr
     a.get(key) match {
       case Some(`source`) =>
         EditAttrMap.remove(a, key)
         true
 
-      case Some(f: Folder[S]) =>
+      case Some(f: Folder[T]) =>
         val idx = f.indexOf(source)
         idx >= 0 && {
           EditFolder.removeAt(f, idx)

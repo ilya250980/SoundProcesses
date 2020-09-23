@@ -11,104 +11,103 @@
  *  contact@sciss.de
  */
 
-package de.sciss.synth.proc.impl
+package de.sciss.synth.proc
+package impl
 
+import de.sciss.lucre.Event.Targets
 import de.sciss.lucre.data.SkipList
-import de.sciss.lucre.event.Targets
-import de.sciss.lucre.stm.impl.ObjSerializer
-import de.sciss.lucre.stm.{Copy, Elem, NoSys, Obj, Sys}
-import de.sciss.lucre.{event => evt}
-import de.sciss.serial.{DataInput, DataOutput, Serializer}
-import de.sciss.synth.proc.{Output, Outputs, Proc, SynthGraphObj}
+import de.sciss.lucre.impl.{ObjFormat, SingleEventNode}
+import de.sciss.lucre.{AnyTxn, Copy, Elem, Obj, Pull, Txn}
+import de.sciss.serial.{DataInput, DataOutput, TFormat}
 
 import scala.collection.immutable.{IndexedSeq => Vec}
 
 object ProcImpl {
   private final val SER_VERSION = 0x5074  // was "Pr"
 
-  def apply[S <: Sys[S]]()(implicit tx: S#Tx): Proc[S] = new New[S]
+  def apply[T <: Txn[T]]()(implicit tx: T): Proc[T] = new New[T]
 
-  def read[S <: Sys[S]](in: DataInput, access: S#Acc)(implicit tx: S#Tx): Proc[S] =
-    serializer[S].read(in, access)
+  def read[T <: Txn[T]](in: DataInput)(implicit tx: T): Proc[T] =
+    format[T].readT(in)
 
-  def serializer[S <: Sys[S]]: Serializer[S#Tx, S#Acc, Proc[S]] = anySer.asInstanceOf[Ser[S]]
+  def format[T <: Txn[T]]: TFormat[T, Proc[T]] = anySer.asInstanceOf[Ser[T]]
 
-  private val anySer = new Ser[NoSys]
+  private val anySer = new Ser[AnyTxn]
 
-  private class Ser[S <: Sys[S]] extends ObjSerializer[S, Proc[S]] {
+  private class Ser[T <: Txn[T]] extends ObjFormat[T, Proc[T]] {
     def tpe: Obj.Type = Proc
   }
 
-  def readIdentifiedObj[S <: Sys[S]](in: DataInput, access: S#Acc)(implicit tx: S#Tx): Proc[S] = {
-    val targets = Targets.read(in, access)
-    new Read(in, access, targets)
+  def readIdentifiedObj[T <: Txn[T]](in: DataInput)(implicit tx: T): Proc[T] = {
+    val targets = Targets.read(in)
+    new Read(in, targets)
   }
 
 //  private type I = InMemory
 
-  final class OutputsImpl[S <: Sys[S]](proc: Impl[S], val slot: Int, isInput: Boolean)
-    extends Outputs[S] {
+  final class OutputsImpl[T <: Txn[T]](proc: Impl[T], val slot: Int, isInput: Boolean)
+    extends Proc.Outputs[T] {
 
     // ---- key-map-impl details ----
 
     import proc.outputsMap
 
-    protected def fire(added: Option[Output[S]], removed: Option[Output[S]])
-                      (implicit tx: S#Tx): Unit = {
-      val b = Vector.newBuilder[Proc.OutputsChange[S]]
+    protected def fire(added: Option[Proc.Output[T]], removed: Option[Proc.Output[T]])
+                      (implicit tx: T): Unit = {
+      val b = Vector.newBuilder[Proc.OutputsChange[T]]
       b.sizeHint(2)
       // convention: first the removals, then the additions. thus, overwriting a key yields
       // successive removal and addition of the same key.
       removed.foreach { output =>
-        b += Proc.OutputRemoved[S](output)
+        b += Proc.OutputRemoved[T](output)
       }
       added.foreach { output =>
-        b += Proc.OutputAdded  [S](output)
+        b += Proc.OutputAdded  [T](output)
       }
 
       proc.changed.fire(Proc.Update(proc, b.result()))
     }
 
-    private def add(key: String, value: Output[S])(implicit tx: S#Tx): Unit = {
+    private def add(key: String, value: Proc.Output[T])(implicit tx: T): Unit = {
       val optRemoved = outputsMap.put(key, value)
       fire(added = Some(value), removed = optRemoved)
     }
 
-    def remove(key: String)(implicit tx: S#Tx): Boolean =
+    def remove(key: String)(implicit tx: T): Boolean =
       outputsMap.remove(key).exists { output =>
         fire(added = None, removed = Some(output))
         true
       }
 
-    def add(key: String)(implicit tx: S#Tx): Output[S] =
+    def add(key: String)(implicit tx: T): Proc.Output[T] =
       get(key).getOrElse {
-        val res = OutputImpl[S](proc, key)
+        val res = OutputImpl[T](proc, key)
         add(key, res)
         res
       }
 
-    def get(key: String)(implicit tx: S#Tx): Option[Output[S]] = outputsMap.get(key)
+    def get(key: String)(implicit tx: T): Option[Proc.Output[T]] = outputsMap.get(key)
 
-    def keys(implicit tx: S#Tx): Set[String] = outputsMap.keysIterator.toSet
+    def keys(implicit tx: T): Set[String] = outputsMap.keysIterator.toSet
 
-    def iterator(implicit tx: S#Tx): Iterator[Output[S]] = outputsMap.iterator.map(_._2)
+    def iterator(implicit tx: T): Iterator[Proc.Output[T]] = outputsMap.iterator.map(_._2)
   }
 
-  private sealed trait Impl[S <: Sys[S]]
-    extends Proc[S] with evt.impl.SingleNode[S, Proc.Update[S]] {
+  private sealed trait Impl[T <: Txn[T]]
+    extends Proc[T] with SingleEventNode[T, Proc.Update[T]] {
     proc =>
 
     final def tpe: Obj.Type = Proc
 
-    def copy[Out <: Sys[Out]]()(implicit tx: S#Tx, txOut: Out#Tx, context: Copy[S, Out]): Elem[Out] =
+    def copy[Out <: Txn[Out]]()(implicit tx: T, txOut: Out, context: Copy[T, Out]): Elem[Out] =
       new Impl[Out] { out =>
-        protected val targets: Targets[Out]                     = Targets[Out]
-        val graph     : SynthGraphObj.Var[Out]                  = context(proc.graph)
-        val outputsMap: SkipList.Map[Out, String, Output[Out]]  = SkipList.Map.empty
+        protected val targets: Targets[Out]                         = Targets[Out]()
+        val graph     : SynthGraphObj.Var[Out]                      = context(proc.graph)
+        val outputsMap: SkipList.Map[Out, String, Proc.Output[Out]] = SkipList.Map.empty
 
         context.defer(proc, out) {
-          def copyMap(in : SkipList.Map[S  , String, Output[S  ]],
-                      out: SkipList.Map[Out, String, Output[Out]]): Unit =
+          def copyMap(in : SkipList.Map[T  , String, Proc.Output[T  ]],
+                      out: SkipList.Map[Out, String, Proc.Output[Out]]): Unit =
           in.iterator.foreach { case (key, eIn) =>
             val eOut = context(eIn)
             out.put(key, eOut)
@@ -122,29 +121,29 @@ object ProcImpl {
 
     import Proc._
 
-    // def scanInMap : SkipList.Map[S, String, ScanEntry[S]]
-    def outputsMap: SkipList.Map[S, String, Output[S]]
+    // def scanInMap : SkipList.Map[T, String, ScanEntry[T]]
+    def outputsMap: SkipList.Map[T, String, Output[T]]
 
     // ---- key maps ----
 
-//    def isConnected(implicit tx: S#Tx): Boolean = targets.nonEmpty
+//    def isConnected(implicit tx: T): Boolean = targets.nonEmpty
 
 //    sealed trait ProcEvent {
-//      final def node: Proc[S] with evt.Node[S] = proc
+//      final def node: Proc[T] with evt.Node[T] = proc
 //    }
 
 //    final val inputs  = new ScansImpl(this, 1, isInput = true )
     final val outputs = new OutputsImpl(this, 2, isInput = false)
 
 //    object StateEvent
-//      extends evti.TriggerImpl[S, Proc.Update[S], Proc[S]]
-//      with evti.Root          [S, Proc.Update[S]]
+//      extends evti.TriggerImpl[T, Proc.Update[T], Proc[T]]
+//      with evti.Root          [T, Proc.Update[T]]
 //      with ProcEvent {
 //
 //      final val slot = 3
 //    }
 
-    final def connect()(implicit tx: S#Tx): this.type = {
+    final def connect()(implicit tx: T): this.type = {
       graph.changed ---> changed
       // inputs        ---> changed
       // outputs       ---> changed
@@ -152,7 +151,7 @@ object ProcImpl {
       this
     }
 
-    private def disconnect()(implicit tx: S#Tx): Unit = {
+    private def disconnect()(implicit tx: T): Unit = {
       graph.changed -/-> changed
       // inputs        -/-> changed
       // outputs       -/-> changed
@@ -160,19 +159,19 @@ object ProcImpl {
     }
 
     object changed extends Changed
-      with evt.impl.Generator[S, Proc.Update[S]]
-      // with evt.impl.Root[S, Proc.Update[S]]
-      // extends evt.impl.EventImpl[S, Proc.Update[S], Proc[S]]
+      with evt.impl.Generator[T, Proc.Update[T]]
+      // with evt.impl.Root[T, Proc.Update[T]]
+      // extends evt.impl.EventImpl[T, Proc.Update[T], Proc[T]]
        {
 
       // final val slot = 4
 
-      def pullUpdate(pull: evt.Pull[S])(implicit tx: S#Tx): Option[Proc.Update[S]] = {
+      def pullUpdate(pull: Pull[T])(implicit tx: T): Option[Proc.Update[T]] = {
         val graphCh     = graph.changed
         val graphOpt    = if (pull.contains(graphCh)) pull(graphCh) else None
-        val stateOpt    = if (pull.isOrigin(this)) Some(pull.resolve[Proc.Update[S]]) else None
+        val stateOpt    = if (pull.isOrigin(this)) Some(pull.resolve[Proc.Update[T]]) else None
 
-        val seq0 = graphOpt.fold(Vec.empty[Change[S]]) { u =>
+        val seq0 = graphOpt.fold(Vec.empty[Change[T]]) { u =>
           Vector(GraphChange(u))
         }
 //        val seq1 = seq0
@@ -190,7 +189,7 @@ object ProcImpl {
       }
     }
 
-//    final def event(slot: Int /*, invariant: Boolean */): Event[S, Any] = (slot: @switch) match {
+//    final def event(slot: Int /*, invariant: Boolean */): Event[T, Any] = (slot: @switch) match {
 //      case ChangeEvent.slot => ChangeEvent
 //      case 1 /* inputs .slot */ => inputs
 //      case 2 /* outputs.slot */ => outputs
@@ -204,7 +203,7 @@ object ProcImpl {
       outputsMap  .write(out)
     }
 
-    final protected def disposeData()(implicit tx: S#Tx): Unit = {
+    final protected def disposeData()(implicit tx: T): Unit = {
       disconnect()
       graph       .dispose()
       // scanInMap   .dispose()
@@ -214,23 +213,23 @@ object ProcImpl {
     override def toString: String = s"Proc$id"
   }
 
-  private final class New[S <: Sys[S]](implicit tx0: S#Tx) extends Impl[S] {
-    protected val targets: Targets[S] = evt.Targets[S](tx0)
-    val graph     : SynthGraphObj.Var[S]                = SynthGraphObj.newVar(SynthGraphObj.empty)
-    val outputsMap: SkipList.Map[S, String, Output[S]]  = SkipList.Map.empty
+  private final class New[T <: Txn[T]](implicit tx0: T) extends Impl[T] {
+    protected val targets: Targets[T] = Targets[T]()(tx0)
+    val graph     : SynthGraphObj.Var[T]                    = SynthGraphObj.newVar(SynthGraphObj.empty)
+    val outputsMap: SkipList.Map[T, String, Proc.Output[T]] = SkipList.Map.empty
     connect()(tx0)
   }
 
-  private final class Read[S <: Sys[S]](in: DataInput, access: S#Acc, protected val targets: evt.Targets[S])
-                                       (implicit tx0: S#Tx)
-    extends Impl[S] {
+  private final class Read[T <: Txn[T]](in: DataInput, protected val targets: Targets[T])
+                                       (implicit tx0: T)
+    extends Impl[T] {
 
     {
       val serVer = in.readShort()
       if (serVer != SER_VERSION) sys.error(s"Incompatible serialized (found $serVer, required $SER_VERSION)")
     }
 
-    val graph     : SynthGraphObj.Var[S]                = SynthGraphObj.readVar(in, access)
-    val outputsMap: SkipList.Map[S, String, Output[S]]  = SkipList.Map .read   (in, access)
+    val graph     : SynthGraphObj.Var[T]                    = SynthGraphObj.readVar(in)
+    val outputsMap: SkipList.Map[T, String, Proc.Output[T]] = SkipList.Map .read   (in)
   }
 }

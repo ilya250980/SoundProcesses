@@ -14,7 +14,7 @@
 package de.sciss.lucre.edit
 
 import de.sciss.equal.Implicits._
-import de.sciss.lucre.stm.{Copy, Folder, Obj, Sys}
+import de.sciss.lucre.{Copy, Folder, Obj, Sys, Txn}
 import de.sciss.synth.proc
 import de.sciss.synth.proc.Proc
 
@@ -26,8 +26,8 @@ object EditObj {
     *
     * @param in  the process to copy
     */
-  def copyDo[S <: Sys[S]](in: Obj[S], connectInput: Boolean)(implicit tx: S#Tx): Obj[S] = {
-    val context = Copy.apply1[S, S]
+  def copyDo[T <: Txn[T]](in: Obj[T], connectInput: Boolean)(implicit tx: T): Obj[T] = {
+    val context = Copy[T, T]()
     val out     = context.copyPlain(in)
     val attrIn  = in .attr
     val attrOut = out.attr
@@ -37,9 +37,9 @@ object EditObj {
         attrOut.put(key, valueOut)
       } else if (connectInput) {
         val valueOpt = attrIn.get(Proc.mainIn).collect {
-          case op: proc.Output[S] => op
-          case fIn: Folder[S] =>
-            val fOut = Folder[S]()
+          case op: Proc.Output[T] => op
+          case fIn: Folder[T] =>
+            val fOut = Folder[T]()
             fIn.iterator.foreach { op => fOut.addLast(op) }
             fOut
         }

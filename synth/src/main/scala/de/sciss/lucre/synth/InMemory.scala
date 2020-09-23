@@ -18,10 +18,10 @@ import de.sciss.lucre.synth.impl.{InMemoryImpl => Impl}
 object InMemory {
   def apply(): InMemory = Impl()
 
-  trait Txn extends InMemoryLike.Txn[InMemory]
+  trait Txn extends InMemoryLike.Txn[InMemory.Txn]
 }
 
-trait InMemory extends InMemoryLike[InMemory] with Sys[InMemory] {
-  type Tx = InMemory.Txn
+trait InMemory extends InMemoryLike[InMemory.Txn] with Sys /*[InMemory] */ {
+//  type T  = InMemory.Txn
   type I  = InMemory
 }

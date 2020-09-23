@@ -11,41 +11,39 @@
  *  contact@sciss.de
  */
 
-package de.sciss.lucre.edit
+package de.sciss.lucre
+package edit
 
-import de.sciss.lucre.bitemp.BiGroup
-import de.sciss.lucre.expr.{LongObj, SpanLikeObj}
-import de.sciss.lucre.stm.UndoManager.{CannotRedoException, CannotUndoException}
-import de.sciss.lucre.stm.impl.BasicUndoableEdit
-import de.sciss.lucre.stm.{Obj, Sys, UndoManager}
+import de.sciss.lucre.edit.UndoManager.{CannotRedoException, CannotUndoException}
+import de.sciss.lucre.edit.impl.BasicUndoableEdit
 import de.sciss.span.{Span, SpanLike}
-import de.sciss.synth.proc.{AudioCue, ObjKeys, Output, Proc, Timeline}
+import de.sciss.synth.proc.{AudioCue, ObjKeys, Proc, Timeline}
 
 object EditTimeline {
-  def add[S <: Sys[S]](tl: Timeline.Modifiable[S], span: SpanLikeObj[S], elem: Obj[S])
-                      (implicit tx: S#Tx): Unit =
-    UndoManager.find[S].fold(
+  def add[T <: Txn[T]](tl: Timeline.Modifiable[T], span: SpanLikeObj[T], elem: Obj[T])
+                      (implicit tx: T): Unit =
+    UndoManager.find[T].fold(
       addDo  (tl, span, elem)
     ) { implicit undo =>
       addUndo(tl, span, elem)
     }
 
-  def addUndo[S <: Sys[S]](tl: Timeline.Modifiable[S], span: SpanLikeObj[S], elem: Obj[S])
-                          (implicit tx: S#Tx, undo: UndoManager[S]): Unit = {
+  def addUndo[T <: Txn[T]](tl: Timeline.Modifiable[T], span: SpanLikeObj[T], elem: Obj[T])
+                          (implicit tx: T, undo: UndoManager[T]): Unit = {
     val edit = new Add(tl, span, elem, tx)
     undo.addEdit(edit)
   }
 
-  def remove[S <: Sys[S]](tl: Timeline.Modifiable[S], span: SpanLikeObj[S], elem: Obj[S])
-                         (implicit tx: S#Tx): Unit =
-    UndoManager.find[S].fold[Unit](
+  def remove[T <: Txn[T]](tl: Timeline.Modifiable[T], span: SpanLikeObj[T], elem: Obj[T])
+                         (implicit tx: T): Unit =
+    UndoManager.find[T].fold[Unit](
       removeDo  (tl, span, elem)
     ) { implicit undo =>
       removeUndo(tl, span, elem)
     }
 
-  def removeUndo[S <: Sys[S]](tl: Timeline.Modifiable[S], span: SpanLikeObj[S], elem: Obj[S])
-                             (implicit tx: S#Tx, undo: UndoManager[S]): Unit = {
+  def removeUndo[T <: Txn[T]](tl: Timeline.Modifiable[T], span: SpanLikeObj[T], elem: Obj[T])
+                             (implicit tx: T, undo: UndoManager[T]): Unit = {
     val edit = new Remove(tl, span, elem, tx)
     undo.addEdit(edit)
   }
@@ -54,9 +52,9 @@ object EditTimeline {
     * That has to rely on heuristics -- check global processes and objects
     * overlapping with `span` on the timeline.
     */
-  def unlink[S <: Sys[S]](tl: Timeline.Modifiable[S], span: SpanLike, source: Output[S])
-                         (implicit tx: S#Tx): Unit =
-    UndoManager.find[S].fold[Unit](
+  def unlink[T <: Txn[T]](tl: Timeline.Modifiable[T], span: SpanLike, source: Proc.Output[T])
+                         (implicit tx: T): Unit =
+    UndoManager.find[T].fold[Unit](
       unlinkImpl(tl, span, source)
     ) { implicit undo =>
       undo.capture("Unlink Object") {
@@ -64,15 +62,15 @@ object EditTimeline {
       }
     }
 
-  def unlinkUndo[S <: Sys[S]](tl: Timeline.Modifiable[S], span: SpanLike, source: Output[S])
-                             (implicit tx: S#Tx /*, undo: UndoManager[S]*/): Unit =
+  def unlinkUndo[T <: Txn[T]](tl: Timeline.Modifiable[T], span: SpanLike, source: Proc.Output[T])
+                             (implicit tx: T): Unit =
     unlinkImpl(tl, span, source)
 
-  def unlinkAndRemove[S <: Sys[S]](tl: Timeline.Modifiable[S], span: SpanLikeObj[S], elem: Obj[S])
-                         (implicit tx: S#Tx): Unit = {
+  def unlinkAndRemove[T <: Txn[T]](tl: Timeline.Modifiable[T], span: SpanLikeObj[T], elem: Obj[T])
+                         (implicit tx: T): Unit = {
     def removeOnly(): Unit = remove(tl, span, elem)
     elem match {
-      case p: Proc[S] =>
+      case p: Proc[T] =>
         p.outputs.get(Proc.mainOut) match {
           case Some(out) =>
             def run(): Unit = {
@@ -80,7 +78,7 @@ object EditTimeline {
               removeOnly()
             }
 
-            UndoManager.find[S].fold(run()) { undo =>
+            UndoManager.find[T].fold(run()) { undo =>
               undo.capture("Unlink Object")(run())
             }
 
@@ -92,12 +90,12 @@ object EditTimeline {
   }
 
 
-  final case class Split[S <: Sys[S]](leftSpan  : SpanLikeObj[S], leftObj : Obj[S],
-                                      rightSpan : SpanLikeObj[S], rightObj: Obj[S])
+  final case class Split[T <: Txn[T]](leftSpan  : SpanLikeObj[T], leftObj : Obj[T],
+                                      rightSpan : SpanLikeObj[T], rightObj: Obj[T])
 
-  def split[S <: Sys[S]](tl: Timeline.Modifiable[S], span: SpanLikeObj[S], elem: Obj[S], time: Long)
-                        (implicit tx: S#Tx): Split[S] =
-    UndoManager.find[S].fold(
+  def split[T <: Txn[T]](tl: Timeline.Modifiable[T], span: SpanLikeObj[T], elem: Obj[T], time: Long)
+                        (implicit tx: T): Split[T] =
+    UndoManager.find[T].fold(
       splitImpl(tl, span, elem, time)
     ) { implicit undo =>
       undo.capture("Split Object") {
@@ -105,18 +103,18 @@ object EditTimeline {
       }
     }
 
-  def splitUndo[S <: Sys[S]](tl: Timeline.Modifiable[S], span: SpanLikeObj[S], elem: Obj[S], time: Long)
-                            (implicit tx: S#Tx /*, undoManager: UndoManager[S]*/): Split[S] =
+  def splitUndo[T <: Txn[T]](tl: Timeline.Modifiable[T], span: SpanLikeObj[T], elem: Obj[T], time: Long)
+                            (implicit tx: T /*, undoManager: UndoManager[T]*/): Split[T] =
     splitImpl(tl, span, elem, time)
 
   // ---- private: add ----
 
-  private def addDo[S <: Sys[S]](tl: Timeline.Modifiable[S], span: SpanLikeObj[S], elem: Obj[S])
-                                (implicit tx: S#Tx): Unit =
+  private def addDo[T <: Txn[T]](tl: Timeline.Modifiable[T], span: SpanLikeObj[T], elem: Obj[T])
+                                (implicit tx: T): Unit =
     tl.add(span, elem)
 
-  private final class Add[S <: Sys[S]](tl0: Timeline.Modifiable[S], span0: SpanLikeObj[S], elem0: Obj[S], tx0: S#Tx)
-    extends BasicUndoableEdit[S] {
+  private final class Add[T <: Txn[T]](tl0: Timeline.Modifiable[T], span0: SpanLikeObj[T], elem0: Obj[T], tx0: T)
+    extends BasicUndoableEdit[T] {
 
     private[this] val tlH     = tx0.newHandle(tl0)
     private[this] val spanH   = tx0.newHandle(span0)
@@ -124,7 +122,7 @@ object EditTimeline {
 
     addDo(tl0, span0, elem0)(tx0)
 
-    protected def undoImpl()(implicit tx: S#Tx): Unit = {
+    protected def undoImpl()(implicit tx: T): Unit = {
       val tl    = tlH()
       val span  = spanH()
       val elem  = elemH()
@@ -132,7 +130,7 @@ object EditTimeline {
       if (!found) throw new CannotUndoException(s"$name: element was not found")
     }
 
-    protected def redoImpl()(implicit tx: S#Tx): Unit =
+    protected def redoImpl()(implicit tx: T): Unit =
       addDo(tlH(), spanH(), elemH())
 
     def name: String = "Add to Timeline"
@@ -140,21 +138,21 @@ object EditTimeline {
 
   // ---- private: remove ----
 
-  private def removeDo[S <: Sys[S]](tl: Timeline.Modifiable[S], span: SpanLikeObj[S], elem: Obj[S])
-                                   (implicit tx: S#Tx): Boolean =
+  private def removeDo[T <: Txn[T]](tl: Timeline.Modifiable[T], span: SpanLikeObj[T], elem: Obj[T])
+                                   (implicit tx: T): Boolean =
     tl.remove(span, elem)
 
 //  protected def any2stringadd: Any = ()
 
-  private final class Remove[S <: Sys[S]](tl0: Timeline.Modifiable[S], span0: SpanLikeObj[S], elem0: Obj[S], tx0: S#Tx)
-    extends BasicUndoableEdit[S] {
+  private final class Remove[T <: Txn[T]](tl0: Timeline.Modifiable[T], span0: SpanLikeObj[T], elem0: Obj[T], tx0: T)
+    extends BasicUndoableEdit[T] {
 
     private[this] val tlH     = tx0.newHandle(tl0)
     private[this] val spanH   = tx0.newHandle(span0)
     private[this] val elemH   = tx0.newHandle(elem0)
     private[this] val valid   = removeDo(tl0, span0, elem0)(tx0)
 
-    protected def undoImpl()(implicit tx: S#Tx): Unit = {
+    protected def undoImpl()(implicit tx: T): Unit = {
       if (!valid) return // cannotUndo()
 
       val tl    = tlH()
@@ -171,7 +169,7 @@ object EditTimeline {
     private def cannotRedo(): Nothing =
       throw new CannotRedoException(invalidMessage)
 
-    protected def redoImpl()(implicit tx: S#Tx): Unit = {
+    protected def redoImpl()(implicit tx: T): Unit = {
       val found = removeDo(tlH(), spanH(), elemH())
       if (!found) cannotRedo()
     }
@@ -182,22 +180,22 @@ object EditTimeline {
   // ---- private: split ----
 
   // wrap this inside `undo.capture` if needed.
-  private def splitImpl[S <: Sys[S]](tl: Timeline.Modifiable[S], span: SpanLikeObj[S], obj: Obj[S], time: Long)
-                                    (implicit tx: S#Tx): Split[S] = {
+  private def splitImpl[T <: Txn[T]](tl: Timeline.Modifiable[T], span: SpanLikeObj[T], obj: Obj[T], time: Long)
+                                    (implicit tx: T): Split[T] = {
     val leftObj   = obj
-    val rightObj  = EditObj.copyDo[S](leftObj, connectInput = true)
+    val rightObj  = EditObj.copyDo[T](leftObj, connectInput = true)
     rightObj.attr.remove(ObjKeys.attrFadeIn)
 
     val oldVal    = span.value
-    val rightSpan: SpanLikeObj.Var[S] = oldVal match {
+    val rightSpan: SpanLikeObj.Var[T] = oldVal match {
       case Span.HasStart(leftStart) =>
-        val _rightSpan = SpanLikeObj.newVar[S](oldVal)
+        val _rightSpan = SpanLikeObj.newVar[T](oldVal)
         resizeImpl(_rightSpan, rightObj, deltaStart = time - leftStart, deltaStop = 0L, minStart = None)
         _rightSpan
 
       case _ =>
         val rightSpanV = oldVal.intersect(Span.from(time))
-        SpanLikeObj.newVar[S](rightSpanV)
+        SpanLikeObj.newVar[T](rightSpanV)
     }
 
     EditAttrMap.remove(leftObj.attr, ObjKeys.attrFadeOut)
@@ -210,8 +208,8 @@ object EditTimeline {
 
           case Span.HasStart(leftStart) =>
             val leftSpanV = Span(leftStart, time)
-            val _leftSpan = SpanLikeObj.newConst[S](leftSpanV)
-            EditExprVar[S, SpanLike, SpanLikeObj](spanVr, _leftSpan)
+            val _leftSpan = SpanLikeObj.newConst[T](leftSpanV)
+            EditExprVar[T, SpanLike, SpanLikeObj](spanVr, _leftSpan)
 
           case _ =>
         }
@@ -220,7 +218,7 @@ object EditTimeline {
       case _ =>
         EditTimeline.remove(tl, span, obj)
         val leftSpanV = oldVal.intersect(Span.until(time))
-        val _leftSpan = SpanLikeObj.newVar[S](leftSpanV)
+        val _leftSpan = SpanLikeObj.newVar[T](leftSpanV)
         EditTimeline.add(tl, _leftSpan, leftObj)
         _leftSpan
     }
@@ -229,13 +227,13 @@ object EditTimeline {
 
     // now try to find targets (tricky! we only scan global procs and their main inputs)
     (leftObj, rightObj) match {
-      case (pLeft: Proc[S], pRight: Proc[S]) =>
+      case (pLeft: Proc[T], pRight: Proc[T]) =>
         (pLeft.outputs.get(Proc.mainOut), pRight.outputs.get(Proc.mainOut)) match {
           case (Some(outLeft), Some(outRight)) =>
             // XXX TODO --- could add search for all objects whose span overlaps
             tl.get(Span.All).foreach { entry =>
               entry.value match {
-                case sink: Proc[S] =>
+                case sink: Proc[T] =>
                   val hasLink = EditProc.hasLink(outLeft, sink)
                   if (hasLink) {
                     EditProc.addLink(outRight, sink)
@@ -255,9 +253,9 @@ object EditTimeline {
     Split(leftSpan, leftObj, rightSpan, rightObj)
   }
 
-  private def resizeImpl[S <: Sys[S]](span: SpanLikeObj.Var[S], obj: Obj[S], deltaStart: Long, deltaStop: Long,
+  private def resizeImpl[T <: Txn[T]](span: SpanLikeObj.Var[T], obj: Obj[T], deltaStart: Long, deltaStop: Long,
                                       minStart: Option[Long])
-                                     (implicit tx: S#Tx): Unit = {
+                                     (implicit tx: T): Unit = {
     val oldSpan   = span.value
     // val minStart  = timelineModel.bounds.start
     val dStartC   = if (deltaStart >= 0) deltaStart else oldSpan match {
@@ -287,30 +285,29 @@ object EditTimeline {
       }
 
       import de.sciss.equal.Implicits._
-      val newSpanEx = SpanLikeObj.newConst[S](newSpan)
+      val newSpanEx = SpanLikeObj.newConst[T](newSpan)
       if (newSpanEx !== oldSpanC) {
-        EditExprVar[S, SpanLike, SpanLikeObj](span, newSpanEx)
+        EditExprVar[T, SpanLike, SpanLikeObj](span, newSpanEx)
         if (dStartC != 0L) obj match {
-          case objT: Proc[S] =>
+          case objT: Proc[T] =>
             for {
               audioCue <- getAudioRegion(objT)
             } yield {
               // Crazy heuristics
-              def putCue(newCue: AudioCue.Obj[S]): Unit =
+              def putCue(newCue: AudioCue.Obj[T]): Unit =
                 EditAttrMap.put(objT.attr, Proc.graphAudio, newCue)
 
               audioCue match {
                 case AudioCue.Obj.Shift(peer, amt) =>
-                  import de.sciss.lucre.expr.Ops.longObjOps
                   amt match {
                     case LongObj.Var(amtVr) =>
-                      EditExprVar[S, Long, LongObj](amtVr, amtVr() + dStartC)
+                      EditExprVar[T, Long, LongObj](amtVr, amtVr() + dStartC)
                     case _ =>
-                      val newCue = AudioCue.Obj.Shift(peer, LongObj.newVar[S](amt + dStartC))
+                      val newCue = AudioCue.Obj.Shift(peer, LongObj.newVar[T](amt + dStartC))
                       putCue(newCue)
                   }
                 case other =>
-                  val newCue = AudioCue.Obj.Shift(other, LongObj.newVar[S](dStartC))
+                  val newCue = AudioCue.Obj.Shift(other, LongObj.newVar[T](dStartC))
                   putCue(newCue)
               }
             }
@@ -322,11 +319,11 @@ object EditTimeline {
 
   // ---- private: unlink ----
 
-  private def unlinkImpl[S <: Sys[S]](tl: Timeline.Modifiable[S], span: SpanLike, source: Output[S])
-                                     (implicit tx: S#Tx): Boolean = {
-    val it0: Iterator[BiGroup.Entry[S, Obj[S]]] = tl.get(Span.All).iterator ++ tl.intersect(span).flatMap(_._2)
+  private def unlinkImpl[T <: Txn[T]](tl: Timeline.Modifiable[T], span: SpanLike, source: Proc.Output[T])
+                                     (implicit tx: T): Boolean = {
+    val it0: Iterator[BiGroup.Entry[T, Obj[T]]] = tl.get(Span.All).iterator ++ tl.intersect(span).flatMap(_._2)
     val it = it0.collect {
-      case BiGroup.Entry(_, p: Proc[S]) if EditProc.hasLink(source, p) => p
+      case BiGroup.Entry(_, p: Proc[T]) if EditProc.hasLink(source, p) => p
     }
     val res = it.hasNext
     it.foreach {
@@ -335,13 +332,13 @@ object EditTimeline {
     res
   }
 
-//  private final class Unlink[S <: Sys[S]](tl0: Timeline.Modifiable[S], span0: SpanLikeObj[S], elem0: Obj[S], tx0: S#Tx)
-//    extends BasicUndoableEdit[S] {
+//  private final class Unlink[T <: Txn[T]](tl0: Timeline.Modifiable[T], span0: SpanLikeObj[T], elem0: Obj[T], tx0: T)
+//    extends BasicUndoableEdit[T] {
 //  }
 
   // ---- aux ----
 
   /* Queries the audio region's grapheme segment start and audio element. */
-  private def getAudioRegion[S <: Sys[S]](proc: Proc[S])(implicit tx: S#Tx): Option[AudioCue.Obj[S]] =
+  private def getAudioRegion[T <: Txn[T]](proc: Proc[T])(implicit tx: T): Option[AudioCue.Obj[T]] =
     proc.attr.$[AudioCue.Obj](Proc.graphAudio)
 }

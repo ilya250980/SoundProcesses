@@ -128,7 +128,7 @@ sealed trait TxnImpl extends Txn { tx =>
   }
 }
 
-trait TxnFullImpl[S <: Sys[S]] extends TxnImpl with Sys.Txn[S] {
+trait TxnFullImpl[T <: Sys.Txn[T]] extends TxnImpl with Sys.Txn[T] {
   final protected def markBundlesDirty(): Unit = {
     log("registering after commit handler")
     afterCommit(flush())

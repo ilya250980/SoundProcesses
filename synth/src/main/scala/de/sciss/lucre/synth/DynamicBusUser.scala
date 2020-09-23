@@ -13,7 +13,7 @@
 
 package de.sciss.lucre.synth
 
-import de.sciss.lucre.stm.Disposable
+import de.sciss.lucre.Disposable
 
 import concurrent.stm.{Ref => ScalaRef}
 import de.sciss.synth.{ControlBus => SControlBus, AudioBus => SAudioBus}

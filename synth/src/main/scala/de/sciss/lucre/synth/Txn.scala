@@ -13,12 +13,12 @@
 
 package de.sciss.lucre.synth
 
-import de.sciss.lucre.stm.TxnLike
+import de.sciss.lucre.TxnLike
 import de.sciss.lucre.synth.impl.TxnPlainImpl
 import de.sciss.osc
 import de.sciss.synth.message
 
-import scala.collection.immutable.{IndexedSeq => Vec}
+import scala.collection.immutable.{IndexedSeq => Vec, Seq => ISeq}
 import scala.concurrent.stm.InTxn
 
 object Txn {
@@ -56,5 +56,5 @@ trait Txn extends TxnLike {
   /** Or zero if not scheduled. */
   def systemTimeNanoSec: Long
 
-  def addMessage(resource: Resource, m: osc.Message with message.Send, dependencies: Seq[Resource] = Nil): Unit
+  def addMessage(resource: Resource, m: osc.Message with message.Send, dependencies: ISeq[Resource] = Nil): Unit
 }

@@ -15,7 +15,7 @@ package de.sciss.lucre.synth.impl
 
 import java.io.{ByteArrayOutputStream, DataOutputStream}
 
-import de.sciss.lucre.stm.TxnLike.{peer => txPeer}
+import de.sciss.lucre.TxnLike.{peer => txPeer}
 import de.sciss.lucre.synth.{BlockAllocator, Group, NodeIdAllocator, NodeRef, Server, SynthDef, Txn, log}
 import de.sciss.osc
 import de.sciss.osc.TimeTag

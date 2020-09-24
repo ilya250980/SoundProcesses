@@ -13,10 +13,10 @@
 
 package de.sciss.synth.proc.impl
 
-import de.sciss.lucre.stm.Disposable
-import de.sciss.lucre.synth.{NodeRef, Sys}
+import de.sciss.lucre.synth.NodeRef
+import de.sciss.lucre.{Disposable, Txn}
 import de.sciss.processor.Processor
 
-trait AsyncResource[S <: Sys[S]] extends Processor[Any] with Disposable[S#Tx] {
-  def install(b: NodeRef.Full[S])(implicit tx: S#Tx): Unit
+trait AsyncResource[T <: Txn[T]] extends Processor[Any] with Disposable[T] {
+  def install(b: NodeRef.Full[T])(implicit tx: T): Unit
 }

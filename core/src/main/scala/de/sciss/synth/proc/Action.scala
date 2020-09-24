@@ -13,16 +13,15 @@
 
 package de.sciss.synth.proc
 
-import de.sciss.lucre.event.{Dummy, Event, EventLike, Publisher, Targets}
-import de.sciss.lucre.expr
+import de.sciss.lucre.Event.Targets
 import de.sciss.lucre.expr.graph.{Act, Control => _Control}
-import de.sciss.lucre.expr.impl.{ExElem, GraphBuilderMixin, GraphSerializerMixin}
-import de.sciss.lucre.expr.{Context, Expr, IAction, IControl, ITrigger}
-import de.sciss.lucre.stm.{Copy, Elem, Folder, Obj, Sys}
-import de.sciss.serial.{DataInput, DataOutput, ImmutableSerializer, Serializer}
+import de.sciss.lucre.expr.impl.{ExElem, GraphBuilderMixin, GraphFormatMixin}
+import de.sciss.lucre.expr.{Context, IAction, IControl, ITrigger}
+import de.sciss.lucre.impl.{DummyEvent, ExprTypeImpl}
+import de.sciss.lucre.{Copy, Elem, Event, EventLike, Expr, Ident, Obj, Publisher, Txn, expr, Var => LVar}
+import de.sciss.serial.{ConstFormat, DataInput, DataOutput, TFormat}
 import de.sciss.synth.UGenSource.Vec
-import de.sciss.synth.proc
-import de.sciss.synth.proc.impl.{ActionRawImpl, ActionImpl => Impl}
+import de.sciss.synth.proc.impl.{ActionImpl => Impl}
 import de.sciss.{lucre, model}
 
 import scala.collection.immutable.{Seq => ISeq}
@@ -40,28 +39,28 @@ object Action extends Obj.Type {
     Code    .init()
   }
 
-  def apply[S <: Sys[S]]()(implicit tx: S#Tx): Action[S] = Impl[S]()
+  def apply[T <: Txn[T]]()(implicit tx: T): Action[T] = Impl[T]()
 
-  def read[S <: Sys[S]](in: DataInput, access: S#Acc)(implicit tx: S#Tx): Action[S] = Impl.read(in, access)
+  def read[T <: Txn[T]](in: DataInput)(implicit tx: T): Action[T] = Impl.read(in)
 
-  implicit def serializer[S <: Sys[S]]: Serializer[S#Tx, S#Acc, Action[S]] = Impl.serializer[S]
+  implicit def format[T <: Txn[T]]: TFormat[T, Action[T]] = Impl.format[T]
 
-  def readIdentifiedObj[S <: Sys[S]](in: DataInput, access: S#Acc)(implicit tx: S#Tx): Obj[S] =
-    Impl.readIdentifiedObj(in, access)
+  def readIdentifiedObj[T <: Txn[T]](in: DataInput)(implicit tx: T): Obj[T] =
+    Impl.readIdentifiedObj(in)
 
   // ---- event types ----
 
   /** An update is a sequence of changes */
-  final case class Update[S <: Sys[S]](w: Action[S], changes: Vec[Change[S]])
+  final case class Update[T <: Txn[T]](w: Action[T], changes: Vec[Change[T]])
 
   /** A change is either a state change, or a scan or a grapheme change */
-  sealed trait Change[S <: Sys[S]]
+  sealed trait Change[T <: Txn[T]]
 
-  final case class GraphChange[S <: Sys[S]](change: model.Change[Graph]) extends Change[S]
+  final case class GraphChange[T <: Txn[T]](change: model.Change[Graph]) extends Change[T]
 
   // ---- graph obj ----
 
-  object GraphObj extends expr.impl.ExprTypeImpl[Graph, GraphObj] {
+  object GraphObj extends ExprTypeImpl[Graph, GraphObj] {
     final val typeId = 600
 
     def tryParse(value: Any): Option[Graph] = value match {
@@ -69,34 +68,33 @@ object Action extends Obj.Type {
       case _        => None
     }
 
-    protected def mkConst[S <: Sys[S]](id: S#Id, value: A)(implicit tx: S#Tx): Const[S] =
-      new _Const[S](id, value)
+    protected def mkConst[T <: Txn[T]](id: Ident[T], value: A)(implicit tx: T): Const[T] =
+      new _Const[T](id, value)
 
-    protected def mkVar[S <: Sys[S]](targets: Targets[S], vr: S#Var[_Ex[S]], connect: Boolean)
-                                    (implicit tx: S#Tx): Var[S] = {
-      val res = new _Var[S](targets, vr)
+    protected def mkVar[T <: Txn[T]](targets: Targets[T], vr: LVar[T, E[T]], connect: Boolean)
+                                    (implicit tx: T): Var[T] = {
+      val res = new _Var[T](targets, vr)
       if (connect) res.connect()
       res
     }
 
-    private final class _Const[S <: Sys[S]](val id: S#Id, val constValue: A)
-      extends ConstImpl[S] with GraphObj[S]
+    private final class _Const[T <: Txn[T]](val id: Ident[T], val constValue: A)
+      extends ConstImpl[T] with GraphObj[T]
 
-    private final class _Var[S <: Sys[S]](val targets: Targets[S], val ref: S#Var[_Ex[S]])
-      extends VarImpl[S] with GraphObj[S]
+    private final class _Var[T <: Txn[T]](val targets: Targets[T], val ref: LVar[T, E[T]])
+      extends VarImpl[T] with GraphObj[T]
 
-    /** A serializer for graphs. */
-    def valueSerializer: ImmutableSerializer[Graph] = Graph.serializer
+    /** A format for graphs. */
+    def valueFormat: ConstFormat[Graph] = Graph.format
 
     private final val emptyCookie = 4
 
-    override protected def readCookie[S <: Sys[S]](in: DataInput, access: S#Acc, cookie: Byte)
-                                                  (implicit tx: S#Tx): _Ex[S] =
+    override protected def readCookie[T <: Txn[T]](in: DataInput, cookie: Byte)(implicit tx: T): E[T] =
       cookie match {
         case `emptyCookie` =>
-          val id = tx.readId(in, access)
+          val id = tx.readId(in)
           new Predefined(id, cookie)
-        case _ => super.readCookie(in, access, cookie)
+        case _ => super.readCookie(in, cookie)
       }
 
     private val emptyGraph =
@@ -105,21 +103,21 @@ object Action extends Obj.Type {
         Act.Nop()
       }
 
-    def empty[S <: Sys[S]](implicit tx: S#Tx): _Ex[S] = apply(emptyCookie)
+    def empty[T <: Txn[T]](implicit tx: T): E[T] = apply(emptyCookie)
 
-    private def apply[S <: Sys[S]](cookie: Int)(implicit tx: S#Tx): _Ex[S] = {
+    private def apply[T <: Txn[T]](cookie: Int)(implicit tx: T): E[T] = {
       val id = tx.newId()
       new Predefined(id, cookie)
     }
 
-    private final class Predefined[S <: Sys[S]](val id: S#Id, cookie: Int)
-      extends GraphObj[S] with Expr.Const[S, Graph] {
+    private final class Predefined[T <: Txn[T]](val id: Ident[T], cookie: Int)
+      extends GraphObj[T] with Expr.Const[T, Graph] {
 
-      def event(slot: Int): Event[S, Any] = throw new UnsupportedOperationException
+      def event(slot: Int): Event[T, Any] = throw new UnsupportedOperationException
 
       def tpe: Obj.Type = GraphObj
 
-      def copy[Out <: Sys[Out]]()(implicit tx: S#Tx, txOut: Out#Tx, context: Copy[S, Out]): Elem[Out] =
+      def copy[Out <: Txn[Out]]()(implicit tx: T, txOut: Out, context: Copy[T, Out]): Elem[Out] =
         new Predefined(txOut.newId(), cookie) // .connect()
 
       def write(out: DataOutput): Unit = {
@@ -128,18 +126,18 @@ object Action extends Obj.Type {
         id.write(out)
       }
 
-      def value(implicit tx: S#Tx): Graph = constValue
+      def value(implicit tx: T): Graph = constValue
 
-      def changed: EventLike[S, model.Change[Graph]] = Dummy[S, model.Change[Graph]]
+      def changed: EventLike[T, model.Change[Graph]] = DummyEvent[T, model.Change[Graph]]
 
-      def dispose()(implicit tx: S#Tx): Unit = ()
+      def dispose()(implicit tx: T): Unit = ()
 
       def constValue: Graph = cookie match {
         case `emptyCookie` => emptyGraph
       }
     }
   }
-  trait GraphObj[S <: Sys[S]] extends Expr[S, Graph]
+  trait GraphObj[T <: Txn[T]] extends Expr[T, Graph]
 
   // ---- Graph ----
 
@@ -167,7 +165,7 @@ object Action extends Obj.Type {
       }
     }
 
-    implicit object serializer extends ImmutableSerializer[Graph] with GraphSerializerMixin {
+    implicit object format extends ConstFormat[Graph] with GraphFormatMixin {
       private final val SER_VERSION = 0x4147  // "AG"
 
       def write(g: Graph, out: DataOutput): Unit = {
@@ -188,19 +186,19 @@ object Action extends Obj.Type {
       }
     }
 
-    private final class ExpandedImpl[S <: Sys[S]](val action: IAction[S], controls: ISeq[IControl[S]])
-      extends IAction[S] with IControl[S] {
+    private final class ExpandedImpl[T <: Txn[T]](val action: IAction[T], controls: ISeq[IControl[T]])
+      extends IAction[T] with IControl[T] {
 
-      def initControl()(implicit tx: S#Tx): Unit =
+      def initControl()(implicit tx: T): Unit =
         controls.foreach(_.initControl())
 
-      def addSource(tr: ITrigger[S])(implicit tx: S#Tx): Unit =
+      def addSource(tr: ITrigger[T])(implicit tx: T): Unit =
         action.addSource(tr)
 
-      def executeAction()(implicit tx: S#Tx): Unit =
+      def executeAction()(implicit tx: T): Unit =
         action.executeAction()
 
-      def dispose()(implicit tx: S#Tx): Unit = {
+      def dispose()(implicit tx: T): Unit = {
         action.dispose()
         controls.foreach(_.dispose())
       }
@@ -210,57 +208,57 @@ object Action extends Obj.Type {
   final case class Graph(action: Act, controls: Vec[_Control.Configured])
     extends expr.Graph {
 
-    override def expand[S <: Sys[S]](implicit tx: S#Tx, ctx: Context[S]): IAction[S] with IControl[S] = {
+    override def expand[T <: Txn[T]](implicit tx: T, ctx: Context[T]): IAction[T] with IControl[T] = {
       ctx.initGraph(this)
-      val actionEx: IAction[S] /*with IControl[S]*/ = action.expand[S]
-      val disposables = controls.map(_.control.expand[S])
+      val actionEx: IAction[T] /*with IControl[T]*/ = action.expand[T]
+      val disposables = controls.map(_.control.expand[T])
       new Graph.ExpandedImpl(actionEx, disposables)
     }
   }
 
-  // ---- LEGACY ----
-
-  object Universe {
-    @deprecated("Action should be used instead of ActionRaw", since = "3.31.0")
-    def apply[S <: Sys[S]](self: ActionRaw[S], invoker: Option[Obj[S]] = None, value: Any = ())
-                          (implicit peer: proc.Universe[S]): Universe[S] =
-      new ActionRawImpl.UniverseImpl(self, invoker, value)
-  }
-
-  /** Environment passed into the action body. Deliberately not a sub-type of `proc.Universe`,
-    * but carrying over some of the same methods.
-    */
-  @deprecated("Action should be used instead of ActionRaw", since = "3.31.0")
-  trait Universe[S <: Sys[S]] extends proc.Universe.Base[S] {
-    implicit def peer: proc.Universe[S]
-
-    /** The action object itself, most prominently giving access to
-      * linked objects via its attributes.
-      */
-    def self: ActionRaw[S]
-
-    /** A result object from the invoker. To permit different kind of invocations,
-      * this value is untyped. Conventionally, `Action.DoubleVector` and `Action.FloatVector`
-      * are used for collections of numbers.
-      */
-    def value: Any
-
-    /** Parent component from which the action is invoked. For example
-      * if used from within a synth-graph, this will be some `Proc.Obj`.
-      * `None` if the action is directly invoked without dedicated parent.
-      */
-    def invoker: Option[Obj[S]]
-
-    def root(implicit tx: S#Tx): Folder[S] = workspace.root
-
-    def log(what: => String)(implicit tx: S#Tx): Unit
-  }
-
-  @deprecated("Action should be used instead of ActionRaw", since = "3.31.0")
-  trait Body {
-    def apply[S <: Sys[S]](universe: Universe[S])(implicit tx: S#Tx): Unit
-  }
+//  // ---- LEGACY ----
+//
+//  object Universe {
+//    @deprecated("Action should be used instead of ActionRaw", since = "3.31.0")
+//    def apply[T <: Txn[T]](self: ActionRaw[T], invoker: Option[Obj[T]] = None, value: Any = ())
+//                          (implicit peer: proc.Universe[T]): Universe[T] =
+//      new ActionRawImpl.UniverseImpl(self, invoker, value)
+//  }
+//
+//  /** Environment passed into the action body. Deliberately not a sub-type of `proc.Universe`,
+//    * but carrying over some of the same methods.
+//    */
+//  @deprecated("Action should be used instead of ActionRaw", since = "3.31.0")
+//  trait Universe[T <: Txn[T]] extends proc.Universe.Base[T] {
+//    implicit def peer: proc.Universe[T]
+//
+//    /** The action object itself, most prominently giving access to
+//      * linked objects via its attributes.
+//      */
+//    def self: ActionRaw[T]
+//
+//    /** A result object from the invoker. To permit different kind of invocations,
+//      * this value is untyped. Conventionally, `Action.DoubleVector` and `Action.FloatVector`
+//      * are used for collections of numbers.
+//      */
+//    def value: Any
+//
+//    /** Parent component from which the action is invoked. For example
+//      * if used from within a synth-graph, this will be some `Proc.Obj`.
+//      * `None` if the action is directly invoked without dedicated parent.
+//      */
+//    def invoker: Option[Obj[T]]
+//
+//    def root(implicit tx: T): Folder[T] = workspace.root
+//
+//    def log(what: => String)(implicit tx: T): Unit
+//  }
+//
+//  @deprecated("Action should be used instead of ActionRaw", since = "3.31.0")
+//  trait Body {
+//    def apply[T <: Txn[T]](universe: Universe[T])(implicit tx: T): Unit
+//  }
 }
-trait Action[S <: Sys[S]] extends Obj[S] with Publisher[S, Action.Update[S]] {
-  def graph: Action.GraphObj.Var[S]
+trait Action[T <: Txn[T]] extends Obj[T] with Publisher[T, Action.Update[T]] {
+  def graph: Action.GraphObj.Var[T]
 }

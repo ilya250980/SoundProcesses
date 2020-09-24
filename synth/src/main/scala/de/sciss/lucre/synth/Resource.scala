@@ -22,25 +22,25 @@ object Resource {
   trait Proxy extends Resource {
     protected def resourcePeer: Resource
 
-    def dispose()(implicit tx: Txn): Unit = resourcePeer.dispose()
+    def dispose()(implicit tx: RT): Unit = resourcePeer.dispose()
 
-    private[synth] def timeStamp_=(value: TimeStamp)(implicit tx: Txn): Unit      = resourcePeer.timeStamp = value
-    private[synth] def timeStamp                    (implicit tx: Txn): TimeStamp = resourcePeer.timeStamp
+    private[synth] def timeStamp_=(value: TimeStamp)(implicit tx: RT): Unit      = resourcePeer.timeStamp = value
+    private[synth] def timeStamp                    (implicit tx: RT): TimeStamp = resourcePeer.timeStamp
 
     def server: Server = resourcePeer.server
 
-    def isOnline(implicit tx: Txn): Boolean = resourcePeer.isOnline
+    def isOnline(implicit tx: RT): Boolean = resourcePeer.isOnline
   }
 }
 
-trait Resource extends Disposable[Txn] {
+trait Resource extends Disposable[RT] {
   import Resource.TimeStamp
 
-  def isOnline(implicit tx: Txn): Boolean
+  def isOnline(implicit tx: RT): Boolean
 
   def server: Server
 
   // logical time stamp of last modification; initially zero, negative when disposed
-  private[synth] def timeStamp                    (implicit tx: Txn): TimeStamp
-  private[synth] def timeStamp_=(value: TimeStamp)(implicit tx: Txn): Unit
+  private[synth] def timeStamp                    (implicit tx: RT): TimeStamp
+  private[synth] def timeStamp_=(value: TimeStamp)(implicit tx: RT): Unit
 }

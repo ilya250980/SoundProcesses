@@ -13,47 +13,46 @@
 
 package de.sciss.synth.proc.impl
 
+import de.sciss.lucre.edit.UndoManager
 import de.sciss.lucre.expr.Context
-import de.sciss.lucre.stm
-import de.sciss.lucre.stm.{Obj, Sys, UndoManager}
-import de.sciss.lucre.synth.{Sys => SSys}
+import de.sciss.lucre.{Obj, Source, Txn, synth}
 import de.sciss.synth.proc.{Action, AuralContext, AuralObj, ExprContext, Runner, TimeRef, Universe}
 
 import scala.util.control.NonFatal
 
 object AuralActionImpl extends AuralObj.Factory {
-  type Repr[S <: Sys[S]]  = Action[S]
+  type Repr[T <: Txn[T]]  = Action[T]
   def tpe: Obj.Type       = Action
 
-  def apply[S <: SSys[S]](obj: Action[S], attr: Runner.Attr[S])
-                         (implicit tx: S#Tx, context: AuralContext[S]): AuralObj.Action[S] = {
+  def apply[T <: synth.Txn[T]](obj: Action[T], attr: Runner.Attr[T])
+                         (implicit tx: T, context: AuralContext[T]): AuralObj.Action[T] = {
     val objH = tx.newHandle(obj)
     new Impl(objH, attr)
   }
 
-  private final class Impl[S <: SSys[S]](objH: stm.Source[S#Tx, Action[S]], attr: Runner.Attr[S])
-                                        (implicit context: AuralContext[S])
-    extends BasicViewBaseImpl[S] with AuralObj.Action[S] {
+  private final class Impl[T <: synth.Txn[T]](objH: Source[T, Action[T]], attr: Runner.Attr[T])
+                                        (implicit context: AuralContext[T])
+    extends BasicViewBaseImpl[T] with AuralObj.Action[T] {
 
-    implicit def universe: Universe[S] = context.universe
+    implicit def universe: Universe[T] = context.universe
 
-    override type Repr = Action[S]
+    override type Repr = Action[T]
 
     def tpe: Obj.Type = Action
 
-    override def obj(implicit tx: S#Tx): Action[S] = objH()
+    override def obj(implicit tx: T): Action[T] = objH()
 
-    def prepare(timeRef: TimeRef.Option)(implicit tx: S#Tx): Unit =
+    def prepare(timeRef: TimeRef.Option)(implicit tx: T): Unit =
       state = Runner.Prepared
 
     // XXX TODO DRY with ActionRunnerImpl
-    def run(timeRef: TimeRef.Option, target: Unit)(implicit tx: S#Tx): Unit = {
+    def run(timeRef: TimeRef.Option, target: Unit)(implicit tx: T): Unit = {
       val ctl = objH()
-      implicit val u: UndoManager[S]  = UndoManager()
-      implicit val ctx: Context[S]    = ExprContext(Some(objH), attr, None) // XXX TODO --- we lose Runner.Internal here
+      implicit val u: UndoManager[T]  = UndoManager()
+      implicit val ctx: Context[T]    = ExprContext(Some(objH), attr, None) // XXX TODO --- we lose Runner.Internal here
       val g = ctl.graph.value
       try {
-        val c = g.expand[S]
+        val c = g.expand[T]
         try {
           c.initControl()
           state = Runner.Running
@@ -70,9 +69,9 @@ object AuralActionImpl extends AuralObj.Factory {
 
     override def toString = s"AuralAction@${hashCode().toHexString}"
 
-    def stop()(implicit tx: S#Tx): Unit =
+    def stop()(implicit tx: T): Unit =
       state = Runner.Stopped
 
-    def dispose()(implicit tx: S#Tx): Unit = ()
+    def dispose()(implicit tx: T): Unit = ()
   }
 }

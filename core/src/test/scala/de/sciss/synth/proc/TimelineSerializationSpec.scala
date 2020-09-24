@@ -2,8 +2,8 @@ package de.sciss
 package synth
 package proc
 
-import de.sciss.lucre.stm.store.BerkeleyDB
-import de.sciss.lucre.stm.{Folder, Obj}
+import de.sciss.lucre.store.BerkeleyDB
+import de.sciss.lucre.{Folder, Obj}
 import de.sciss.span.Span
 import de.sciss.synth.proc.Implicits._
 import org.scalatest.Outcome
@@ -17,7 +17,8 @@ import org.scalatest.matchers.should.Matchers
 
  */
 class TimelineSerializationSpec extends FixtureAnyFlatSpec with Matchers {
-  type S = Durable
+  type S            = Durable
+  type T            = Durable.Txn
   type FixtureParam = Durable
 
   SoundProcesses.init()
@@ -34,8 +35,8 @@ class TimelineSerializationSpec extends FixtureAnyFlatSpec with Matchers {
 
   "Timeline" should "serialize and deserialize" in { system =>
     val tH = system.step { implicit tx =>
-      val t = Timeline[S]()
-      val p = Proc[S]()
+      val t = Timeline[T]()
+      val p = Proc[T]()
       p.name = "Schoko"
       assert(p.name === "Schoko")
       t.add(Span(0L, 10000L), p)
@@ -47,7 +48,7 @@ class TimelineSerializationSpec extends FixtureAnyFlatSpec with Matchers {
       val t = tH()  // uses direct serializer
       val objects = t.intersect(0L).toList.flatMap(_._2.map(_.value))
       assert(objects.map(_.name) === List("Schoko"))
-      tx.newHandle(t: Obj[S])
+      tx.newHandle(t: Obj[T])
     }
 
     system.step { implicit tx =>
@@ -57,7 +58,7 @@ class TimelineSerializationSpec extends FixtureAnyFlatSpec with Matchers {
 
     val fH = system.step { implicit tx =>
       val t = tH()
-      val f = Folder[S]()
+      val f = Folder[T]()
       f.addLast(t)
       tx.newHandle(f)
     }
@@ -65,8 +66,8 @@ class TimelineSerializationSpec extends FixtureAnyFlatSpec with Matchers {
     system.step { implicit tx =>
       val f = fH()
       val o = f.last
-      assert(o.isInstanceOf[Timeline[S]])
-      val t = o.asInstanceOf[Timeline[S]]
+      assert(o.isInstanceOf[Timeline[T]])
+      val t = o.asInstanceOf[Timeline[T]]
       val objects = t.intersect(0L).toList.flatMap(_._2.map(_.value))
       assert(objects.map(_.name) === List("Schoko"))
     }

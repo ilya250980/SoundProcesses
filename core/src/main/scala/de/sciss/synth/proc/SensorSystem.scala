@@ -13,10 +13,10 @@
 
 package de.sciss.synth.proc
 
+import de.sciss.lucre.TxnLike
 import de.sciss.osc
-import de.sciss.lucre.stm.TxnLike
-import de.sciss.osc.{UDP, Channel}
-import impl.{SensorSystemImpl => Impl}
+import de.sciss.osc.{Channel, UDP}
+import de.sciss.synth.proc.impl.{SensorSystemImpl => Impl}
 
 import scala.collection.immutable.{IndexedSeq => Vec}
 import scala.language.implicitConversions
@@ -67,7 +67,7 @@ object SensorSystem {
   type Server = osc.Receiver.Undirected.Net
 }
 trait SensorSystem {
-  import SensorSystem.{Config, Client, Server}
+  import SensorSystem.{Client, Config, Server}
 
   var dumpOSC: Boolean
 

@@ -6,6 +6,8 @@ import de.sciss.synth.proc.{Scheduler, TimeRef, showTransportLog}
 // TODO - could be rather easily converted into a unit test
 object SchedulerTest extends App {
   type S = InMemory
+  type T = InMemory.Txn
+
   implicit val cursor: S = InMemory()
   showTransportLog = true
 
@@ -28,7 +30,7 @@ object SchedulerTest extends App {
    */
 
   cursor.step { implicit tx =>
-    val sched = Scheduler[S]()
+    val sched = Scheduler[T]()
     val now   = sched.time
     val token2 = sched.schedule(now + frames(2.0)) { implicit tx =>
       println("After 2 seconds - should have been cancelled")

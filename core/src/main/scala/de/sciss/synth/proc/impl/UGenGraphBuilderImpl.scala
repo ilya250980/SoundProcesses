@@ -13,7 +13,8 @@
 
 package de.sciss.synth.proc.impl
 
-import de.sciss.lucre.synth.{Server, Sys}
+import de.sciss.lucre.Txn
+import de.sciss.lucre.synth.Server
 import de.sciss.synth.NestedUGenGraphBuilder.ExpIfCase
 import de.sciss.synth.proc.{Proc, logAural, UGenGraphBuilder => UGB}
 import de.sciss.synth.{NestedUGenGraphBuilder, SynthGraph}
@@ -25,61 +26,61 @@ object UGenGraphBuilderImpl {
     * created and consumed within the same transaction. That is to say, to be transactionally safe, it may only
     * be stored in a `TxnLocal`, but not a full STM ref.
     */
-  def apply[S <: Sys[S]](context: Context[S], proc: Proc[S])
-                        (implicit tx: S#Tx): State[S] = {
+  def apply[T <: Txn[T]](context: Context[T], proc: Proc[T])
+                        (implicit tx: T): State[T] = {
     val in = init(proc)
     in.retry(context)
   }
 
-  def init[S <: Sys[S]](proc: Proc[S])
-                       (implicit tx: S#Tx): Incomplete[S] = {
+  def init[T <: Txn[T]](proc: Proc[T])
+                       (implicit tx: T): Incomplete[T] = {
     val g   = proc.graph.value
-    val in  = new IncompleteImpl[S](g, Set.empty)
+    val in  = new IncompleteImpl[T](g, Set.empty)
     in
   }
 
   // ---- impl ----
 
-  private final class IncompleteImpl[S <: Sys[S]](g: SynthGraph, val rejectedInputs: Set[UGB.Key])
-    extends Incomplete[S] {
+  private final class IncompleteImpl[T <: Txn[T]](g: SynthGraph, val rejectedInputs: Set[UGB.Key])
+    extends Incomplete[T] {
 
     override def toString = s"UGenGraphBuilder.Incomplete@${hashCode.toHexString}"
 
     def acceptedInputs  = Map.empty[UGB.Key, Map[UGB.Input, UGB.Input#Value]]
     def outputs         = Map.empty[String, Int]
 
-    def retry(context: Context[S])(implicit tx: S#Tx): State[S] =
-      new OuterImpl[S](context, tx).tryBuild(g)
+    def retry(context: Context[T])(implicit tx: T): State[T] =
+      new OuterImpl[T](context, tx).tryBuild(g)
   }
 
-  private final class CompleteImpl[S <: Sys[S]](val result: NestedUGenGraphBuilder.Result,
+  private final class CompleteImpl[T <: Txn[T]](val result: NestedUGenGraphBuilder.Result,
       val outputs       : Map[String, Int],
       val acceptedInputs: Map[UGB.Key, Map[UGB.Input, UGB.Input#Value]]
-   ) extends Complete[S] {
+   ) extends Complete[T] {
 
     override def toString = s"UGenGraphBuilder.Complete@${hashCode.toHexString}"
   }
 
-  private final class OuterImpl[S <: Sys[S]](protected val context: Context[S],
-                                             protected val tx: S#Tx)
-    extends NestedUGenGraphBuilder.Outer with Impl[S]
+  private final class OuterImpl[T <: Txn[T]](protected val context: Context[T],
+                                             protected val tx: T)
+    extends NestedUGenGraphBuilder.Outer with Impl[T]
 
-  private final class InnerImpl[S <: Sys[S]](protected val childId: Int,
+  private final class InnerImpl[T <: Txn[T]](protected val childId: Int,
                                              protected val thisExpIfCase: Option[ExpIfCase],
                                              protected val parent: NestedUGenGraphBuilder.Basic,
                                              protected val name: String,
-                                             protected val context: Context[S],
-                                             protected val tx: S#Tx)
-    extends NestedUGenGraphBuilder.Inner with Impl[S]
+                                             protected val context: Context[T],
+                                             protected val tx: T)
+    extends NestedUGenGraphBuilder.Inner with Impl[T]
 
-  private trait Impl[S <: Sys[S]]
-    extends NestedUGenGraphBuilder.Basic with UGB with UGB.Requester[S] {
+  private trait Impl[T <: Txn[T]]
+    extends NestedUGenGraphBuilder.Basic with UGB with UGB.Requester[T] {
     builder =>
 
     // ---- abstract ----
 
-    protected def context: Context[S]
-    protected def tx: S#Tx
+    protected def context: Context[T]
+    protected def tx: T
 
     // ---- impl ----
 
@@ -96,7 +97,7 @@ object UGenGraphBuilderImpl {
 
     final def server: Server = context.server
 
-//    final def retry(context: Context[S])(implicit tx: S#Tx): State[S] =
+//    final def retry(context: Context[T])(implicit tx: T): State[T] =
 //      throw new IllegalStateException("Cannot retry an ongoing build")
 
     final def requestInput(req: UGB.Input): req.Value = {
@@ -128,13 +129,13 @@ object UGenGraphBuilderImpl {
         }
       }
 
-    final def tryBuild(g: SynthGraph): State[S] =
+    final def tryBuild(g: SynthGraph): State[T] =
       try {
         val result = build(g)
-        new CompleteImpl[S](result, outputs = outputs, acceptedInputs = acceptedInputs)
+        new CompleteImpl[T](result, outputs = outputs, acceptedInputs = acceptedInputs)
       } catch {
         case MissingIn(rejected) =>
-          new IncompleteImpl[S](g, Set(rejected))
+          new IncompleteImpl[T](g, Set(rejected))
       }
   }
 }

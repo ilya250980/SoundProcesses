@@ -13,33 +13,31 @@
 
 package de.sciss.synth.proc
 
-import de.sciss.lucre.event.Observable
-import de.sciss.lucre.expr.SpanLikeObj
-import de.sciss.lucre.stm
-import de.sciss.lucre.stm.{Obj, Sys, TxnLike}
-import de.sciss.lucre.synth.{NodeRef, Sys => SSys}
+import de.sciss.lucre
+import de.sciss.lucre.synth.NodeRef
+import de.sciss.lucre.{Ident, Obj, Observable, SpanLikeObj, Txn, TxnLike, synth}
 import de.sciss.synth.proc
-import de.sciss.synth.proc.impl.{AuralActionImpl, AuralActionRawImpl, AuralControlImpl, AuralEnsembleImpl, AuralFolderImpl, AuralProcImpl, AuralTimelineImpl, AuralObjImpl => Impl}
+import de.sciss.synth.proc.impl.{AuralActionImpl, AuralControlImpl, AuralFolderImpl, AuralProcImpl, AuralTimelineImpl, AuralObjImpl => Impl}
 
 object AuralObj {
-  import proc.{Action => _Action, ActionRaw => _ActionRaw, Control => _Control, Ensemble => _Ensemble, Proc => _Proc, Timeline => _Timeline}
-  import stm.{Folder => _Folder}
+  import lucre.{Folder => _Folder}
+  import proc.{Action => _Action, Control => _Control, Proc => _Proc, Timeline => _Timeline}
 
   trait Factory {
     def tpe: Obj.Type
 
-    type Repr[~ <: Sys[~]] <: Obj[~]
+    type Repr[~ <: Txn[~]] <: Obj[~]
 
-    def apply[S <: SSys[S]](obj: Repr[S], attr: Runner.Attr[S])
-                           (implicit tx: S#Tx, context: AuralContext[S]): AuralObj[S]
+    def apply[T <: synth.Txn[T]](obj: Repr[T], attr: Runner.Attr[T])
+                           (implicit tx: T, context: AuralContext[T]): AuralObj[T]
   }
 
   def addFactory(f: Factory): Unit = Impl.addFactory(f)
 
   def factories: Iterable[Factory] = Impl.factories
 
-  def apply[S <: SSys[S]](obj: Obj[S], attr: Runner.Attr[S] = Runner.emptyAttr[S])
-                         (implicit tx: S#Tx, context: AuralContext[S]): AuralObj[S] = Impl(obj, attr = attr)
+  def apply[T <: synth.Txn[T]](obj: Obj[T], attr: Runner.Attr[T] = Runner.emptyAttr[T])
+                         (implicit tx: T, context: AuralContext[T]): AuralObj[T] = Impl(obj, attr = attr)
 
   /* The target state indicates the eventual state the process should have,
      independent of the current state which might not yet be ready.
@@ -69,41 +67,41 @@ object AuralObj {
   // ---- proc ----
 
   object Proc extends AuralObj.Factory {
-    type Repr[S <: Sys[S]] = _Proc[S]
+    type Repr[T <: Txn[T]] = _Proc[T]
 
     def tpe: Obj.Type = _Proc
 
-    def apply[S <: SSys[S]](obj: _Proc[S], attr: Runner.Attr[S] = Runner.emptyAttr[S])
-                           (implicit tx: S#Tx, context: AuralContext[S]): AuralObj.Proc[S] =
+    def apply[T <: synth.Txn[T]](obj: _Proc[T], attr: Runner.Attr[T] = Runner.emptyAttr[T])
+                           (implicit tx: T, context: AuralContext[T]): AuralObj.Proc[T] =
       AuralProcImpl(obj, attr)
 
-    sealed trait Update[S <: Sys[S]] {
-      def proc: Proc[S]
+    sealed trait Update[T <: Txn[T]] {
+      def proc: Proc[T]
       def key: String
     }
-    sealed trait AttrUpdate[S <: Sys[S]] extends Update[S] {
-      def attr: AuralAttribute[S]
+    sealed trait AttrUpdate[T <: Txn[T]] extends Update[T] {
+      def attr: AuralAttribute[T]
       final def key: String = attr.key
     }
-    sealed trait OutputUpdate[S <: Sys[S]] extends Update[S] {
-      def output: AuralOutput[S]
+    sealed trait OutputUpdate[T <: Txn[T]] extends Update[T] {
+      def output: AuralOutput[T]
       final def key: String = output.key
     }
 
-    final case class AttrAdded  [S <: Sys[S]](proc: Proc[S], attr: AuralAttribute[S])
-      extends AttrUpdate[S]
+    final case class AttrAdded  [T <: Txn[T]](proc: Proc[T], attr: AuralAttribute[T])
+      extends AttrUpdate[T]
 
-    final case class AttrRemoved[S <: Sys[S]](proc: Proc[S], attr: AuralAttribute[S])
-      extends AttrUpdate[S]
+    final case class AttrRemoved[T <: Txn[T]](proc: Proc[T], attr: AuralAttribute[T])
+      extends AttrUpdate[T]
 
-    final case class OutputAdded  [S <: Sys[S]](proc: Proc[S], output: AuralOutput[S])
-      extends OutputUpdate[S]
+    final case class OutputAdded  [T <: Txn[T]](proc: Proc[T], output: AuralOutput[T])
+      extends OutputUpdate[T]
 
-    final case class OutputRemoved[S <: Sys[S]](proc: Proc[S], output: AuralOutput[S])
-      extends OutputUpdate[S]
+    final case class OutputRemoved[T <: Txn[T]](proc: Proc[T], output: AuralOutput[T])
+      extends OutputUpdate[T]
   }
-  trait Proc[S <: Sys[S]] extends AuralObj[S] {
-    type Repr = _Proc[S]
+  trait Proc[T <: Txn[T]] extends AuralObj[T] {
+    type Repr = _Proc[T]
 
     /** The node reference associated with the process. A `Some` value indicates that
       * at least one instance view is playing, whereas a `None` value indicates that
@@ -111,147 +109,131 @@ object AuralObj {
       */
     def nodeOption(implicit tx: TxnLike): Option[NodeRef]
 
-    def targetState(implicit tx: S#Tx): Runner.State
+    def targetState(implicit tx: T): Runner.State
 
-    implicit def context: AuralContext[S]
+    implicit def context: AuralContext[T]
 
-    def ports: Observable[S#Tx, Proc.Update[S]]
+    def ports: Observable[T, Proc.Update[T]]
 
     // used by Nuages
-    def getAttr  (key: String)(implicit tx: S#Tx): Option[AuralAttribute[S]]
-    def getOutput(key: String)(implicit tx: S#Tx): Option[AuralOutput   [S]]
+    def getAttr  (key: String)(implicit tx: T): Option[AuralAttribute[T]]
+    def getOutput(key: String)(implicit tx: T): Option[AuralOutput   [T]]
   }
 
   // ---- container ----
 
   object Container {
-    sealed trait Update[S <: Sys[S], +Repr] {
+    sealed trait Update[T <: Txn[T], +Repr] {
       def container: Repr
     }
-    final case class ViewAdded[S <: Sys[S], Repr](container: Repr, id: S#Id, view: AuralObj[S])
-      extends Update[S, Repr]
+    final case class ViewAdded[T <: Txn[T], Repr](container: Repr, id: Ident[T], view: AuralObj[T])
+      extends Update[T, Repr]
 
-    final case class ViewRemoved[S <: Sys[S], Repr](container: Repr, id: S#Id, view: AuralObj[S])
-      extends Update[S, Repr]
+    final case class ViewRemoved[T <: Txn[T], Repr](container: Repr, id: Ident[T], view: AuralObj[T])
+      extends Update[T, Repr]
   }
-  trait Container[S <: Sys[S], +Self <: Container[S, Self]] extends AuralObj[S] {
+  trait Container[T <: Txn[T], +Self <: Container[T, Self]] extends AuralObj[T] {
     /** Monitors the _active_ views, i.e. views which are
       * intersecting with the current transport position.
       */
-    def contents: Observable[S#Tx, Container.Update[S, Self]]
+    def contents: Observable[T, Container.Update[T, Self]]
 
     /** Returns the set of _active_ views, i.e. views which are intersecting
       * with the current transport position.
       */
-    def views(implicit tx: S#Tx): Set[AuralObj[S]]
+    def views(implicit tx: T): Set[AuralObj[T]]
 
-    def getViewById(id: S#Id)(implicit tx: S#Tx): Option[AuralObj[S]]
+    def getViewById(id: Ident[T])(implicit tx: T): Option[AuralObj[T]]
   }
 
   // ---- timeline ----
 
   object Timeline extends AuralObj.Factory {
-    type Repr[S <: Sys[S]] = _Timeline[S]
+    type Repr[T <: Txn[T]] = _Timeline[T]
 
     def tpe: Obj.Type = _Timeline
 
-    def apply[S <: SSys[S]](obj: _Timeline[S], attr: Runner.Attr[S] = Runner.emptyAttr[S])
-                           (implicit tx: S#Tx, context: AuralContext[S]): AuralObj.Timeline[S] =
+    def apply[T <: synth.Txn[T]](obj: _Timeline[T], attr: Runner.Attr[T] = Runner.emptyAttr[T])
+                           (implicit tx: T, context: AuralContext[T]): AuralObj.Timeline[T] =
       AuralTimelineImpl(obj, attr)
 
-    trait Manual[S <: Sys[S]] extends Timeline[S] {
-      def addObject   (id: S#Id, span: SpanLikeObj[S], obj: Obj[S])(implicit tx: S#Tx): Unit
-      def removeObject(id: S#Id, span: SpanLikeObj[S], obj: Obj[S])(implicit tx: S#Tx): Unit
+    trait Manual[T <: Txn[T]] extends Timeline[T] {
+      def addObject   (id: Ident[T], span: SpanLikeObj[T], obj: Obj[T])(implicit tx: T): Unit
+      def removeObject(id: Ident[T], span: SpanLikeObj[T], obj: Obj[T])(implicit tx: T): Unit
     }
   }
-  trait Timeline[S <: Sys[S]] extends Container[S, Timeline[S]] {
-    type Repr = _Timeline[S]
+  trait Timeline[T <: Txn[T]] extends Container[T, Timeline[T]] {
+    type Repr = _Timeline[T]
 
-    def getView(timed: _Timeline.Timed[S])(implicit tx: S#Tx): Option[AuralObj[S]]
+    def getView(timed: _Timeline.Timed[T])(implicit tx: T): Option[AuralObj[T]]
   }
 
   // ---- ensemble ----
 
-  trait FolderLike[S <: Sys[S], Self <: FolderLike[S, Self]] extends Container[S, Self] {
-    def folder(implicit tx: S#Tx): _Folder[S]
+  trait FolderLike[T <: Txn[T], Self <: FolderLike[T, Self]] extends Container[T, Self] {
+    def folder(implicit tx: T): _Folder[T]
 
-    def getView(obj: Obj[S])(implicit tx: S#Tx): Option[AuralObj[S]]
+    def getView(obj: Obj[T])(implicit tx: T): Option[AuralObj[T]]
   }
 
-  @deprecated("Should only use Folder now with Control/Action", since = "3.35.3")
-  object Ensemble extends AuralObj.Factory {
-    type Repr[S <: Sys[S]] = _Ensemble[S]
-
-    def tpe: Obj.Type = _Ensemble
-
-    def apply[S <: SSys[S]](obj: _Ensemble[S], attr: Runner.Attr[S])
-                           (implicit tx: S#Tx, context: AuralContext[S]): AuralObj.Ensemble[S] =
-      AuralEnsembleImpl(obj, attr)
-  }
-  @deprecated("Should only use Folder now with Control/Action", since = "3.35.3")
-  trait Ensemble[S <: Sys[S]] extends FolderLike[S, Ensemble[S]] {
-    type Repr = _Ensemble[S]
-  }
+//  @deprecated("Should only use Folder now with Control/Action", since = "3.35.3")
+//  object Ensemble extends AuralObj.Factory {
+//    type Repr[T <: Txn[T]] = _Ensemble[T]
+//
+//    def tpe: Obj.Type = _Ensemble
+//
+//    def apply[T <: synth.Txn[T]](obj: _Ensemble[T], attr: Runner.Attr[T])
+//                           (implicit tx: T, context: AuralContext[T]): AuralObj.Ensemble[T] =
+//      AuralEnsembleImpl(obj, attr)
+//  }
+//  @deprecated("Should only use Folder now with Control/Action", since = "3.35.3")
+//  trait Ensemble[T <: Txn[T]] extends FolderLike[T, Ensemble[T]] {
+//    type Repr = _Ensemble[T]
+//  }
 
   // ---- folder ----
 
   object Folder extends AuralObj.Factory {
-    type Repr[S <: Sys[S]] = _Folder[S]
+    type Repr[T <: Txn[T]] = _Folder[T]
 
     def tpe: Obj.Type = _Folder
 
-    def apply[S <: SSys[S]](obj: _Folder[S], attr: Runner.Attr[S])
-                           (implicit tx: S#Tx, context: AuralContext[S]): AuralObj.Folder[S] =
+    def apply[T <: synth.Txn[T]](obj: _Folder[T], attr: Runner.Attr[T])
+                           (implicit tx: T, context: AuralContext[T]): AuralObj.Folder[T] =
       AuralFolderImpl(obj, attr)
   }
-  trait Folder[S <: Sys[S]] extends FolderLike[S, Folder[S]]
+  trait Folder[T <: Txn[T]] extends FolderLike[T, Folder[T]]
 
   // ---- action ----
 
   object Action extends AuralObj.Factory {
-    type Repr[S <: Sys[S]] = _Action[S]
+    type Repr[T <: Txn[T]] = _Action[T]
 
     def tpe: Obj.Type = _Action
 
-    def apply[S <: SSys[S]](obj: _Action[S], attr: Runner.Attr[S])
-                           (implicit tx: S#Tx, context: AuralContext[S]): AuralObj.Action[S] =
+    def apply[T <: synth.Txn[T]](obj: _Action[T], attr: Runner.Attr[T])
+                           (implicit tx: T, context: AuralContext[T]): AuralObj.Action[T] =
       AuralActionImpl(obj, attr)
   }
-  trait Action[S <: Sys[S]] extends AuralObj[S] {
-    type Repr = _Action[S]
+  trait Action[T <: Txn[T]] extends AuralObj[T] {
+    type Repr = _Action[T]
   }
 
   // ---- action ----
 
   object Control extends AuralObj.Factory {
-    type Repr[S <: Sys[S]] = _Control[S]
+    type Repr[T <: Txn[T]] = _Control[T]
 
     def tpe: Obj.Type = _Control
 
-    def apply[S <: SSys[S]](obj: _Control[S], attr: Runner.Attr[S])
-                           (implicit tx: S#Tx, context: AuralContext[S]): AuralObj.Control[S] =
+    def apply[T <: synth.Txn[T]](obj: _Control[T], attr: Runner.Attr[T])
+                           (implicit tx: T, context: AuralContext[T]): AuralObj.Control[T] =
       AuralControlImpl(obj, attr)
   }
-  trait Control[S <: Sys[S]] extends AuralObj[S] {
-    type Repr = _Control[S]
-  }
-
-  // ---- action-raw (OBSOLETE) ----
-
-  @deprecated("Action should be used instead of ActionRaw", since = "3.35.3")
-  object ActionRaw extends AuralObj.Factory {
-    type Repr[S <: Sys[S]] = _ActionRaw[S]
-
-    def tpe: Obj.Type = _ActionRaw
-
-    def apply[S <: SSys[S]](obj: _ActionRaw[S], attr: Runner.Attr[S])
-                           (implicit tx: S#Tx, context: AuralContext[S]): AuralObj.ActionRaw[S] =
-      AuralActionRawImpl(obj, attr)
-  }
-  trait ActionRaw[S <: Sys[S]] extends AuralObj[S] {
-    type Repr = _ActionRaw[S]
+  trait Control[T <: Txn[T]] extends AuralObj[T] {
+    type Repr = _Control[T]
   }
 }
-trait AuralObj[S <: Sys[S]] extends ObjViewBase[S, Unit] {
-  def play()(implicit tx: S#Tx): Unit = run(TimeRef.Undefined, ())
+trait AuralObj[T <: Txn[T]] extends ObjViewBase[T, Unit] {
+  def play()(implicit tx: T): Unit = run(TimeRef.Undefined, ())
 }

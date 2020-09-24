@@ -21,19 +21,19 @@ object State {
   private final class Impl(val owner: Any, val name: String, init: Boolean) extends State {
     val value: Ref[Boolean] = Ref(init)
 
-    def swap(newValue: Boolean)(implicit tx: Txn): Boolean = value.swap(newValue)(tx.peer)
+    def swap(newValue: Boolean)(implicit tx: RT): Boolean = value.swap(newValue)(tx.peer)
 
-    def get(implicit tx: Txn): Boolean = value.get(tx.peer)
+    def get(implicit tx: RT): Boolean = value.get(tx.peer)
   }
 }
 sealed trait State {
   protected def value: Ref[Boolean]
 
-  def swap(newValue: Boolean)(implicit tx: Txn): Boolean
+  def swap(newValue: Boolean)(implicit tx: RT): Boolean
 
-  def get(implicit tx: Txn): Boolean
+  def get(implicit tx: RT): Boolean
 
-  final def set(newValue: Boolean)(implicit tx: Txn): Unit =
+  final def set(newValue: Boolean)(implicit tx: RT): Unit =
     value.set(newValue)(tx.peer)
 
   protected def owner: Any

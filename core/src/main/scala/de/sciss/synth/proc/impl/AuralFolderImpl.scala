@@ -13,37 +13,35 @@
 
 package de.sciss.synth.proc.impl
 
-import de.sciss.lucre.stm
-import de.sciss.lucre.stm.{Disposable, Folder, Obj}
-import de.sciss.lucre.synth.Sys
+import de.sciss.lucre.{Disposable, Folder, Obj, Source, Txn, synth}
 import de.sciss.synth.proc.{AuralContext, AuralObj, Runner, TimeRef, Transport}
 
 object AuralFolderImpl {
-  def apply[S <: Sys[S]](folder: Folder[S], attr: Runner.Attr[S])
-                        (implicit tx: S#Tx, context: AuralContext[S]): AuralObj.Folder[S] = {
-    val transport = Transport[S](context, attr)
+  def apply[T <: synth.Txn[T]](folder: Folder[T], attr: Runner.Attr[T])
+                              (implicit tx: T, context: AuralContext[T]): AuralObj.Folder[T] = {
+    val transport = Transport[T](context, attr)
     folder.iterator.foreach(transport.addObject)  // XXX TODO: should we pass `attr`?
     new Impl(tx.newHandle(folder), transport).init(folder)
   }
 
-  private final class Impl[S <: Sys[S]](objH: stm.Source[S#Tx, Folder[S]],
-                                        protected val transport: Transport[S])
-    extends AuralFolderLikeImpl[S, /*Folder[S],*/ AuralObj.Folder[S]]
-    with AuralObj.Folder[S] { impl =>
+  private final class Impl[T <: Txn[T]](objH: Source[T, Folder[T]],
+                                        protected val transport: Transport[T])
+    extends AuralFolderLikeImpl[T, /*Folder[T],*/ AuralObj.Folder[T]]
+    with AuralObj.Folder[T] { impl =>
 
     def tpe: Obj.Type = Folder
 
-    type Repr = Folder[S]
+    type Repr = Folder[T]
 
-    def obj   (implicit tx: S#Tx): Folder[S] = objH()
-    def folder(implicit tx: S#Tx): Folder[S] = objH()
+    def obj   (implicit tx: T): Folder[T] = objH()
+    def folder(implicit tx: T): Folder[T] = objH()
 
-    def mkObserver(ens: Folder[S])(implicit tx: S#Tx): Disposable[S#Tx] =
+    def mkObserver(ens: Folder[T])(implicit tx: T): Disposable[T] =
       ens.changed.react { implicit tx => upd =>
         processFolderUpdate(upd)
       }
 
-    protected def performPlay(timeRef: TimeRef)(implicit tx: S#Tx): Unit =
+    protected def performPlay(timeRef: TimeRef)(implicit tx: T): Unit =
       startTransport(timeRef.offset)
   }
 }

@@ -76,15 +76,15 @@ trait Server {
 
   // ---- transactional methods ----
 
-  def nextNodeId()(implicit tx: Txn): Int
+  def nextNodeId()(implicit tx: RT): Int
 
-  def allocControlBus(numChannels   : Int    )(implicit tx: Txn): Int
-  def allocAudioBus  (numChannels   : Int    )(implicit tx: Txn): Int
-  def allocBuffer    (numConsecutive: Int = 1)(implicit tx: Txn): Int
+  def allocControlBus(numChannels   : Int    )(implicit tx: RT): Int
+  def allocAudioBus  (numChannels   : Int    )(implicit tx: RT): Int
+  def allocBuffer    (numConsecutive: Int = 1)(implicit tx: RT): Int
 
-  def freeControlBus(index: Int, numChannels   : Int    )(implicit tx: Txn): Unit
-  def freeAudioBus  (index: Int, numChannels   : Int    )(implicit tx: Txn): Unit
-  def freeBuffer    (index: Int, numConsecutive: Int = 1)(implicit tx: Txn): Unit
+  def freeControlBus(index: Int, numChannels   : Int    )(implicit tx: RT): Unit
+  def freeAudioBus  (index: Int, numChannels   : Int    )(implicit tx: RT): Unit
+  def freeBuffer    (index: Int, numConsecutive: Int = 1)(implicit tx: RT): Unit
 
   def defaultGroup: Group
   def rootNode    : Group = Group.wrap(this, peer.rootNode)
@@ -110,14 +110,14 @@ trait Server {
 
   // ------------ former NodeGraph ------------
 
-  def addVertex   (node: NodeRef)(implicit tx: Txn): Unit
-  def removeVertex(node: NodeRef)(implicit tx: Txn): Unit
+  def addVertex   (node: NodeRef)(implicit tx: RT): Unit
+  def removeVertex(node: NodeRef)(implicit tx: RT): Unit
 
-  def addEdge   (edge: NodeRef.Edge)(implicit tx: Txn): Boolean // Try[(Topology[NodeRef, NodeRef.Edge], Option[Topology.Move[NodeRef]])]
-  def removeEdge(edge: NodeRef.Edge)(implicit tx: Txn): Unit
+  def addEdge   (edge: NodeRef.Edge)(implicit tx: RT): Boolean // Try[(Topology[NodeRef, NodeRef.Edge], Option[Topology.Move[NodeRef]])]
+  def removeEdge(edge: NodeRef.Edge)(implicit tx: RT): Unit
 
   /** Requires that `bundles` is non-empty. */
-  private[synth] def send(bundles: Txn.Bundles, systemTimeNanoSec: Long): Future[Unit]
+  private[synth] def send(bundles: RT.Bundles, systemTimeNanoSec: Long): Future[Unit]
 
   // for use by transaction; not mutated by the server itself
   private[synth] def messageTimeStamp: Ref[Int]
@@ -132,16 +132,16 @@ trait Server {
     * a number of synth-def disposals are issued for those that have a
     * use count of zero.
     */
-  def acquireSynthDef(graph: UGenGraph, nameHint: Option[String])(implicit tx: Txn): SynthDef
+  def acquireSynthDef(graph: UGenGraph, nameHint: Option[String])(implicit tx: RT): SynthDef
 
   //  /** Releases a synth def on the server. Decrements the cache use count,
   //    * and if it reaches zero, lazily purges the def on the server as soon
   //    * as more slots are required.
   //    */
-  //  def releaseSynthDef(sd: SynthDef)(implicit tx: Txn): Unit
+  //  def releaseSynthDef(sd: SynthDef)(implicit tx: RT): Unit
 
   /** Queries the current topology */
-  def topology(implicit tx: Txn): Topology[NodeRef, NodeRef.Edge]
+  def topology(implicit tx: RT): Topology[NodeRef, NodeRef.Edge]
 
-  def mkSynthDefName(nameHint: Option[String])(implicit tx: Txn): String
+  def mkSynthDefName(nameHint: Option[String])(implicit tx: RT): String
 }

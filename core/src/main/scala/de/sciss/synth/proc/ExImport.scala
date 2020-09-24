@@ -13,7 +13,7 @@
 
 package de.sciss.synth.proc
 
-import de.sciss.lucre.adjunct.Adjunct.HasDefault
+import de.sciss.lucre.Adjunct.HasDefault
 import de.sciss.lucre.expr.graph.{AudioFileSpec, Ex, Obj, AudioCue => _AudioCue}
 import de.sciss.lucre.expr.impl.{ExObjBridgeImpl => Impl}
 import de.sciss.synth.proc

@@ -13,12 +13,11 @@
 
 package de.sciss.synth.proc.impl
 
-import de.sciss.lucre.event.impl.DummyObservableImpl
-import de.sciss.lucre.stm
-import de.sciss.lucre.stm.{Folder, Obj}
-import de.sciss.lucre.synth.Sys
+import de.sciss.lucre.impl.DummyObservableImpl
+import de.sciss.lucre.{Folder, Obj, Source, Txn}
+import de.sciss.lucre.synth
 import de.sciss.synth.proc.AuralObj.Factory
-import de.sciss.synth.proc.{Action, ActionRaw, AuralContext, AuralObj, Control, Ensemble, Proc, Runner, TimeRef, Timeline}
+import de.sciss.synth.proc.{Action, AuralContext, AuralObj, Control, Proc, Runner, TimeRef, Timeline}
 
 object AuralObjImpl {
   private val sync = new AnyRef
@@ -31,20 +30,20 @@ object AuralObjImpl {
 
   def factories: Iterable[Factory] = factoryMap.values
 
-  def apply[S <: Sys[S]](obj: Obj[S], attr: Runner.Attr[S])(implicit tx: S#Tx, context: AuralContext[S]): AuralObj[S] = {
+  def apply[T <: synth.Txn[T]](obj: Obj[T], attr: Runner.Attr[T])(implicit tx: T, context: AuralContext[T]): AuralObj[T] = {
     val tid = obj.tpe.typeId
     val opt: Option[Factory] = factoryMap.get(tid)
-    opt.fold[AuralObj[S]](Generic(obj)) { f =>
-      f.apply[S](obj.asInstanceOf[f.Repr[S]], attr = attr)
+    opt.fold[AuralObj[T]](Generic(obj)) { f =>
+      f.apply[T](obj.asInstanceOf[f.Repr[T]], attr = attr)
     }
   }
 
   // XXX TODO: we should have one map -- in RunnerUniverseImpl -- and give up AuralObj.Factory ?
   private var factoryMap = Map[Int, Factory](
     Action    .typeId -> AuralObj.Action,
-    ActionRaw .typeId -> AuralObj.ActionRaw,
+//    ActionRaw .typeId -> AuralObj.ActionRaw,
     Control   .typeId -> AuralObj.Control,
-    Ensemble  .typeId -> AuralObj.Ensemble,
+//    Ensemble  .typeId -> AuralObj.Ensemble,
     Folder    .typeId -> AuralObj.Folder,
     Proc      .typeId -> AuralObj.Proc,
     Timeline  .typeId -> AuralObj.Timeline,
@@ -53,29 +52,29 @@ object AuralObjImpl {
   // -------- Generic --------
 
   object Generic {
-    def apply[S <: Sys[S]](obj: Obj[S])(implicit tx: S#Tx): AuralObj[S] =
+    def apply[T <: Txn[T]](obj: Obj[T])(implicit tx: T): AuralObj[T] =
       new Impl(tx.newHandle(obj))
 
-    private final class Impl[S <: Sys[S]](objH: stm.Source[S#Tx, Obj[S]])
-      extends AuralObj[S] with DummyObservableImpl[S] {
+    private final class Impl[T <: Txn[T]](objH: Source[T, Obj[T]])
+      extends AuralObj[T] with DummyObservableImpl[T] {
 
       def tpe: Obj.Type = throw new UnsupportedOperationException("Generic.tpe")
 
-      type Repr = Obj[S]
+      type Repr = Obj[T]
 
-      def obj(implicit tx: S#Tx): Obj[S] = objH()
+      def obj(implicit tx: T): Obj[T] = objH()
 
-      def run(timeRef: TimeRef.Option, target: Unit)(implicit tx: S#Tx): Unit = ()
+      def run(timeRef: TimeRef.Option, target: Unit)(implicit tx: T): Unit = ()
 
-      def stop(/* time: Long */)(implicit tx: S#Tx): Unit = ()
+      def stop(/* time: Long */)(implicit tx: T): Unit = ()
 
-      // def latencyEstimate(implicit tx: S#Tx): Long = 0L
+      // def latencyEstimate(implicit tx: T): Long = 0L
 
-      def prepare(timeRef: TimeRef.Option)(implicit tx: S#Tx): Unit = () // Generic.dummyPrep
+      def prepare(timeRef: TimeRef.Option)(implicit tx: T): Unit = () // Generic.dummyPrep
 
-      def dispose()(implicit tx: S#Tx): Unit = ()
+      def dispose()(implicit tx: T): Unit = ()
 
-      def state(implicit tx: S#Tx): Runner.State = Runner.Stopped
+      def state(implicit tx: T): Runner.State = Runner.Stopped
     }
   }
 }

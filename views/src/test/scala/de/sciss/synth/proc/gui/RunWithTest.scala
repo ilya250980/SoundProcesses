@@ -8,6 +8,7 @@ import de.sciss.synth.proc.{Control, Universe}
 // expected output: `Some(440.0)`
 object RunWithTest extends App {
   type S = InMemory
+  type T = InMemory.Txn
 
   val gSource = Graph {
 //    import de.sciss.lucre.expr.ExImport._
@@ -31,12 +32,12 @@ object RunWithTest extends App {
   implicit val system: S = InMemory()
 
   system.step { implicit tx =>
-    val c1 = Control[S]()
-    c1.graph() = Control.GraphObj.newConst[S](gSource)
-    val c2 = Control[S]()
-    c2.graph() = Control.GraphObj.newConst[S](gSink)
+    val c1 = Control[T]()
+    c1.graph() = Control.GraphObj.newConst[T](gSource)
+    val c2 = Control[T]()
+    c2.graph() = Control.GraphObj.newConst[T](gSink)
     c1.attr.put("that", c2)
-    implicit val u: Universe[S] = Universe.dummy
+    implicit val u: Universe[T] = Universe.dummy
     val r1 = proc.Runner(c1)
     r1.run()
   }

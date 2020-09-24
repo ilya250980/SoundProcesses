@@ -20,6 +20,7 @@ import de.sciss.lucre.impl.{DummyEvent, ExprTypeImpl}
 import de.sciss.lucre.{Copy, Elem, Event, EventLike, Expr, Ident, Obj, Txn, Var => LVar}
 import de.sciss.model.Change
 import de.sciss.serial.{ConstFormat, DataInput, DataOutput}
+import de.sciss.synth.proc.Implicits._
 import de.sciss.synth.ugen.{Constant, ControlProxyLike}
 import de.sciss.synth.{Lazy, MaybeRate, SynthGraph, proc}
 
@@ -52,8 +53,8 @@ object SynthGraphObj extends ExprTypeImpl[SynthGraph, SynthGraphObj] {
   private final class _Var[T <: Txn[T]](val targets: Targets[T], val ref: LVar[T, E[T]])
     extends VarImpl[T] with Repr[T]
 
-  /** A serializer for synth graphs. */
-  object valueSerializer extends ConstFormat[SynthGraph] {
+  /** A format for synth graphs. */
+  object valueFormat extends ConstFormat[SynthGraph] {
     private final val SER_VERSION = 0x5347
 
     // we use an identity hash map, because we do _not_

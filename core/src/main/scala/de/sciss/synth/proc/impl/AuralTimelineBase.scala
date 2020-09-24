@@ -13,15 +13,11 @@
 
 package de.sciss.synth.proc.impl
 
-import de.sciss.lucre.bitemp.BiGroup
-import de.sciss.lucre.bitemp.impl.BiGroupImpl
+import de.sciss.lucre.Txn.peer
 import de.sciss.lucre.data.SkipOctree
-import de.sciss.lucre.event.impl.ObservableImpl
-import de.sciss.lucre.expr.SpanLikeObj
-import de.sciss.lucre.geom.{LongPoint2D, LongRectangle, LongSpace}
-import de.sciss.lucre.stm
-import de.sciss.lucre.stm.{Disposable, IdentifierMap, Obj, TxnLike}
-import de.sciss.lucre.synth.Sys
+import de.sciss.lucre.geom.{LongPoint2D, LongPoint2DLike, LongRectangle, LongSquare}
+import de.sciss.lucre.impl.{BiGroupImpl, ObservableImpl}
+import de.sciss.lucre.{BiGroup, Disposable, Ident, IdentMap, Obj, Source, SpanLikeObj, Txn}
 import de.sciss.span.{Span, SpanLike}
 import de.sciss.synth.proc.{AuralViewBase, Runner, TimeRef, Timeline, logAural => logA}
 
@@ -29,78 +25,77 @@ import scala.collection.immutable.{IndexedSeq => Vec, Set => ISet}
 import scala.concurrent.stm.TSet
 
 object AuralTimelineBase {
-  type Leaf[S <: Sys[S], Elem] = (SpanLike, Vec[(stm.Source[S#Tx, S#Id], Elem)])
+  type Leaf[T <: Txn[T], Elem] = (SpanLike, Vec[(Source[T, Ident[T]], Elem)])
 
   @inline
   def spanToPoint(span: SpanLike): LongPoint2D = BiGroupImpl.spanToPoint(span)
 
-  protected final case class ElemHandle[S <: Sys[S], Elem](idH: stm.Source[S#Tx, S#Id], span: SpanLike, view: Elem)
+  protected final case class ElemHandle[T <: Txn[T], Elem](idH: Source[T, Ident[T]], span: SpanLike, view: Elem)
 }
-trait AuralTimelineBase[S <: Sys[S], I <: stm.Sys[I], Target, Elem <: AuralViewBase[S, Target]]
-  extends AuralScheduledBase[S, Target, Elem] with ObservableImpl[S, Runner.State] { impl =>
+trait AuralTimelineBase[T <: Txn[T], I <: Txn[I], Target, Elem <: AuralViewBase[T, Target]]
+  extends AuralScheduledBase[T, Target, Elem] with ObservableImpl[T, Runner.State] { impl =>
 
   import AuralTimelineBase.spanToPoint
-  import TxnLike.peer
 
-  type Repr = Timeline[S]
+  type Repr = Timeline[T]
 
   // ---- abstract ----
 
-  protected def tree: SkipOctree[I, LongSpace.TwoDim, (SpanLike, Vec[(stm.Source[S#Tx, S#Id], Elem)])]
+  protected def tree: SkipOctree[I, LongPoint2DLike, LongSquare, (SpanLike, Vec[(Source[T, Ident[T]], Elem)])]
 
-  protected def iSys: S#Tx => I#Tx
+  protected def iSys: T => I
 
-  protected def makeViewElem(obj: Obj[S])(implicit tx: S#Tx): Elem
+  protected def makeViewElem(obj: Obj[T])(implicit tx: T): Elem
 
   /** A notification method that may be used to `fire` an event
     * such as `AuralObj.Timeline.ViewAdded`.
     */
-  protected def viewPlaying(h: ElemHandle)(implicit tx: S#Tx): Unit
+  protected def viewPlaying(h: ElemHandle)(implicit tx: T): Unit
 
   /** A notification method that may be used to `fire` an event
     * such as `AuralObj.Timeline.ViewRemoved`.
     */
-  protected def viewStopped(h: ElemHandle)(implicit tx: S#Tx): Unit
+  protected def viewStopped(h: ElemHandle)(implicit tx: T): Unit
 
   // ---- impl ----
 
   private[this] val playingRef        = TSet.empty[ElemHandle]
 
-  private[this] var viewMap   : IdentifierMap[S#Id, S#Tx, ElemHandle] = _
-  private[this] var tlObserver: Disposable[S#Tx] = _
+  private[this] var viewMap   : IdentMap[T, ElemHandle] = _
+  private[this] var tlObserver: Disposable[T] = _
 
-  protected type ElemHandle = AuralTimelineBase.ElemHandle[S, Elem]
-  protected type ViewId     = S#Id
-  protected type Model      = Obj[S]
+  protected type ElemHandle = AuralTimelineBase.ElemHandle[T, Elem]
+  protected type ViewId     = Ident[T]
+  protected type Model      = Obj[T]
 
-  private def ElemHandle(idH: stm.Source[S#Tx, S#Id], span: SpanLike, view: Elem): ElemHandle =
+  private def ElemHandle(idH: Source[T, Ident[T]], span: SpanLike, view: Elem): ElemHandle =
     AuralTimelineBase.ElemHandle(idH, span, view)
 
   protected def elemFromHandle(h: ElemHandle): Elem = h.view
 
-  final def views(implicit tx: S#Tx): ISet[Elem] = playingRef.iterator.map(elemFromHandle).toSet
+  final def views(implicit tx: T): ISet[Elem] = playingRef.iterator.map(elemFromHandle).toSet
 
   final def tpe: Obj.Type = Timeline
 
-  private type Leaf = (SpanLike, Vec[(stm.Source[S#Tx, S#Id], Elem)])
+  private type Leaf = (SpanLike, Vec[(Source[T, Ident[T]], Elem)])
 
-  protected final def viewEventAfter(offset: Long)(implicit tx: S#Tx): Long =
+  protected final def viewEventAfter(offset: Long)(implicit tx: T): Long =
     BiGroupImpl.eventAfter(tree)(offset)(iSys(tx)).getOrElse(Long.MaxValue)
 
-  protected final def modelEventAfter(offset: Long)(implicit tx: S#Tx): Long =
+  protected final def modelEventAfter(offset: Long)(implicit tx: T): Long =
     obj.eventAfter(offset).getOrElse(Long.MaxValue)
 
-  protected final def processPlay(timeRef: TimeRef, target: Target)(implicit tx: S#Tx): Unit = {
+  protected final def processPlay(timeRef: TimeRef, target: Target)(implicit tx: T): Unit = {
     val toStart = intersect(timeRef.offset)
     playViews(toStart, timeRef, target)
   }
 
   @inline
-  private[this] def intersect(offset: Long)(implicit tx: S#Tx): Iterator[Leaf] =
+  private[this] def intersect(offset: Long)(implicit tx: T): Iterator[Leaf] =
     BiGroupImpl.intersectTime(tree)(offset)(iSys(tx))
 
   protected final def processPrepare(span: Span, timeRef: TimeRef, initial: Boolean)
-                                    (implicit tx: S#Tx): Iterator[PrepareResult] = {
+                                    (implicit tx: T): Iterator[PrepareResult] = {
     val tl          = obj
     // search for new regions starting within the look-ahead period
     val startSpan   = if (initial) Span.until(span.stop) else span
@@ -108,7 +103,7 @@ trait AuralTimelineBase[S <: Sys[S], I <: stm.Sys[I], Target, Elem <: AuralViewB
     val it          = tl.rangeSearch(start = startSpan, stop = stopSpan)
     it.flatMap { case (childSpan, elems) =>
       val childTime = timeRef.child(childSpan)
-      val sub: Vec[(ViewId, SpanLike, Obj[S])] = if (childTime.hasEnded /* span.isEmpty */) Vector.empty else {
+      val sub: Vec[(ViewId, SpanLike, Obj[T])] = if (childTime.hasEnded /* span.isEmpty */) Vector.empty else {
         elems.map { timed =>
           (timed.id, childSpan, timed.value)
         }
@@ -118,7 +113,7 @@ trait AuralTimelineBase[S <: Sys[S], I <: stm.Sys[I], Target, Elem <: AuralViewB
   }
 
   protected final def playView(h: ElemHandle, timeRef: TimeRef.Option, target: Target)
-                              (implicit tx: S#Tx): Unit = {
+                              (implicit tx: T): Unit = {
     val view = elemFromHandle(h)
     logA(s"timeline - playView: $view - $timeRef")
     view.run(timeRef, target)
@@ -126,7 +121,7 @@ trait AuralTimelineBase[S <: Sys[S], I <: stm.Sys[I], Target, Elem <: AuralViewB
     viewPlaying(h)
   }
 
-  protected final def stopView(h: ElemHandle)(implicit tx: S#Tx): Unit = {
+  protected final def stopView(h: ElemHandle)(implicit tx: T): Unit = {
     val view = elemFromHandle(h)
     logA(s"scheduled - stopView: $view")
     view.stop()
@@ -136,12 +131,12 @@ trait AuralTimelineBase[S <: Sys[S], I <: stm.Sys[I], Target, Elem <: AuralViewB
     removeView(h)
   }
 
-  protected final def stopViews()(implicit tx: S#Tx): Unit =
+  protected final def stopViews()(implicit tx: T): Unit =
     playingRef.foreach { view =>
       stopView(view)
     }
 
-  protected final def processEvent(play: IPlaying, timeRef: TimeRef)(implicit tx: S#Tx): Unit = {
+  protected final def processEvent(play: IPlaying, timeRef: TimeRef)(implicit tx: T): Unit = {
 //    val (toStartI, toStopI) = eventsAt(timeRef.offset)
 
     val itx       = iSys(tx)
@@ -184,7 +179,7 @@ trait AuralTimelineBase[S <: Sys[S], I <: stm.Sys[I], Target, Elem <: AuralViewB
     playViews(toStart, timeRef, play.target)
   }
 
-  private def playViews(it: Iterator[Leaf], timeRef: TimeRef, target: Target)(implicit tx: S#Tx): Unit =
+  private def playViews(it: Iterator[Leaf], timeRef: TimeRef, target: Target)(implicit tx: T): Unit =
     if (it.hasNext) it.foreach { case (span, views) =>
       val tr = timeRef.child(span)
       views.foreach { case (idH, elem) =>
@@ -195,7 +190,7 @@ trait AuralTimelineBase[S <: Sys[S], I <: stm.Sys[I], Target, Elem <: AuralViewB
 //  // this can be easily implemented with two rectangular range searches
 //  // return: (things-that-start, things-that-stop)
 //  @inline
-//  private[this] def eventsAt(offset: Long)(implicit tx: S#Tx): (Iterator[Leaf], Iterator[Leaf]) =
+//  private[this] def eventsAt(offset: Long)(implicit tx: T): (Iterator[Leaf], Iterator[Leaf]) =
 //    BiGroupImpl.eventsAt(tree)(offset)(iSys(tx))
 
   /** Initializes the object.
@@ -203,8 +198,8 @@ trait AuralTimelineBase[S <: Sys[S], I <: stm.Sys[I], Target, Elem <: AuralViewB
     * @param tl the timeline to listen to. If `null` (yes, ugly), requires
     *           manual additional of views
     */
-  def init(tl: Timeline[S])(implicit tx: S#Tx): this.type = {
-    viewMap = tx.newInMemoryIdMap[ElemHandle]
+  def init(tl: Timeline[T])(implicit tx: T): this.type = {
+    viewMap = tx.newIdentMap[ElemHandle]
     if (tl != null) tlObserver = tl.changed.react { implicit tx => upd =>
       upd.changes.foreach {
         case Timeline.Added  (span, timed)    => elemAdded  (timed.id, span, timed.value)
@@ -220,19 +215,19 @@ trait AuralTimelineBase[S <: Sys[S], I <: stm.Sys[I], Target, Elem <: AuralViewB
     this
   }
 
-  final def getView(timed: Timeline.Timed[S])(implicit tx: S#Tx): Option[Elem] =
+  final def getView(timed: Timeline.Timed[T])(implicit tx: T): Option[Elem] =
     getViewById(timed.id)
 
-  final def getViewById(id: S#Id)(implicit tx: S#Tx): Option[Elem] =
+  final def getViewById(id: Ident[T])(implicit tx: T): Option[Elem] =
     viewMap.get(id).map(_.view)
 
-  final def addObject(id: S#Id, span: SpanLikeObj[S], obj: Obj[S])(implicit tx: S#Tx): Unit =
+  final def addObject(id: Ident[T], span: SpanLikeObj[T], obj: Obj[T])(implicit tx: T): Unit =
     elemAdded(id, span.value, obj)
 
-  final def removeObject(id: S#Id, span: SpanLikeObj[S], obj: Obj[S])(implicit tx: S#Tx): Unit =
+  final def removeObject(id: Ident[T], span: SpanLikeObj[T], obj: Obj[T])(implicit tx: T): Unit =
     elemRemoved(id, span.value, obj)
 
-  protected final def mkView(tid: S#Id, span: SpanLike, obj: Obj[S])(implicit tx: S#Tx): ElemHandle = {
+  protected final def mkView(tid: Ident[T], span: SpanLike, obj: Obj[T])(implicit tx: T): ElemHandle = {
     logA(s"timeline - elemAdded($span, $obj)")
 
     // create a view for the element and add it to the tree and map
@@ -241,7 +236,7 @@ trait AuralTimelineBase[S <: Sys[S], I <: stm.Sys[I], Target, Elem <: AuralViewB
     val h         = ElemHandle(idH, span, childView)
     viewMap.put(tid, h)
     tree.transformAt(spanToPoint(span)) { opt =>
-      // import expr.IdentifierSerializer
+      // import expr.IdentifierFormat
       val tup       = (idH, childView)
       val newViews  = opt.fold(span -> Vec(tup)) { case (span1, views) => (span1, views :+ tup) }
       Some(newViews)
@@ -251,7 +246,7 @@ trait AuralTimelineBase[S <: Sys[S], I <: stm.Sys[I], Target, Elem <: AuralViewB
     h
   }
 
-  private def elemRemoved(tid: S#Id, span: SpanLike, obj: Obj[S])(implicit tx: S#Tx): Unit =
+  private def elemRemoved(tid: Ident[T], span: SpanLike, obj: Obj[T])(implicit tx: T): Unit =
     viewMap.get(tid).foreach { h =>
       // finding the object in the view-map implies that it
       // is currently preparing or playing
@@ -261,7 +256,7 @@ trait AuralTimelineBase[S <: Sys[S], I <: stm.Sys[I], Target, Elem <: AuralViewB
     }
 
   protected final def checkReschedule(h: ElemHandle, currentOffset: Long, oldTarget: Long, elemPlays: Boolean)
-                                     (implicit tx: S#Tx): Boolean =
+                                     (implicit tx: T): Boolean =
     if (elemPlays) {
       // reschedule if the span has a stop and elem.stop == oldTarget
       h.span match {
@@ -277,7 +272,7 @@ trait AuralTimelineBase[S <: Sys[S], I <: stm.Sys[I], Target, Elem <: AuralViewB
       }
     }
 
-  private def removeView(h: ElemHandle)(implicit tx: S#Tx): Unit = {
+  private def removeView(h: ElemHandle)(implicit tx: T): Unit = {
     import h._
     logA(s"timeline - removeView - $span - $view")
 
@@ -301,7 +296,7 @@ trait AuralTimelineBase[S <: Sys[S], I <: stm.Sys[I], Target, Elem <: AuralViewB
     viewMap.remove(idH())
   }
 
-  override def dispose()(implicit tx: S#Tx): Unit = {
+  override def dispose()(implicit tx: T): Unit = {
     super.dispose()
     // this may be the case for `AuralTimelineImpl.empty` where `init` is not called.
     if (tlObserver != null) tlObserver.dispose()

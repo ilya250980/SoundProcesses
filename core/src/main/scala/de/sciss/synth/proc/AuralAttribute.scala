@@ -13,10 +13,8 @@
 
 package de.sciss.synth.proc
 
-import de.sciss.lucre.event.Observable
-import de.sciss.lucre.expr.IExpr
-import de.sciss.lucre.stm.{Obj, Sys}
-import de.sciss.lucre.synth.{AudioBus, NodeRef, Sys => SSys}
+import de.sciss.lucre.synth.{AudioBus, NodeRef}
+import de.sciss.lucre.{IExpr, Obj, Observable, Txn, synth}
 import de.sciss.synth.ControlSet
 import de.sciss.synth.proc.impl.{AuralAttributeImpl => Impl}
 
@@ -24,19 +22,19 @@ import scala.collection.immutable.{IndexedSeq => Vec}
 import scala.language.implicitConversions
 
 object AuralAttribute {
-  def apply[S <: SSys[S]](key: String, value: Obj[S], observer: Observer[S])
-                         (implicit tx: S#Tx, context: AuralContext[S]): AuralAttribute[S] =
+  def apply[T <: synth.Txn[T]](key: String, value: Obj[T], observer: Observer[T])
+                         (implicit tx: T, context: AuralContext[T]): AuralAttribute[T] =
     Impl(key, value, observer)
 
   /** Attempts to create an aural attribute from an in-memory expression */
-  def expr[S <: SSys[S], A](key: String, value: IExpr[S, A], observer: Observer[S])
-                           (implicit tx: S#Tx, context: AuralContext[S]): AuralAttribute[S] =
+  def expr[T <: synth.Txn[T], A](key: String, value: IExpr[T, A], observer: Observer[T])
+                           (implicit tx: T, context: AuralContext[T]): AuralAttribute[T] =
     Impl.expr(key, value, observer)
 
   // ---- Observer ----
 
-  trait Observer[S <: Sys[S]] {
-    def attrNumChannelsChanged(attr: AuralAttribute[S])(implicit tx: S#Tx): Unit
+  trait Observer[T <: Txn[T]] {
+    def attrNumChannelsChanged(attr: AuralAttribute[T])(implicit tx: T): Unit
   }
 
   // ---- Factory ----
@@ -44,10 +42,10 @@ object AuralAttribute {
   trait Factory {
     def tpe: Obj.Type
 
-    type Repr[~ <: Sys[~]] <: Obj[~]
+    type Repr[~ <: Txn[~]] <: Obj[~]
 
-    def apply[S <: SSys[S]](key: String, value: Repr[S], observer: Observer[S])
-                           (implicit tx: S#Tx, context: AuralContext[S]): AuralAttribute[S]
+    def apply[T <: synth.Txn[T]](key: String, value: Repr[T], observer: Observer[T])
+                           (implicit tx: T, context: AuralContext[T]): AuralAttribute[T]
   }
 
   def addFactory(f: Factory): Unit = Impl.addFactory(f)
@@ -57,9 +55,9 @@ object AuralAttribute {
   // ---- Target ----
 
   object Target {
-    def apply[S <: SSys[S]](nodeRef: NodeRef.Full[S], key: String, targetBus: AudioBus)
-                           (implicit tx: S#Tx): Target[S] = {
-      val res = new impl.AuralAttributeTargetImpl[S](nodeRef, key, targetBus)
+    def apply[T <: synth.Txn[T]](nodeRef: NodeRef.Full[T], key: String, targetBus: AudioBus)
+                           (implicit tx: T): Target[T] = {
+      val res = new impl.AuralAttributeTargetImpl[T](nodeRef, key, targetBus)
       // nodeRef.addUser(res)
       res
     }
@@ -80,13 +78,13 @@ object AuralAttribute {
     * target will then automatically dispose the previous value it
     * had associated with that attribute.
     */
-  trait Target[S <: Sys[S]] extends Observable[S#Tx, Value] {
+  trait Target[T <: Txn[T]] extends Observable[T, Value] {
     def key: String
 
-    def valueOption(implicit tx: S#Tx): Option[Value]
+    def valueOption(implicit tx: T): Option[Value]
 
-    def put   (attr: AuralAttribute[S], value: Value)(implicit tx: S#Tx): Unit
-    def remove(attr: AuralAttribute[S]              )(implicit tx: S#Tx): Unit
+    def put   (attr: AuralAttribute[T], value: Value)(implicit tx: T): Unit
+    def remove(attr: AuralAttribute[T]              )(implicit tx: T): Unit
   }
 
   // ---- Value ----
@@ -136,17 +134,17 @@ object AuralAttribute {
 
   def addStartLevelViewFactory(f: StartLevelViewFactory): Unit = Impl.addStartLevelViewFactory(f)
 
-  def startLevelView[S <: SSys[S]](obj: Obj[S])(implicit tx: S#Tx): ControlValuesView[S] = Impl.startLevelView[S](obj)
+  def startLevelView[T <: synth.Txn[T]](obj: Obj[T])(implicit tx: T): ControlValuesView[T] = Impl.startLevelView[T](obj)
 
-  trait GraphemeAware[S <: Sys[S]] {
-    def setGrapheme(pos: Long, g: Grapheme[S])(implicit tx: S#Tx): Unit
+  trait GraphemeAware[T <: Txn[T]] {
+    def setGrapheme(pos: Long, g: Grapheme[T])(implicit tx: T): Unit
   }
 }
-trait AuralAttribute[S <: Sys[S]] extends /*Obj*/ AuralViewBase[S, AuralAttribute.Target[S]] {
+trait AuralAttribute[T <: Txn[T]] extends /*Obj*/ AuralViewBase[T, AuralAttribute.Target[T]] {
   def key: String
 
   /** Or `-1` if the number of channels cannot be determined. */
-  def preferredNumChannels(implicit tx: S#Tx): Int
+  def preferredNumChannels(implicit tx: T): Int
 
-  def targetOption(implicit tx: S#Tx): Option[AuralAttribute.Target[S]]
+  def targetOption(implicit tx: T): Option[AuralAttribute.Target[T]]
 }

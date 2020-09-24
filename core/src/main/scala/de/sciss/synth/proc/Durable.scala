@@ -13,28 +13,30 @@
 
 package de.sciss.synth.proc
 
-import de.sciss.lucre.stm.{DataStore, DurableLike}
-import de.sciss.lucre.synth.{InMemory, Sys}
+import de.sciss.lucre.synth.InMemory
+import de.sciss.lucre.{DataStore, DurableLike, synth}
 import de.sciss.synth.proc
-import de.sciss.synth.proc.impl.{DurableImpl => Impl}
-
-import scala.language.implicitConversions
+import de.sciss.synth.proc.impl.DurableImpl
 
 object Durable {
   import proc.{Durable => S}
 
-  def apply(factory: DataStore.Factory, mainName: String = "data"): S = Impl(factory, mainName = mainName)
+  def apply(factory: DataStore.Factory, mainName: String = "data"): S =
+    DurableImpl(factory, mainName = mainName)
 
-  def apply(mainStore: DataStore): S = Impl(mainStore)
+  def apply(mainStore: DataStore): S = DurableImpl(mainStore)
 
-  implicit def inMemory(tx: Durable#Tx): InMemory#Tx = tx.inMemory
+//  implicit def inMemory(tx: Durable#Tx): InMemory#Tx = tx.inMemory
 
-  trait Txn extends Sys.Txn[Durable] with DurableLike.Txn[Durable] {
-    def inMemory: InMemory#Tx
+  trait Txn extends synth.Txn[Txn] with DurableLike.Txn[Txn] {
+    type I = InMemory.Txn
+    def inMemory: InMemory.Txn
   }
 }
 
-trait Durable extends DurableLike[Durable] with Sys[Durable] {
-  final type Tx = Durable.Txn // Sys.Txn[Durable] with evt.DurableLike.Txn[Durable]
-  final type I  = InMemory
+trait Durable extends DurableLike[Durable.Txn] with synth.Sys {
+  override def inMemory: InMemory
+
+//  final type T  = Durable.Txn // Sys.Txn[Durable] with evt.DurableLike.Txn[Durable]
+  final type I  = InMemory.Txn
 }

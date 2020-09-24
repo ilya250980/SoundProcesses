@@ -11,9 +11,9 @@
  *  contact@sciss.de
  */
 
-package de.sciss.lucre.synth.impl
+package de.sciss.lucre.synth
+package impl
 
-import de.sciss.lucre.synth.{Group, Node, Resource, Server, Txn}
 import de.sciss.synth.{AddAction, ControlSet, Group => SGroup}
 
 import scala.collection.immutable.Seq
@@ -23,11 +23,11 @@ final case class GroupImpl(server: Server, peer: SGroup)(override protected val 
 
   override def toString = s"Group($peer)"
 
-  def play(target: Node, addAction: AddAction)(implicit tx: Txn): Unit =
+  def play(target: Node, addAction: AddAction)(implicit tx: RT): Unit =
     play(target = target, addAction = addAction, args = Nil, dependencies = Nil)
 
   def play(target: Node, args: Seq[ControlSet], addAction: AddAction, dependencies: List[Resource])
-          (implicit tx: Txn): Unit = {
+          (implicit tx: RT): Unit = {
     requireOffline()
     require(target.isOnline        , s"Target $target must be running")
     require(target.server == server, s"Target $target must be using the same server")
@@ -37,7 +37,7 @@ final case class GroupImpl(server: Server, peer: SGroup)(override protected val 
     if (args.nonEmpty) set(args: _*)
   }
 
-  def freeAll()(implicit tx: Txn): Unit = {
+  def freeAll()(implicit tx: RT): Unit = {
     requireOnline()
     tx.addMessage(this, peer.freeAllMsg)
   }

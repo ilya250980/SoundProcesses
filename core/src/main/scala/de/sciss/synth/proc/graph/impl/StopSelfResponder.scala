@@ -13,24 +13,24 @@
 
 package de.sciss.synth.proc.graph.impl
 
-import de.sciss.lucre.stm
-import de.sciss.lucre.synth.{Node, Sys, Txn}
+import de.sciss.lucre.Cursor
+import de.sciss.lucre.synth.{Node, RT, Txn}
 import de.sciss.osc
 import de.sciss.synth.proc.graph.StopSelf
 import de.sciss.synth.proc.{SoundProcesses, ViewBase}
 
-final class StopSelfResponder[S <: Sys[S]](view: ViewBase[S], protected val synth: Node)
-                                          (implicit cursor: stm.Cursor[S])
+final class StopSelfResponder[T <: Txn[T]](view: ViewBase[T], protected val synth: Node)
+                                          (implicit cursor: Cursor[T])
   extends SendReplyResponder {
 
   private[this] val NodeId = synth.peer.id
 
   protected val body: Body = {
     case osc.Message(StopSelf.replyName, NodeId, 0, _) =>
-      SoundProcesses.step(s"StopSelfResponder($synth)") { implicit tx: S#Tx =>
+      SoundProcesses.step(s"StopSelfResponder($synth)") { implicit tx: T =>
         view.stop()
       }
   }
 
-  protected def added()(implicit tx: Txn): Unit = ()
+  protected def added()(implicit tx: RT): Unit = ()
 }

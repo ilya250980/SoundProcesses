@@ -13,48 +13,45 @@
 
 package de.sciss.synth.proc
 
-import de.sciss.lucre.event.Observable
-import de.sciss.lucre.stm
-import de.sciss.lucre.stm.{Cursor, Obj, Sys}
-import de.sciss.lucre.synth.{Sys => SSys}
+import de.sciss.lucre.{Cursor, Disposable, Obj, Observable, Sys, Txn, Workspace, synth}
 import de.sciss.synth.proc.impl.RunnerUniverseImpl
 
 object Universe {
-  def dummy[S <: SSys[S]](implicit tx: S#Tx, cursor: stm.Cursor[S]): Universe[S] = {
-    implicit val system: S = tx.system
-    implicit val workspace: Workspace[S] = Workspace.Implicits.dummy
-    apply[S]()
+  def dummy[T <: synth.Txn[T]](implicit tx: T, cursor: Cursor[T]): Universe[T] = {
+    implicit val system: Sys = tx.system
+    implicit val workspace: Workspace[T] = Workspace.Implicits.dummy
+    apply[T]()
   }
 
-  def apply[S <: SSys[S]]()(implicit tx: S#Tx, cursor: Cursor[S], workspace: Workspace[S]): Universe[S] =
-    RunnerUniverseImpl[S]()
+  def apply[T <: synth.Txn[T]]()(implicit tx: T, cursor: Cursor[T], workspace: Workspace[T]): Universe[T] =
+    RunnerUniverseImpl[T]()
 
-  def apply[S <: SSys[S]](genContext: GenContext[S], scheduler: Scheduler[S], auralSystem: AuralSystem)
-                        (implicit tx: S#Tx, cursor: Cursor[S], workspace: Workspace[S]): Universe[S] =
-    RunnerUniverseImpl[S](genContext, scheduler, auralSystem)
+  def apply[T <: synth.Txn[T]](genContext: GenContext[T], scheduler: Scheduler[T], auralSystem: AuralSystem)
+                        (implicit tx: T, cursor: Cursor[T], workspace: Workspace[T]): Universe[T] =
+    RunnerUniverseImpl[T](genContext, scheduler, auralSystem)
 
-  sealed trait Update[S <: Sys[S]]
-  final case class Added  [S <: Sys[S]](r: Runner[S]) extends Update[S]
-  final case class Removed[S <: Sys[S]](r: Runner[S]) extends Update[S]
+  sealed trait Update[T <: Txn[T]]
+  final case class Added  [T <: Txn[T]](r: Runner[T]) extends Update[T]
+  final case class Removed[T <: Txn[T]](r: Runner[T]) extends Update[T]
 
   /** Common base for `Universe` and `Action.Universe` */
-  trait Base[S <: Sys[S]] {
+  trait Base[T <: Txn[T]] {
     def auralSystem: AuralSystem
 
-    implicit def workspace    : Workspace [S]
-    implicit def cursor       : Cursor    [S]
-    implicit def genContext   : GenContext[S]
-    implicit val scheduler    : Scheduler [S]
+    implicit def workspace    : Workspace [T]
+    implicit def cursor       : Cursor    [T]
+    implicit def genContext   : GenContext[T]
+    implicit val scheduler    : Scheduler [T]
   }
 }
-trait Universe[S <: Sys[S]] extends Universe.Base[S] with stm.Disposable[S#Tx] with Observable[S#Tx, Universe.Update[S]]{
-  def mkRunner(obj: Obj[S])(implicit tx: S#Tx): Option[Runner[S]]
+trait Universe[T <: Txn[T]] extends Universe.Base[T] with Disposable[T] with Observable[T, Universe.Update[T]]{
+  def mkRunner(obj: Obj[T])(implicit tx: T): Option[Runner[T]]
 
-  def runners(implicit tx: S#Tx): Iterator[Runner[S]]
+  def runners(implicit tx: T): Iterator[Runner[T]]
 
-  private[proc] def removeRunner(r: Runner[S])(implicit tx: S#Tx): Unit
+  private[proc] def removeRunner(r: Runner[T])(implicit tx: T): Unit
 
   /** Creates a new derived universe with a new aural system and a fresh scheduler.
     */
-  def mkChild(newAuralSystem: AuralSystem, newScheduler: Scheduler[S])(implicit tx: S#Tx): Universe[S]
+  def mkChild(newAuralSystem: AuralSystem, newScheduler: Scheduler[T])(implicit tx: T): Universe[T]
 }

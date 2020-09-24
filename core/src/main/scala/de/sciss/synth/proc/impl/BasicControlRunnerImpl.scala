@@ -1,55 +1,55 @@
 package de.sciss.synth.proc.impl
 
+import de.sciss.lucre.Txn.peer
+import de.sciss.lucre.edit.UndoManager
 import de.sciss.lucre.expr.{Context, IControl}
-import de.sciss.lucre.stm
-import de.sciss.lucre.stm.TxnLike.peer
-import de.sciss.lucre.stm.{Obj, Sys, UndoManager}
+import de.sciss.lucre.{Obj, Source, Txn}
 import de.sciss.synth.proc.Runner.{Attr, Failed, Prepared, Preparing, Running, Stopped}
 import de.sciss.synth.proc.{ExprContext, Runner, Universe}
 
 import scala.concurrent.stm.Ref
 import scala.util.{Failure, Success, Try}
 
-abstract class BasicControlRunnerImpl[S <: Sys[S], IC <: IControl[S]](objH: stm.Source[S#Tx, Obj[S]])
-                                                                     (implicit val universe: Universe[S])
-  extends BasicRunnerInternalImpl[S] {
+abstract class BasicControlRunnerImpl[T <: Txn[T], IC <: IControl[T]](objH: Source[T, Obj[T]])
+                                                                     (implicit val universe: Universe[T])
+  extends BasicRunnerInternalImpl[T] {
 
   protected type IRepr = IC
 
   // ---- abstract ----
 
-  protected def run(tr: Try[IRepr])(implicit tx: S#Tx): Unit
+  protected def run(tr: Try[IRepr])(implicit tx: T): Unit
 
-  protected def expandGraph()(implicit tx: S#Tx, ctx: Context[S]): IRepr
+  protected def expandGraph()(implicit tx: T, ctx: Context[T]): IRepr
 
   // ---- impl ----
 
   private[this] val ctlRef  = Ref(Option.empty[Try[IC]])
-  private[this] val attrRef = Ref(Context.emptyAttr[S])(NoManifest)
+  private[this] val attrRef = Ref(Context.emptyAttr[T])(NoManifest)
 
   // XXX TODO --- should unify Runner and ObjViewBase
-  // type Repr = Control[S]
+  // type Repr = Control[T]
   // def tpe: Obj.Type = Control
 
-  override protected def stateWillChanged(now: Runner.State)(implicit tx: S#Tx): Unit = {
+  override protected def stateWillChanged(now: Runner.State)(implicit tx: T): Unit = {
     if (now.idle) disposeData()
     super.stateWillChanged(now)
   }
 
-  def stop()(implicit tx: S#Tx): Unit = {
+  def stop()(implicit tx: T): Unit = {
     //      disposeData()
     state = Stopped
   }
 
 //  override def toString = s"Runner.Control${hashCode().toHexString}"
 
-  override protected def disposeData()(implicit tx: S#Tx): Unit = {
+  override protected def disposeData()(implicit tx: T): Unit = {
     super.disposeData()
     attrRef() = Context.emptyAttr
     disposeRef()
   }
 
-  private def disposeRef()(implicit tx: S#Tx): Unit = {
+  private def disposeRef()(implicit tx: T): Unit = {
     ctlRef() = None
     //      ctlRef.swap(None) match {
     //        case Some((_, ctx)) =>
@@ -59,7 +59,7 @@ abstract class BasicControlRunnerImpl[S <: Sys[S], IC <: IControl[S]](objH: stm.
     //      }
   }
 
-  def prepare(attr: Attr[S])(implicit tx: S#Tx): Unit = {
+  def prepare(attr: Attr[T])(implicit tx: T): Unit = {
     def ok(): Unit = {
       attrRef() = attr
       val tr    = mkRef()
@@ -81,7 +81,7 @@ abstract class BasicControlRunnerImpl[S <: Sys[S], IC <: IControl[S]](objH: stm.
     }
   }
 
-  def run()(implicit tx: S#Tx): Unit = {
+  def run()(implicit tx: T): Unit = {
     def ok(): Unit = {
       mkRef()
       runWithRef()
@@ -97,16 +97,16 @@ abstract class BasicControlRunnerImpl[S <: Sys[S], IC <: IControl[S]](objH: stm.
     }
   }
 
-  private def runWithRef()(implicit tx: S#Tx): Unit = {
+  private def runWithRef()(implicit tx: T): Unit = {
     val ctlOpt = ctlRef()
     ctlOpt.foreach(run)
   }
 
-  private def mkRef()(implicit tx: S#Tx): Try[IControl[S]] = {
+  private def mkRef()(implicit tx: T): Try[IControl[T]] = {
     disposeRef()
-    implicit val u: UndoManager[S]  = UndoManager()
+    implicit val u: UndoManager[T]  = UndoManager()
     val attr  = attrRef()
-    implicit val ctx: Context[S]    = ExprContext(Some(objH), attr, Some(this))
+    implicit val ctx: Context[T]    = ExprContext(Some(objH), attr, Some(this))
     val res   = Try(expandGraph())
     addDisposable(ctx)
     ctlRef()  = Some(res)

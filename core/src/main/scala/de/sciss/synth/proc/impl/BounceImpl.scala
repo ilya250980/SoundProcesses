@@ -18,7 +18,7 @@ import java.nio.ByteBuffer
 
 import de.sciss.equal.Implicits._
 import de.sciss.file._
-import de.sciss.lucre.synth.{Buffer, Server, Synth, Sys, Txn}
+import de.sciss.lucre.synth.{Buffer, RT, Server, Synth, Txn}
 import de.sciss.processor.Processor
 import de.sciss.processor.impl.ProcessorImpl
 import de.sciss.synth.Ops.stringToControl
@@ -37,8 +37,8 @@ import scala.util.control.NonFatal
 object BounceImpl {
   var DEBUG = false
 }
-final class BounceImpl[S <: Sys[S] /*, I <: stm.Sys[I] */](val parentUniverse: Universe[S])
-  extends Bounce[S] {
+final class BounceImpl[T <: Txn[T] /*, I <: stm.Sys[I] */](val parentUniverse: Universe[T])
+  extends Bounce[T] {
 
   import BounceImpl.DEBUG
 
@@ -113,7 +113,7 @@ final class BounceImpl[S <: Sys[S] /*, I <: stm.Sys[I] */](val parentUniverse: U
       promise.foreach(_.tryFailure(Processor.Aborted()))
     }
 
-    private def addActions(scheduler: Scheduler[S])(implicit tx: S#Tx): Unit =
+    private def addActions(scheduler: Scheduler[T])(implicit tx: T): Unit =
       config.actions.foreach { entry =>
         scheduler.schedule(entry.time)(entry.fun)
       }
@@ -122,13 +122,13 @@ final class BounceImpl[S <: Sys[S] /*, I <: stm.Sys[I] */](val parentUniverse: U
       val pServer = Promise[Server]()
       promiseSync.synchronized { promise = Some(pServer) }
       val (span, scheduler, transport, __aural) = cursor.step { implicit tx =>
-        val _scheduler  = Scheduler[S]()
+        val _scheduler  = Scheduler[T]()
         addActions(_scheduler)
         val _span       = config.span
 
         val _aural = AuralSystem()
         _aural.addClient(new AuralSystem.Client {
-          def auralStarted(s: Server)(implicit tx: Txn): Unit = {
+          def auralStarted(s: Server)(implicit tx: RT): Unit = {
             // config.init.apply(...)
             tx.afterCommit {
               if (DEBUG) s.peer.dumpOSC()
@@ -136,7 +136,7 @@ final class BounceImpl[S <: Sys[S] /*, I <: stm.Sys[I] */](val parentUniverse: U
             }
           }
 
-          def auralStopped()(implicit tx: Txn): Unit = () // XXX TODO
+          def auralStopped()(implicit tx: RT): Unit = () // XXX TODO
         })
 
         val newU        = parentUniverse.mkChild(_aural, _scheduler)
@@ -163,7 +163,7 @@ final class BounceImpl[S <: Sys[S] /*, I <: stm.Sys[I] */](val parentUniverse: U
         state == Prepared || state == Stopped
       }
 
-      lazy val scheduleProgress: S#Tx => Unit = { implicit tx: S#Tx =>
+      lazy val scheduleProgress: T => Unit = { implicit tx: T =>
         val now = scheduler.time
         if (!isCompleted) {
           if (now < span.stop ) {
@@ -269,7 +269,7 @@ final class BounceImpl[S <: Sys[S] /*, I <: stm.Sys[I] */](val parentUniverse: U
       val server = Server.offline(sCfg)
 
       val (span, scheduler, transport, __aural) = cursor.step { implicit tx =>
-        val _scheduler  = Scheduler.offline[S]
+        val _scheduler  = Scheduler.offline[T]
         addActions(_scheduler)
         val _span       = config.span
 
@@ -384,7 +384,7 @@ final class BounceImpl[S <: Sys[S] /*, I <: stm.Sys[I] */](val parentUniverse: U
       // scheduler.dispose()
     }
 
-    private def prepare(transport: Transport[S])(isReady: Runner.State => Boolean): Unit = {
+    private def prepare(transport: Transport[T])(isReady: Runner.State => Boolean): Unit = {
       // Tricky business: While handling prepared state is not yet
       // fully solved, especially with collection objects such as
       // Timeline, we at least provide some bounce support for objects
@@ -400,7 +400,7 @@ final class BounceImpl[S <: Sys[S] /*, I <: stm.Sys[I] */](val parentUniverse: U
       val prepFutures = cursor.step { implicit tx =>
         // println(s"States = ${transport.views.map(_.state)}")
 
-        def gather(views: Set[AuralObj[S]]): Set[Future[Unit]] = {
+        def gather(views: Set[AuralObj[T]]): Set[Future[Unit]] = {
           //          views.foreach { obj =>
           //            if (obj.state != AuralObj.Preparing) println(s"- - - - $obj: ${obj.state}")
           //          }
@@ -413,7 +413,7 @@ final class BounceImpl[S <: Sys[S] /*, I <: stm.Sys[I] */](val parentUniverse: U
               p.future
           }
           val set2 = views.flatMap {
-            case atl: AuralObj.Timeline[S] =>
+            case atl: AuralObj.Timeline[T] =>
               val children = atl.views
               // println(s"For timeline: $children")
               gather(children)

@@ -19,7 +19,7 @@ import de.sciss.synth.{AddAction, ControlSet, SynthGraph, UGenGraph, addToHead, 
 import scala.collection.immutable.{Seq => ISeq}
 
 object Synth {
-  def apply(server: Server, graph: SynthGraph, nameHint: Option[String] = None)(implicit tx: Txn): Synth = {
+  def apply(server: Server, graph: SynthGraph, nameHint: Option[String] = None)(implicit tx: RT): Synth = {
     val ugenGraph = graph.expand(de.sciss.synth.impl.DefaultUGenGraphBuilderFactory)
     val df        = server.acquireSynthDef(ugenGraph, nameHint)
     val res       = create(df)
@@ -27,14 +27,14 @@ object Synth {
     res
   }
 
-//  private def releaseDefOnEnd(x: Synth)(implicit tx: Txn): Unit =
+//  private def releaseDefOnEnd(x: Synth)(implicit tx: RT): Unit =
 //    x.onEndTxn { implicit tx =>
 //      NodeGraph.releaseSynthDef(x.definition)
 //    }
 
   def play(graph: SynthGraph, nameHint: Option[String] = None)
           (target: Node, args: ISeq[ControlSet] = Nil, addAction: AddAction = addToHead,
-            dependencies: List[Resource] = Nil)(implicit tx: Txn): Synth = {
+            dependencies: List[Resource] = Nil)(implicit tx: RT): Synth = {
     val res = apply(target.server, graph, nameHint)
     res.play(target, args, addAction, dependencies)
     res
@@ -43,7 +43,7 @@ object Synth {
   /** Like `play` but does not memoize synth def. */
   def playOnce(graph: SynthGraph, nameHint: Option[String] = None)
           (target: Node, args: ISeq[ControlSet] = Nil, addAction: AddAction = addToHead,
-           dependencies: List[Resource] = Nil)(implicit tx: Txn): Synth = {
+           dependencies: List[Resource] = Nil)(implicit tx: RT): Synth = {
 
     // XXX TODO - DRY - NodeGraphImpl
     val server  = target.server
@@ -61,13 +61,13 @@ object Synth {
     res
   }
 
-  def expanded(server: Server, graph: UGenGraph, nameHint: Option[String] = None)(implicit tx: Txn): Synth = {
+  def expanded(server: Server, graph: UGenGraph, nameHint: Option[String] = None)(implicit tx: RT): Synth = {
     val df = server.acquireSynthDef(graph, nameHint)
     val res = create(df)
     res
   }
 
-  private def create(df: SynthDef)(implicit tx: Txn): Synth = {
+  private def create(df: SynthDef)(implicit tx: RT): Synth = {
     val server  = df.server
     val nodeId  = server.nextNodeId()
     Impl(SSynth(server.peer, nodeId), df)

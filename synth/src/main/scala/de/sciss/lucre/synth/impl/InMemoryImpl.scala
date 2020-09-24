@@ -28,7 +28,9 @@ object InMemoryImpl {
 
     override def toString = s"proc.InMemory#Tx@${hashCode.toHexString}"
 
-//    def inMemory: InMemory#Tx = this
+    def inMemory: InMemory.Txn = this
+
+    def inMemoryBridge: InMemory.Txn => InMemory.Txn = tx => tx
   }
 
   private final class System
@@ -37,8 +39,8 @@ object InMemoryImpl {
 
     type S = InMemory
 
-    def inMemory: I = this
-    def inMemoryTx(tx: T): T = tx
+//    def inMemory: I = this
+//    def inMemoryTx(tx: T): T = tx
 
     def wrap(peer: InTxn, systemTimeNanos: Long): T =
       new TxnImpl(this, systemTimeNanos, peer)

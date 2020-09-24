@@ -13,10 +13,8 @@
 
 package de.sciss.synth.proc
 
-import de.sciss.lucre.event.Observable
-import de.sciss.lucre.stm
-import de.sciss.lucre.stm.Sys
+import de.sciss.lucre.{Observable, Source, Txn}
 import de.sciss.synth.ugen.ControlValues
 
-trait ControlValuesView[S <: Sys[S]]
-  extends Observable[S#Tx, Option[ControlValues]] with stm.Source[S#Tx, Option[ControlValues]]
+trait ControlValuesView[T <: Txn[T]]
+  extends Observable[T, Option[ControlValues]] with Source[T, Option[ControlValues]]

@@ -44,7 +44,7 @@ class Issue28 extends BounceSpec {
       addOutput(_p1) ~> (_p3 -> "in")
       addOutput(_p2) ~> (_p3 -> "in")
 
-      val tl = Timeline[S]()
+      val tl = Timeline[T]()
       tl.add(Span(1.0.seconds, 3.0.seconds), _p1)
       tl.add(Span(2.0.seconds, 4.0.seconds), _p2)
       tl.add(Span.All                      , _p3)
@@ -53,11 +53,11 @@ class Issue28 extends BounceSpec {
     }
 
     val pStatus = Promise[StatusReply]()
-//    implicit val universe: Universe[S] = cursor.step { implicit tx => Universe.dummy }
+//    implicit val universe: Universe[T] = cursor.step { implicit tx => Universe.dummy }
 
-    def runTL(s: Server)(implicit tx: S#Tx): Unit = {
+    def runTL(s: Server)(implicit tx: T): Unit = {
 //      println("Here [1]")
-      val t   = Transport[S](universe)
+      val t   = Transport[T](universe)
       val tl  = tlH()
       t.addObject(tl)
       t.play()

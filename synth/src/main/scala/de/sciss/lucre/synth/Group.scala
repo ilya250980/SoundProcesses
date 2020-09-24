@@ -17,12 +17,12 @@ import de.sciss.lucre.synth.impl.{GroupImpl => Impl}
 import de.sciss.synth.{AddAction, addToHead, Group => SGroup}
 
 object Group {
-  def apply(server: Server)(implicit tx: Txn): Group = {
+  def apply(server: Server)(implicit tx: RT): Group = {
     val nodeId = server.nextNodeId()
     Impl(server, SGroup(server.peer, nodeId))(online0 = false)
   }
 
-  def play(target: Node, addAction: AddAction = addToHead)(implicit tx: Txn): Group = {
+  def play(target: Node, addAction: AddAction = addToHead)(implicit tx: RT): Group = {
     val g = apply(target.server)
     g.play(target, addAction)
     g
@@ -36,7 +36,7 @@ object Group {
 
 trait Group extends Node {
   def peer: SGroup
-  def freeAll()(implicit tx: Txn): Unit
+  def freeAll()(implicit tx: RT): Unit
 
-  def play(target: Node, addAction: AddAction)(implicit tx: Txn): Unit
+  def play(target: Node, addAction: AddAction)(implicit tx: RT): Unit
 }

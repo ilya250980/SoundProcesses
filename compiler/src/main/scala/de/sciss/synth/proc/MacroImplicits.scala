@@ -14,7 +14,7 @@
 package de.sciss.synth.proc
 
 import de.sciss.lucre
-import de.sciss.lucre.stm.Sys
+import de.sciss.lucre.Txn
 import de.sciss.synth.proc.impl.Macros
 
 import scala.language.experimental.macros
@@ -27,27 +27,27 @@ import scala.language.experimental.macros
   * and preserving the corresponding source code.
   */
 object MacroImplicits {
-  implicit final class ProcMacroOps[S <: Sys[S]](val `this`: Proc[S]) extends AnyVal {
-    def setGraph(body: Unit)(implicit tx: S#Tx): Unit =
-      macro Macros.procGraphWithSource[S]
+  implicit final class ProcMacroOps[T <: Txn[T]](val `this`: Proc[T]) extends AnyVal {
+    def setGraph(body: Unit)(implicit tx: T): Unit =
+      macro Macros.procGraphWithSource[T]
   }
 
-  implicit final class ActionRawMacroOps(private val a: ActionRaw.type) extends AnyVal {
-    def apply[S <: Sys[S]](body: Action.Universe[S] => Unit)(implicit tx: S#Tx): ActionRaw[S] =
-      macro Macros.actionRawWithSource[S]
+//  implicit final class ActionRawMacroOps(private val a: ActionRaw.type) extends AnyVal {
+//    def apply[T <: Txn[T]](body: Action.Universe[T] => Unit)(implicit tx: T): ActionRaw[T] =
+//      macro Macros.actionRawWithSource[T]
+//  }
+
+  implicit final class ControlMacroOps[T <: Txn[T]](val `this`: Control[T]) extends AnyVal {
+    def setGraph(body: Unit)(implicit tx: T): Unit =
+      macro Macros.controlGraphWithSource[T]
   }
 
-  implicit final class ControlMacroOps[S <: Sys[S]](val `this`: Control[S]) extends AnyVal {
-    def setGraph(body: Unit)(implicit tx: S#Tx): Unit =
-      macro Macros.controlGraphWithSource[S]
+  implicit final class ActionMacroOps[T <: Txn[T]](val `this`: Action[T]) extends AnyVal {
+    def setGraph(body: lucre.expr.graph.Act)(implicit tx: T): Unit =
+      macro Macros.actionGraphWithSource[T]
   }
-
-  implicit final class ActionMacroOps[S <: Sys[S]](val `this`: Action[S]) extends AnyVal {
-    def setGraph(body: lucre.expr.graph.Act)(implicit tx: S#Tx): Unit =
-      macro Macros.actionGraphWithSource[S]
-  }
-  implicit final class WidgetMacroOps[S <: Sys[S]](val `this`: Widget[S]) extends AnyVal {
-    def setGraph(body: lucre.swing.graph.Widget)(implicit tx: S#Tx): Unit =
-        macro Macros.widgetGraphWithSource[S]
+  implicit final class WidgetMacroOps[T <: Txn[T]](val `this`: Widget[T]) extends AnyVal {
+    def setGraph(body: lucre.swing.graph.Widget)(implicit tx: T): Unit =
+        macro Macros.widgetGraphWithSource[T]
   }
 }

@@ -13,13 +13,13 @@
 
 package de.sciss.synth.proc.impl
 
-import de.sciss.lucre.synth.{Buffer, ControlBus, Resource, Synth, Txn}
+import de.sciss.lucre.synth.{Buffer, ControlBus, RT, Resource, Synth}
 import de.sciss.synth.Ops.stringToControl
 import de.sciss.synth.proc.AudioCue
 import de.sciss.synth.{ControlSet, SynthGraph, addToHead}
 
 object AudioArtifactScalarWriter {
-  def apply(bus: ControlBus, audioVal: AudioCue)(implicit tx: Txn): Resource = {
+  def apply(bus: ControlBus, audioVal: AudioCue)(implicit tx: RT): Resource = {
     val numChannels = audioVal.spec.numChannels
     val sg  = SynthGraph {
       import de.sciss.synth._
@@ -44,7 +44,7 @@ object AudioArtifactScalarWriter {
 
     protected def resourcePeer: Resource = synth
 
-    def play()(implicit tx: Txn): Unit = {
+    def play()(implicit tx: RT): Unit = {
       val file      = audioVal.artifact
       val path      = file.getAbsolutePath
       val target    = server.defaultGroup // XXX

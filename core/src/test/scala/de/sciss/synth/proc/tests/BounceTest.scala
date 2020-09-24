@@ -1,10 +1,9 @@
 package de.sciss.synth.proc.tests
 
 import de.sciss.file.File
-import de.sciss.lucre.stm
-import de.sciss.lucre.stm.Source
-import de.sciss.lucre.stm.store.BerkeleyDB
-import de.sciss.lucre.synth.{InMemory, Server, Sys}
+import de.sciss.lucre.store.BerkeleyDB
+import de.sciss.lucre.synth.{InMemory, Server}
+import de.sciss.lucre.{Cursor, Source, synth}
 import de.sciss.processor.Processor
 import de.sciss.span.Span
 import de.sciss.synth.proc.Implicits._
@@ -37,15 +36,15 @@ object BounceTest {
     if (inMemory) {
       type S = InMemory
       implicit val system: S = InMemory()
-      new BounceTest(system, realtime = realtime)
+      new BounceTest(/*system,*/ realtime = realtime)
     } else {
       type S = Durable
       implicit val system: S = Durable(BerkeleyDB.tmp())
-      new BounceTest(system, realtime = realtime)
+      new BounceTest(/*system,*/ realtime = realtime)
     }
   }
 }
-class BounceTest[S <: Sys[S]](val system: S, realtime: Boolean)(implicit cursor: stm.Cursor[S]) {
+class BounceTest[T <: synth.Txn[T]](/*val system: T,*/ realtime: Boolean)(implicit cursor: Cursor[T]) {
   de.sciss.lucre.synth.showLog = true
   showTransportLog  = !realtime
 
@@ -60,12 +59,12 @@ class BounceTest[S <: Sys[S]](val system: S, realtime: Boolean)(implicit cursor:
       |When using --realtime, the sound lasts 1s and the file has a duration of approx. 3s.
       |""".stripMargin)
 
-  val groupH: Source[S#Tx, Timeline.Modifiable[S]] = cursor.step { implicit tx =>
+  val groupH: Source[T, Timeline.Modifiable[T]] = cursor.step { implicit tx =>
 //    val expr      = ExprImplicits[S]
 //    import expr._
     // import ExprImplicits._
 
-    val proc      = Proc[S]()
+    val proc      = Proc[T]()
     proc.name     = "sinosc"
     proc.graph()  = SynthGraph {
       import ugen._
@@ -73,7 +72,7 @@ class BounceTest[S <: Sys[S]](val system: S, realtime: Boolean)(implicit cursor:
       // sig.poll(5, "sig-out")
       Out.ar(0, sig)
     }
-    val group     = Timeline[S]()
+    val group     = Timeline[T]()
     group.add(Span(frame(if (realtime) 0.25 else 0.1), frame(if (realtime) 1.25 else 0.2)), proc)
     // import ProcGroup.serializer
     tx.newHandle(group)
@@ -81,11 +80,11 @@ class BounceTest[S <: Sys[S]](val system: S, realtime: Boolean)(implicit cursor:
 
   // type I = InMemory
 
-  implicit val bridge: S#Tx => system.I#Tx = system.inMemoryTx
+//  implicit val bridge: T => system.I#Tx = system.inMemoryTx
 
-  implicit val u: Universe[S] = cursor.step { implicit tx => Universe.dummy }
-  val bounce: Bounce[S]   = Bounce()
-  val bCfg: Bounce.ConfigBuilder[S] = Bounce.Config()
+  implicit val u: Universe[T] = cursor.step { implicit tx => Universe.dummy }
+  val bounce: Bounce[T]   = Bounce()
+  val bCfg: Bounce.ConfigBuilder[T] = Bounce.Config()
   bCfg.group              = groupH :: Nil
   bCfg.span               = Span(frame(0.15), frame(if (realtime) 3.15 else 0.3)) // start in the middle of the proc span
   bCfg.realtime           = realtime

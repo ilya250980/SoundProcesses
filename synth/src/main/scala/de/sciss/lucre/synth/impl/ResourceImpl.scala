@@ -11,9 +11,8 @@
  *  contact@sciss.de
  */
 
-package de.sciss.lucre.synth.impl
-
-import de.sciss.lucre.synth.{Resource, Txn, log}
+package de.sciss.lucre.synth
+package impl
 
 import scala.concurrent.stm.Ref
 
@@ -26,15 +25,15 @@ trait ResourceImpl extends Resource {
 
   private val stateOnline = Ref(initialValue = online0)
 
-  final def isOnline(implicit tx: Txn): Boolean = stateOnline.get(tx.peer)
-  final protected def setOnline(value: Boolean)(implicit tx: Txn): Unit = stateOnline.set(value)(tx.peer)
+  final def isOnline(implicit tx: RT): Boolean = stateOnline.get(tx.peer)
+  final protected def setOnline(value: Boolean)(implicit tx: RT): Unit = stateOnline.set(value)(tx.peer)
 
-  final def timeStamp(implicit tx: Txn): TimeStamp = timeStampRef.get(tx.peer)
+  final def timeStamp(implicit tx: RT): TimeStamp = timeStampRef.get(tx.peer)
 
-  final def timeStamp_=(value: TimeStamp)(implicit tx: Txn): Unit = timeStampRef.set(value)(tx.peer)
+  final def timeStamp_=(value: TimeStamp)(implicit tx: RT): Unit = timeStampRef.set(value)(tx.peer)
 
-  final protected def requireOnline ()(implicit tx: Txn): Unit = require( isOnline, "must be online")
-  final protected def requireOffline()(implicit tx: Txn): Unit = require(!isOnline, "must be offline")
+  final protected def requireOnline ()(implicit tx: RT): Unit = require( isOnline, "must be online")
+  final protected def requireOffline()(implicit tx: RT): Unit = require(!isOnline, "must be offline")
 
   // final protected def require(p: Boolean): Unit = require(p, "")
 

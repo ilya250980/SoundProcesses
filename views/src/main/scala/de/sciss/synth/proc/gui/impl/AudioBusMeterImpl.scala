@@ -16,7 +16,7 @@ package de.sciss.synth.proc.gui.impl
 import de.sciss.audiowidgets.PeakMeter
 import de.sciss.lucre.swing.LucreSwing.{defer, deferTx}
 import de.sciss.lucre.swing.impl.ComponentHolder
-import de.sciss.lucre.synth.{Synth, Txn}
+import de.sciss.lucre.synth.{RT, Synth}
 import de.sciss.osc.Message
 import de.sciss.synth
 import de.sciss.synth.Ops.stringToControl
@@ -33,14 +33,14 @@ final class AudioBusMeterImpl(val strips: ISeq[AudioBusMeter.Strip])
   private[this] val ref = Ref(ISeq.empty[Synth])
   private[this] var meters: Array[PeakMeter] = _
 
-  def dispose()(implicit tx: Txn): Unit = {
+  def dispose()(implicit tx: RT): Unit = {
     disposeRef(ref.swap(Nil)(tx.peer))
     deferTx {
       meters.foreach(_.dispose())
     }
   }
 
-  @inline private[this] def disposeRef(synths: ISeq[Synth])(implicit tx: Txn): Unit =
+  @inline private[this] def disposeRef(synths: ISeq[Synth])(implicit tx: RT): Unit =
     synths.foreach(_.dispose())
 
   private[this] def guiInit(): Unit = {
@@ -56,7 +56,7 @@ final class AudioBusMeterImpl(val strips: ISeq[AudioBusMeter.Strip])
     }
   }
 
-  def init()(implicit tx: Txn): Unit = {
+  def init()(implicit tx: RT): Unit = {
     deferTx(guiInit())
 
     // group to send out bundles per server

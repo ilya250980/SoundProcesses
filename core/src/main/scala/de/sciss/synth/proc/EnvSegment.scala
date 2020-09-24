@@ -13,15 +13,14 @@
 
 package de.sciss.synth.proc
 
-import de.sciss.lucre.event.{Pull, Targets}
-import de.sciss.lucre.expr.{DoubleObj, DoubleVector, Expr, Type}
-import de.sciss.lucre.stm.{Copy, Elem, Sys}
-import de.sciss.lucre.{expr, stm}
-import de.sciss.serial.{DataInput, DataOutput, ImmutableSerializer, Writable}
+import de.sciss.lucre.Event.Targets
+import de.sciss.lucre.impl.{ExprNodeImpl, ExprTypeImpl}
+import de.sciss.lucre.{Copy, DoubleObj, DoubleVector, Elem, Expr, Ident, Pull, Txn, Obj => LObj, Var => LVar}
+import de.sciss.serial.{ConstFormat, DataInput, DataOutput, Writable}
 import de.sciss.synth.Curve
 import de.sciss.synth.UGenSource.Vec
 import de.sciss.synth.ugen.ControlValues
-import de.sciss.{lucre, model => m}
+import de.sciss.{model => m}
 
 import scala.annotation.switch
 
@@ -32,7 +31,7 @@ object EnvSegment {
 
   private final val COOKIE = 0x5367 // 'Sg'
 
-  implicit object serializer extends ImmutableSerializer[EnvSegment] {
+  implicit object format extends ConstFormat[EnvSegment] {
     def write(v: EnvSegment, out: DataOutput): Unit = v.write(out)
 
     def read(in: DataInput): EnvSegment = {
@@ -42,18 +41,18 @@ object EnvSegment {
       (tpe: @switch) match {
         case 0 =>
           val startLevel    = in.readDouble()
-          val curve         = Curve.serializer.read(in)
+          val curve         = Curve.format.read(in)
           EnvSegment.Single(startLevel = startLevel, curve = curve)
         case 1 =>
-          val startLevels   = DoubleVector.valueSerializer.read(in)
-          val curve         = Curve.serializer.read(in)
+          val startLevels   = DoubleVector.valueFormat.read(in)
+          val curve         = Curve.format.read(in)
           EnvSegment.Multi(startLevels = startLevels, curve = curve)
         case _ => sys.error(s"Unexpected segment type $tpe")
       }
     }
   }
 
-  object Obj extends expr.impl.ExprTypeImpl[EnvSegment, EnvSegment.Obj] {
+  object Obj extends ExprTypeImpl[EnvSegment, EnvSegment.Obj] {
     def typeId: Int = EnvSegment.typeId
 
     import EnvSegment.{Obj => Repr}
@@ -73,46 +72,46 @@ object EnvSegment {
       _init
     }
 
-    protected def mkConst[S <: Sys[S]](id: S#Id, value: A)(implicit tx: S#Tx): Const[S] =
-      new _Const[S](id, value)
+    protected def mkConst[T <: Txn[T]](id: Ident[T], value: A)(implicit tx: T): Const[T] =
+      new _Const[T](id, value)
 
-    protected def mkVar[S <: Sys[S]](targets: Targets[S], vr: S#Var[_Ex[S]], connect: Boolean)
-                                    (implicit tx: S#Tx): Var[S] = {
-      val res = new _Var[S](targets, vr)
+    protected def mkVar[T <: Txn[T]](targets: Targets[T], vr: LVar[T, E[T]], connect: Boolean)
+                                    (implicit tx: T): Var[T] = {
+      val res = new _Var[T](targets, vr)
       if (connect) res.connect()
       res
     }
 
-    private final class _Const[S <: Sys[S]](val id: S#Id, val constValue: A)
-      extends ConstImpl[S] with Repr[S]
+    private final class _Const[T <: Txn[T]](val id: Ident[T], val constValue: A)
+      extends ConstImpl[T] with Repr[T]
 
-    private final class _Var[S <: Sys[S]](val targets: Targets[S], val ref: S#Var[_Ex[S]])
-      extends VarImpl[S] with Repr[S]
+    private final class _Var[T <: Txn[T]](val targets: Targets[T], val ref: LVar[T, E[T]])
+      extends VarImpl[T] with Repr[T]
 
-    def valueSerializer: ImmutableSerializer[EnvSegment] = EnvSegment.serializer
+    def valueFormat: ConstFormat[EnvSegment] = EnvSegment.format
 
-    def apply[S <: Sys[S]](startLevel: DoubleObj[S], curve: CurveObj[S])
-                          (implicit tx: S#Tx): Obj[S] = ApplySingle(startLevel, curve)
+    def apply[T <: Txn[T]](startLevel: DoubleObj[T], curve: CurveObj[T])
+                          (implicit tx: T): Obj[T] = ApplySingle(startLevel, curve)
 
-    object ApplySingle extends Type.Extension1[Obj] {
+    object ApplySingle extends Expr.Type.Extension1[Obj] {
       final val opId = 0
 
-      def apply[S <: Sys[S]](startLevel: DoubleObj[S], curve: CurveObj[S])
-                            (implicit tx: S#Tx): Obj[S] = {
-        val targets = Targets[S]
+      def apply[T <: Txn[T]](startLevel: DoubleObj[T], curve: CurveObj[T])
+                            (implicit tx: T): Obj[T] = {
+        val targets = Targets[T]()
         new ApplySingle(targets, startLevel = startLevel, curve = curve).connect()
       }
 
-      def unapply[S <: Sys[S]](expr: Obj[S]): Option[(DoubleObj[S], CurveObj[S])] =
+      def unapply[T <: Txn[T]](expr: Obj[T]): Option[(DoubleObj[T], CurveObj[T])] =
         expr match {
-          case impl: ApplySingle[S] => Some((impl.startLevel, impl.curve))
+          case impl: ApplySingle[T] => Some((impl.startLevel, impl.curve))
           case _ => None
         }
 
-      def readExtension[S <: Sys[S]](opId: Int, in: DataInput, access: S#Acc, targets: Targets[S])
-                                    (implicit tx: S#Tx): Obj[S] = {
-        val startLevel  = DoubleObj .read(in, access)
-        val curve       = CurveObj  .read(in, access)
+      def readExtension[T <: Txn[T]](opId: Int, in: DataInput, targets: Targets[T])
+                                    (implicit tx: T): Obj[T] = {
+        val startLevel  = DoubleObj .read(in)
+        val curve       = CurveObj  .read(in)
         new ApplySingle(targets, startLevel, curve)
       }
 
@@ -121,20 +120,20 @@ object EnvSegment {
       val opHi: Int = opId
       val opLo: Int = opId
     }
-    private final class ApplySingle[S <: Sys[S]](protected val  targets     : Targets   [S],
-                                                 val            startLevel  : DoubleObj [S],
-                                                 val            curve       : CurveObj  [S])
-      extends lucre.expr.impl.NodeImpl[S, EnvSegment.Single] with Obj[S] {
+    private final class ApplySingle[T <: Txn[T]](protected val  targets     : Targets   [T],
+                                                 val            startLevel  : DoubleObj [T],
+                                                 val            curve       : CurveObj  [T])
+      extends ExprNodeImpl[T, EnvSegment.Single] with Obj[T] {
 
-      def tpe: stm.Obj.Type = EnvSegment.Obj
+      def tpe: LObj.Type = EnvSegment.Obj
 
-      def copy[Out <: Sys[Out]]()(implicit tx: S#Tx, txOut: Out#Tx, context: Copy[S, Out]): Elem[Out] =
-        new ApplySingle(Targets[Out], context(startLevel), context(curve)).connect()
+      def copy[Out <: Txn[Out]]()(implicit tx: T, txOut: Out, context: Copy[T, Out]): Elem[Out] =
+        new ApplySingle(Targets[Out](), context(startLevel), context(curve)).connect()
 
-      def value(implicit tx: S#Tx): EnvSegment.Single = EnvSegment.Single(startLevel.value, curve.value)
+      def value(implicit tx: T): EnvSegment.Single = EnvSegment.Single(startLevel.value, curve.value)
 
       object changed extends Changed {
-        def pullUpdate(pull: Pull[S])(implicit tx: S#Tx): Option[m.Change[EnvSegment.Single]] = {
+        def pullUpdate(pull: Pull[T])(implicit tx: T): Option[m.Change[EnvSegment.Single]] = {
           val levelEvt  = startLevel.changed
           val levelChO  = if (pull.contains(levelEvt)) pull(levelEvt) else None
           val curveEvt  = curve.changed
@@ -159,7 +158,7 @@ object EnvSegment {
         }
       }
 
-      protected def disposeData()(implicit tx: S#Tx): Unit = disconnect()
+      protected def disposeData()(implicit tx: T): Unit = disconnect()
 
       protected def writeData(out: DataOutput): Unit = {
         out.writeByte(1)  // 'node' not 'var'
@@ -168,37 +167,37 @@ object EnvSegment {
         curve       .write(out)
       }
 
-      def connect()(implicit tx: S#Tx): this.type = {
+      def connect()(implicit tx: T): this.type = {
         startLevel .changed ---> changed
         curve       .changed ---> changed
         this
       }
 
-      private def disconnect()(implicit tx: S#Tx): Unit = {
+      private def disconnect()(implicit tx: T): Unit = {
         startLevel .changed -/-> changed
         curve       .changed -/-> changed
       }
     }
 
-    object ApplyMulti extends Type.Extension1[Obj] {
+    object ApplyMulti extends Expr.Type.Extension1[Obj] {
       final val opId = 1
 
-      def apply[S <: Sys[S]](startLevels: DoubleVector[S], curve: CurveObj[S])
-                            (implicit tx: S#Tx): Obj[S] = {
-        val targets = Targets[S]
+      def apply[T <: Txn[T]](startLevels: DoubleVector[T], curve: CurveObj[T])
+                            (implicit tx: T): Obj[T] = {
+        val targets = Targets[T]()
         new ApplyMulti(targets, startLevels = startLevels, curve = curve).connect()
       }
 
-      def unapply[S <: Sys[S]](expr: Obj[S]): Option[(DoubleVector[S], CurveObj[S])] =
+      def unapply[T <: Txn[T]](expr: Obj[T]): Option[(DoubleVector[T], CurveObj[T])] =
         expr match {
-          case impl: ApplyMulti[S] => Some((impl.startLevels, impl.curve))
+          case impl: ApplyMulti[T] => Some((impl.startLevels, impl.curve))
           case _ => None
         }
 
-      def readExtension[S <: Sys[S]](opId: Int, in: DataInput, access: S#Acc, targets: Targets[S])
-                                    (implicit tx: S#Tx): Obj[S] = {
-        val startLevels = DoubleVector.read(in, access)
-        val curve       = CurveObj    .read(in, access)
+      def readExtension[T <: Txn[T]](opId: Int, in: DataInput, targets: Targets[T])
+                                    (implicit tx: T): Obj[T] = {
+        val startLevels = DoubleVector.read(in)
+        val curve       = CurveObj    .read(in)
         new ApplyMulti(targets, startLevels, curve)
       }
 
@@ -207,20 +206,20 @@ object EnvSegment {
       val opHi: Int = opId
       val opLo: Int = opId
     }
-    private final class ApplyMulti[S <: Sys[S]](protected val targets     : Targets      [S],
-                                                val           startLevels : DoubleVector [S],
-                                                val           curve       : CurveObj     [S])
-      extends lucre.expr.impl.NodeImpl[S, EnvSegment.Multi] with Obj[S] {
+    private final class ApplyMulti[T <: Txn[T]](protected val targets     : Targets      [T],
+                                                val           startLevels : DoubleVector [T],
+                                                val           curve       : CurveObj     [T])
+      extends ExprNodeImpl[T, EnvSegment.Multi] with Obj[T] {
 
-      def tpe: stm.Obj.Type = EnvSegment.Obj
+      def tpe: LObj.Type = EnvSegment.Obj
 
-      def copy[Out <: Sys[Out]]()(implicit tx: S#Tx, txOut: Out#Tx, context: Copy[S, Out]): Elem[Out] =
-        new ApplyMulti(Targets[Out], context(startLevels), context(curve)).connect()
+      def copy[Out <: Txn[Out]]()(implicit tx: T, txOut: Out, context: Copy[T, Out]): Elem[Out] =
+        new ApplyMulti(Targets[Out](), context(startLevels), context(curve)).connect()
 
-      def value(implicit tx: S#Tx): EnvSegment.Multi = EnvSegment.Multi(startLevels.value, curve.value)
+      def value(implicit tx: T): EnvSegment.Multi = EnvSegment.Multi(startLevels.value, curve.value)
 
       object changed extends Changed {
-        def pullUpdate(pull: Pull[S])(implicit tx: S#Tx): Option[m.Change[EnvSegment.Multi]] = {
+        def pullUpdate(pull: Pull[T])(implicit tx: T): Option[m.Change[EnvSegment.Multi]] = {
           val levelEvt  = startLevels.changed
           val levelChO  = if (pull.contains(levelEvt)) pull(levelEvt) else None
           val curveEvt  = curve.changed
@@ -245,7 +244,7 @@ object EnvSegment {
         }
       }
 
-      protected def disposeData()(implicit tx: S#Tx): Unit = disconnect()
+      protected def disposeData()(implicit tx: T): Unit = disconnect()
 
       protected def writeData(out: DataOutput): Unit = {
         out.writeByte(1)  // 'node' not 'var'
@@ -254,19 +253,19 @@ object EnvSegment {
         curve      .write(out)
       }
 
-      def connect()(implicit tx: S#Tx): this.type = {
+      def connect()(implicit tx: T): this.type = {
         startLevels.changed ---> changed
         curve      .changed ---> changed
         this
       }
 
-      private def disconnect()(implicit tx: S#Tx): Unit = {
+      private def disconnect()(implicit tx: T): Unit = {
         startLevels.changed -/-> changed
         curve      .changed -/-> changed
       }
     }
   }
-  trait Obj[S <: Sys[S]] extends Expr[S, EnvSegment]
+  trait Obj[T <: Txn[T]] extends Expr[T, EnvSegment]
 
   final case class Single(startLevel: Double, curve: Curve) extends EnvSegment {
     def numChannels: Int = 1
@@ -281,7 +280,7 @@ object EnvSegment {
       out.writeShort(COOKIE)
       out.writeByte(0)
       out.writeDouble(startLevel)
-      Curve.serializer.write(curve, out)
+      Curve.format.write(curve, out)
     }
   }
   final case class Multi(startLevels: Vec[Double], curve: Curve) extends EnvSegment {
@@ -294,8 +293,8 @@ object EnvSegment {
     def write(out: DataOutput): Unit = {
       out.writeShort(COOKIE)
       out.writeByte(1)
-      DoubleVector.valueSerializer.write(startLevels, out)
-      Curve.serializer.write(curve, out)
+      DoubleVector.valueFormat.write(startLevels, out)
+      Curve.format.write(curve, out)
     }
   }
 }

@@ -1,13 +1,11 @@
 package de.sciss.synth.proc
 
-import de.sciss.lucre.expr.{Context, StringObj}
-import de.sciss.lucre.stm.UndoManager
-import de.sciss.lucre.synth.InMemory
-import de.sciss.lucre.{expr, swing}
+import de.sciss.lucre.expr.Context
+import de.sciss.lucre.{StringObj, expr, swing}
 
 import scala.swing.Component
 
-object ResampleDlgTest extends AppLike {
+object ResampleDlgTest extends InMemoryAppLike {
   protected def mkView(): Component = {
     import expr.graph._
     import swing.graph._
@@ -74,15 +72,11 @@ object ResampleDlgTest extends AppLike {
       p
     }
 
-    type              S = InMemory
-    implicit val sys: S = InMemory()
-    implicit val undo: UndoManager[S] = UndoManager()
-
-    val view = sys.step { implicit tx =>
-      implicit val u: Universe[S] = Universe.dummy
-      val self: StringObj[S] = StringObj.newConst("foo")
-      implicit val ctx: Context[S] = ExprContext(Some(tx.newHandle(self)))
-      g.expand[S]
+    val view = system.step { implicit tx =>
+      implicit val u: Universe[T] = Universe.dummy
+      val self: StringObj[T] = StringObj.newConst("foo")
+      implicit val ctx: Context[T] = ExprContext(Some(tx.newHandle(self)))
+      g.expand[T]
     }
     view.component
   }

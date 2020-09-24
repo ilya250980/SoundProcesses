@@ -14,11 +14,9 @@
 package de.sciss.synth.proc.impl
 
 import de.sciss.equal.Implicits._
-import de.sciss.lucre.event.impl.{DummyObservableImpl, ObservableImpl}
-import de.sciss.lucre.stm
-import de.sciss.lucre.stm.TxnLike.peer
-import de.sciss.lucre.stm.{Cursor, Disposable, Obj, Sys, Workspace}
-import de.sciss.lucre.synth.{Sys => SSys}
+import de.sciss.lucre.Txn.peer
+import de.sciss.lucre.impl.{DummyObservableImpl, ObservableImpl}
+import de.sciss.lucre.{Cursor, Disposable, Obj, Source, Txn, Workspace, synth}
 import de.sciss.synth.proc.Runner.{Attr, Preparing, Running, State, Stopped}
 import de.sciss.synth.proc.impl.BasicAuralRunnerImpl.AuralRef
 import de.sciss.synth.proc.{AuralContext, AuralObj, Runner, TimeRef, Universe}
@@ -27,112 +25,112 @@ import scala.annotation.tailrec
 import scala.concurrent.stm.Ref
 import scala.util.{Failure, Success, Try}
 
-trait BasicRunnerImpl[S <: Sys[S]]
-  extends Runner[S] with BasicViewBaseImpl[S] {
+trait BasicRunnerImpl[T <: Txn[T]]
+  extends Runner[T] with BasicViewBaseImpl[T] {
 
   // ---- abstract ----
 
-  protected def disposeData()(implicit tx: S#Tx): Unit
+  protected def disposeData()(implicit tx: T): Unit
 
   // ---- impl ----
 
-  implicit final def workspace : Workspace[S] = universe.workspace
-  implicit final def cursor    : Cursor[S]    = universe.cursor
+  implicit final def workspace : Workspace[T] = universe.workspace
+  implicit final def cursor    : Cursor[T]    = universe.cursor
 
-  def initControl()(implicit tx: S#Tx): Unit = ()
+  def initControl()(implicit tx: T): Unit = ()
 
   // this is implemented so there is no chance of forgetting
   // to remove the runner from the handler
-  final def dispose()(implicit tx: S#Tx): Unit = {
+  final def dispose()(implicit tx: T): Unit = {
     universe.removeRunner(this)
     disposeData()
   }
 
-  final object messages extends Runner.Messages[S#Tx] with ObservableImpl[S, List[Runner.Message]] {
+  final object messages extends Runner.Messages[T] with ObservableImpl[T, List[Runner.Message]] {
     private[this] val ref = Ref(List.empty[Runner.Message])
 
-    def current(implicit tx: S#Tx): List[Runner.Message] = ref()
+    def current(implicit tx: T): List[Runner.Message] = ref()
 
-    def current_=(value: List[Runner.Message])(implicit tx: S#Tx): Unit = {
+    def current_=(value: List[Runner.Message])(implicit tx: T): Unit = {
       val old = ref.swap(value)
       if (value !== old) fire(value)
     }
   }
 }
 
-trait BasicRunnerInternalImpl[S <: Sys[S]]
-  extends BasicRunnerImpl[S] with Runner.Internal[S] {
+trait BasicRunnerInternalImpl[T <: Txn[T]]
+  extends BasicRunnerImpl[T] with Runner.Internal[T] {
 
-  private[this] val disposables = Ref(List.empty[Disposable[S#Tx]])
+  private[this] val disposables = Ref(List.empty[Disposable[T]])
 
-  object progress extends Runner.Progress[S#Tx] with ObservableImpl[S, Double] {
+  object progress extends Runner.Progress[T] with ObservableImpl[T, Double] {
     private[this] val ref = Ref(-1.0)
 
-    def current(implicit tx: S#Tx): Double = ref()
+    def current(implicit tx: T): Double = ref()
 
-    def current_=(value: Double)(implicit tx: S#Tx): Unit = {
+    def current_=(value: Double)(implicit tx: T): Unit = {
       val old = ref.swap(value)
       if (value !== old) fire(value)
     }
   }
 
-  protected def disposeData()(implicit tx: S#Tx): Unit =
+  protected def disposeData()(implicit tx: T): Unit =
     disposables.swap(Nil).foreach(_.dispose())
 
-  def completeWith(result: Try[Unit])(implicit tx: S#Tx): Unit = {
+  def completeWith(result: Try[Unit])(implicit tx: T): Unit = {
     state = result match {
       case Success(_)   => Runner.Done
       case Failure(ex)  => Runner.Failed(ex)
     }
   }
 
-  def setProgress(value: Double)(implicit tx: S#Tx): Unit =
+  def setProgress(value: Double)(implicit tx: T): Unit =
     progress.current = value
 
-  def addMessage(m: Runner.Message)(implicit tx: S#Tx): Unit =
+  def addMessage(m: Runner.Message)(implicit tx: T): Unit =
     messages.current = messages.current :+ m
 
-  def setMessages(m: List[Runner.Message])(implicit tx: S#Tx): Unit =
+  def setMessages(m: List[Runner.Message])(implicit tx: T): Unit =
     messages.current = m
 
-  def addDisposable(d: Disposable[S#Tx])(implicit tx: S#Tx): Unit =
+  def addDisposable(d: Disposable[T])(implicit tx: T): Unit =
     disposables.transform(d :: _)
 }
 
 /** An implementation that maintains an `AuralObj` of the object which is run and stopped. */
-trait BasicAuralRunnerImpl[S <: SSys[S]] extends AuralSystemTxBridge[S] with BasicRunnerImpl[S] {
-//  def initRunner(obj: Obj[S])(implicit tx: S#Tx): this.type = {
+trait BasicAuralRunnerImpl[T <: synth.Txn[T]] extends AuralSystemTxBridge[T] with BasicRunnerImpl[T] {
+//  def initRunner(obj: Obj[T])(implicit tx: T): this.type = {
 //    this
 //  }
 
-  protected def obj(implicit tx: S#Tx): Obj[S]
+  protected def obj(implicit tx: T): Obj[T]
 
   private[this] val targetState     = Ref[Runner.State](Runner.Stopped)
-  private[this] val auralRef        = Ref(Option.empty[AuralRef[S]])
-  private[this] val contextRef      = Ref(Option.empty[AuralContext[S]])
-  private[this] val attrRef         = Ref(Runner.emptyAttr[S])(NoManifest)
+  private[this] val auralRef        = Ref(Option.empty[AuralRef[T]])
+  private[this] val contextRef      = Ref(Option.empty[AuralContext[T]])
+  private[this] val attrRef         = Ref(Runner.emptyAttr[T])(NoManifest)
   private[this] val attrDirty       = Ref(false)
 
-  object progress extends Runner.Progress[S#Tx] with DummyObservableImpl[S] {
-    def current(implicit tx: S#Tx): Double = -1
+  object progress extends Runner.Progress[T] with DummyObservableImpl[T] {
+    def current(implicit tx: T): Double = -1
   }
 
-  def prepare(attr: Attr[S])(implicit tx: S#Tx): Unit = {
+  def prepare(attr: Attr[T])(implicit tx: T): Unit = {
     val oldAttr = attrRef.swap(attr)
     attrDirty() = oldAttr !== attr
     setAndMatchStates(Preparing)
   }
 
-  def run()(implicit tx: S#Tx): Unit =
+  def run()(implicit tx: T): Unit =
     setAndMatchStates(Running)
 
-  def stop()(implicit tx: S#Tx): Unit =
+  def stop()(implicit tx: T): Unit =
     setAndMatchStates(Stopped)
 
-  private def disposeRef()(implicit tx: S#Tx): Unit =
+  private def disposeRef()(implicit tx: T): Unit =
     auralRef.swap(None).foreach(_.dispose())
 
-  private def mkRef()(implicit tx: S#Tx): Option[AuralRef[S]] = {
+  private def mkRef()(implicit tx: T): Option[AuralRef[T]] = {
     disposeRef()
     state = Stopped
     val newOpt = contextRef().map { implicit ctx =>
@@ -160,13 +158,13 @@ trait BasicAuralRunnerImpl[S <: SSys[S]] extends AuralSystemTxBridge[S] with Bas
     newOpt
   }
 
-  private def setAndMatchStates(tgt: State)(implicit tx: S#Tx): Unit = {
+  private def setAndMatchStates(tgt: State)(implicit tx: T): Unit = {
     targetState() = tgt
     matchStates()
   }
 
   @tailrec
-  private def matchStates()(implicit tx: S#Tx): Unit = {
+  private def matchStates()(implicit tx: T): Unit = {
     val tgt = targetState()
     auralRef() match {
       case Some(ref) =>
@@ -200,14 +198,14 @@ trait BasicAuralRunnerImpl[S <: SSys[S]] extends AuralSystemTxBridge[S] with Bas
     }
   }
 
-  protected def auralStartedTx()(implicit tx: S#Tx, auralContext: AuralContext[S]): Unit = {
+  protected def auralStartedTx()(implicit tx: T, auralContext: AuralContext[T]): Unit = {
     contextRef() = Some(auralContext)
     if (targetState() !== Stopped) {
       matchStates()
     }
   }
 
-  protected def auralStoppedTx()(implicit tx: S#Tx): Unit = {
+  protected def auralStoppedTx()(implicit tx: T): Unit = {
     contextRef() = None
     disposeRef()
     if (targetState() === Stopped) {
@@ -217,33 +215,33 @@ trait BasicAuralRunnerImpl[S <: SSys[S]] extends AuralSystemTxBridge[S] with Bas
     }
   }
 
-  protected def disposeData()(implicit tx: S#Tx): Unit = {
+  protected def disposeData()(implicit tx: T): Unit = {
     disconnectAuralSystem()
     disposeRef()
   }
 }
 
 object BasicAuralRunnerImpl {
-  def apply[S <: SSys[S]](obj: Obj[S])(implicit tx: S#Tx, universe: Universe[S]): Runner[S] = {
+  def apply[T <: synth.Txn[T]](obj: Obj[T])(implicit tx: T, universe: Universe[T]): Runner[T] = {
     new Impl(tx.newHandle(obj), obj.tpe, universe).init()
   }
 
-  private final class AuralRef[S <: SSys[S]](val view: AuralObj[S], observer: Disposable[S#Tx]) {
-    def dispose()(implicit tx: S#Tx): Unit = {
+  private final class AuralRef[T <: synth.Txn[T]](val view: AuralObj[T], observer: Disposable[T]) {
+    def dispose()(implicit tx: T): Unit = {
       observer.dispose()
       view    .dispose()
     }
   }
 
-  private final class Impl[S <: SSys[S]](objH: stm.Source[S#Tx, Obj[S]], tpe: Obj.Type,
-                                         val universe: Universe[S])
-    extends BasicAuralRunnerImpl[S] {
+  private final class Impl[T <: synth.Txn[T]](objH: Source[T, Obj[T]], tpe: Obj.Type,
+                                         val universe: Universe[T])
+    extends BasicAuralRunnerImpl[T] {
 
     override def toString = s"Runner(${tpe.typeId})@{hashCode().toHexString}"
 
-    protected def obj(implicit tx: S#Tx): Obj[S] = objH()
+    protected def obj(implicit tx: T): Obj[T] = objH()
 
-    def init()(implicit tx: S#Tx): this.type =
+    def init()(implicit tx: T): this.type =
       connectAuralSystem()
   }
 }

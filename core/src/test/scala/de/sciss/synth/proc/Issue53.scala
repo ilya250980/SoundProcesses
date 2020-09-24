@@ -1,6 +1,6 @@
 package de.sciss.synth.proc
 
-import de.sciss.lucre.stm.Folder
+import de.sciss.lucre.Folder
 import de.sciss.span.Span
 import de.sciss.synth.proc.graph.{ScanInFix, ScanOut}
 import de.sciss.synth.ugen
@@ -61,13 +61,13 @@ class Issue53 extends BounceSpec {
         Out.ar(0, in)
       }
 
-      val f = Folder[S]()
+      val f = Folder[T]()
       f.addLast(proc1.outputs.add(Proc.mainOut))
       f.addLast(proc2.outputs.add(Proc.mainOut))
       f.addLast(proc3.outputs.add(Proc.mainOut))
       glob.attr.put(Proc.mainIn, f)
 
-      val tl = Timeline[S]()
+      val tl = Timeline[T]()
       tl.add(Span.All, glob)
       tl.add(Span(at0, at1), proc1)
       tl.add(Span(at0, at1), proc2)

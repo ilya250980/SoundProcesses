@@ -2,8 +2,8 @@ package de.sciss.synth.proc
 
 import de.sciss.ConfluentEventSpec
 import de.sciss.file._
-import de.sciss.lucre.artifact.{Artifact, ArtifactLocation}
-import de.sciss.lucre.expr.{DoubleVector, BooleanObj, DoubleObj, IntObj, LongObj, StringObj}
+import de.sciss.lucre.{Artifact, ArtifactLocation}
+import de.sciss.lucre.{DoubleVector, BooleanObj, DoubleObj, IntObj, LongObj, StringObj}
 import de.sciss.synth.Curve
 import de.sciss.synth.io.AudioFileSpec
 
@@ -19,9 +19,9 @@ class AttributesSpec extends ConfluentEventSpec {
 
   "Attrs" should "serialize and de-serialize" in { system =>
     val pH = system.step { implicit tx =>
-      val p     = Proc[S]()
+      val p     = Proc[T]()
       val obj   = p // Obj(peer)
-      obj.attr.put("foo", IntObj.newVar[S](1234))
+      obj.attr.put("foo", IntObj.newVar[T](1234))
       tx.newHandle(obj)
     }
 
@@ -44,23 +44,23 @@ class AttributesSpec extends ConfluentEventSpec {
     val pgH = system.step { implicit tx =>
       val p     = pH()
       val attr  = p.attr
-      attr.put("int"    , IntObj.newConst[S](5678 ))
-      val d = DoubleObj.newConst[S](123.4)
+      attr.put("int"    , IntObj.newConst[T](5678 ))
+      val d = DoubleObj.newConst[T](123.4)
       attr.put("double" , d)
-      val n = LongObj.newConst[S](1234L)
+      val n = LongObj.newConst[T](1234L)
       attr.put("long"   , n)
-      attr.put("boolean", BooleanObj.newConst[S](true ))
-      attr.put("string" , StringObj .newConst[S]("123"))
+      attr.put("boolean", BooleanObj.newConst[T](true ))
+      attr.put("string" , StringObj .newConst[T]("123"))
 
       attr.put("fade"   , FadeSpec.Obj.newConst(fade))
       attr.put("d-vec"  , DoubleVector.newConst(Vector(1.2, 3.4, 5.6)))
-      val loc = ArtifactLocation.newConst[S](file("foo"))
+      val loc = ArtifactLocation.newConst[T](file("foo"))
       val art = Artifact(loc, Artifact.Child("bar")) // loc.add(file("foo") / "bar")
       attr.put("audio"  , AudioCue.Obj(art, spec, offset = n, gain = d))
       attr.put("loc",     loc)
-      val group = Timeline[S]()
+      val group = Timeline[T]()
       attr.put("group",   group)
-      // implicit val groupSer = ProcGroup.Modifiable.serializer[S]
+      // implicit val groupSer = ProcGroup.Modifiable.serializer[T]
       tx.newHandle(group)
     }
 

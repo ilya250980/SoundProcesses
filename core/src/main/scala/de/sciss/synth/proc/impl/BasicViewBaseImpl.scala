@@ -13,24 +13,24 @@
 
 package de.sciss.synth.proc.impl
 
-import de.sciss.lucre.event.impl.ObservableImpl
-import de.sciss.lucre.stm.Sys
-import de.sciss.lucre.stm.TxnLike.peer
+import de.sciss.lucre.Txn
+import de.sciss.lucre.impl.ObservableImpl
+import de.sciss.lucre.Txn.peer
 import de.sciss.synth.proc.{Runner, ViewBase}
 
 import scala.concurrent.stm.Ref
 
-trait BasicViewBaseImpl[S <: Sys[S]]
-  extends ViewBase[S] with ObservableImpl[S, Runner.State] {
+trait BasicViewBaseImpl[T <: Txn[T]]
+  extends ViewBase[T] with ObservableImpl[T, Runner.State] {
 
-//  implicit final def workspace : WorkspaceHandle[S] = handler.workspace
-//  implicit final def cursor    : Cursor[S]          = handler.cursor
+//  implicit final def workspace : WorkspaceHandle[T] = handler.workspace
+//  implicit final def cursor    : Cursor[T]          = handler.cursor
 
   private[this] val stateRef = Ref[Runner.State](Runner.Stopped)
 
-  final def state(implicit tx: S#Tx): Runner.State = stateRef()
+  final def state(implicit tx: T): Runner.State = stateRef()
 
-  final protected def state_=(now: Runner.State)(implicit tx: S#Tx): Unit = {
+  final protected def state_=(now: Runner.State)(implicit tx: T): Unit = {
     val before = stateRef.swap(now)
     if (before != now) {
       stateWillChanged(now)
@@ -38,5 +38,5 @@ trait BasicViewBaseImpl[S <: Sys[S]]
     }
   }
 
-  protected def stateWillChanged(now: Runner.State)(implicit tx: S#Tx): Unit = ()
+  protected def stateWillChanged(now: Runner.State)(implicit tx: T): Unit = ()
 }

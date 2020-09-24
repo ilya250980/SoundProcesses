@@ -13,7 +13,7 @@
 
 package de.sciss.synth.proc.impl
 
-import de.sciss.lucre.synth.{Buffer, Node, Txn}
+import de.sciss.lucre.synth.{Buffer, Node, RT}
 import de.sciss.synth.GE
 import de.sciss.synth.proc.graph.impl.SendReplyResponder
 import de.sciss.{osc, synth}
@@ -88,7 +88,7 @@ final class StreamBuffer(key: String, idx: Int, protected val synth: Node,
   private[this] val replyName = StreamBuffer.replyName(key)
   private[this] val nodeId    = synth.peer.id
 
-  protected def added()(implicit tx: Txn): Unit = {
+  protected def added()(implicit tx: RT): Unit = {
     // initial buffer fills. XXX TODO: fuse both reads into one
     updateBuffer(0)
     updateBuffer(1)
@@ -100,7 +100,7 @@ final class StreamBuffer(key: String, idx: Int, protected val synth: Node,
       // logAural(m.toString)
       val trigVal = trigValF.toInt + 1
       scala.concurrent.stm.atomic { itx =>
-        implicit val tx: Txn = Txn.wrap(itx)
+        implicit val tx: RT = RT.wrap(itx)
         val frame = updateBuffer(trigVal)
         if (frame >= fileFrames + bufSizeH) {
           synth.free()
@@ -108,7 +108,7 @@ final class StreamBuffer(key: String, idx: Int, protected val synth: Node,
       }
   }
 
-  private def updateBuffer(trigVal: Int)(implicit tx: Txn): Long = {
+  private def updateBuffer(trigVal: Int)(implicit tx: RT): Long = {
     val trigEven  = trigVal % 2 == 0
     val bufOff    = if (trigEven) 0 else bufSizeH
     val frame     = trigVal.toLong * bufSizeHM + startFrame + (if (trigEven) 0 else diskPad)
@@ -118,7 +118,7 @@ final class StreamBuffer(key: String, idx: Int, protected val synth: Node,
       updateBufferNoLoop(bufOff, frame)
   }
 
-  private def updateBufferNoLoop(bufOff: Int, frame: Long)(implicit tx: Txn): Long = {
+  private def updateBufferNoLoop(bufOff: Int, frame: Long)(implicit tx: RT): Long = {
     val readSz    = math.max(0, math.min(bufSizeH, fileFrames - frame)).toInt
     val fillSz    = bufSizeH - readSz
 
@@ -136,7 +136,7 @@ final class StreamBuffer(key: String, idx: Int, protected val synth: Node,
     frame
   }
 
-  private def updateBufferLoop(bufOff: Int, frame0: Long)(implicit tx: Txn): Long = {
+  private def updateBufferLoop(bufOff: Int, frame0: Long)(implicit tx: RT): Long = {
     @tailrec def loop(done: Int): Long = {
       val frame1  = frame0 + done
       val frame   = (frame1 - resetFrame) % (fileFrames - resetFrame) + resetFrame  // wrap inside loop span

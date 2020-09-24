@@ -11,11 +11,11 @@
  *  contact@sciss.de
  */
 
-package de.sciss.lucre.synth.impl
+package de.sciss.lucre.synth
+package impl
 
 import java.io.File
 
-import de.sciss.lucre.synth.{Server, SynthDef, Txn}
 import de.sciss.synth.message.SynthDefLoad
 import de.sciss.synth.{SynthDef => SSynthDef}
 
@@ -28,7 +28,7 @@ final case class SynthDefImpl(server: Server, peer: SSynthDef) extends ResourceI
     * If the SynthDef is too large, it will be written to a temporary
     * file and `/d_load` used instead.
     */
-  def recv()(implicit tx: Txn): Unit = {
+  def recv()(implicit tx: RT): Unit = {
     requireOffline()
     val mRecv     = peer.recvMsg
     val bndlSize  = ((mRecv.bytes.limit() + 7) & ~3) + 32  // [ "#bundle" 8, timetag 8, sz 4, [ "/d_recv" 8, tags 4, byte-buf ]]
@@ -45,7 +45,7 @@ final case class SynthDefImpl(server: Server, peer: SSynthDef) extends ResourceI
     setOnline(value = true)
   }
 
-  def dispose()(implicit tx: Txn): Unit = {
+  def dispose()(implicit tx: RT): Unit = {
     requireOnline()
     tx.addMessage(this, peer.freeMsg)
     setOnline(value = false)

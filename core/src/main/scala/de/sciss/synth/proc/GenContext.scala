@@ -13,16 +13,15 @@
 
 package de.sciss.synth.proc
 
-import de.sciss.lucre.stm
-import de.sciss.lucre.stm.{Disposable, Obj, Sys}
+import de.sciss.lucre.{Cursor, Disposable, Obj, Txn, Workspace}
 import de.sciss.synth.proc.impl.{GenContextImpl => Impl}
 
 object GenContext {
-  def apply[S <: Sys[S]]()(implicit tx: S#Tx, cursor: stm.Cursor[S], workspace: Workspace[S]): GenContext[S] =
-    Impl[S]()
+  def apply[T <: Txn[T]]()(implicit tx: T, cursor: Cursor[T], workspace: Workspace[T]): GenContext[T] =
+    Impl[T]()
 }
 /** Context for rendering generated objects. */
-trait GenContext[S <: Sys[S]] extends Disposable[S#Tx] {
+trait GenContext[T <: Txn[T]] extends Disposable[T] {
   /** Acquires a resource associated with an object.
     * The resource is stored under the key `obj.id`,
     * and an internal use count is maintained, calling
@@ -34,7 +33,7 @@ trait GenContext[S <: Sys[S]] extends Disposable[S#Tx] {
     * @tparam A     the type of resource which must be a `Disposable`
     * @return the resource, either already found in the cache or newly produced
     */
-  def acquire[A <: Disposable[S#Tx]](obj: Obj[S])(init: => A)(implicit tx: S#Tx): A
+  def acquire[A <: Disposable[T]](obj: Obj[T])(init: => A)(implicit tx: T): A
 
   /** Releases a resource associated with an object.
     * This decreases the use count of the resource, and
@@ -42,7 +41,7 @@ trait GenContext[S <: Sys[S]] extends Disposable[S#Tx] {
     *
     * @param obj    the object used as a look-up key
     */
-  def release(obj: Obj[S])(implicit tx: S#Tx): Unit
+  def release(obj: Obj[T])(implicit tx: T): Unit
 
   /** Attempts to find a resource associated with an object.
     *
@@ -50,9 +49,9 @@ trait GenContext[S <: Sys[S]] extends Disposable[S#Tx] {
     * @tparam A     the type of resource
     * @return the resource, if it was found in the cache, or `None`
     */
-  def get[A](obj: Obj[S])(implicit tx: S#Tx): Option[A]
+  def get[A](obj: Obj[T])(implicit tx: T): Option[A]
 
-  implicit def cursor: stm.Cursor[S]
+  implicit def cursor: Cursor[T]
 
-  implicit def workspace: Workspace[S]
+  implicit def workspace: Workspace[T]
 }

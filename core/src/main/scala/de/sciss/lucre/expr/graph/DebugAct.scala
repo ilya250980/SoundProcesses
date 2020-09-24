@@ -13,13 +13,13 @@
 
 package de.sciss.lucre.expr.graph
 
+import de.sciss.lucre.Txn
 import de.sciss.lucre.expr.impl.IActionImpl
 import de.sciss.lucre.expr.{Context, IAction}
-import de.sciss.lucre.stm.Sys
 
 object DebugAct {
-  private final class Expanded[S <: Sys[S]](body: () => Unit) extends IActionImpl[S] {
-    def executeAction()(implicit tx: S#Tx): Unit =
+  private final class Expanded[T <: Txn[T]](body: () => Unit) extends IActionImpl[T] {
+    def executeAction()(implicit tx: T): Unit =
       tx.afterCommit(body())
   }
 }
@@ -31,8 +31,8 @@ object DebugAct {
   *               Note that this will be executed outside of the transactional context.
   */
 final case class DebugAct(body: () => Unit) extends Act {
-  type Repr[S <: Sys[S]] = IAction[S]
+  type Repr[T <: Txn[T]] = IAction[T]
 
-  protected def mkRepr[S <: Sys[S]](implicit ctx: Context[S], tx: S#Tx): Repr[S] =
+  protected def mkRepr[T <: Txn[T]](implicit ctx: Context[T], tx: T): Repr[T] =
     new DebugAct.Expanded(body)
 }

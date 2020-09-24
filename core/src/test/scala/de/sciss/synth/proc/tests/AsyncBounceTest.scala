@@ -1,8 +1,8 @@
 package de.sciss.synth.proc.tests
 
 import de.sciss.file._
-import de.sciss.lucre.artifact.{Artifact, ArtifactLocation}
-import de.sciss.lucre.stm.store.BerkeleyDB
+import de.sciss.lucre.{Artifact, ArtifactLocation, InMemory}
+import de.sciss.lucre.store.BerkeleyDB
 import de.sciss.processor.Processor
 import de.sciss.span.Span
 import de.sciss.synth.io.{AudioFile, AudioFileSpec}
@@ -14,7 +14,8 @@ import scala.concurrent.ExecutionContext
 object AsyncBounceTest {
   // type S = InMemory
   type S = Durable
-  type I = S#I
+  type T = Durable.Txn
+  type I = InMemory.Txn
 
   def main(args: Array[String]): Unit = run()
 
@@ -38,10 +39,10 @@ object AsyncBounceTest {
     val dur     = numFr.toDouble / sr
 
     val groupH = system.step { implicit tx =>
-      // val expr      = ExprImplicits[S]
+      // val expr      = ExprImplicits[T]
       // import ExprImplicits._
 
-      val proc      = Proc[S]()
+      val proc      = Proc[T]()
       val peer      = proc // Proc.Elem(proc)
       val obj       = peer // Obj(peer)
       proc.graph() = SynthGraph {
@@ -53,7 +54,7 @@ object AsyncBounceTest {
       val tmpDir  = File.createTemp("artifacts", deleteOnExit = true, directory = true)
       val tmpF    = tmpDir / "buffer.aif"
       tmpF.deleteOnExit()
-      val loc     = ArtifactLocation.newConst[S](tmpDir)
+      val loc     = ArtifactLocation.newConst[T](tmpDir)
       val art     = Artifact(loc, tmpF) // .add(tmpF)
       val aSpec   = AudioFileSpec(numChannels = 1, numFrames = numFr, sampleRate = sr)
       val af      = AudioFile.openWrite(tmpF, aSpec)
@@ -64,19 +65,19 @@ object AsyncBounceTest {
       })
       af.write(aBuf)
       af.close()
-      val gr      = AudioCue.Obj[S](art, aSpec, 0L, 1.0)
+      val gr      = AudioCue.Obj[T](art, aSpec, 0L, 1.0)
       obj.attr.put("foo", gr)
 
-      val group     = Timeline[S]()
+      val group     = Timeline[T]()
       // XXX TODO -- not yet supported: asynchronous objects that begin after the transport position
       // group.add(Span(frame(0.2), frame(0.2 + dur * 0.5)), obj)
       group.add(Span(frame(0.0), frame(0.0 + dur * 0.5)), obj)
       // import ProcGroup.serializer
       tx.newHandle(group)
     }
-    implicit val u: Universe[S] = system.step { implicit tx => Universe.dummy }
-    val bounce              = Bounce[S]()
-    val bCfg                = Bounce.Config[S]()
+    implicit val u: Universe[T] = system.step { implicit tx => Universe.dummy }
+    val bounce              = Bounce[T]()
+    val bCfg                = Bounce.Config[T]()
     bCfg.group              = groupH :: Nil
     bCfg.span               = Span(frame(0.0), frame(dur * 0.5 + 0.4))
     val sCfg                = bCfg.server

@@ -10,12 +10,13 @@ import scala.swing.{MainFrame, Swing}
 
 object TransportViewTest {
   type S = InMemory
+  type T = InMemory.Txn
 
   def main(args: Array[String]): Unit = {
     Submin.install(true)
 
     implicit val system: S = InMemory()
-    implicit val universe: Universe[S] = system.step { implicit tx => Universe.dummy }
+    implicit val universe: Universe[T] = system.step { implicit tx => Universe.dummy }
 
     val sr    = TimeRef.SampleRate
     val span  = Span(0L, (sr * 60 * 10).toLong)
@@ -23,8 +24,8 @@ object TransportViewTest {
     model.selection = Span(0L, span.length >> 1)
 
     val view = system.step { implicit tx =>
-      val transport = Transport[S](universe)
-      TransportView[S](transport, model)
+      val transport = Transport[T](universe)
+      TransportView[T](transport, model)
     }
 
     Swing.onEDT {

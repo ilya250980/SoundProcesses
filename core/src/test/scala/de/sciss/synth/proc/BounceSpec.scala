@@ -1,11 +1,9 @@
 package de.sciss.synth.proc
 
 import de.sciss.file._
-import de.sciss.lucre.expr.DoubleObj
-import de.sciss.lucre.stm
-import de.sciss.lucre.stm.store.BerkeleyDB
-import de.sciss.lucre.stm.{Disposable, Folder, Obj}
-import de.sciss.lucre.synth.{InMemory, Server, Txn => LTxn}
+import de.sciss.lucre.store.BerkeleyDB
+import de.sciss.lucre.synth.{InMemory, RT, Server}
+import de.sciss.lucre.{Disposable, DoubleObj, Folder, Obj, Source}
 import de.sciss.numbers
 import de.sciss.span.Span
 import de.sciss.synth.SynthGraph
@@ -31,8 +29,9 @@ abstract class BounceSpec extends FixtureAsyncFlatSpec with Matchers {
   // ---- fixture ----
 
   type S            = Durable
-  type I            = InMemory
-  type FixtureParam = Universe[Durable]
+  type T            = Durable.Txn
+  type I            = InMemory.Txn
+  type FixtureParam = Universe[T]
 
   SoundProcesses.init()
 
@@ -51,7 +50,7 @@ abstract class BounceSpec extends FixtureAsyncFlatSpec with Matchers {
     val scOk = Try(Seq("scsynth", "-v").!!).getOrElse("").startsWith("scsynth ")
     if (scOk) {
       implicit val system: S = Durable(BerkeleyDB.tmp())
-      val u: Universe[S] with Disposable[S#Tx] = system.step { implicit tx => Universe.dummy[S] }
+      val u: Universe[T] with Disposable[T] = system.step { implicit tx => Universe.dummy[T] }
       complete {
         test(u)
       } .lastly {
@@ -81,28 +80,28 @@ abstract class BounceSpec extends FixtureAsyncFlatSpec with Matchers {
     def secondsFileI: Int  = secondsFile.toInt
   }
 
-  implicit class OutputOps(val `this`: Output[S]) /* extends AnyVal */ {
-    def ~> (that: (Proc[S], String))(implicit tx: S#Tx): Unit = {
+  implicit class OutputOps(val `this`: Proc.Output[T]) /* extends AnyVal */ {
+    def ~> (that: (Proc[T], String))(implicit tx: T): Unit = {
       val (sink, key) = that
       val attr = sink.attr
       attr.get(key).fold[Unit] {
         attr.put(key, `this`)
       } {
-        case f: Folder[S] => f.addLast(`this`)
+        case f: Folder[T] => f.addLast(`this`)
         case prev =>
-          val f = Folder[S]()
+          val f = Folder[T]()
           f.addLast(prev)
           f.addLast(`this`)
           attr.put(key, f)
       }
     }
 
-    def ~/> (that: (Proc[S], String))(implicit tx: S#Tx): Unit = {
+    def ~/> (that: (Proc[T], String))(implicit tx: T): Unit = {
       val (sink, key) = that
       val attr = sink.attr
       attr.get(key).getOrElse(sys.error(s"Attribute $key was not assigned")) match {
         case `sink` => attr.remove(key)
-        case f: Folder[S] =>
+        case f: Folder[T] =>
           val idx = f.indexOf(`this`)
           if (idx < 0) sys.error(s"Attribute $key has a folder but does not contain ${`this`}")
           f.removeAt(idx)
@@ -117,12 +116,12 @@ abstract class BounceSpec extends FixtureAsyncFlatSpec with Matchers {
   def frame  (secs  : Double): Long   = (secs  * TimeRef.SampleRate).toLong
   def seconds(frames: Long  ): Double = frames / TimeRef.SampleRate
 
-  def proc(graph: => Unit)(implicit tx: S#Tx): Proc[S] = {
-    val p = Proc[S]()
+  def proc(graph: => Unit)(implicit tx: T): Proc[T] = {
+    val p = Proc[T]()
     val g = SynthGraph {
       graph
     }
-    p.graph() = SynthGraphObj.newConst[S](g)
+    p.graph() = SynthGraphObj.newConst[T](g)
     p
   }
 
@@ -192,10 +191,10 @@ abstract class BounceSpec extends FixtureAsyncFlatSpec with Matchers {
 
   final def mkSilent(len: Int): Array[Float] = new Array(len)
 
-  def doubleAttr(proc: Proc[S], key: String, value: Double)(implicit tx: S#Tx): Unit =
-    proc.attr.put(key, value: DoubleObj[S])
+  def doubleAttr(proc: Proc[T], key: String, value: Double)(implicit tx: T): Unit =
+    proc.attr.put(key, value: DoubleObj[T])
 
-  def addOutput(proc: Proc[S], key: String = "out")(implicit tx: S#Tx): Output[S] =
+  def addOutput(proc: Proc[T], key: String = "out")(implicit tx: T): Proc.Output[T] =
     proc.outputs.add(key)
 
   // ---- impl ----
@@ -209,7 +208,7 @@ abstract class BounceSpec extends FixtureAsyncFlatSpec with Matchers {
   final def assertSameSignal(a: Array[Float], b: Array[Float], tol: Float = 1.0e-4f,
                              lengthTol: Int = blockSize, dropOuts: Int = 0): Assertion = {
     assert(a.length === b.length +- lengthTol)
-    val diff = (a, b).zipped.map((x, y) => math.abs(x - y))
+    val diff = (a.iterator zip b.iterator).map { case (x, y) => math.abs(x - y) } .toIndexedSeq
     atLeast (diff.length - dropOuts, diff) should be < tol
   }
 
@@ -217,14 +216,14 @@ abstract class BounceSpec extends FixtureAsyncFlatSpec with Matchers {
     require(Txn.findCurrent.isEmpty, "Must be called outside of transaction")
 
   object Objects {
-    implicit def single  (x :           stm.Source[S#Tx, Obj[S]] ): Objects = new Objects(x :: Nil)
-    implicit def multiple(xs: IIterable[stm.Source[S#Tx, Obj[S]]]): Objects = new Objects(xs)
+    implicit def single  (x :           Source[T, Obj[T]] ): Objects = new Objects(x :: Nil)
+    implicit def multiple(xs: IIterable[Source[T, Obj[T]]]): Objects = new Objects(xs)
   }
-  final class Objects(val peer: IIterable[stm.Source[S#Tx, Obj[S]]])
+  final class Objects(val peer: IIterable[Source[T, Obj[T]]])
 
-  final def config(objects: Objects, span: Span, numChannels: Int = 1): Bounce.ConfigBuilder[S] = {
+  final def config(objects: Objects, span: Span, numChannels: Int = 1): Bounce.ConfigBuilder[T] = {
     requireOutsideTxn()
-    val res = Bounce.Config[S]()
+    val res = Bounce.Config[T]()
     res.span                      = span
     res.server.outputBusChannels  = numChannels
     res.server.sampleRate         = sampleRateI
@@ -234,8 +233,8 @@ abstract class BounceSpec extends FixtureAsyncFlatSpec with Matchers {
     res
   }
 
-  final def action(config: Bounce.ConfigBuilder[S], frame: Long)(fun: S#Tx => Unit): Unit =
-    config.actions = config.actions ++ (Scheduler.Entry[S](time = frame, fun = fun) :: Nil)
+  final def action(config: Bounce.ConfigBuilder[T], frame: Long)(fun: T => Unit): Unit =
+    config.actions = config.actions ++ (Scheduler.Entry[T](time = frame, fun = fun) :: Nil)
 
   final def runServer[A](config: Server.ConfigBuilder = Server.Config())(fun: Server => Future[A])
                      (implicit universe: FixtureParam): Future[A] = {
@@ -245,13 +244,13 @@ abstract class BounceSpec extends FixtureAsyncFlatSpec with Matchers {
       val jackOption = mkJack(config)
 
       universe.auralSystem.addClient(new AuralSystem.Client {
-        def auralStarted(s: Server)(implicit itx: LTxn): Unit = itx.afterCommit {
+        def auralStarted(s: Server)(implicit itx: RT): Unit = itx.afterCommit {
           p.completeWith(fun(s).andThen { case _ =>
             jackOption.foreach(_.destroy())
           })
         }
 
-        def auralStopped()(implicit tx: LTxn): Unit = ()
+        def auralStopped()(implicit tx: RT): Unit = ()
       })
 
       universe.auralSystem.start(config)
@@ -276,11 +275,11 @@ abstract class BounceSpec extends FixtureAsyncFlatSpec with Matchers {
     }
   }
 
-  final def bounce(config: Bounce.ConfigBuilder[S], timeOut: Duration = 20.seconds, debugKeep: Boolean = false)
-                  (implicit universe: Universe[S]): Future[Array[Array[Float]]] = {
+  final def bounce(config: Bounce.ConfigBuilder[T], timeOut: Duration = 20.seconds, debugKeep: Boolean = false)
+                  (implicit universe: Universe[T]): Future[Array[Array[Float]]] = {
     requireOutsideTxn()
     val jackOption = mkJack(config.server)
-    val b = Bounce[S]()
+    val b = Bounce[T]()
 
     val processor = b(config)
     // Important: don't use the single threaded SP context,

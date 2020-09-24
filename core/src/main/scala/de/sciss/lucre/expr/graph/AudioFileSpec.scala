@@ -14,77 +14,76 @@
 package de.sciss.lucre.expr.graph
 
 import de.sciss.file.File
-import de.sciss.lucre.event.ITargets
 import de.sciss.lucre.expr.graph.impl.MappedIExpr
-import de.sciss.lucre.expr.{Context, IExpr, graph}
-import de.sciss.lucre.stm.Sys
+import de.sciss.lucre.expr.{Context, graph}
+import de.sciss.lucre.{IExpr, ITargets, Txn}
 import de.sciss.synth.io.{AudioFile, AudioFileType, SampleFormat, AudioFileSpec => _AudioFileSpec}
 
 import scala.annotation.switch
 import scala.util.Try
 
 object AudioFileSpec {
-  private final class NumChannelsExpanded[S <: Sys[S]](in: IExpr[S, _AudioFileSpec], tx0: S#Tx)
-                                                      (implicit targets: ITargets[S])
-    extends MappedIExpr[S, _AudioFileSpec, Int](in, tx0) {
+  private final class NumChannelsExpanded[T <: Txn[T]](in: IExpr[T, _AudioFileSpec], tx0: T)
+                                                      (implicit targets: ITargets[T])
+    extends MappedIExpr[T, _AudioFileSpec, Int](in, tx0) {
 
-    protected def mapValue(inValue: _AudioFileSpec)(implicit tx: S#Tx): Int = inValue.numChannels
+    protected def mapValue(inValue: _AudioFileSpec)(implicit tx: T): Int = inValue.numChannels
   }
 
   final case class NumChannels(in: Ex[_AudioFileSpec]) extends Ex[Int] {
     override def productPrefix: String = s"AudioFileSpec$$NumChannels" // serialization
 
-    type Repr[S <: Sys[S]] = IExpr[S, Int]
+    type Repr[T <: Txn[T]] = IExpr[T, Int]
 
-    protected def mkRepr[S <: Sys[S]](implicit ctx: Context[S], tx: S#Tx): Repr[S] = {
+    protected def mkRepr[T <: Txn[T]](implicit ctx: Context[T], tx: T): Repr[T] = {
       import ctx.targets
-      new NumChannelsExpanded(in.expand[S], tx)
+      new NumChannelsExpanded(in.expand[T], tx)
     }
   }
 
-  private final class NumFramesExpanded[S <: Sys[S]](in: IExpr[S, _AudioFileSpec], tx0: S#Tx)
-                                                    (implicit targets: ITargets[S])
-    extends MappedIExpr[S, _AudioFileSpec, Long](in, tx0) {
+  private final class NumFramesExpanded[T <: Txn[T]](in: IExpr[T, _AudioFileSpec], tx0: T)
+                                                    (implicit targets: ITargets[T])
+    extends MappedIExpr[T, _AudioFileSpec, Long](in, tx0) {
 
-    protected def mapValue(inValue: _AudioFileSpec)(implicit tx: S#Tx): Long = inValue.numFrames
+    protected def mapValue(inValue: _AudioFileSpec)(implicit tx: T): Long = inValue.numFrames
   }
 
   final case class NumFrames(in: Ex[_AudioFileSpec]) extends Ex[Long] {
     override def productPrefix: String = s"AudioFileSpec$$NumFrames" // serialization
 
-    type Repr[S <: Sys[S]] = IExpr[S, Long]
+    type Repr[T <: Txn[T]] = IExpr[T, Long]
 
-    protected def mkRepr[S <: Sys[S]](implicit ctx: Context[S], tx: S#Tx): Repr[S] = {
+    protected def mkRepr[T <: Txn[T]](implicit ctx: Context[T], tx: T): Repr[T] = {
       import ctx.targets
-      new NumFramesExpanded(in.expand[S], tx)
+      new NumFramesExpanded(in.expand[T], tx)
     }
   }
 
-  private final class SampleRateExpanded[S <: Sys[S]](in: IExpr[S, _AudioFileSpec], tx0: S#Tx)
-                                                    (implicit targets: ITargets[S])
-    extends MappedIExpr[S, _AudioFileSpec, Double](in, tx0) {
+  private final class SampleRateExpanded[T <: Txn[T]](in: IExpr[T, _AudioFileSpec], tx0: T)
+                                                    (implicit targets: ITargets[T])
+    extends MappedIExpr[T, _AudioFileSpec, Double](in, tx0) {
 
-    protected def mapValue(inValue: _AudioFileSpec)(implicit tx: S#Tx): Double = inValue.sampleRate
+    protected def mapValue(inValue: _AudioFileSpec)(implicit tx: T): Double = inValue.sampleRate
   }
 
   final case class SampleRate(in: Ex[_AudioFileSpec]) extends Ex[Double] {
     override def productPrefix: String = s"AudioFileSpec$$SampleRate" // serialization
 
-    type Repr[S <: Sys[S]] = IExpr[S, Double]
+    type Repr[T <: Txn[T]] = IExpr[T, Double]
 
-    protected def mkRepr[S <: Sys[S]](implicit ctx: Context[S], tx: S#Tx): Repr[S] = {
+    protected def mkRepr[T <: Txn[T]](implicit ctx: Context[T], tx: T): Repr[T] = {
       import ctx.targets
-      new SampleRateExpanded(in.expand[S], tx)
+      new SampleRateExpanded(in.expand[T], tx)
     }
   }
 
   def read(in: Ex[File]): Ex[Option[_AudioFileSpec]] = Read(in)
 
-  private final class ReadExpanded[S <: Sys[S]](in: IExpr[S, File], tx0: S#Tx)
-                                               (implicit targets: ITargets[S])
-    extends MappedIExpr[S, File, Option[_AudioFileSpec]](in, tx0) {
+  private final class ReadExpanded[T <: Txn[T]](in: IExpr[T, File], tx0: T)
+                                               (implicit targets: ITargets[T])
+    extends MappedIExpr[T, File, Option[_AudioFileSpec]](in, tx0) {
 
-    protected def mapValue(inValue: File)(implicit tx: S#Tx): Option[_AudioFileSpec] =
+    protected def mapValue(inValue: File)(implicit tx: T): Option[_AudioFileSpec] =
       Try(
         AudioFile.readSpec(inValue)
       ).toOption
@@ -97,20 +96,20 @@ object AudioFileSpec {
   final case class Empty() extends Ex[_AudioFileSpec] {
     override def productPrefix: String = s"AudioFileSpec$$Empty" // serialization
 
-    type Repr[S <: Sys[S]] = IExpr[S, _AudioFileSpec]
+    type Repr[T <: Txn[T]] = IExpr[T, _AudioFileSpec]
 
-    protected def mkRepr[S <: Sys[S]](implicit ctx: Context[S], tx: S#Tx): Repr[S] =
+    protected def mkRepr[T <: Txn[T]](implicit ctx: Context[T], tx: T): Repr[T] =
       new Const.Expanded(_AudioFileSpec(numChannels = 0, sampleRate = 0.0))
   }
 
   final case class Read(in: Ex[File]) extends Ex[Option[_AudioFileSpec]] {
     override def productPrefix: String = s"AudioFileSpec$$Read" // serialization
 
-    type Repr[S <: Sys[S]] = IExpr[S, Option[_AudioFileSpec]]
+    type Repr[T <: Txn[T]] = IExpr[T, Option[_AudioFileSpec]]
 
-    protected def mkRepr[S <: Sys[S]](implicit ctx: Context[S], tx: S#Tx): Repr[S] = {
+    protected def mkRepr[T <: Txn[T]](implicit ctx: Context[T], tx: T): Repr[T] = {
       import ctx.targets
-      new ReadExpanded(in.expand[S], tx)
+      new ReadExpanded(in.expand[T], tx)
     }
   }
 
@@ -194,14 +193,14 @@ object AudioFileSpec {
 
     override def productPrefix: String = "AudioFileSpec"  // serialization
 
-    type Repr[S <: Sys[S]] = IExpr[S, _AudioFileSpec]
+    type Repr[T <: Txn[T]] = IExpr[T, _AudioFileSpec]
 
-    protected def mkRepr[S <: Sys[S]](implicit ctx: Context[S], tx: S#Tx): Repr[S] = {
-      val fileTypeEx      = fileType    .expand[S]
-      val sampleFormatEx  = sampleFormat.expand[S]
-      val numChannelsEx   = numChannels .expand[S]
-      val sampleRateEx    = sampleRate  .expand[S]
-      val numFramesEx     = numFrames   .expand[S]
+    protected def mkRepr[T <: Txn[T]](implicit ctx: Context[T], tx: T): Repr[T] = {
+      val fileTypeEx      = fileType    .expand[T]
+      val sampleFormatEx  = sampleFormat.expand[T]
+      val numChannelsEx   = numChannels .expand[T]
+      val sampleRateEx    = sampleRate  .expand[T]
+      val numFramesEx     = numFrames   .expand[T]
       import ctx.targets
       new graph.QuinaryOp.Expanded(ApplyOp(),
         fileTypeEx, sampleFormatEx, numChannelsEx, sampleRateEx, numFramesEx, tx)

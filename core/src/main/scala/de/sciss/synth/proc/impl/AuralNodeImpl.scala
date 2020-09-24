@@ -13,8 +13,7 @@
 
 package de.sciss.synth.proc.impl
 
-import de.sciss.lucre.stm.TxnLike
-import de.sciss.lucre.synth.{Bus, BusNodeSetter, DynamicUser, Group, Node, Resource, Server, Synth, Sys, Txn}
+import de.sciss.lucre.synth.{Bus, BusNodeSetter, DynamicUser, Group, Node, RT, Resource, Server, Synth, Txn}
 import de.sciss.synth.proc.{AuralNode, TimeRef}
 import de.sciss.synth.{AddAction, ControlSet, NestedUGenGraphBuilder, addBefore, addToHead, addToTail, audio, control}
 
@@ -22,12 +21,12 @@ import scala.collection.immutable.{Seq => ISeq}
 import scala.concurrent.stm.Ref
 
 object AuralNodeImpl {
-  def apply[S <: Sys[S]](timeRef: TimeRef, wallClock: Long, ubRes: NestedUGenGraphBuilder.Result,
+  def apply[T <: Txn[T]](timeRef: TimeRef, wallClock: Long, ubRes: NestedUGenGraphBuilder.Result,
                          server: Server, nameHint: Option[String])
-                        (implicit tx: Txn): AuralNode.Builder[S] = {
+                        (implicit tx: RT): AuralNode.Builder[T] = {
     val res = prepare(ubRes, server, nameHint = nameHint)
     // XXX TODO -- probably we can throw `users` and `resources` together as disposables
-    val aNode = new Impl[S](timeRef, wallClock, tree = res.tree, setMap = res.controls, users0 = res.buses)
+    val aNode = new Impl[T](timeRef, wallClock, tree = res.tree, setMap = res.controls, users0 = res.buses)
     server.addVertex(aNode)
     aNode
   }
@@ -39,20 +38,20 @@ object AuralNodeImpl {
   private sealed trait Tree {
     def main: Node
     def play(target: Node, args: ISeq[ControlSet], addAction: AddAction, dependencies: List[Resource])
-            (implicit tx: Txn): Unit
+            (implicit tx: RT): Unit
   }
 
   private final case class Leaf(syn: Synth) extends Tree {
     def main: Node = syn
     def play(target: Node, args: ISeq[ControlSet], addAction: AddAction, dependencies: List[Resource])
-            (implicit tx: Txn): Unit =
+            (implicit tx: RT): Unit =
       syn.play(target = target, args = args, addAction = addAction, dependencies = dependencies)
   }
 
   private final case class Branch(group: Group, syn: Synth, children: List[Tree]) extends Tree {
     def main: Node = group
     def play(target: Node, args: ISeq[ControlSet], addAction: AddAction, dependencies: List[Resource])
-            (implicit tx: Txn): Unit = {
+            (implicit tx: RT): Unit = {
       group.play(target = target, addAction = addAction, args = Nil, dependencies = dependencies)
       syn  .play(target = group , addAction = addToHead, args = Nil, dependencies = Nil         )
       children.foreach { ch =>
@@ -63,7 +62,7 @@ object AuralNodeImpl {
   }
 
   private def prepare(res0: NestedUGenGraphBuilder.Result, s: Server, nameHint: Option[String])
-                     (implicit tx: Txn): Result = {
+                     (implicit tx: RT): Result = {
     var ctl   = List.empty[ControlSet]
     var buses = List.empty[BusNodeSetter]
 
@@ -122,11 +121,11 @@ object AuralNodeImpl {
   // we only add to `setMap` before `play`, thus does not need to be transactional. i.e.
   // if `addControl` is called later during run, the control is not store but passed directly
   // to the server.
-  private final class Impl[S <: Sys[S]](val timeRef: TimeRef, wallClock: Long, tree: Tree,
+  private final class Impl[T <: Txn[T]](val timeRef: TimeRef, wallClock: Long, tree: Tree,
                                         private[this] var setMap: List[ControlSet], users0: List[DynamicUser])
-    extends AuralNode.Builder[S] {
+    extends AuralNode.Builder[T] {
 
-    import TxnLike.peer
+    import de.sciss.lucre.Txn.peer
     import tree.{main => graphMain}
 
     private[this] val users       = Ref(users0)
@@ -141,11 +140,11 @@ object AuralNodeImpl {
 
     def server: Server = graphMain.server
 
-    def groupOption(implicit tx: Txn): Option[Group] = groupsRef().map(_.main)
+    def groupOption(implicit tx: RT): Option[Group] = groupsRef().map(_.main)
 
-    def node(implicit tx: Txn): Node = groupOption.getOrElse(graphMain)
+    def node(implicit tx: RT): Node = groupOption.getOrElse(graphMain)
 
-    def play()(implicit tx: S#Tx): Unit = {
+    def play()(implicit tx: T): Unit = {
       // `play` calls `requireOffline`, so we are safe against accidental repeated calls
       val target = server.defaultGroup
       tree.play(target = target, addAction = addToHead, args = setMap.reverse, dependencies = resources().reverse)
@@ -157,14 +156,14 @@ object AuralNodeImpl {
       timeRef.shift(delta)
     }
 
-    def group()(implicit tx: S#Tx): Group =
+    def group()(implicit tx: T): Group =
       groupOption.getOrElse {
         val res = Group.play(graphMain, addBefore) // i.e. occupy the same place as before
         group_=(res)
         res
       }
 
-    def group_=(newGroup: Group)(implicit tx: S#Tx): Unit =
+    def group_=(newGroup: Group)(implicit tx: T): Unit =
       groupsRef.transform { groupsOpt =>
         val res = groupsOpt.fold {
           val all = AllGroups(main = newGroup)
@@ -179,10 +178,10 @@ object AuralNodeImpl {
       }
 
     @inline
-    private[this] def preGroupOption(implicit tx: S#Tx): Option[Group] =
+    private[this] def preGroupOption(implicit tx: T): Option[Group] =
       groupsRef.get(tx.peer).flatMap(_.pre)
 
-    def preGroup()(implicit tx: S#Tx): Group =
+    def preGroup()(implicit tx: T): Group =
       preGroupOption.getOrElse {
         /* val main = */ group() // creates group if necessary
         val all       = groupsRef().get
@@ -193,10 +192,10 @@ object AuralNodeImpl {
         res
       }
 
-    private def anchorNode()(implicit tx: S#Tx): Node =
+    private def anchorNode()(implicit tx: T): Node =
       groupsRef().flatMap(_.core) getOrElse graphMain
 
-    private def moveAllTo(all: AllGroups, newGroup: Group)(implicit tx: S#Tx): Unit = {
+    private def moveAllTo(all: AllGroups, newGroup: Group)(implicit tx: T): Unit = {
       val core = anchorNode()
       core.moveToTail(newGroup)
       all.pre .foreach(_.moveBefore(core))
@@ -207,7 +206,7 @@ object AuralNodeImpl {
       }
     }
 
-    def dispose()(implicit tx: S#Tx): Unit = {
+    def dispose()(implicit tx: T): Unit = {
       node.free()
       users      .swap(Nil).reverse.foreach(_.dispose())
       resources  .swap(Nil).reverse.foreach(_.dispose())
@@ -215,26 +214,26 @@ object AuralNodeImpl {
       server.removeVertex(this)
     }
 
-    def addControl(pair: ControlSet)(implicit tx: S#Tx): Unit = {
+    def addControl(pair: ControlSet)(implicit tx: T): Unit = {
       if (graphMain.isOnline) node.set(pair)
       else setMap ::= pair
     }
 
-    def addUser(user: DynamicUser)(implicit tx: Txn): Unit = {
+    def addUser(user: DynamicUser)(implicit tx: RT): Unit = {
       users.transform(user :: _)
       if (graphMain.isOnline) user.add()
     }
 
-    def removeUser(user: DynamicUser )(implicit tx: Txn): Unit =
+    def removeUser(user: DynamicUser )(implicit tx: RT): Unit =
       users.transform(_.filterNot(_ == user))
 
-    def addResource(resource: Resource)(implicit tx: Txn): Unit =
+    def addResource(resource: Resource)(implicit tx: RT): Unit =
       resources.transform(resource :: _)
 
-    def removeResource(resource: Resource)(implicit tx: Txn): Unit =
+    def removeResource(resource: Resource)(implicit tx: RT): Unit =
       resources.transform(_.filterNot(_ == resource))
 
-//    def addDisposable(d: Disposable[S#Tx])(implicit tx: S#Tx): Unit =
+//    def addDisposable(d: Disposable[T])(implicit tx: T): Unit =
 //      disposables.transform(d :: _)
   }
 }

@@ -13,20 +13,19 @@
 
 package de.sciss.synth.proc
 
-import de.sciss.lucre.event.Observable
-import de.sciss.lucre.stm.{Disposable, Sys}
-import de.sciss.lucre.synth.{AudioBus, NodeRef, Sys => SSys}
-import de.sciss.synth.proc.impl.{AuralOutputImpl => Impl}
+import de.sciss.lucre.synth.{AudioBus, NodeRef}
+import de.sciss.lucre.{Disposable, Observable, Txn, synth}
+import de.sciss.synth.proc.impl.AuralOutputImpl
 
 object AuralOutput {
   /** Creates a new aural scan view and registers it with the context under `scan.id`. */
-  def apply[S <: SSys[S]](view: AuralObj.Proc[S], output: Output[S], bus: AudioBus)
-                        (implicit tx: S#Tx, context: AuralContext[S]): AuralOutput.Owned[S] =
-    Impl(view = view, output = output, bus = bus)
+  def apply[T <: synth.Txn[T]](view: AuralObj.Proc[T], output: Proc.Output[T], bus: AudioBus)
+                        (implicit tx: T, context: AuralContext[T]): AuralOutput.Owned[T] =
+    AuralOutputImpl(view = view, output = output, bus = bus)
 
-  trait Owned[S <: Sys[S]] extends AuralOutput[S] {
-    def stop()(implicit tx: S#Tx): Unit
-    def play(n: NodeRef)(implicit tx: S#Tx): Unit
+  trait Owned[T <: Txn[T]] extends AuralOutput[T] {
+    def stop()(implicit tx: T): Unit
+    def play(n: NodeRef)(implicit tx: T): Unit
   }
 
   sealed trait Update
@@ -34,8 +33,8 @@ object AuralOutput {
   case object Stop             extends Update
 }
 
-trait AuralOutput[S <: Sys[S]] extends Disposable[S#Tx] with Observable[S#Tx, AuralOutput.Update] {
-  def view: AuralObj.Proc[S]
+trait AuralOutput[T <: Txn[T]] extends Disposable[T] with Observable[T, AuralOutput.Update] {
+  def view: AuralObj.Proc[T]
 
   def key : String
   def bus : AudioBus

@@ -1,23 +1,23 @@
 package de.sciss.synth.proc.tests
 
-import de.sciss.lucre.expr
-import de.sciss.lucre.expr.{LongObj, SpanObj}
-import de.sciss.lucre.stm.Sys
+import de.sciss.lucre.expr.SpanExtensions
+import de.sciss.lucre.{LongObj, SpanObj, Txn}
 import de.sciss.span.Span
 
 import scala.language.implicitConversions
 
-trait ICMC2014Ex[S <: Sys[S]] {
+trait ICMC2014Ex[T <: Txn[T]] {
+  def any2stringadd: Any = ()
+
 //  val imp = ExprImplicits[S]
 //  import imp._
-  import expr.Ops._
-  implicit def spanOps2(span: Span.type): expr.SpanExtensions.Ops2 =
-    new expr.SpanExtensions.Ops2(span)
+  implicit def spanOps2(span: Span.type): SpanExtensions.Ops2 =
+    new SpanExtensions.Ops2(span)
 
-  def placeAfter(pred: SpanObj.Var[S],
-                 succ: SpanObj.Var[S],
-                 gap : LongObj    [S])
-                (implicit tx: S#Tx): Unit = {
+  def placeAfter(pred: SpanObj.Var[T],
+                 succ: SpanObj.Var[T],
+                 gap : LongObj    [T])
+                (implicit tx: T): Unit = {
     val newStart = pred.stop + gap
     val newStop  = newStart + succ().length
     succ()       = Span.apply(newStart, newStop)

@@ -14,14 +14,11 @@
 package de.sciss.lucre.expr.graph
 
 import de.sciss.file.File
-import de.sciss.lucre.adjunct.Adjunct
-import de.sciss.lucre.adjunct.Adjunct.HasDefault
-import de.sciss.lucre.event.ITargets
+import de.sciss.lucre.Adjunct.HasDefault
 import de.sciss.lucre.expr.graph.impl.MappedIExpr
 import de.sciss.lucre.expr.impl.AbstractExObjBridgeImpl
-import de.sciss.lucre.expr.{CellView, Context, IExpr}
-import de.sciss.lucre.stm
-import de.sciss.lucre.stm.Sys
+import de.sciss.lucre.expr.{CellView, Context}
+import de.sciss.lucre.{Adjunct, IExpr, ITargets, Txn, Obj => LObj}
 import de.sciss.serial.DataInput
 import de.sciss.synth.io.{AudioFileSpec => _AudioFileSpec}
 import de.sciss.synth.proc.{AudioCue => _AudioCue}
@@ -40,7 +37,7 @@ object AudioCue {
     override def toString: String = "AudioCue"
 
     type A                = _AudioCue
-    type _Ex[S <: Sys[S]] = _AudioCue.Obj[S]
+    type _Ex[T <: Txn[T]] = _AudioCue.Obj[T]
     import _AudioCue.{Obj => tpe}
 
     final val id = 2004
@@ -56,8 +53,8 @@ object AudioCue {
 
     protected def encode(in: A): A = in
 
-    def cellView[S <: Sys[S]](obj: stm.Obj[S], key: String)(implicit tx: S#Tx): CellView.Var[S#Tx, Option[A]] =
-      CellView.attrUndoOpt[S, A, _Ex](map = obj.attr, key = key)(tx, tpe)
+    def cellView[T <: Txn[T]](obj: LObj[T], key: String)(implicit tx: T): CellView.Var[T, Option[A]] =
+      CellView.attrUndoOpt[T, A, _Ex](map = obj.attr, key = key)(tx, tpe)
   }
 
   private val emptyValue =
@@ -66,84 +63,84 @@ object AudioCue {
   final case class Empty() extends Ex[_AudioCue] {
     override def productPrefix: String = s"AudioCue$$Empty" // serialization
 
-    type Repr[S <: Sys[S]] = IExpr[S, _AudioCue]
+    type Repr[T <: Txn[T]] = IExpr[T, _AudioCue]
 
-    protected def mkRepr[S <: Sys[S]](implicit ctx: Context[S], tx: S#Tx): Repr[S] =
+    protected def mkRepr[T <: Txn[T]](implicit ctx: Context[T], tx: T): Repr[T] =
       new Const.Expanded(emptyValue)
   }
 
-  private final class ArtifactExpanded[S <: Sys[S]](in: IExpr[S, _AudioCue], tx0: S#Tx)(implicit targets: ITargets[S])
-    extends MappedIExpr[S, _AudioCue, File](in, tx0) {
+  private final class ArtifactExpanded[T <: Txn[T]](in: IExpr[T, _AudioCue], tx0: T)(implicit targets: ITargets[T])
+    extends MappedIExpr[T, _AudioCue, File](in, tx0) {
 
-    protected def mapValue(inValue: _AudioCue)(implicit tx: S#Tx): File = inValue.artifact
+    protected def mapValue(inValue: _AudioCue)(implicit tx: T): File = inValue.artifact
   }
 
   final case class Artifact(in: Ex[_AudioCue]) extends Ex[File] {
     override def productPrefix: String = s"AudioCue$$Artifact" // serialization
 
-    type Repr[S <: Sys[S]] = IExpr[S, File]
+    type Repr[T <: Txn[T]] = IExpr[T, File]
 
-    protected def mkRepr[S <: Sys[S]](implicit ctx: Context[S], tx: S#Tx): Repr[S] = {
+    protected def mkRepr[T <: Txn[T]](implicit ctx: Context[T], tx: T): Repr[T] = {
       import ctx.targets
-      new ArtifactExpanded(in.expand[S], tx)
+      new ArtifactExpanded(in.expand[T], tx)
     }
   }
 
-  private final class SpecExpanded[S <: Sys[S]](in: IExpr[S, _AudioCue], tx0: S#Tx)(implicit targets: ITargets[S])
-    extends MappedIExpr[S, _AudioCue, _AudioFileSpec](in, tx0) {
+  private final class SpecExpanded[T <: Txn[T]](in: IExpr[T, _AudioCue], tx0: T)(implicit targets: ITargets[T])
+    extends MappedIExpr[T, _AudioCue, _AudioFileSpec](in, tx0) {
 
-    protected def mapValue(inValue: _AudioCue)(implicit tx: S#Tx): _AudioFileSpec = inValue.spec
+    protected def mapValue(inValue: _AudioCue)(implicit tx: T): _AudioFileSpec = inValue.spec
   }
 
   final case class Spec(in: Ex[_AudioCue]) extends Ex[_AudioFileSpec] {
     override def productPrefix: String = s"AudioCue$$Spec" // serialization
 
-    type Repr[S <: Sys[S]] = IExpr[S, _AudioFileSpec]
+    type Repr[T <: Txn[T]] = IExpr[T, _AudioFileSpec]
 
-    protected def mkRepr[S <: Sys[S]](implicit ctx: Context[S], tx: S#Tx): Repr[S] = {
+    protected def mkRepr[T <: Txn[T]](implicit ctx: Context[T], tx: T): Repr[T] = {
       import ctx.targets
-      new SpecExpanded(in.expand[S], tx)
+      new SpecExpanded(in.expand[T], tx)
     }
   }
 
-  private final class OffsetExpanded[S <: Sys[S]](in: IExpr[S, _AudioCue], tx0: S#Tx)(implicit targets: ITargets[S])
-    extends MappedIExpr[S, _AudioCue, Long](in, tx0) {
+  private final class OffsetExpanded[T <: Txn[T]](in: IExpr[T, _AudioCue], tx0: T)(implicit targets: ITargets[T])
+    extends MappedIExpr[T, _AudioCue, Long](in, tx0) {
 
-    protected def mapValue(inValue: _AudioCue)(implicit tx: S#Tx): Long = inValue.offset
+    protected def mapValue(inValue: _AudioCue)(implicit tx: T): Long = inValue.offset
   }
 
   final case class Offset(in: Ex[_AudioCue]) extends Ex[Long] {
     override def productPrefix: String = s"AudioCue$$Offset" // serialization
 
-    type Repr[S <: Sys[S]] = IExpr[S, Long]
+    type Repr[T <: Txn[T]] = IExpr[T, Long]
 
-    protected def mkRepr[S <: Sys[S]](implicit ctx: Context[S], tx: S#Tx): Repr[S] = {
+    protected def mkRepr[T <: Txn[T]](implicit ctx: Context[T], tx: T): Repr[T] = {
       import ctx.targets
-      new OffsetExpanded(in.expand[S], tx)
+      new OffsetExpanded(in.expand[T], tx)
     }
   }
 
-  private final class GainExpanded[S <: Sys[S]](in: IExpr[S, _AudioCue], tx0: S#Tx)(implicit targets: ITargets[S])
-    extends MappedIExpr[S, _AudioCue, Double](in, tx0) {
+  private final class GainExpanded[T <: Txn[T]](in: IExpr[T, _AudioCue], tx0: T)(implicit targets: ITargets[T])
+    extends MappedIExpr[T, _AudioCue, Double](in, tx0) {
 
-    protected def mapValue(inValue: _AudioCue)(implicit tx: S#Tx): Double = inValue.gain
+    protected def mapValue(inValue: _AudioCue)(implicit tx: T): Double = inValue.gain
   }
 
   final case class Gain(in: Ex[_AudioCue]) extends Ex[Double] {
     override def productPrefix: String = s"AudioCue$$Gain" // serialization
 
-    type Repr[S <: Sys[S]] = IExpr[S, Double]
+    type Repr[T <: Txn[T]] = IExpr[T, Double]
 
-    protected def mkRepr[S <: Sys[S]](implicit ctx: Context[S], tx: S#Tx): Repr[S] = {
+    protected def mkRepr[T <: Txn[T]](implicit ctx: Context[T], tx: T): Repr[T] = {
       import ctx.targets
-      new GainExpanded(in.expand[S], tx)
+      new GainExpanded(in.expand[T], tx)
     }
   }
 
-  private final class FileOffsetExpanded[S <: Sys[S]](in: IExpr[S, _AudioCue], tx0: S#Tx)(implicit targets: ITargets[S])
-    extends MappedIExpr[S, _AudioCue, Long](in, tx0) {
+  private final class FileOffsetExpanded[T <: Txn[T]](in: IExpr[T, _AudioCue], tx0: T)(implicit targets: ITargets[T])
+    extends MappedIExpr[T, _AudioCue, Long](in, tx0) {
 
-    protected def mapValue(inValue: _AudioCue)(implicit tx: S#Tx): Long = inValue.fileOffset
+    protected def mapValue(inValue: _AudioCue)(implicit tx: T): Long = inValue.fileOffset
   }
 
   /** A utility method that reports the offset with respect to the file's sample rate.
@@ -152,15 +149,15 @@ object AudioCue {
   final case class FileOffset(in: Ex[_AudioCue]) extends Ex[Long] {
     override def productPrefix: String = s"AudioCue$$FileOffset" // serialization
 
-    type Repr[S <: Sys[S]] = IExpr[S, Long]
+    type Repr[T <: Txn[T]] = IExpr[T, Long]
 
-    protected def mkRepr[S <: Sys[S]](implicit ctx: Context[S], tx: S#Tx): Repr[S] = {
+    protected def mkRepr[T <: Txn[T]](implicit ctx: Context[T], tx: T): Repr[T] = {
       import ctx.targets
-      new FileOffsetExpanded(in.expand[S], tx)
+      new FileOffsetExpanded(in.expand[T], tx)
     }
   }
 
-  private[lucre] final case class ApplyOp[S <: Sys[S]]()
+  private[lucre] final case class ApplyOp[T <: Txn[T]]()
     extends QuaternaryOp.Op[File, _AudioFileSpec, Long, Double, _AudioCue] {
 
     override def productPrefix: String = s"AudioCue$$ApplyOp" // serialization
@@ -181,12 +178,12 @@ object AudioCue {
 
     override def productPrefix: String = "AudioCue" // serialization
 
-    type Repr[S <: Sys[S]] = IExpr[S, _AudioCue]
+    type Repr[T <: Txn[T]] = IExpr[T, _AudioCue]
 
-    protected def mkRepr[S <: Sys[S]](implicit ctx: Context[S], tx: S#Tx): Repr[S] = {
+    protected def mkRepr[T <: Txn[T]](implicit ctx: Context[T], tx: T): Repr[T] = {
       import ctx.targets
-      new QuaternaryOp.Expanded(ApplyOp[S](),
-        artifact.expand[S], spec.expand[S], offset.expand[S], gain.expand[S], tx)
+      new QuaternaryOp.Expanded(ApplyOp[T](),
+        artifact.expand[T], spec.expand[T], offset.expand[T], gain.expand[T], tx)
     }
   }
 }

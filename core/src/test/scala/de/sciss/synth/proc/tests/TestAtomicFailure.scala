@@ -4,15 +4,16 @@ import de.sciss.lucre.synth.InMemory
 import de.sciss.synth.proc.SoundProcesses
 
 object TestAtomicFailure extends App {
+  type S = InMemory
+  type T = InMemory.Txn
+
   implicit val system: S = InMemory()
 
-  type S = InMemory
-
-  SoundProcesses.atomic[S, Unit] { implicit tx =>
+  SoundProcesses.atomic[T, Unit] { implicit tx =>
     sys.error("Failure in atomic")
   }
 
-  SoundProcesses.step[S]("test") { implicit tx =>
+  SoundProcesses.step[T]("test") { implicit tx =>
     sys.error("Failure in step")
   }
 

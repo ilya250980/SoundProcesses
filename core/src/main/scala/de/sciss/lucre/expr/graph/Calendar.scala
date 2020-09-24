@@ -16,12 +16,11 @@ package de.sciss.lucre.expr.graph
 import java.time.temporal.{ChronoField, ChronoUnit, TemporalField, TemporalUnit}
 import java.time.{DateTimeException, Instant, ZoneId, ZonedDateTime => _Calendar}
 
-import de.sciss.lucre.event.impl.IGenerator
-import de.sciss.lucre.event.{IEvent, IPull, ITargets}
+import de.sciss.lucre.impl.IGeneratorEvent
+import de.sciss.lucre.{IEvent, IExpr, IPull, ITargets, Txn}
 import de.sciss.lucre.expr.impl.IActionImpl
-import de.sciss.lucre.expr.{Context, IAction, IControl, IExpr, ITrigger}
-import de.sciss.lucre.stm.Sys
-import de.sciss.lucre.stm.TxnLike.peer
+import de.sciss.lucre.expr.{Context, IAction, IControl, ITrigger}
+import de.sciss.lucre.Txn.peer
 import de.sciss.synth.proc.{ExprContext, Scheduler, TimeRef}
 
 import scala.concurrent.stm.TSet
@@ -141,44 +140,44 @@ object Calendar {
   final case class Trunc(in: Ex[Calendar], unit: Ex[Int]) extends Ex[Calendar] {
     override def productPrefix: String = s"Calendar$$Trunc" // serialization
 
-    type Repr[S <: Sys[S]] = IExpr[S, Calendar]
+    type Repr[T <: Txn[T]] = IExpr[T, Calendar]
 
-    protected def mkRepr[S <: Sys[S]](implicit ctx: Context[S], tx: S#Tx): Repr[S] = {
+    protected def mkRepr[T <: Txn[T]](implicit ctx: Context[T], tx: T): Repr[T] = {
       import ctx.targets
-      new BinaryOp.Expanded(TruncOp, in.expand[S], unit.expand[S], tx)
+      new BinaryOp.Expanded(TruncOp, in.expand[T], unit.expand[T], tx)
     }
   }
 
   final case class Set(in: Ex[Calendar], field: Ex[Int], value: Ex[Int]) extends Ex[Calendar] {
     override def productPrefix: String = s"Calendar$$Set" // serialization
 
-    type Repr[S <: Sys[S]] = IExpr[S, Calendar]
+    type Repr[T <: Txn[T]] = IExpr[T, Calendar]
 
-    protected def mkRepr[S <: Sys[S]](implicit ctx: Context[S], tx: S#Tx): Repr[S] = {
+    protected def mkRepr[T <: Txn[T]](implicit ctx: Context[T], tx: T): Repr[T] = {
       import ctx.targets
-      new TernaryOp.Expanded(SetOp, in.expand[S], field.expand[S], value.expand[S], tx)
+      new TernaryOp.Expanded(SetOp, in.expand[T], field.expand[T], value.expand[T], tx)
     }
   }
 
   final case class Add(in: Ex[Calendar], unit: Ex[Int], value: Ex[Int]) extends Ex[Calendar] {
     override def productPrefix: String = s"Calendar$$Add" // serialization
 
-    type Repr[S <: Sys[S]] = IExpr[S, Calendar]
+    type Repr[T <: Txn[T]] = IExpr[T, Calendar]
 
-    protected def mkRepr[S <: Sys[S]](implicit ctx: Context[S], tx: S#Tx): Repr[S] = {
+    protected def mkRepr[T <: Txn[T]](implicit ctx: Context[T], tx: T): Repr[T] = {
       import ctx.targets
-      new TernaryOp.Expanded(AddOp, in.expand[S], unit.expand[S], value.expand[S], tx)
+      new TernaryOp.Expanded(AddOp, in.expand[T], unit.expand[T], value.expand[T], tx)
     }
   }
 
   final case class Get(in: Ex[Calendar], field: Ex[Int]) extends Ex[Int] {
     override def productPrefix: String = s"Calendar$$Get" // serialization
 
-    type Repr[S <: Sys[S]] = IExpr[S, Int]
+    type Repr[T <: Txn[T]] = IExpr[T, Int]
 
-    protected def mkRepr[S <: Sys[S]](implicit ctx: Context[S], tx: S#Tx): Repr[S] = {
+    protected def mkRepr[T <: Txn[T]](implicit ctx: Context[T], tx: T): Repr[T] = {
       import ctx.targets
-      new BinaryOp.Expanded(GetOp, in.expand[S], field.expand[S], tx)
+      new BinaryOp.Expanded(GetOp, in.expand[T], field.expand[T], tx)
     }
   }
 
@@ -204,18 +203,18 @@ object Calendar {
     }
   }
 
-  private final class ExpandedSchedule[S <: Sys[S]](in: IExpr[S, Calendar])
-                                                   (implicit protected val targets: ITargets[S], scheduler: Scheduler[S])
-    extends Schedule.Repr[S] with IGenerator[S, Unit] with IActionImpl[S] {
+  private final class ExpandedSchedule[T <: Txn[T]](in: IExpr[T, Calendar])
+                                                   (implicit protected val targets: ITargets[T], scheduler: Scheduler[T])
+    extends Schedule.Repr[T] with IGeneratorEvent[T, Unit] with IActionImpl[T] {
 
     private[this] val tokens = TSet.empty[Int]
 
-    def cancel()(implicit tx: S#Tx): Unit = {
+    def cancel()(implicit tx: T): Unit = {
       tokens.foreach(scheduler.cancel)
       tokens.clear()
     }
 
-    def executeAction()(implicit tx: S#Tx): Unit = {
+    def executeAction()(implicit tx: T): Unit = {
       val inV     = in.value.peer
       val t1      = TimeStamp.ref()
       val t2      = inV.toInstant.toEpochMilli
@@ -230,47 +229,47 @@ object Calendar {
       tokens.add(token)
     }
 
-    private[lucre] def pullUpdate(pull: IPull[S])(implicit tx: S#Tx): Option[Unit] =
+    private[lucre] def pullUpdate(pull: IPull[T])(implicit tx: T): Option[Unit] =
       Trig.Some
 
-    override def dispose()(implicit tx: S#Tx): Unit = {
+    override def dispose()(implicit tx: T): Unit = {
       super.dispose()
       cancel()
     }
 
-    def initControl()(implicit tx: S#Tx): Unit = ()
+    def initControl()(implicit tx: T): Unit = ()
 
-    def changed: IEvent[S, Unit] = this
+    def changed: IEvent[T, Unit] = this
   }
 
   object Schedule {
-    trait Repr[S <: Sys[S]] extends IControl[S] with IAction[S] with ITrigger[S] {
-      def cancel()(implicit tx: S#Tx): Unit
+    trait Repr[T <: Txn[T]] extends IControl[T] with IAction[T] with ITrigger[T] {
+      def cancel()(implicit tx: T): Unit
     }
   }
 
   final case class Schedule(in: Ex[Calendar]) extends Act with Trig {
     override def productPrefix: String = s"Calendar$$Schedule" // serialization
 
-    type Repr[S <: Sys[S]] = Schedule.Repr[S]
+    type Repr[T <: Txn[T]] = Schedule.Repr[T]
 
-    protected def mkRepr[S <: Sys[S]](implicit ctx: Context[S], tx: S#Tx): Repr[S] = {
+    protected def mkRepr[T <: Txn[T]](implicit ctx: Context[T], tx: T): Repr[T] = {
       val ec = ExprContext.get
       val u = ec.universe
       import ctx.targets
       import u.scheduler
-      new ExpandedSchedule(in.expand[S])
+      new ExpandedSchedule(in.expand[T])
     }
   }
 
   private final case class Apply(stamp: Ex[Long], zone: Ex[String]) extends Ex[Calendar] {
     override def productPrefix: String = "Calendar" // serialization
 
-    type Repr[S <: Sys[S]] = IExpr[S, Calendar]
+    type Repr[T <: Txn[T]] = IExpr[T, Calendar]
 
-    protected def mkRepr[S <: Sys[S]](implicit ctx: Context[S], tx: S#Tx): Repr[S] = {
+    protected def mkRepr[T <: Txn[T]](implicit ctx: Context[T], tx: T): Repr[T] = {
       import ctx.targets
-      new BinaryOp.Expanded(ApplyOp, stamp.expand[S], zone.expand[S], tx)
+      new BinaryOp.Expanded(ApplyOp, stamp.expand[T], zone.expand[T], tx)
     }
   }
 

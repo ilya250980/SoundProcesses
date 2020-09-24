@@ -18,10 +18,9 @@ import java.awt.event.{ActionEvent, ActionListener, InputEvent}
 import de.sciss.audiowidgets.{TimelineModel, Transport => GUITransport}
 import de.sciss.desktop.Implicits._
 import de.sciss.desktop.{FocusType, KeyStrokes}
-import de.sciss.lucre.stm.{Cursor, Disposable}
 import de.sciss.lucre.swing.LucreSwing.deferTx
 import de.sciss.lucre.swing.impl.ComponentHolder
-import de.sciss.lucre.synth.Sys
+import de.sciss.lucre.{Cursor, Disposable, synth}
 import de.sciss.span.Span
 import de.sciss.synth.proc.gui.{TimeDisplay, TransportView}
 import de.sciss.synth.proc.{TimeRef, Transport}
@@ -34,9 +33,9 @@ import scala.swing.event.Key
 import scala.swing.{Action, BoxPanel, Component, Orientation, Swing}
 
 object TransportViewImpl {
-  def apply[S <: Sys[S]](transport: Transport[S] /* .Realtime[S, Obj.T[S, Proc.Elem], Transport.Proc.Update[S]] */,
+  def apply[T <: synth.Txn[T]](transport: Transport[T] /* .Realtime[S, Obj.T[S, Proc.Elem], Transport.Proc.Update[S]] */ ,
                          model: TimelineModel, hasMillis: Boolean, hasLoop: Boolean, hasShortcuts: Boolean)
-                        (implicit tx: S#Tx, cursor: Cursor[S]): TransportView[S] = {
+                        (implicit tx: T, cursor: Cursor[T]): TransportView[T] = {
     val view    = new Impl(transport, model)
     // val srk     = 1000 / TimeRef.SampleRate // transport.sampleRate
 
@@ -80,14 +79,14 @@ object TransportViewImpl {
       0.010f, 0.010f, 0.011f, 0.013f, 0.016f, 0.020f, 0.025f, 0.031f, 0.037f, 0.044f,
       0.051f, 0.058f, 0.065f, 0.072f, 0.078f, 0.084f, 0.089f, 0.093f, 0.096f, 0.098f, 0.099f)
 
-  private final class Impl[S <: Sys[S]](val transport: Transport[S] /* .Realtime[S, Obj.T[S, Proc.Elem], Transport.Proc.Update[S]] */,
+  private final class Impl[T <: synth.Txn[T]](val transport: Transport[T] /* .Realtime[S, Obj.T[S, Proc.Elem], Transport.Proc.Update[S]] */ ,
                                         val timelineModel: TimelineModel)
-                                       (implicit protected val cursor: Cursor[S])
-    extends TransportView[S] with ComponentHolder[Component] with CursorHolder[S] {
+                                       (implicit protected val cursor: Cursor[T])
+    extends TransportView[T] with ComponentHolder[Component] with CursorHolder[T] {
 
     type C = Component
 
-    var observer: Disposable[S#Tx] = _
+    var observer: Disposable[T] = _
 
     private[this] val modOpt  = timelineModel.modifiableOption
 
@@ -164,7 +163,7 @@ object TransportViewImpl {
       }
     }
 
-    def dispose()(implicit tx: S#Tx): Unit = {
+    def dispose()(implicit tx: T): Unit = {
       observer.dispose()
       cancelLoop()
       deferTx {
@@ -173,10 +172,10 @@ object TransportViewImpl {
       }
     }
 
-    private def cancelLoop()(implicit tx: S#Tx): Unit =
+    private def cancelLoop()(implicit tx: T): Unit =
       transport.universe.scheduler.cancel(loopToken.swap(-1)(tx.peer))
 
-    def startedPlaying(time: Long)(implicit tx: S#Tx): Unit = {
+    def startedPlaying(time: Long)(implicit tx: T): Unit = {
       checkLoop()
       deferTx {
         playTimer.stop()
@@ -189,7 +188,7 @@ object TransportViewImpl {
       }
     }
 
-    def stoppedPlaying(time: Long)(implicit tx: S#Tx): Unit = {
+    def stoppedPlaying(time: Long)(implicit tx: T): Unit = {
       cancelLoop()
       deferTx {
         playTimer.stop()
@@ -244,7 +243,7 @@ object TransportViewImpl {
       playTxn()
     }
 
-    private def playTxn(pos: Long = timelineModel.position)(implicit tx: S#Tx): Unit =
+    private def playTxn(pos: Long = timelineModel.position)(implicit tx: T): Unit =
       if (!transport.isPlaying) {
 //        transport.stop()
         transport.seek(pos  )
@@ -265,7 +264,7 @@ object TransportViewImpl {
       }
     }
 
-    private def checkLoop()(implicit tx: S#Tx): Unit = {
+    private def checkLoop()(implicit tx: T): Unit = {
       val pos       = transport.position
       val loopStop  = loopSpan.get(tx.peer) match { case hs: Span.HasStop => hs.stop; case _ => Long.MinValue }
       if (loopStop > pos) {
@@ -277,7 +276,7 @@ object TransportViewImpl {
       }
     }
 
-    private def loopEndReached()(implicit tx: S#Tx): Unit = loopSpan.get(tx.peer) match {
+    private def loopEndReached()(implicit tx: T): Unit = loopSpan.get(tx.peer) match {
       case hs: Span.HasStart => playTxn(hs.start)
       case _ =>
     }

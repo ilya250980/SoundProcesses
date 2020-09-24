@@ -1,6 +1,6 @@
 package de.sciss.synth.proc
 
-import de.sciss.lucre.stm
+import de.sciss.lucre.Cursor
 import de.sciss.lucre.synth.InMemory
 import org.scalatest.Outcome
 import org.scalatest.flatspec.FixtureAnyFlatSpec
@@ -8,7 +8,8 @@ import org.scalatest.matchers.should.Matchers
 
 trait InMemoryEventSpec extends FixtureAnyFlatSpec with Matchers {
   type S = InMemory
-  type FixtureParam = stm.Cursor[S]
+  type T = InMemory.Txn
+  type FixtureParam = Cursor[T]
 
   SoundProcesses.init()
 

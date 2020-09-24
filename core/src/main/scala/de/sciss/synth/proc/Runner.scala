@@ -16,12 +16,10 @@ package de.sciss.synth.proc
 import java.text.SimpleDateFormat
 import java.util.{Date, Locale}
 
-import de.sciss.lucre.event.Observable
 import de.sciss.lucre.expr.{Context, IControl}
-import de.sciss.lucre.stm.{Disposable, Obj, Sys, Folder => _Folder}
-import de.sciss.lucre.synth.{Sys => SSys}
-import de.sciss.synth.proc.impl.{ActionRawRunnerImpl, ActionRunnerImpl, BasicAuralRunnerImpl, ControlRunnerImpl, FolderRunnerImpl, TimelineRunnerImpl, RunnerUniverseImpl => Impl}
-import de.sciss.synth.proc.{Action => _Action, ActionRaw => _ActionRaw, Control => _Control, Proc => _Proc, Timeline => _Timeline}
+import de.sciss.lucre.{Disposable, Obj, Observable, Txn, synth, Folder => _Folder}
+import de.sciss.synth.proc.impl.{ActionRunnerImpl, BasicAuralRunnerImpl, ControlRunnerImpl, FolderRunnerImpl, TimelineRunnerImpl, RunnerUniverseImpl => Impl}
+import de.sciss.synth.proc.{Action => _Action, Control => _Control, Proc => _Proc, Timeline => _Timeline}
 
 import scala.util.Try
 
@@ -92,10 +90,10 @@ object Runner {
     final val stoppedOrDone   = false
   }
 
-  def emptyAttr[S <: Sys[S]]: Attr[S] = Context.emptyAttr[S]
+  def emptyAttr[T <: Txn[T]]: Attr[T] = Context.emptyAttr[T]
 
 //  type Attr = Map[String, Any]
-  type Attr[S <: Sys[S]] = Context.Attr[S] // MapLike[S, String, Form]
+  type Attr[T <: Txn[T]] = Context.Attr[T] // MapLike[T, String, Form]
 
   def addFactory(f: Factory): Unit = Impl.addFactory(f)
 
@@ -103,10 +101,10 @@ object Runner {
 
   def factories: Iterable[Factory] = Impl.factories
 
-  def get[S <: Sys[S]](obj: Obj[S])(implicit tx: S#Tx, h: Universe[S]): Option[Runner[S]] =
+  def get[T <: Txn[T]](obj: Obj[T])(implicit tx: T, h: Universe[T]): Option[Runner[T]] =
     h.mkRunner(obj)
 
-  def apply[S <: Sys[S]](obj: Obj[S])(implicit tx: S#Tx, h: Universe[S]): Runner[S] =
+  def apply[T <: Txn[T]](obj: Obj[T])(implicit tx: T, h: Universe[T]): Runner[T] =
     get(obj).getOrElse(throw new IllegalArgumentException(s"No runner factory for ${obj.tpe}"))
 
   trait Factory {
@@ -120,9 +118,9 @@ object Runner {
       */
     def isSingleton : Boolean
 
-    type Repr[~ <: Sys[~]] <: Obj[~]
+    type Repr[~ <: Txn[~]] <: Obj[~]
 
-    def mkRunner[S <: SSys[S]](obj: Repr[S])(implicit tx: S#Tx, universe: Universe[S]): Runner[S]
+    def mkRunner[T <: synth.Txn[T]](obj: Repr[T])(implicit tx: T, universe: Universe[T]): Runner[T]
   }
 
   // -------------------
@@ -138,9 +136,9 @@ object Runner {
 
     def isSingleton: Boolean = false
 
-    type Repr[~ <: Sys[~]] = _Control[~]
+    type Repr[~ <: Txn[~]] = _Control[~]
 
-    def mkRunner[S <: Sys[S]](obj: _Control[S])(implicit tx: S#Tx, universe: Universe[S]): Runner[S] =
+    def mkRunner[T <: Txn[T]](obj: _Control[T])(implicit tx: T, universe: Universe[T]): Runner[T] =
       ControlRunnerImpl(obj)
   }
 
@@ -153,27 +151,10 @@ object Runner {
 
     def isSingleton: Boolean = false
 
-    type Repr[~ <: Sys[~]] = _Action[~]
+    type Repr[~ <: Txn[~]] = _Action[~]
 
-    def mkRunner[S <: Sys[S]](obj: _Action[S])(implicit tx: S#Tx, universe: Universe[S]): Runner[S] =
+    def mkRunner[T <: Txn[T]](obj: _Action[T])(implicit tx: T, universe: Universe[T]): Runner[T] =
       ActionRunnerImpl(obj)
-  }
-
-  // ---- ActionRaw ----
-
-  @deprecated("Action should be used instead of ActionRaw", since = "3.35.3")
-  object ActionRaw extends Factory {
-    final val prefix          = "ActionRaw"
-    def humanName : String    = prefix
-    def tpe       : Obj.Type  = _ActionRaw
-
-    def isSingleton     : Boolean = false
-//    def isInstantaneous : Boolean = true
-
-    type Repr[~ <: Sys[~]] = _ActionRaw[~]
-
-    def mkRunner[S <: Sys[S]](obj: _ActionRaw[S])(implicit tx: S#Tx, universe: Universe[S]): Runner[S] =
-      ActionRawRunnerImpl(obj)
   }
 
   // ---- Proc ----
@@ -185,9 +166,9 @@ object Runner {
 
     def isSingleton: Boolean = false
 
-    type Repr[~ <: Sys[~]] = _Proc[~]
+    type Repr[~ <: Txn[~]] = _Proc[~]
 
-    def mkRunner[S <: SSys[S]](obj: _Proc[S])(implicit tx: S#Tx, universe: Universe[S]): Runner[S] =
+    def mkRunner[T <: synth.Txn[T]](obj: _Proc[T])(implicit tx: T, universe: Universe[T]): Runner[T] =
       BasicAuralRunnerImpl(obj)
   }
 
@@ -200,9 +181,9 @@ object Runner {
 
     def isSingleton: Boolean = false
 
-    type Repr[~ <: Sys[~]] = _Folder[~]
+    type Repr[~ <: Txn[~]] = _Folder[~]
 
-    def mkRunner[S <: SSys[S]](obj: _Folder[S])(implicit tx: S#Tx, universe: Universe[S]): Runner[S] =
+    def mkRunner[T <: synth.Txn[T]](obj: _Folder[T])(implicit tx: T, universe: Universe[T]): Runner[T] =
       FolderRunnerImpl(obj)
   }
 
@@ -215,9 +196,9 @@ object Runner {
 
     def isSingleton: Boolean = false
 
-    type Repr[~ <: Sys[~]] = _Timeline[~]
+    type Repr[~ <: Txn[~]] = _Timeline[~]
 
-    def mkRunner[S <: SSys[S]](obj: _Timeline[S])(implicit tx: S#Tx, universe: Universe[S]): Runner[S] =
+    def mkRunner[T <: synth.Txn[T]](obj: _Timeline[T])(implicit tx: T, universe: Universe[T]): Runner[T] =
       TimelineRunnerImpl(obj)
   }
 
@@ -245,25 +226,25 @@ object Runner {
     def current(implicit tx: Tx): Double
   }
 
-  trait Internal[S <: Sys[S]] extends Runner[S] {
-    def completeWith(result: Try[Unit])(implicit tx: S#Tx): Unit
+  trait Internal[T <: Txn[T]] extends Runner[T] {
+    def completeWith(result: Try[Unit])(implicit tx: T): Unit
 
-    def setProgress(value: Double)(implicit tx: S#Tx): Unit
+    def setProgress(value: Double)(implicit tx: T): Unit
 
-    def addMessage(m: Message)(implicit tx: S#Tx): Unit
+    def addMessage(m: Message)(implicit tx: T): Unit
 
-    def setMessages(m: List[Message])(implicit tx: S#Tx): Unit
+    def setMessages(m: List[Message])(implicit tx: T): Unit
 
-    def addDisposable(d: Disposable[S#Tx])(implicit tx: S#Tx): Unit
+    def addDisposable(d: Disposable[T])(implicit tx: T): Unit
   }
 
   // ---- extension methods ----
 
-  implicit final class RunnerOps[S <: Sys[S]](private val r: Runner[S]) extends AnyVal {
+  implicit final class RunnerOps[T <: Txn[T]](private val r: Runner[T]) extends AnyVal {
     /** Starts the runner, and then watches it until it is stopped
       * (or done or failed), then calling `dispose` on it.
       */
-    def runAndDispose()(implicit tx: S#Tx): Unit = {
+    def runAndDispose()(implicit tx: T): Unit = {
       r.run()
       r.reactNow { implicit tx => state =>
         if (state.idle) r.dispose()
@@ -271,16 +252,16 @@ object Runner {
     }
   }
 }
-trait Runner[S <: Sys[S]] extends ViewBase[S] with IControl[S] {
-  def messages: Runner.Messages[S#Tx] // (implicit tx: S#Tx): Any
+trait Runner[T <: Txn[T]] extends ViewBase[T] with IControl[T] {
+  def messages: Runner.Messages[T] // (implicit tx: T): Any
 
-  def progress: Runner.Progress[S#Tx]
+  def progress: Runner.Progress[T]
 
-  implicit val universe: Universe[S]
+  implicit val universe: Universe[T]
 
-  def prepare(attr: Runner.Attr[S] = Runner.emptyAttr[S])(implicit tx: S#Tx): Unit
+  def prepare(attr: Runner.Attr[T] = Runner.emptyAttr[T])(implicit tx: T): Unit
 
-  def run()(implicit tx: S#Tx): Unit
+  def run()(implicit tx: T): Unit
 
   /*
   - allow both for a `self` and an `invoker` (`Action.Universe`)

@@ -13,12 +13,11 @@
 
 package de.sciss.synth.proc
 
-import de.sciss.lucre.event.Targets
+import de.sciss.lucre.Event.Targets
 import de.sciss.lucre.expr.graph.Ex
-import de.sciss.lucre.expr.impl.ExprTypeImpl
-import de.sciss.lucre.expr.{Expr => _Expr}
-import de.sciss.lucre.stm.Sys
-import de.sciss.serial.{DataInput, DataOutput, ImmutableSerializer}
+import de.sciss.lucre.impl.ExprTypeImpl
+import de.sciss.lucre.{Ident, Txn, Expr => Epr, Var => LVar}
+import de.sciss.serial.{ConstFormat, DataInput, DataOutput}
 
 import scala.collection.immutable.{IndexedSeq => Vec}
 
@@ -29,7 +28,7 @@ object Color {
 
   def init(): Unit = Obj.init()
 
-  implicit object serializer extends ImmutableSerializer[Color] {
+  implicit object format extends ConstFormat[Color] {
     def write(c: Color, out: DataOutput): Unit = {
       out.writeShort(COOKIE)
       out.writeByte(c.id)
@@ -50,30 +49,30 @@ object Color {
 
     def typeId: Int = Color.typeId
 
-    implicit def valueSerializer: ImmutableSerializer[Color] = Color.serializer
+    implicit def valueFormat: ConstFormat[Color] = Color.format
 
     def tryParse(value: Any): Option[Color] = value match {
       case x: Color => Some(x)
       case _        => None
     }
 
-    protected def mkConst[S <: Sys[S]](id: S#Id, value: A)(implicit tx: S#Tx): Const[S] =
-      new _Const[S](id, value)
+    protected def mkConst[T <: Txn[T]](id: Ident[T], value: A)(implicit tx: T): Const[T] =
+      new _Const[T](id, value)
 
-    protected def mkVar[S <: Sys[S]](targets: Targets[S], vr: S#Var[_Ex[S]], connect: Boolean)
-                                    (implicit tx: S#Tx): Var[S] = {
-      val res = new _Var[S](targets, vr)
+    protected def mkVar[T <: Txn[T]](targets: Targets[T], vr: LVar[T, E[T]], connect: Boolean)
+                                    (implicit tx: T): Var[T] = {
+      val res = new _Var[T](targets, vr)
       if (connect) res.connect()
       res
     }
 
-    private[this] final class _Const[S <: Sys[S]](val id: S#Id, val constValue: A)
-      extends ConstImpl[S] with Repr[S]
+    private[this] final class _Const[T <: Txn[T]](val id: Ident[T], val constValue: A)
+      extends ConstImpl[T] with Repr[T]
 
-    private[this] final class _Var[S <: Sys[S]](val targets: Targets[S], val ref: S#Var[_Ex[S]])
-      extends VarImpl[S] with Repr[S]
+    private[this] final class _Var[T <: Txn[T]](val targets: Targets[T], val ref: LVar[T, E[T]])
+      extends VarImpl[T] with Repr[T]
   }
-  sealed trait Obj[S <: Sys[S]] extends _Expr[S, Color]
+  sealed trait Obj[T <: Txn[T]] extends Epr[T, Color]
 
   /** Palette of sixteen predefined colors. */
   val Palette: Vec[Color] = Vector(

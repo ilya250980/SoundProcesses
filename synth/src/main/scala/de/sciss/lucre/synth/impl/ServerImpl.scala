@@ -11,12 +11,12 @@
  *  contact@sciss.de
  */
 
-package de.sciss.lucre.synth.impl
+package de.sciss.lucre.synth
+package impl
 
 import java.io.{ByteArrayOutputStream, DataOutputStream}
 
-import de.sciss.lucre.TxnLike.{peer => txPeer}
-import de.sciss.lucre.synth.{BlockAllocator, Group, NodeIdAllocator, NodeRef, Server, SynthDef, Txn, log}
+import de.sciss.lucre.Txn.{peer => txPeer}
 import de.sciss.osc
 import de.sciss.osc.TimeTag
 import de.sciss.synth.{AllocatorExhausted, ControlABusMap, ControlSet, UGenGraph, addToHead, message, Client => SClient, Server => SServer}
@@ -479,34 +479,34 @@ object ServerImpl {
     final def sampleRate: Double              = peer.sampleRate
     final def counts    : message.StatusReply = peer.counts
 
-    final def allocControlBus(numChannels: Int)(implicit tx: Txn): Int = {
+    final def allocControlBus(numChannels: Int)(implicit tx: RT): Int = {
       val res = controlBusAllocator.alloc(numChannels)
       if (res < 0) throw AllocatorExhausted(s"Control buses exhausted for $this")
       res
     }
 
-    final def allocAudioBus(numChannels: Int)(implicit tx: Txn): Int = {
+    final def allocAudioBus(numChannels: Int)(implicit tx: RT): Int = {
       val res = audioBusAllocator.alloc(numChannels)
       if (res < 0) throw AllocatorExhausted(s"Audio buses exhausted for $this")
       res
     }
 
-    final def freeControlBus(index: Int, numChannels: Int)(implicit tx: Txn): Unit =
+    final def freeControlBus(index: Int, numChannels: Int)(implicit tx: RT): Unit =
       controlBusAllocator.free(index, numChannels)
 
-    final def freeAudioBus(index: Int, numChannels: Int)(implicit tx: Txn): Unit =
+    final def freeAudioBus(index: Int, numChannels: Int)(implicit tx: RT): Unit =
       audioBusAllocator.free(index, numChannels)
 
-    final def allocBuffer(numConsecutive: Int)(implicit tx: Txn): Int = {
+    final def allocBuffer(numConsecutive: Int)(implicit tx: RT): Int = {
       val res = bufferAllocator.alloc(numConsecutive)
       if (res < 0) throw AllocatorExhausted(s"Buffers exhausted for $this")
       res
     }
 
-    final def freeBuffer(index: Int, numConsecutive: Int)(implicit tx: Txn): Unit =
+    final def freeBuffer(index: Int, numConsecutive: Int)(implicit tx: RT): Unit =
       bufferAllocator.free(index, numConsecutive)
 
-    final def nextNodeId()(implicit tx: Txn): Int = nodeAllocator.alloc()
+    final def nextNodeId()(implicit tx: RT): Int = nodeAllocator.alloc()
 
     // ---- former Server ----
 
@@ -520,9 +520,9 @@ object ServerImpl {
 
     final private[this] val topologyRef = Ref[T](Topology.empty[NodeRef, NodeRef.Edge])
 
-    final def topology(implicit tx: Txn): T = topologyRef()
+    final def topology(implicit tx: RT): T = topologyRef()
 
-    final def acquireSynthDef(graph: UGenGraph, nameHint: Option[String])(implicit tx: Txn): SynthDef = {
+    final def acquireSynthDef(graph: UGenGraph, nameHint: Option[String])(implicit tx: RT): SynthDef = {
       val bos   = new ByteArrayOutputStream
       val dos   = new DataOutputStream(bos)
       graph.write(dos, version = 1) // Escape.write(graph, dos)
@@ -567,17 +567,17 @@ object ServerImpl {
       }
     }
 
-    final def addVertex(node: NodeRef)(implicit tx: Txn): Unit = {
+    final def addVertex(node: NodeRef)(implicit tx: RT): Unit = {
       log(s"Server.addVertex($node)")
       topologyRef.transform(_.addVertex(node))
     }
 
-    final def removeVertex(node: NodeRef)(implicit tx: Txn): Unit = {
+    final def removeVertex(node: NodeRef)(implicit tx: RT): Unit = {
       log(s"Server.removeVertex($node)")
       topologyRef.transform(_.removeVertex(node))
     }
 
-    final def addEdge(edge: NodeRef.Edge)(implicit tx: Txn): Boolean = {
+    final def addEdge(edge: NodeRef.Edge)(implicit tx: RT): Boolean = {
       log(s"Server.addEdge($edge)")
       val res = topologyRef().addEdge(edge)
       res.foreach { case (topNew, moveOpt) =>
@@ -600,7 +600,7 @@ object ServerImpl {
       res.isSuccess
     }
 
-    final def removeEdge(edge: NodeRef.Edge)(implicit tx: Txn): Unit = {
+    final def removeEdge(edge: NodeRef.Edge)(implicit tx: RT): Unit = {
       log(s"Server.removeEdge($edge)")
       topologyRef.transform(_.removeEdge(edge))
     }
@@ -619,7 +619,7 @@ object ServerImpl {
       true
     }
 
-    final def mkSynthDefName(nameHint: Option[String])(implicit tx: Txn): String = {
+    final def mkSynthDefName(nameHint: Option[String])(implicit tx: RT): String = {
       val id = nextDefId()
       abbreviate(nameHint.getOrElse("proc"), s"_$id")
     }
@@ -643,7 +643,7 @@ object ServerImpl {
       sb.toString
     }
 
-    final private[this] def nextDefId()(implicit tx: Txn): Int =
+    final private[this] def nextDefId()(implicit tx: RT): Int =
       uniqueDefId.getAndTransform(_ + 1)
 
     // ---- sending ----
@@ -657,11 +657,11 @@ object ServerImpl {
     final private[this] var bundleReplySeen = -1
     final private[this] var bundleSentTime  = TimeTag.now
 
-    final private[this] class Scheduled(bundle: Txn.Bundle, timeTag: TimeTag, promise: Promise[Unit],
+    final private[this] class Scheduled(bundle: RT.Bundle, timeTag: TimeTag, promise: Promise[Unit],
                                         asap: Boolean) {
 
       // makes MiMa happy XXX TODO remove in next major version
-      def this(bundle: Txn.Bundle, timeTag: TimeTag, promise: Promise[Unit]) =
+      def this(bundle: RT.Bundle, timeTag: TimeTag, promise: Promise[Unit]) =
         this(bundle, timeTag, promise, asap = false)
 
       def apply(): Future[Unit] = {
@@ -720,7 +720,7 @@ object ServerImpl {
 //      }
 //    }
 
-    final private[this] def sendNow(bundle: Txn.Bundle, timeTag0: TimeTag, asap: Boolean): Future[Unit] = {
+    final private[this] def sendNow(bundle: RT.Bundle, timeTag0: TimeTag, asap: Boolean): Future[Unit] = {
       val systemMilliSec = System.currentTimeMillis()
       val timeTag1 = if (!useLatency || timeTag0 == TimeTag.now || {
         // if the bundle time lies in the past, we reset to time-tag now
@@ -781,7 +781,7 @@ object ServerImpl {
     private[this] val latencyNanoSec  = (clientConfig.latency * 1000000000L).toLong
     private[this] val useLatency      = latencyNanoSec > 0
 
-    final def send(bundles: Txn.Bundles, systemTimeNanoSec: Long): Future[Unit] = {
+    final def send(bundles: RT.Bundles, systemTimeNanoSec: Long): Future[Unit] = {
       val __DEBUG = _DEBUG
       if (__DEBUG) {
         val ms1 = systemTimeNanoSec / 1000 / 1000

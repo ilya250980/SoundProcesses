@@ -13,12 +13,10 @@
 
 package de.sciss.synth.proc.impl
 
-import de.sciss.lucre.bitemp.BiPin
+import de.sciss.lucre.{BiPin, Disposable, Obj, Txn}
 import de.sciss.lucre.data.SkipList
-import de.sciss.lucre.event.impl.ObservableImpl
-import de.sciss.lucre.stm
-import de.sciss.lucre.stm.{Disposable, Obj, TxnLike}
-import de.sciss.lucre.synth.Sys
+import de.sciss.lucre.Txn.peer
+import de.sciss.lucre.impl.ObservableImpl
 import de.sciss.span.{Span, SpanLike}
 import de.sciss.synth.proc.{AuralViewBase, Grapheme, Runner, TimeRef, logAural => logA}
 
@@ -26,56 +24,54 @@ import scala.collection.immutable.{IndexedSeq => Vec}
 import scala.concurrent.stm.Ref
 
 object AuralGraphemeBase {
-  final case class ElemHandle[S <: Sys[S], Elem](start: Long, view: Elem)
+  final case class ElemHandle[T <: Txn[T], Elem](start: Long, view: Elem)
 }
 
 /** Base for `AuralGraphemeAttribute`
   *
   * @see [[AuralGraphemeAttribute]]
   */
-trait AuralGraphemeBase[S <: Sys[S], I <: stm.Sys[I], Target, Elem <: AuralViewBase[S, Target]]
-  extends AuralScheduledBase[S, Target, Elem] with ObservableImpl[S, Runner.State] {
+trait AuralGraphemeBase[T <: Txn[T], I <: Txn[I], Target, Elem <: AuralViewBase[T, Target]]
+  extends AuralScheduledBase[T, Target, Elem] with ObservableImpl[T, Runner.State] {
 
-  impl: AuralViewBase[S, Target] =>
-
-  import TxnLike.peer
+  impl: AuralViewBase[T, Target] =>
 
   // ---- abstract ----
 
   protected def viewTree: SkipList.Map[I, Long, Vec[Elem]]
 
-  protected def iSys: S#Tx => I#Tx
+  protected def iSys: T => I
 
-  protected def makeViewElem(start: Long, obj: Obj[S])(implicit tx: S#Tx): Elem
+  protected def makeViewElem(start: Long, obj: Obj[T])(implicit tx: T): Elem
 
   // ---- impl ----
 
-  type Repr = Grapheme[S]
+  type Repr = Grapheme[T]
 
   private[this] val playingRef = Ref(Option.empty[ElemHandle])
 
-  private[this] var grObserver: Disposable[S#Tx] = _
+  private[this] var grObserver: Disposable[T] = _
 
   final def tpe: Obj.Type = Grapheme
 
   protected type ViewId     = Unit
-  protected type ElemHandle = AuralGraphemeBase.ElemHandle[S, Elem]
-  protected type Model      = Obj[S]
+  protected type ElemHandle = AuralGraphemeBase.ElemHandle[T, Elem]
+  protected type Model      = Obj[T]
 
-  protected final def viewEventAfter(offset: Long)(implicit tx: S#Tx): Long =
+  protected final def viewEventAfter(offset: Long)(implicit tx: T): Long =
     viewTree.ceil(offset + 1)(iSys(tx)).fold(Long.MaxValue)(_._1)
 
-  protected final def modelEventAfter(offset: Long)(implicit tx: S#Tx): Long =
+  protected final def modelEventAfter(offset: Long)(implicit tx: T): Long =
     obj.eventAfter(offset).getOrElse(Long.MaxValue)
 
-  protected final def processPlay(timeRef: TimeRef, target: Target)(implicit tx: S#Tx): Unit = {
-    implicit val itx: I#Tx = iSys(tx)
+  protected final def processPlay(timeRef: TimeRef, target: Target)(implicit tx: T): Unit = {
+    implicit val itx: I = iSys(tx)
     viewTree.floor(timeRef.offset).foreach { case (start, entries) =>
       playEntry(entries, start = start, timeRef = timeRef, target = target)
     }
   }
 
-  protected final def processEvent(play: IPlaying, timeRef: TimeRef)(implicit tx: S#Tx): Unit = {
+  protected final def processEvent(play: IPlaying, timeRef: TimeRef)(implicit tx: T): Unit = {
     val start   = timeRef.offset
     val entries = viewTree.get(start)(iSys(tx))
       .getOrElse(throw new IllegalStateException(s"No element at event ${timeRef.offset}"))
@@ -83,21 +79,21 @@ trait AuralGraphemeBase[S <: Sys[S], I <: stm.Sys[I], Target, Elem <: AuralViewB
   }
 
   protected final def processPrepare(spanP: Span, timeRef: TimeRef, initial: Boolean)
-                                    (implicit tx: S#Tx): Iterator[PrepareResult] = {
+                                    (implicit tx: T): Iterator[PrepareResult] = {
     // println(s"processPrepare($span, $timeRef, initial = $initial")
     val gr    = obj
     val opt0  = if (initial) gr.floor(spanP.start) else gr.ceil(spanP.start)
     opt0.fold[Iterator[PrepareResult]](Iterator.empty) { e0 =>
       new Iterator[PrepareResult] {
         // updated in `advance`:
-        private[this] var _child    : Obj[S]                  = _
+        private[this] var _child    : Obj[T]                  = _
         private[this] var _childSpan: Span.HasStart           = _
         private[this] var _ended    : Boolean                 = _
-        private[this] var _succOpt  : Option[(Obj[S], Long)]  = _
+        private[this] var _succOpt  : Option[(Obj[T], Long)]  = _
 
         def hasNext: Boolean = !_ended
 
-        private def advance(child: Obj[S], start: Long): Unit =
+        private def advance(child: Obj[T], start: Long): Unit =
           if (start >= spanP.stop) {
             _succOpt = None
             _ended   = true
@@ -121,7 +117,7 @@ trait AuralGraphemeBase[S <: Sys[S], I <: stm.Sys[I], Target, Elem <: AuralViewB
 
         advance(e0.value, e0.key.value)
 
-        def next(): (ViewId, SpanLike, Obj[S]) = {
+        def next(): (ViewId, SpanLike, Obj[T]) = {
           if (_ended) throw new NoSuchElementException("next on empty iterator")
 
           val res = ((), _childSpan, _child)
@@ -134,7 +130,7 @@ trait AuralGraphemeBase[S <: Sys[S], I <: stm.Sys[I], Target, Elem <: AuralViewB
     }
   }
 
-  def init(gr: Grapheme[S])(implicit tx: S#Tx): this.type = {
+  def init(gr: Grapheme[T])(implicit tx: T): this.type = {
     grObserver = gr.changed.react { implicit tx => upd =>
       upd.changes.foreach {
         case Grapheme.Added  (time, entry)    =>
@@ -159,7 +155,7 @@ trait AuralGraphemeBase[S <: Sys[S], I <: stm.Sys[I], Target, Elem <: AuralViewB
     this
   }
 
-  protected def playView(h: ElemHandle, timeRef: TimeRef.Option, target: Target)(implicit tx: S#Tx): Unit = {
+  protected def playView(h: ElemHandle, timeRef: TimeRef.Option, target: Target)(implicit tx: T): Unit = {
     val view = elemFromHandle(h)
     logA(s"grapheme - playView: $view - $timeRef")
     stopViews()
@@ -167,11 +163,11 @@ trait AuralGraphemeBase[S <: Sys[S], I <: stm.Sys[I], Target, Elem <: AuralViewB
     playingRef() = Some(h)
   }
 
-  protected def stopView(h: ElemHandle)(implicit tx: S#Tx): Unit =
+  protected def stopView(h: ElemHandle)(implicit tx: T): Unit =
     if (playingRef().contains(h))
       stopViews()
 
-  protected def stopViews()(implicit tx: S#Tx): Unit =
+  protected def stopViews()(implicit tx: T): Unit =
     playingRef.swap(None).foreach { h =>
       val view = elemFromHandle(h)
       logA(s"aural - stopView: $view")
@@ -182,8 +178,8 @@ trait AuralGraphemeBase[S <: Sys[S], I <: stm.Sys[I], Target, Elem <: AuralViewB
 
   protected def elemFromHandle(h: ElemHandle): Elem = h.view
 
-  protected def mkView(vid: Unit, span: SpanLike, obj: Obj[S])(implicit tx: S#Tx): ElemHandle = {
-    implicit val itx: I#Tx = iSys(tx)
+  protected def mkView(vid: Unit, span: SpanLike, obj: Obj[T])(implicit tx: T): ElemHandle = {
+    implicit val itx: I = iSys(tx)
     val Span.HasStart(start) = span
     val view  = makeViewElem(start, obj)
     val seq0  = viewTree.get(start).getOrElse(Vector.empty)
@@ -194,14 +190,14 @@ trait AuralGraphemeBase[S <: Sys[S], I <: stm.Sys[I], Target, Elem <: AuralViewB
   }
 
   protected def checkReschedule(h: ElemHandle, currentOffset: Long, oldTarget: Long, elemPlays: Boolean)
-                               (implicit tx: S#Tx): Boolean =
+                               (implicit tx: T): Boolean =
     !elemPlays && {
       // reschedule if the span has a start and that start is greater than the current frame,
       // and elem.start == oldTarget
       h.start > currentOffset && h.start == oldTarget
     }
 
-  override def dispose()(implicit tx: S#Tx): Unit = {
+  override def dispose()(implicit tx: T): Unit = {
     super.dispose()
     grObserver.dispose()
   }
@@ -212,7 +208,7 @@ trait AuralGraphemeBase[S <: Sys[S], I <: stm.Sys[I], Target, Elem <: AuralViewB
     AuralGraphemeBase.ElemHandle(start, view)
 
   private def playEntry(entries: Vec[Elem], start: Long, timeRef: TimeRef, target: Target)
-                       (implicit tx: S#Tx): Unit = {
+                       (implicit tx: T): Unit = {
     // val start     = timeRef.offset
     val toStart   = entries.head
     val stop      = viewEventAfter(start)
@@ -222,8 +218,8 @@ trait AuralGraphemeBase[S <: Sys[S], I <: stm.Sys[I], Target, Elem <: AuralViewB
     playView(h, childTime, target)
   }
 
-  private def removeView(h: ElemHandle)(implicit tx: S#Tx): Unit = {
-    implicit val itx: I#Tx = iSys(tx)
+  private def removeView(h: ElemHandle)(implicit tx: T): Unit = {
+    implicit val itx: I = iSys(tx)
     val start = h.start
     val seq0  = viewTree.get(start).get
     val idx   = seq0.indexOf(h.view)
@@ -232,14 +228,14 @@ trait AuralGraphemeBase[S <: Sys[S], I <: stm.Sys[I], Target, Elem <: AuralViewB
     if (seq1.isEmpty) viewTree.remove(start) else viewTree.put(start, seq1)
   }
 
-  private def elemAdded(pin: BiPin[S, Obj[S]], start: Long, child: Obj[S])(implicit tx: S#Tx): Boolean = {
+  private def elemAdded(pin: BiPin[T, Obj[T]], start: Long, child: Obj[T])(implicit tx: T): Boolean = {
     val span = pin.eventAfter(start).fold[SpanLike](Span.From(start))(Span(start, _))
     elemAdded((), span = span, obj = child)
     val elemPlays = playingRef().exists(_.start == start)
     elemPlays
   }
 
-  private def elemRemoved(start: Long, child: Model)(implicit tx: S#Tx): Boolean = {
+  private def elemRemoved(start: Long, child: Model)(implicit tx: T): Boolean = {
     // implicit val itx = iSys(tx)
     val opt = for {
       seq  <- viewTree.get(start)(iSys(tx))
@@ -256,7 +252,7 @@ trait AuralGraphemeBase[S <: Sys[S], I <: stm.Sys[I], Target, Elem <: AuralViewB
 
   // If a playing element has been removed, check if there is another one
   // 'below' it now. If so, create a view for it.
-  private def playingElemRemoved(pin: BiPin[S, Obj[S]], offset: Long)(implicit tx: S#Tx): Unit =
+  private def playingElemRemoved(pin: BiPin[T, Obj[T]], offset: Long)(implicit tx: T): Unit =
     pin.floor(offset).foreach { entry =>
       val child = entry.value
       val start = entry.key.value

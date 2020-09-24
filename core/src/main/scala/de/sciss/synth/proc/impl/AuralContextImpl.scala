@@ -13,34 +13,34 @@
 
 package de.sciss.synth.proc.impl
 
-import de.sciss.lucre.stm.IdentifierMap
-import de.sciss.lucre.synth.{Server, Sys}
+import de.sciss.lucre.synth.Server
+import de.sciss.lucre.{IdentMap, Txn}
 import de.sciss.synth.proc.{AuralContext, Universe, logAural}
 
 object AuralContextImpl {
-  def apply[S <: Sys[S]](server: Server)
-                        (implicit tx: S#Tx, universe: Universe[S]): AuralContext[S] = {
-    val objMap  = tx.newInMemoryIdMap[ContextEntry[S]]
-    val auxMap  = tx.newInMemoryIdMap[Any]
+  def apply[T <: Txn[T]](server: Server)
+                        (implicit tx: T, universe: Universe[T]): AuralContext[T] = {
+    val objMap  = tx.newIdentMap[ContextEntry[T]]
+    val auxMap  = tx.newIdentMap[Any]
 //    import scheduler.cursor
-//    val gen     = GenContext[S]
-    val res     = new Impl[S](objMap, auxMap, server, tx)
+//    val gen     = GenContext[T]
+    val res     = new Impl[T](objMap, auxMap, server, tx)
     logAural(s"create context ${res.hashCode().toHexString}")
     // (new Throwable).printStackTrace()
     res
   }
 
-  private final class Impl[S <: Sys[S]](protected val objMap: IdentifierMap[S#Id, S#Tx, ContextEntry[S]],
-                                        protected val auxMap: IdentifierMap[S#Id, S#Tx, Any],
+  private final class Impl[T <: Txn[T]](protected val objMap: IdentMap[T, ContextEntry[T]],
+                                        protected val auxMap: IdentMap[T, Any],
                                         val server          : Server,
-                                        tx0: S#Tx)
-                                       (implicit val universe: Universe[S])
-    extends ContextImpl[S] with AuralContext[S] with AuxContextImpl[S] {
+                                        tx0: T)
+                                       (implicit val universe: Universe[T])
+    extends ContextImpl[T] with AuralContext[T] with AuxContextImpl[T] {
 
-//    implicit val scheduler  : Scheduler       [S] = handler.scheduler
-//    implicit def workspace  : WorkspaceHandle [S] = handler.workspace
-//    implicit def genContext : GenContext      [S] = handler.genContext
+//    implicit val scheduler  : Scheduler       [T] = handler.scheduler
+//    implicit def workspace  : WorkspaceHandle [T] = handler.workspace
+//    implicit def genContext : GenContext      [T] = handler.genContext
 
-    protected val auxObservers: IdentifierMap[S#Id, S#Tx, List[AuxObserver]] = tx0.newInMemoryIdMap
+    protected val auxObservers: IdentMap[T, List[AuxObserver]] = tx0.newIdentMap
   }
 }

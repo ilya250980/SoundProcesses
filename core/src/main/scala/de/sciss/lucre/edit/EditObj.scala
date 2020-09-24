@@ -14,8 +14,7 @@
 package de.sciss.lucre.edit
 
 import de.sciss.equal.Implicits._
-import de.sciss.lucre.{Copy, Folder, Obj, Sys, Txn}
-import de.sciss.synth.proc
+import de.sciss.lucre.{Copy, Folder, Obj, Txn}
 import de.sciss.synth.proc.Proc
 
 object EditObj {

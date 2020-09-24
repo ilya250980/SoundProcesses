@@ -14,11 +14,9 @@
 package de.sciss.lucre.expr.graph
 
 import de.sciss.file._
-import de.sciss.lucre.event.ITargets
+import de.sciss.lucre.{IExpr, ITargets, Source, StringObj, Txn, Sys}
 import de.sciss.lucre.expr.graph.impl.{ExpandedObjMakeImpl, ObjImplBase}
-import de.sciss.lucre.expr.{Context, IAction, IExpr, StringObj}
-import de.sciss.lucre.stm
-import de.sciss.lucre.stm.Sys
+import de.sciss.lucre.expr.{Context, IAction}
 import de.sciss.synth.proc
 import de.sciss.synth.proc.{ObjKeys, SynthGraphObj, AudioCue => _AudioCue}
 
@@ -31,28 +29,28 @@ object Proc {
     private final case class TapeImpl(cue: Ex[_AudioCue]) extends Ex[Proc] with Act with Obj.Make {
       override def productPrefix: String = s"Proc$$Tape" // serialization
 
-      type Repr[S <: Sys[S]] = IExpr[S, Proc] with IAction[S]
+      type Repr[T <: Txn[T]] = IExpr[T, Proc] with IAction[T]
 
       def make: Act = this
 
-      protected def mkRepr[S <: Sys[S]](implicit ctx: Context[S], tx: S#Tx): Repr[S] = {
+      protected def mkRepr[T <: Txn[T]](implicit ctx: Context[T], tx: T): Repr[T] = {
         import ctx.targets
-        new TapeExpanded(cue.expand[S])
+        new TapeExpanded(cue.expand[T])
       }
     }
   }
 
-  private final class TapeExpanded[S <: Sys[S]](cue: IExpr[S, _AudioCue])(implicit targets: ITargets[S])
-    extends ExpandedObjMakeImpl[S, Proc] {
+  private final class TapeExpanded[T <: Txn[T]](cue: IExpr[T, _AudioCue])(implicit targets: ITargets[T])
+    extends ExpandedObjMakeImpl[T, Proc] {
 
     protected def empty: Proc = Empty
 
-    protected def make()(implicit tx: S#Tx): Proc = {
-      val peer    = proc.Proc[S]()
+    protected def make()(implicit tx: T): Proc = {
+      val peer    = proc.Proc[T]()
       val a       = peer.attr
       val cueV    = cue.value
-      val name    = StringObj     .newVar[S](cueV.artifact.base)
-      val cueObj  = _AudioCue.Obj .newVar[S](cueV)
+      val name    = StringObj     .newVar[T](cueV.artifact.base)
+      val cueObj  = _AudioCue.Obj .newVar[T](cueV)
       a.put(ObjKeys   .attrName   , name)
       a.put(proc.Proc .graphAudio , cueObj)
       peer.graph() = SynthGraphObj.tape
@@ -62,26 +60,26 @@ object Proc {
     }
   }
 
-  private[lucre] def wrap[S <: Sys[S]](peer: stm.Source[S#Tx, proc.Proc[S]], system: S): Proc =
-    new Impl[S](peer, system)
+  private[lucre] def wrap[T <: Txn[T]](peer: Source[T, proc.Proc[T]], system: Sys): Proc =
+    new Impl[T](peer, system)
 
-  private final class Impl[S <: Sys[S]](in: stm.Source[S#Tx, proc.Proc[S]], system: S)
-    extends ObjImplBase[S, proc.Proc](in, system) with Proc {
+  private final class Impl[T <: Txn[T]](in: Source[T, proc.Proc[T]], system: Sys)
+    extends ObjImplBase[T, proc.Proc](in, system) with Proc {
 
-    override type Peer[~ <: Sys[~]] = proc.Proc[~]
+    override type Peer[~ <: Txn[~]] = proc.Proc[~]
   }
 
   private[lucre] object Empty extends Proc {
-    private[lucre] def peer[S <: Sys[S]](implicit tx: S#Tx): Option[Peer[S]] = None
+    private[lucre] def peer[T <: Txn[T]](implicit tx: T): Option[Peer[T]] = None
   }
 
-  private final class ApplyExpanded[S <: Sys[S]](implicit targets: ITargets[S])
-    extends ExpandedObjMakeImpl[S, Proc] {
+  private final class ApplyExpanded[T <: Txn[T]](implicit targets: ITargets[T])
+    extends ExpandedObjMakeImpl[T, Proc] {
 
     protected def empty: Proc = Empty
 
-    protected def make()(implicit tx: S#Tx): Proc = {
-      val peer = proc.Proc[S]()
+    protected def make()(implicit tx: T): Proc = {
+      val peer = proc.Proc[T]()
       new Impl(tx.newHandle(peer), tx.system)
     }
   }
@@ -89,16 +87,16 @@ object Proc {
   private final case class Apply() extends Ex[Proc] with Act with Obj.Make {
     override def productPrefix: String = "Proc" // serialization
 
-    type Repr[S <: Sys[S]] = IExpr[S, Proc] with IAction[S]
+    type Repr[T <: Txn[T]] = IExpr[T, Proc] with IAction[T]
 
     def make: Act = this
 
-    protected def mkRepr[S <: Sys[S]](implicit ctx: Context[S], tx: S#Tx): Repr[S] = {
+    protected def mkRepr[T <: Txn[T]](implicit ctx: Context[T], tx: T): Repr[T] = {
       import ctx.targets
-      new ApplyExpanded[S]
+      new ApplyExpanded[T]
     }
   }
 }
 trait Proc extends Obj {
-  type Peer[~ <: Sys[~]] = proc.Proc[~]
+  type Peer[~ <: Txn[~]] = proc.Proc[~]
 }

@@ -13,11 +13,10 @@
 
 package de.sciss.lucre.expr.graph
 
-import de.sciss.lucre.adjunct.{Adjunct, ProductWithAdjuncts}
 import de.sciss.lucre.expr.graph.{Attr => _Attr}
 import de.sciss.lucre.expr.impl.IActionImpl
-import de.sciss.lucre.expr.{Context, Graph, IAction, IControl, IExpr}
-import de.sciss.lucre.stm.Sys
+import de.sciss.lucre.expr.{Context, Graph, IAction, IControl}
+import de.sciss.lucre.{Adjunct, IExpr, ProductWithAdjuncts, Txn}
 import de.sciss.synth.proc
 import de.sciss.synth.proc.ExprContext
 
@@ -26,44 +25,44 @@ import scala.util.{Failure, Success}
 object ThisRunner {
   def apply(): ThisRunner = Impl()
 
-  private final class ExpandedStop[S <: Sys[S]](r: proc.Runner[S]) extends IActionImpl[S] {
-    def executeAction()(implicit tx: S#Tx): Unit =
+  private final class ExpandedStop[T <: Txn[T]](r: proc.Runner[T]) extends IActionImpl[T] {
+    def executeAction()(implicit tx: T): Unit =
       r.stop()
   }
 
   final case class Stop(r: ThisRunner) extends Act {
-    type Repr[S <: Sys[S]] = IAction[S]
+    type Repr[T <: Txn[T]] = IAction[T]
 
     override def productPrefix: String = s"ThisRunner$$Stop" // serialization
 
-    protected def mkRepr[S <: Sys[S]](implicit ctx: Context[S], tx: S#Tx): Repr[S] = {
-      val rx = r.expand[S]
-      new ExpandedStop[S](rx)
+    protected def mkRepr[T <: Txn[T]](implicit ctx: Context[T], tx: T): Repr[T] = {
+      val rx = r.expand[T]
+      new ExpandedStop[T](rx)
     }
   }
 
-  private final class ExpandedDone[S <: Sys[S]](r: proc.Runner.Internal[S])
-    extends IActionImpl[S] {
+  private final class ExpandedDone[T <: Txn[T]](r: proc.Runner.Internal[T])
+    extends IActionImpl[T] {
 
-    def executeAction()(implicit tx: S#Tx): Unit =
+    def executeAction()(implicit tx: T): Unit =
       r.completeWith(Success(()))
   }
 
   final case class Done(r: ThisRunner) extends Act {
-    type Repr[S <: Sys[S]] = IAction[S]
+    type Repr[T <: Txn[T]] = IAction[T]
 
     override def productPrefix: String = s"ThisRunner$$Done" // serialization
 
-    protected def mkRepr[S <: Sys[S]](implicit ctx: Context[S], tx: S#Tx): Repr[S] = {
-      val rx = r.expand[S]
-      new ExpandedDone[S](rx)
+    protected def mkRepr[T <: Txn[T]](implicit ctx: Context[T], tx: T): Repr[T] = {
+      val rx = r.expand[T]
+      new ExpandedDone[T](rx)
     }
   }
 
-  private final class ExpandedFail[S <: Sys[S]](r: proc.Runner.Internal[S], failure: IExpr[S, String])
-    extends IActionImpl[S] {
+  private final class ExpandedFail[T <: Txn[T]](r: proc.Runner.Internal[T], failure: IExpr[T, String])
+    extends IActionImpl[T] {
 
-    def executeAction()(implicit tx: S#Tx): Unit = {
+    def executeAction()(implicit tx: T): Unit = {
       val failureV  = failure.value
       val tr        = Failure(new Exception(failureV))
       r.completeWith(tr)
@@ -71,14 +70,14 @@ object ThisRunner {
   }
 
   final case class Fail(r: ThisRunner, failure: Ex[String]) extends Act {
-    type Repr[S <: Sys[S]] = IAction[S]
+    type Repr[T <: Txn[T]] = IAction[T]
 
     override def productPrefix: String = s"ThisRunner$$Fail" // serialization
 
-    protected def mkRepr[S <: Sys[S]](implicit ctx: Context[S], tx: S#Tx): Repr[S] = {
-      val rx = r.expand[S]
-      val fx = failure.expand[S]
-      new ExpandedFail[S](rx, fx)
+    protected def mkRepr[T <: Txn[T]](implicit ctx: Context[T], tx: T): Repr[T] = {
+      val rx = r.expand[T]
+      val fx = failure.expand[T]
+      new ExpandedFail[T](rx, fx)
     }
   }
 
@@ -88,32 +87,32 @@ object ThisRunner {
 //  private final val keyMessages     = "messages"
 
 //  final case class Progress(r: ThisRunner) extends Ex[Double] {
-//    type Repr[S <: Sys[S]] = IExpr[S, Double]
+//    type Repr[T <: Txn[T]] = IExpr[T, Double]
 //
 //    override def productPrefix: String = s"ThisRunner$$Progress" // serialization
 //
-//    protected def mkRepr[S <: Sys[S]](implicit ctx: Context[S], tx: S#Tx): Repr[S] = {
-//      val rx          = r.expand[S]
+//    protected def mkRepr[T <: Txn[T]](implicit ctx: Context[T], tx: T): Repr[T] = {
+//      val rx          = r.expand[T]
 //      val selectedOpt = ctx.getProperty[Ex[Double]](r, keyProgress)
-//      val selected0   = selectedOpt.fold[Double](defaultProgress)(_.expand[S].value)
+//      val selected0   = selectedOpt.fold[Double](defaultProgress)(_.expand[T].value)
 //      import ctx.{cursor, targets}
-//      new ProgressExpanded[S](rx, selected0).init()
+//      new ProgressExpanded[T](rx, selected0).init()
 //    }
 //  }
 
   final case class Progress(r: ThisRunner) extends Ex[Double] {
-    type Repr[S <: Sys[S]] = IExpr[S, Double]
+    type Repr[T <: Txn[T]] = IExpr[T, Double]
 
     override def productPrefix: String = s"ThisRunner$$Progress" // serialization
 
-    protected def mkRepr[S <: Sys[S]](implicit ctx: Context[S], tx: S#Tx): Repr[S] = {
+    protected def mkRepr[T <: Txn[T]](implicit ctx: Context[T], tx: T): Repr[T] = {
       val valueOpt = ctx.getProperty[Ex[Double]](r, keyProgress)
-      valueOpt.getOrElse(Const(defaultProgress)).expand[S]
+      valueOpt.getOrElse(Const(defaultProgress)).expand[T]
     }
   }
 
-  private final class ExpandedUpdateAttr[S <: Sys[S], A, B](source: IExpr[S, A], vr: Var.Expanded[S, B], tx0: S#Tx)
-    extends IControl[S] {
+  private final class ExpandedUpdateAttr[T <: Txn[T], A, B](source: IExpr[T, A], vr: Var.Expanded[T, B], tx0: T)
+    extends IControl[T] {
 
     private[this] val obs = source.changed.react { implicit tx =>upd =>
       val v = Some(upd.now)
@@ -122,16 +121,16 @@ object ThisRunner {
       }
     } (tx0)
 
-    def dispose()(implicit tx: S#Tx): Unit =
+    def dispose()(implicit tx: T): Unit =
       obs.dispose()
 
-    def initControl()(implicit tx: S#Tx): Unit = ()
+    def initControl()(implicit tx: T): Unit = ()
   }
 
-  private final class ExpandedSetAttr[S <: Sys[S], A, B](source: IExpr[S, A], vr: Var.Expanded[S, B])
-    extends IActionImpl[S] {
+  private final class ExpandedSetAttr[T <: Txn[T], A, B](source: IExpr[T, A], vr: Var.Expanded[T, B])
+    extends IActionImpl[T] {
 
-    def executeAction()(implicit tx: S#Tx): Unit = {
+    def executeAction()(implicit tx: T): Unit = {
       val v = source.value
       vr.fromAny.fromAny(v).foreach { vT =>
         vr.update(new Const.Expanded(vT))
@@ -145,12 +144,12 @@ object ThisRunner {
 
       override def productPrefix: String = s"ThisRunner$$Attr$$Update"  // serialization
 
-      type Repr[S <: Sys[S]] = IControl[S]
+      type Repr[T <: Txn[T]] = IControl[T]
 
-      protected def mkRepr[S <: Sys[S]](implicit ctx: Context[S], tx: S#Tx): Repr[S] = {
+      protected def mkRepr[T <: Txn[T]](implicit ctx: Context[T], tx: T): Repr[T] = {
         ctx.attr.get(key) match {
-          case Some(vr: Var.Expanded[S, _]) =>
-            new ExpandedUpdateAttr(source.expand[S], vr, tx)
+          case Some(vr: Var.Expanded[T, _]) =>
+            new ExpandedUpdateAttr(source.expand[T], vr, tx)
 
           case _ =>
             IControl.empty
@@ -163,12 +162,12 @@ object ThisRunner {
 
       override def productPrefix: String = s"ThisRunner$$Attr$$Set"  // serialization
 
-      type Repr[S <: Sys[S]] = IAction[S]
+      type Repr[T <: Txn[T]] = IAction[T]
 
-      protected def mkRepr[S <: Sys[S]](implicit ctx: Context[S], tx: S#Tx): Repr[S] = {
+      protected def mkRepr[T <: Txn[T]](implicit ctx: Context[T], tx: T): Repr[T] = {
         ctx.attr.get(key) match {
-          case Some(vr: Var.Expanded[S, _]) =>
-            new ExpandedSetAttr(source.expand[S], vr)
+          case Some(vr: Var.Expanded[T, _]) =>
+            new ExpandedSetAttr(source.expand[T], vr)
 
           case _ =>
             IAction.empty
@@ -181,16 +180,16 @@ object ThisRunner {
 
     override def productPrefix: String = s"ThisRunner$$Attr"  // serialization
 
-    type Repr[S <: Sys[S]] = IExpr[S, Option[A]]
+    type Repr[T <: Txn[T]] = IExpr[T, Option[A]]
 
     def update(in: Ex[A]): Control  = Attr.Update (in, key)
     def set   (in: Ex[A]): Act      = Attr.Set    (in, key)
 
-    protected def mkRepr[S <: Sys[S]](implicit ctx: Context[S], tx: S#Tx): Repr[S] = {
+    protected def mkRepr[T <: Txn[T]](implicit ctx: Context[T], tx: T): Repr[T] = {
       import ctx.targets
-      val rEx     = r.expand[S]
+      val rEx     = r.expand[T]
       val ctxFull = bridge.contextCellView(key)
-      val res     = new _Attr.Expanded[S, A](key, ctxFull, tx)
+      val res     = new _Attr.Expanded[T, A](key, ctxFull, tx)
       rEx.addDisposable(res)
       res
     }
@@ -199,20 +198,20 @@ object ThisRunner {
   }
 
 //  final case class Messages(r: ThisRunner) extends Ex[Seq[Message]] {
-//    type Repr[S <: Sys[S]] = IExpr[S, Seq[Message]]
+//    type Repr[T <: Txn[T]] = IExpr[T, Seq[Message]]
 //
 //    override def productPrefix: String = s"ThisRunner$$Messages" // serialization
 //
-//    protected def mkRepr[S <: Sys[S]](implicit ctx: Context[S], tx: S#Tx): Repr[S] = {
+//    protected def mkRepr[T <: Txn[T]](implicit ctx: Context[T], tx: T): Repr[T] = {
 //      val valueOpt = ctx.getProperty[Ex[Seq[Message]]](r, keyMessages)
-//      valueOpt.getOrElse(Const(defaultMessages)).expand[S]
+//      valueOpt.getOrElse(Const(defaultMessages)).expand[T]
 //    }
 //  }
 
   private final case class Impl() extends ThisRunner { r =>
     override def productPrefix: String = "ThisRunner" // serialization
 
-    type Repr[S <: Sys[S]] = proc.Runner.Internal[S]
+    type Repr[T <: Txn[T]] = proc.Runner.Internal[T]
 
     def stop: Act = ThisRunner.Stop(this)
 
@@ -236,18 +235,18 @@ object ThisRunner {
 
     def fail(cause: Ex[String]): Act = ThisRunner.Fail(this, cause)
 
-    protected def mkRepr[S <: Sys[S]](implicit ctx: Context[S], tx: S#Tx): Repr[S] = {
+    protected def mkRepr[T <: Txn[T]](implicit ctx: Context[T], tx: T): Repr[T] = {
       val ec  = ExprContext.get
       val ri  = ec.runner.getOrElse(sys.error(s"$this - expansion outside of Runner"))
 //      ctx.getProperty[Ex[Seq[Message]]](r, keyMessages).foreach { m =>
-//        val messagesEx = m.expand[S]
+//        val messagesEx = m.expand[T]
 //        val obs = messagesEx.changed.react { implicit tx => messagesCh =>
 //          ri.setMessages(messagesCh.now)
 //        }
 //        ri.addDisposable(obs)
 //      }
       ctx.getProperty[Ex[Double]](r, keyProgress).foreach { p =>
-        val progressEx = p.expand[S]
+        val progressEx = p.expand[T]
         val obs = progressEx.changed.react { implicit tx => progressCh =>
           ri.setProgress(progressCh.now)
         }
@@ -258,7 +257,7 @@ object ThisRunner {
   }
 }
 trait ThisRunner extends Control {
-  type Repr[S <: Sys[S]] <: proc.Runner.Internal[S]
+  type Repr[T <: Txn[T]] <: proc.Runner.Internal[T]
 
   def stop: Act
 

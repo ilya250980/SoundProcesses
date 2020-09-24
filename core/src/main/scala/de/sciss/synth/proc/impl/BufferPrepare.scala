@@ -15,12 +15,13 @@ package de.sciss.synth.proc.impl
 
 import java.io.File
 
-import de.sciss.lucre.stm.TxnLike
-import de.sciss.lucre.synth.{Buffer, NodeRef, Sys, Txn}
+import de.sciss.lucre.synth.{Buffer, NodeRef, RT}
+import de.sciss.lucre.synth
 import de.sciss.osc
 import de.sciss.processor.impl.ProcessorImpl
 import de.sciss.synth.io.AudioFileSpec
 import de.sciss.synth.proc.graph
+import de.sciss.lucre.Txn
 
 import scala.concurrent.duration.Duration
 import scala.concurrent.stm.Ref
@@ -43,21 +44,21 @@ object BufferPrepare {
   }
 
   /** Creates and launches the process. */
-  def apply[S <: Sys[S]](config: Config)(implicit tx: S#Tx): AsyncResource[S] = {
+  def apply[T <: synth.Txn[T]](config: Config)(implicit tx: T): AsyncResource[T] = {
     import config._
     if (!buf.isOnline) sys.error("Buffer must be allocated")
     val numFrL = spec.numFrames
     if (numFrL > 0x3FFFFFFF) sys.error(s"File $f is too large ($numFrL frames) for an in-memory buffer")
-    val res = new Impl[S](path = f.getAbsolutePath, numFrames = numFrL.toInt, off0 = offset,
+    val res = new Impl[T](path = f.getAbsolutePath, numFrames = numFrL.toInt, off0 = offset,
       numChannels = spec.numChannels, buf = buf, key = key)
     import de.sciss.synth.proc.SoundProcesses.executionContext
     tx.afterCommit(res.start())
     res
   }
 
-  private final class Impl[S <: Sys[S]](path: String, numFrames: Int, off0: Long, numChannels: Int,
+  private final class Impl[T <: synth.Txn[T]](path: String, numFrames: Int, off0: Long, numChannels: Int,
                                         buf: Buffer.Modifiable, key: String)
-    extends AsyncResource[S] with ProcessorImpl[Any, AsyncResource[S]] {
+    extends AsyncResource[T] with ProcessorImpl[Any, AsyncResource[T]] {
 
     private val blockSize = 262144 / numChannels  // XXX TODO - could be configurable
     private val offsetRef = Ref(0)
@@ -72,7 +73,7 @@ object BufferPrepare {
           val stop = offset + chunk
           if (chunk > 0) {
             offsetRef() = stop
-            implicit val ptx: Txn = Txn.wrap(tx)
+            implicit val ptx: RT = RT.wrap(tx)
             // buf might be offline if dispose was called
             if (buf.isOnline) {
               buf.read(path, fileStartFrame = offset + off0, numFrames = chunk, bufStartFrame = offset)
@@ -103,8 +104,8 @@ object BufferPrepare {
 
     private[this] val installed = Ref(false)
 
-    def install(b: NodeRef.Full[S])(implicit tx: S#Tx): Unit = {
-      import TxnLike.peer
+    def install(b: NodeRef.Full[T])(implicit tx: T): Unit = {
+      import Txn.peer
       require(!installed.swap(true))
       val ctlName = graph.Buffer.controlName(key)
       b.addControl(ctlName -> buf.id)
@@ -112,8 +113,8 @@ object BufferPrepare {
       b.addResource(late)
     }
 
-    def dispose()(implicit tx: S#Tx): Unit = {
-      import TxnLike.peer
+    def dispose()(implicit tx: T): Unit = {
+      import Txn.peer
       tx.afterCommit(abort())
       if (buf.isOnline && !installed()) buf.dispose()
     }

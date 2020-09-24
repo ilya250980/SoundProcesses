@@ -13,28 +13,28 @@
 
 package de.sciss.synth.proc
 
-import de.sciss.lucre.stm.{Disposable, Obj, Sys}
-import de.sciss.lucre.synth.{Server, Sys => SSys}
+import de.sciss.lucre.synth.Server
+import de.sciss.lucre.{Disposable, Obj, Txn, synth}
 import de.sciss.synth.proc.impl.{AuralContextImpl => Impl}
 
 object AuralContext {
-  def apply[S <: SSys[S]](server: Server)(implicit tx: S#Tx, universe: Universe[S]): AuralContext[S] =
+  def apply[T <: synth.Txn[T]](server: Server)(implicit tx: T, universe: Universe[T]): AuralContext[T] =
     Impl(server)
 
-//  def apply[S <: SSys[S]](server: Server)(implicit tx: S#Tx, cursor: stm.Cursor[S],
-//                                          workspace: WorkspaceHandle[S]): AuralContext[S] = {
-//    val scheduler = Scheduler[S]
+//  def apply[T <: synth.Txn[T]](server: Server)(implicit tx: T, cursor: Cursor[T],
+//                                          workspace: WorkspaceHandle[T]): AuralContext[T] = {
+//    val scheduler = Scheduler[T]
 //    apply(server, scheduler)
 //  }
 }
-trait AuralContext[S <: Sys[S]] extends AuxContext[S] {
+trait AuralContext[T <: Txn[T]] extends AuxContext[T] {
   def server: Server
 
-  def acquire[A <: Disposable[S#Tx]](obj: Obj[S])(init: => A)(implicit tx: S#Tx): A
+  def acquire[A <: Disposable[T]](obj: Obj[T])(init: => A)(implicit tx: T): A
 
-  def release(obj: Obj[S])(implicit tx: S#Tx): Unit
+  def release(obj: Obj[T])(implicit tx: T): Unit
 
-  def get[A](obj: Obj[S])(implicit tx: S#Tx): Option[A]
+  def get[A](obj: Obj[T])(implicit tx: T): Option[A]
 
-  implicit val universe: Universe[S]
+  implicit val universe: Universe[T]
 }

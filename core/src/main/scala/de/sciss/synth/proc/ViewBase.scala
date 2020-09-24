@@ -12,42 +12,41 @@
  */
 package de.sciss.synth.proc
 
-import de.sciss.lucre.event.Observable
-import de.sciss.lucre.stm.{Disposable, Form, Obj, Sys}
+import de.sciss.lucre.{Disposable, Form, Obj, Observable, Txn}
 
-trait ViewBase[S <: Sys[S]] extends Observable[S#Tx, Runner.State] with Disposable[S#Tx] {
-  def state(implicit tx: S#Tx): Runner.State
+trait ViewBase[T <: Txn[T]] extends Observable[T, Runner.State] with Disposable[T] {
+  def state(implicit tx: T): Runner.State
 
-  def stop()(implicit tx: S#Tx): Unit
+  def stop()(implicit tx: T): Unit
 
   /** Like `react`, but also invokes the function with the current state immediately. */
-  final def reactNow(fun: S#Tx => Runner.State => Unit)(implicit tx: S#Tx): Disposable[S#Tx] = {
+  final def reactNow(fun: T => Runner.State => Unit)(implicit tx: T): Disposable[T] = {
     val res = react(fun)
     fun(tx)(state)
     res
   }
 }
 
-trait AuralViewBase[S <: Sys[S], -Target] extends ViewBase[S] {
-  type Repr <: Form[S]
+trait AuralViewBase[T <: Txn[T], -Target] extends ViewBase[T] {
+  type Repr <: Form[T]
 
-  def obj(implicit tx: S#Tx): Repr
+  def obj(implicit tx: T): Repr
 
   /** Prepares the view to be able to `run`.
     *
     * @param  timeRef   an optional context of temporal position
     */
-  def prepare(timeRef: TimeRef.Option)(implicit tx: S#Tx): Unit
+  def prepare(timeRef: TimeRef.Option)(implicit tx: T): Unit
 
   /** Runs the view, whatever that means for the particular object. If the object is not
     * prepared and needs preparing, the view will take care of running the `prepare` step
     * (without mapping any `attr` map).
     */
-  def run(timeRef: TimeRef.Option, target: Target)(implicit tx: S#Tx): Unit
+  def run(timeRef: TimeRef.Option, target: Target)(implicit tx: T): Unit
 }
 
-trait ObjViewBase[S <: Sys[S], -Target] extends AuralViewBase[S, Target] {
-  type Repr <: Obj[S]
+trait ObjViewBase[T <: Txn[T], -Target] extends AuralViewBase[T, Target] {
+  type Repr <: Obj[T]
 
   def tpe: Obj.Type
 }

@@ -13,11 +13,11 @@
 
 package de.sciss.synth.proc.graph.impl
 
-import de.sciss.lucre.expr.{Context, IExprAsRunnerMap}
+import de.sciss.lucre.edit.UndoManager
+import de.sciss.lucre.{Obj, Source}
 import de.sciss.lucre.expr.graph.Const
-import de.sciss.lucre.stm
-import de.sciss.lucre.stm.{Obj, UndoManager}
-import de.sciss.lucre.synth.{Node, Sys, Txn}
+import de.sciss.lucre.expr.{Context, IExprAsRunnerMap}
+import de.sciss.lucre.synth.{Node, RT, Txn}
 import de.sciss.synth.proc.{AuralContext, Runner, SoundProcesses}
 import de.sciss.synth.{GE, proc}
 import de.sciss.{osc, synth}
@@ -38,8 +38,8 @@ object ActionResponder {
 
   var DEBUG = false
 }
-final class ActionResponder[S <: Sys[S]](objH: stm.Source[S#Tx, Obj[S]], key: String, protected val synth: Node)
-                                        (implicit context: AuralContext[S])
+final class ActionResponder[T <: Txn[T]](objH: Source[T, Obj[T]], key: String, protected val synth: Node)
+                                        (implicit context: AuralContext[T])
   extends SendReplyResponder {
 
   import ActionResponder._
@@ -64,11 +64,11 @@ final class ActionResponder[S <: Sys[S]](objH: stm.Source[S#Tx, Obj[S]], key: St
 //      }
 //      import context.universe
 //      import context.universe.cursor
-//      SoundProcesses.step(s"ActionResponder($synth, $key)") { implicit tx: S#Tx =>
+//      SoundProcesses.step(s"ActionResponder($synth, $key)") { implicit tx: T =>
 //        val invoker = objH()
 //        invoker.attr.$[proc.ActionRaw](key).foreach { action =>
 //          if (DEBUG) println("...and found action")
-//          val au = proc.Action.Universe[S](action, invoker = Some(invoker),
+//          val au = proc.Action.Universe[T](action, invoker = Some(invoker),
 //            value = proc.ActionRaw.FloatVector(values))
 //          action.execute(au)
 //        }
@@ -92,18 +92,18 @@ final class ActionResponder[S <: Sys[S]](objH: stm.Source[S#Tx, Obj[S]], key: St
       }
       import context.universe
       import context.universe.cursor
-      SoundProcesses.step(s"ActionResponder($synth, $key)") { implicit tx: S#Tx =>
+      SoundProcesses.step(s"ActionResponder($synth, $key)") { implicit tx: T =>
         val invoker = objH()
         invoker.attr.$[proc.Action](key).foreach { action =>
           val r = Runner(action)
           if (DEBUG) println("...and found action")
           val selfH = objH  // XXX TODO -- or should that be the `Action`?
           import universe.workspace
-          implicit val undo: UndoManager[S] = UndoManager.dummy
-          implicit val ctx: Context[S] = Context[S](selfH = Some(selfH))
+          implicit val undo: UndoManager[T] = UndoManager.dummy
+          implicit val ctx: Context[T] = Context[T](selfH = Some(selfH))
           import ctx.targets
-          r.prepare(new IExprAsRunnerMap[S](
-            new Const.Expanded[S, (String, Vec[Double])](("value", values)) :: Nil, tx
+          r.prepare(new IExprAsRunnerMap[T](
+            new Const.Expanded[T, (String, Vec[Double])](("value", values)) :: Nil, tx
           ))
           r.run()
           r.dispose()
@@ -112,5 +112,5 @@ final class ActionResponder[S <: Sys[S]](objH: stm.Source[S#Tx, Obj[S]], key: St
       }
   }
 
-  protected def added()(implicit tx: Txn): Unit = ()
+  protected def added()(implicit tx: RT): Unit = ()
 }

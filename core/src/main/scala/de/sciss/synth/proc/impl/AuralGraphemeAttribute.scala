@@ -13,11 +13,12 @@
 
 package de.sciss.synth.proc.impl
 
+import de.sciss.lucre.{Obj, Source, Txn}
 import de.sciss.lucre.data.SkipList
-import de.sciss.lucre.stm
-import de.sciss.lucre.stm.{DummySerializerFactory, Obj, TxnLike}
-import de.sciss.lucre.synth.Sys
-import de.sciss.serial.Serializer
+import de.sciss.lucre.impl.DummyTFormat
+import de.sciss.lucre.synth
+import de.sciss.lucre.Txn.peer
+import de.sciss.serial.TFormat
 import de.sciss.synth.proc.AuralAttribute.{Factory, GraphemeAware, Observer}
 import de.sciss.synth.proc.{AuralAttribute, AuralContext, Grapheme}
 
@@ -26,47 +27,42 @@ import scala.collection.immutable.{IndexedSeq => Vec}
 import scala.concurrent.stm.Ref
 
 object AuralGraphemeAttribute extends Factory {
-  type Repr[S <: stm.Sys[S]] = Grapheme[S]
+  type Repr[T <: Txn[T]] = Grapheme[T]
 
   def tpe: Obj.Type = Grapheme
 
-  def apply[S <: Sys[S]](key: String, grapheme: Grapheme[S], observer: Observer[S])
-                        (implicit tx: S#Tx, context: AuralContext[S]): AuralAttribute[S] = {
-    val system  = tx.system
-    val res     = prepare[S, system.I](key, grapheme, observer, system)
+  def apply[T <: synth.Txn[T]](key: String, grapheme: Grapheme[T], observer: Observer[T])
+                        (implicit tx: T, context: AuralContext[T]): AuralAttribute[T] = {
+    val res = prepare[T, tx.I](key, grapheme, observer)(tx, tx.inMemoryBridge, context)
     res.init(grapheme)
   }
 
-  private def prepare[S <: Sys[S], I1 <: stm.Sys[I1]](key: String, value: Grapheme[S],
-                                                      observer: Observer[S], system: S { type I = I1 })
-                                                     (implicit tx: S#Tx, context: AuralContext[S]): AuralGraphemeAttribute[S, I1] = {
-    implicit val iSys: S#Tx => I1#Tx = system.inMemoryTx
-    implicit val itx: I1#Tx = iSys(tx)
-    implicit val dummyKeySer: Serializer[I1#Tx, I1#Acc, Vec[AuralAttribute[S]]] =
-        DummySerializerFactory[I1].dummySerializer
+  private def prepare[T <: synth.Txn[T], I1 <: Txn[I1]](key: String, value: Grapheme[T], observer: Observer[T])
+                                                       (implicit tx: T, iSys: T => I1,
+                                                        context: AuralContext[T]): AuralGraphemeAttribute[T, I1] = {
+    implicit val itx: I1 = iSys(tx)
+    implicit val dummyKeyFmt: TFormat[I1, Vec[AuralAttribute[T]]] = DummyTFormat[I1, Vec[AuralAttribute[T]]]
 
-    val tree = SkipList.Map.empty[I1, Long, Vec[AuralAttribute[S]]]
+    val tree = SkipList.Map.empty[I1, Long, Vec[AuralAttribute[T]]]
 
     new AuralGraphemeAttribute(key, tx.newHandle(value), observer, tree /* , viewMap */)
   }
 }
-final class AuralGraphemeAttribute[S <: Sys[S], I <: stm.Sys[I]](val key: String,
-                                                                 objH: stm.Source[S#Tx, Grapheme[S]],
-                                                                 observer: Observer[S],
-                                                                 protected val viewTree: SkipList.Map[I, Long, Vec[AuralAttribute[S]]])
-                                                                (implicit protected val context: AuralContext[S],
-                                                                 protected val iSys: S#Tx => I#Tx)
-  extends AuralGraphemeBase[S, I, AuralAttribute.Target[S], AuralAttribute[S]]
-  with AuralAttribute[S]
-  with Observer[S] {
+final class AuralGraphemeAttribute[T <: synth.Txn[T], I <: Txn[I]](val key: String,
+                                                                 objH: Source[T, Grapheme[T]],
+                                                                 observer: Observer[T],
+                                                                 protected val viewTree: SkipList.Map[I, Long, Vec[AuralAttribute[T]]])
+                                                                (implicit protected val context: AuralContext[T],
+                                                                 protected val iSys: T => I)
+  extends AuralGraphemeBase[T, I, AuralAttribute.Target[T], AuralAttribute[T]]
+  with AuralAttribute[T]
+  with Observer[T] {
   attr =>
 
-  import TxnLike.peer
-
-  type Elem = AuralAttribute[S]
+  type Elem = AuralAttribute[T]
 
 
-  def obj(implicit tx: S#Tx): Grapheme[S] = objH()
+  def obj(implicit tx: T): Grapheme[T] = objH()
 
   // we sample the first encountered objects for which temporary views
   // have to built in order to get the number-of-channels. these
@@ -74,16 +70,16 @@ final class AuralGraphemeAttribute[S <: Sys[S], I <: stm.Sys[I]](val key: String
   private[this] val prefChansElemRef  = Ref[Vec[Elem]](Vector.empty)
   private[this] val prefChansNumRef   = Ref(-2)   // -2 = cache invalid. across contents of `prefChansElemRef`
 
-  protected def makeViewElem(start: Long, child: Obj[S])(implicit tx: S#Tx): Elem = {
+  protected def makeViewElem(start: Long, child: Obj[T])(implicit tx: T): Elem = {
     val view = AuralAttribute(key, child, attr)
     view match {
-      case ga: GraphemeAware[S] => ga.setGrapheme(start, objH())
+      case ga: GraphemeAware[T] => ga.setGrapheme(start, objH())
       case _ =>
     }
     view
   }
 
-  def preferredNumChannels(implicit tx: S#Tx): Int = {
+  def preferredNumChannels(implicit tx: T): Int = {
     val cache = prefChansNumRef()
     if (cache > -2) {
       // println(s"preferredNumChannels - cached: $cache")
@@ -122,13 +118,13 @@ final class AuralGraphemeAttribute[S <: Sys[S], I <: stm.Sys[I]](val key: String
   }
 
   // if cache is affected, simply forward, so that cache is rebuilt.
-  def attrNumChannelsChanged(attr: Elem)(implicit tx: S#Tx): Unit =
+  def attrNumChannelsChanged(attr: Elem)(implicit tx: T): Unit =
     if (prefChansElemRef().contains(attr)) {  // then invalidate, otherwise ignore (what can we do?)
       prefChansNumRef() = -2
       observer.attrNumChannelsChanged(this)
     }
 
-  override def dispose()(implicit tx: S#Tx): Unit = {
+  override def dispose()(implicit tx: T): Unit = {
     super.dispose()
     prefChansElemRef.swap(Vector.empty).foreach(_.dispose())
   }

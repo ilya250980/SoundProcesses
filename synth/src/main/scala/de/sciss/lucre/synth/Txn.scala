@@ -13,7 +13,7 @@
 
 package de.sciss.lucre.synth
 
-import de.sciss.lucre.TxnLike
+import de.sciss.lucre.{TxnLike => LTxnLike, Txn => LTxn}
 import de.sciss.lucre.synth.impl.TxnPlainImpl
 import de.sciss.osc
 import de.sciss.synth.message
@@ -21,8 +21,8 @@ import de.sciss.synth.message
 import scala.collection.immutable.{IndexedSeq => Vec, Seq => ISeq}
 import scala.concurrent.stm.InTxn
 
-object Txn {
-  def wrap(itx: InTxn): Txn = new TxnPlainImpl(itx, 0L)
+object RT {
+  def wrap(itx: InTxn): RT = new TxnPlainImpl(itx, 0L)
 
   type Message = osc.Message with message.Send
 
@@ -47,14 +47,20 @@ object Txn {
   type Bundles = Vec[Bundle]
 }
 
-/** The `Txn` trait is declared without representation type parameter in order to keep the real-time sound
+/** The `RT` trait for real-time audio coupled transactions is declared without representation type parameter
+  * in order to keep the real-time sound
   * synthesis API clutter free. The sound synthesis is always ephemeral, so does not need to know anything
   * about the underlying system. What the process transaction provides is a package private
   * `addMessage` method for staging OSC messages which are flushed at the end of a successful transaction.
   */
-trait Txn extends TxnLike {
+trait RT extends LTxnLike {
   /** Or zero if not scheduled. */
   def systemTimeNanoSec: Long
 
   def addMessage(resource: Resource, m: osc.Message with message.Send, dependencies: ISeq[Resource] = Nil): Unit
 }
+
+/** A typed transaction with full Lucre support coupled to real-time audio. */
+trait Txn[T <: Txn[T]] extends LTxn[T] with RT
+
+trait AnyTxn extends Txn[AnyTxn]

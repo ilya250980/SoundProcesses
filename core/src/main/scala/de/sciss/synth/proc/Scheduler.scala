@@ -13,23 +13,22 @@
 
 package de.sciss.synth.proc
 
-import de.sciss.lucre.stm
-import de.sciss.lucre.stm.Sys
-import impl.{SchedulerImpl => Impl}
+import de.sciss.lucre.{Cursor, Txn}
+import de.sciss.synth.proc.impl.{SchedulerImpl => Impl}
 
 object Scheduler {
   /** Creates a real-time scheduler. */
-  def apply[S <: Sys[S]]()(implicit tx: S#Tx, cursor: stm.Cursor[S]): Scheduler[S] = Impl[S]()
+  def apply[T <: Txn[T]]()(implicit tx: T, cursor: Cursor[T]): Scheduler[T] = Impl[T]()
 
   /** Creates a non-real-time scheduler. */
-  def offline[S <: Sys[S]](implicit tx: S#Tx, cursor: stm.Cursor[S]): Offline[S] = Impl.offline[S]
+  def offline[T <: Txn[T]](implicit tx: T, cursor: Cursor[T]): Offline[T] = Impl.offline[T]
 
-  trait Offline[S <: Sys[S]] extends Scheduler[S] {
-    def step()    (implicit tx: S#Tx): Unit
-    def stepTarget(implicit tx: S#Tx): Option[Long]
+  trait Offline[T <: Txn[T]] extends Scheduler[T] {
+    def step()    (implicit tx: T): Unit
+    def stepTarget(implicit tx: T): Option[Long]
   }
 
-  final case class Entry[S <: Sys[S]](time: Long, fun: S#Tx => Unit)
+  final case class Entry[T <: Txn[T]](time: Long, fun: T => Unit)
 }
 
 /** A `Scheduler` uses a logical frame clock to execute functions transactionally
@@ -37,30 +36,30 @@ object Scheduler {
   * but it does not store any state that would need the scheduler to be handled
   * with `stm.Source`. It can be safely stored in a regular value.
   */
-trait Scheduler[S <: Sys[S]] {
+trait Scheduler[T <: Txn[T]] {
   /** Logical time frame based on `TimeRef.SampleRate` and with zero
     * corresponding to creation time. Frames elapsed with wall-clock
     * but are stable within a transaction.
     */
-  def time(implicit tx: S#Tx): Long
+  def time(implicit tx: T): Long
 
   /** Performs a tagged transaction step.
     *
-    * @see [[de.sciss.lucre.stm.Cursor.stepTag]]
+    * @see [[de.sciss.lucre.Cursor.stepTag]]
     */
-  def stepTag[A](fun: S#Tx => A): A
+  def stepTag[A](fun: T => A): A
 
   /** Schedules the execution of a function at a given time. Time is given
     * as an "absolute" frame in the sense of `AuralContext.time`.
     * Returns a token that can be used to cancel the action.
     * The token is `>= 0`.
     */
-  def schedule(time: Long)(fun: S#Tx => Unit)(implicit tx: S#Tx): Int /* Token */
+  def schedule(time: Long)(fun: T => Unit)(implicit tx: T): Int /* Token */
 
   /** Cancels a scheduled action.
     * It is ok to use an old token that was already completed or cancelled.
     */
-  def cancel(token: Int /* Token */)(implicit tx: S#Tx): Unit
+  def cancel(token: Int /* Token */)(implicit tx: T): Unit
 
-  implicit def cursor: stm.Cursor[S]
+  implicit def cursor: Cursor[T]
 }

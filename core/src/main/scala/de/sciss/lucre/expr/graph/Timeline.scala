@@ -13,18 +13,15 @@
 
 package de.sciss.lucre.expr.graph
 
-import de.sciss.lucre.adjunct.Adjunct.HasDefault
-import de.sciss.lucre.adjunct.{Adjunct, ProductWithAdjuncts}
+import de.sciss.lucre.Adjunct.HasDefault
+import de.sciss.lucre.{Adjunct, Caching, IChangeEvent, IExpr, IPush, ITargets, ProductWithAdjuncts, Source, SpanLikeObj, Sys, Txn, Obj => LObj}
 import de.sciss.lucre.edit.EditTimeline
-import de.sciss.lucre.event.impl.IChangeGenerator
-import de.sciss.lucre.event.{Caching, IChangeEvent, IPush, ITargets}
+import de.sciss.lucre.impl.IChangeGeneratorEvent
 import de.sciss.lucre.expr.graph.impl.{AbstractCtxCellView, ExpandedObjMakeImpl, MappedIExpr, ObjCellViewVarImpl, ObjImplBase}
 import de.sciss.lucre.expr.impl.{IActionImpl, ITriggerConsumer}
-import de.sciss.lucre.expr.{CellView, Context, IAction, IExpr, SpanLikeObj}
-import de.sciss.lucre.stm
-import de.sciss.lucre.stm.Sys
-import de.sciss.lucre.stm.TxnLike.peer
-import de.sciss.serial.{DataInput, Serializer}
+import de.sciss.lucre.expr.{CellView, Context, IAction}
+import de.sciss.lucre.Txn.peer
+import de.sciss.serial.{DataInput, TFormat}
 import de.sciss.span.{Span => _Span, SpanLike => _SpanLike}
 import de.sciss.synth.proc
 
@@ -39,18 +36,18 @@ object Timeline {
   def apply(): Ex[Timeline] with Obj.Make = Apply()
 
   private[lucre] object Empty extends Timeline {
-    private[lucre] def peer[S <: Sys[S]](implicit tx: S#Tx): Option[Peer[S]] = None
+    private[lucre] def peer[T <: Txn[T]](implicit tx: T): Option[Peer[T]] = None
 
     override def toString: String = "Timeline<empty>"
   }
 
-  private final class ApplyExpanded[S <: Sys[S]](implicit targets: ITargets[S])
-    extends ExpandedObjMakeImpl[S, Timeline] {
+  private final class ApplyExpanded[T <: Txn[T]](implicit targets: ITargets[T])
+    extends ExpandedObjMakeImpl[T, Timeline] {
 
     protected def empty: Timeline = Empty
 
-    protected def make()(implicit tx: S#Tx): Timeline = {
-      val peer = proc.Timeline[S]()
+    protected def make()(implicit tx: T): Timeline = {
+      val peer = proc.Timeline[T]()
       new Impl(tx.newHandle(peer), tx.system)
     }
   }
@@ -58,86 +55,86 @@ object Timeline {
   private final case class Apply() extends Ex[Timeline] with Act with Obj.Make {
     override def productPrefix: String = "Timeline" // serialization
 
-    type Repr[S <: Sys[S]] = IExpr[S, Timeline] with IAction[S]
+    type Repr[T <: Txn[T]] = IExpr[T, Timeline] with IAction[T]
 
     def make: Act = this
 
-    protected def mkRepr[S <: Sys[S]](implicit ctx: Context[S], tx: S#Tx): Repr[S] = {
+    protected def mkRepr[T <: Txn[T]](implicit ctx: Context[T], tx: T): Repr[T] = {
       import ctx.targets
-      new ApplyExpanded[S]
+      new ApplyExpanded[T]
     }
   }
 
   // used by Mellite (no transaction available)
-  private[lucre] def wrapH[S <: Sys[S]](peer: stm.Source[S#Tx, proc.Timeline[S]], system: S): Timeline =
-    new Impl[S](peer, system)
+  private[lucre] def wrapH[T <: Txn[T]](peer: Source[T, proc.Timeline[T]], system: Sys): Timeline =
+    new Impl[T](peer, system)
 
-  private[lucre] def wrap[S <: Sys[S]](peer: proc.Timeline[S])(implicit tx: S#Tx): Timeline =
-    new Impl[S](tx.newHandle(peer), tx.system)
+  private[lucre] def wrap[T <: Txn[T]](peer: proc.Timeline[T])(implicit tx: T): Timeline =
+    new Impl[T](tx.newHandle(peer), tx.system)
 
-  private final class Impl[S <: Sys[S]](in: stm.Source[S#Tx, proc.Timeline[S]], system: S)
-    extends ObjImplBase[S, proc.Timeline](in, system) with Timeline {
+  private final class Impl[T <: Txn[T]](in: Source[T, proc.Timeline[T]], system: Sys)
+    extends ObjImplBase[T, proc.Timeline](in, system) with Timeline {
 
-    override type Peer[~ <: Sys[~]] = proc.Timeline[~]
+    override type Peer[~ <: Txn[~]] = proc.Timeline[~]
   }
 
-  private final class CellViewImpl[S <: Sys[S]](h: stm.Source[S#Tx, stm.Obj[S]], key: String)
-    extends ObjCellViewVarImpl[S, proc.Timeline, Timeline](h, key) {
+  private final class CellViewImpl[T <: Txn[T]](h: Source[T, LObj[T]], key: String)
+    extends ObjCellViewVarImpl[T, proc.Timeline, Timeline](h, key) {
 
-    implicit def serializer: Serializer[S#Tx, S#Acc, Option[proc.Timeline[S]]] =
-      Serializer.option
+    implicit def serializer: TFormat[T, Option[proc.Timeline[T]]] =
+      TFormat.option
 
-    protected def lower(peer: proc.Timeline[S])(implicit tx: S#Tx): Timeline =
+    protected def lower(peer: proc.Timeline[T])(implicit tx: T): Timeline =
       wrap(peer)
   }
 
   implicit object Bridge extends Obj.Bridge[Timeline] with HasDefault[Timeline] with Adjunct.Factory {
     final val id = 2002
 
-    type Repr[S <: Sys[S]] = proc.Timeline[S]
+    type Repr[T <: Txn[T]] = proc.Timeline[T]
 
     def defaultValue: Timeline = Empty
 
     override def readIdentifiedAdjunct(in: DataInput): Adjunct = this
 
-    def cellView[S <: Sys[S]](obj: stm.Obj[S], key: String)(implicit tx: S#Tx): CellView.Var[S#Tx, Option[Timeline]] =
+    def cellView[T <: Txn[T]](obj: LObj[T], key: String)(implicit tx: T): CellView.Var[T, Option[Timeline]] =
       new CellViewImpl(tx.newHandle(obj), key)
 
-    def contextCellView[S <: Sys[S]](key: String)(implicit tx: S#Tx, context: Context[S]): CellView[S#Tx, Option[Timeline]] =
-      new AbstractCtxCellView[S, Timeline](context.attr, key) {
-        protected def tryParseValue(value: Any)(implicit tx: S#Tx): Option[Timeline] = value match {
+    def contextCellView[T <: Txn[T]](key: String)(implicit tx: T, context: Context[T]): CellView[T, Option[Timeline]] =
+      new AbstractCtxCellView[T, Timeline](context.attr, key) {
+        protected def tryParseValue(value: Any)(implicit tx: T): Option[Timeline] = value match {
           case tl: Timeline => Some(tl)
           case _            => None
         }
 
-        protected def tryParseObj(obj: stm.Obj[S])(implicit tx: S#Tx): Option[Timeline] = obj match {
-          case peer: proc.Timeline[S] => Some(wrap(peer))
+        protected def tryParseObj(obj: LObj[T])(implicit tx: T): Option[Timeline] = obj match {
+          case peer: proc.Timeline[T] => Some(wrap(peer))
           case _                      => None
         }
       }
 
-    def cellValue[S <: Sys[S]](obj: stm.Obj[S], key: String)(implicit tx: S#Tx): Option[Timeline] =
+    def cellValue[T <: Txn[T]](obj: LObj[T], key: String)(implicit tx: T): Option[Timeline] =
       obj.attr.$[proc.Timeline](key).map(wrap(_))
 
-    def tryParseObj[S <: Sys[S]](obj: stm.Obj[S])(implicit tx: S#Tx): Option[Timeline] = obj match {
-      case a: proc.Timeline[S]  => Some(wrap(a))
+    def tryParseObj[T <: Txn[T]](obj: LObj[T])(implicit tx: T): Option[Timeline] = obj match {
+      case a: proc.Timeline[T]  => Some(wrap(a))
       case _                    => None
     }
   }
 
-  private final class AddExpanded[S <: Sys[S], A](in: IExpr[S, Timeline], span: IExpr[S, _SpanLike],
-                                                  elem: IExpr[S, A])
+  private final class AddExpanded[T <: Txn[T], A](in: IExpr[T, Timeline], span: IExpr[T, _SpanLike],
+                                                  elem: IExpr[T, A])
                                                  (implicit source: Obj.Source[A])
-    extends IActionImpl[S] {
+    extends IActionImpl[T] {
 
-    def executeAction()(implicit tx: S#Tx): Unit =
+    def executeAction()(implicit tx: T): Unit =
       for {
         tl  <- in.value.peer
         tlm <- tl.modifiableOption
       } {
         val spanV   = span.value
         val elemV   = elem.value
-        val spanObj = SpanLikeObj.newVar[S](spanV)
+        val spanObj = SpanLikeObj.newVar[T](spanV)
         val elemObj = source.toObj(elemV)
         EditTimeline.add(tlm, spanObj, elemObj)
       }
@@ -148,26 +145,26 @@ object Timeline {
 
     override def productPrefix: String = s"Timeline$$Add" // serialization
 
-    type Repr[S <: Sys[S]] = IAction[S]
+    type Repr[T <: Txn[T]] = IAction[T]
 
-    protected def mkRepr[S <: Sys[S]](implicit ctx: Context[S], tx: S#Tx): Repr[S] =
-      new AddExpanded(in.expand[S], span.expand[S], elem.expand[S])
+    protected def mkRepr[T <: Txn[T]](implicit ctx: Context[T], tx: T): Repr[T] =
+      new AddExpanded(in.expand[T], span.expand[T], elem.expand[T])
 
     override def adjuncts: List[Adjunct] = source :: Nil
   }
 
-  private final class AddAllExpanded[S <: Sys[S], A](in: IExpr[S, Timeline], pairs: IExpr[S, Seq[(_SpanLike, A)]])
+  private final class AddAllExpanded[T <: Txn[T], A](in: IExpr[T, Timeline], pairs: IExpr[T, Seq[(_SpanLike, A)]])
                                                  (implicit source: Obj.Source[A])
-    extends IActionImpl[S] {
+    extends IActionImpl[T] {
 
-    def executeAction()(implicit tx: S#Tx): Unit =
+    def executeAction()(implicit tx: T): Unit =
       for {
         tl  <- in.value.peer
         tlm <- tl.modifiableOption
       } {
         val pairsV  = pairs.value
         pairsV.foreach { case (spanV, elemV) =>
-          val spanObj = SpanLikeObj.newVar[S](spanV)
+          val spanObj = SpanLikeObj.newVar[T](spanV)
           val elemObj = source.toObj(elemV)
           EditTimeline.add(tlm, spanObj, elemObj)
         }
@@ -179,28 +176,28 @@ object Timeline {
 
     override def productPrefix: String = s"Timeline$$AddAll" // serialization
 
-    type Repr[S <: Sys[S]] = IAction[S]
+    type Repr[T <: Txn[T]] = IAction[T]
 
-    protected def mkRepr[S <: Sys[S]](implicit ctx: Context[S], tx: S#Tx): Repr[S] =
-      new AddAllExpanded(in.expand[S], pairs.expand[S])
+    protected def mkRepr[T <: Txn[T]](implicit ctx: Context[T], tx: T): Repr[T] =
+      new AddAllExpanded(in.expand[T], pairs.expand[T])
 
     override def adjuncts: List[Adjunct] = source :: Nil
   }
 
-  private final class RemoveExpanded[S <: Sys[S]](in: IExpr[S, Timeline], span: IExpr[S, _SpanLike],
-                                                  elem: IExpr[S, Obj])
-    extends IActionImpl[S] {
+  private final class RemoveExpanded[T <: Txn[T]](in: IExpr[T, Timeline], span: IExpr[T, _SpanLike],
+                                                  elem: IExpr[T, Obj])
+    extends IActionImpl[T] {
 
-    private def findSpan(tl: proc.Timeline[S], elemObj: stm.Obj[S])(implicit tx: S#Tx): Option[SpanLikeObj[S]] = {
+    private def findSpan(tl: proc.Timeline[T], elemObj: LObj[T])(implicit tx: T): Option[SpanLikeObj[T]] = {
       val spanV = span.value
       tl.recoverSpan(spanV, elemObj)
     }
 
-    def executeAction()(implicit tx: S#Tx): Unit =
+    def executeAction()(implicit tx: T): Unit =
       for {
         tl      <- in.value.peer
         tlm     <- tl.modifiableOption
-        elemObj <- elem.value.peer[S]
+        elemObj <- elem.value.peer[T]
         spanObj <- findSpan(tl, elemObj)
       } {
         EditTimeline.unlinkAndRemove(tlm, spanObj, elemObj)
@@ -212,48 +209,48 @@ object Timeline {
 
     override def productPrefix: String = s"Timeline$$Remove" // serialization
 
-    type Repr[S <: Sys[S]] = IAction[S]
+    type Repr[T <: Txn[T]] = IAction[T]
 
-    protected def mkRepr[S <: Sys[S]](implicit ctx: Context[S], tx: S#Tx): Repr[S] =
-      new RemoveExpanded(in.expand[S], span.expand[S], elem.expand[S])
+    protected def mkRepr[T <: Txn[T]](implicit ctx: Context[T], tx: T): Repr[T] =
+      new RemoveExpanded(in.expand[T], span.expand[T], elem.expand[T])
   }
 
   private type SplitPair = (Timed[Obj], Timed[Obj])
 
-  private final class SplitExpanded[S <: Sys[S]](in: IExpr[S, Timeline], span: IExpr[S, _SpanLike],
-                                                 elem: IExpr[S, Obj], time: IExpr[S, Long])
-                                                (implicit protected val targets: ITargets[S])
-    extends IAction[S] with IExpr[S, SplitPair]
-      with IChangeGenerator [S, SplitPair]
-      with ITriggerConsumer [S, SplitPair]
+  private final class SplitExpanded[T <: Txn[T]](in: IExpr[T, Timeline], span: IExpr[T, _SpanLike],
+                                                 elem: IExpr[T, Obj], time: IExpr[T, Long])
+                                                (implicit protected val targets: ITargets[T])
+    extends IAction[T] with IExpr[T, SplitPair]
+      with IChangeGeneratorEvent [T, SplitPair]
+      with ITriggerConsumer      [T, SplitPair]
       with Caching {
 
     private def empty: SplitPair = (Timed(_Span.Void, Obj.Empty), Timed(_Span.Void, Obj.Empty))
 
     private[this] val ref = Ref[SplitPair](empty)
 
-    def value(implicit tx: S#Tx): SplitPair =
+    def value(implicit tx: T): SplitPair =
       IPush.tryPull(this).fold(ref())(_.now)
 
-    def executeAction()(implicit tx: S#Tx): Unit =
+    def executeAction()(implicit tx: T): Unit =
       trigReceived() // .foreach(fire) --- we don't need to fire, there is nobody listening;
 
-    private def findSpan(tl: proc.Timeline[S], elemObj: stm.Obj[S])(implicit tx: S#Tx): Option[SpanLikeObj[S]] = {
+    private def findSpan(tl: proc.Timeline[T], elemObj: LObj[T])(implicit tx: T): Option[SpanLikeObj[T]] = {
       val spanV = span.value
       tl.recoverSpan(spanV, elemObj)
     }
 
-    private def make()(implicit tx: S#Tx): SplitPair = {
+    private def make()(implicit tx: T): SplitPair = {
       val opt = for {
         tl      <- in.value.peer
         tlm     <- tl.modifiableOption
-        elemObj <- elem.value.peer[S]
+        elemObj <- elem.value.peer[T]
         spanObj <- findSpan(tl, elemObj)
       } yield {
         val timeV     = time.value
         val split     = EditTimeline.split(tlm, spanObj, elemObj, timeV)
-        val leftObj   = Obj.wrap[S](split.leftObj )
-        val rightObj  = Obj.wrap[S](split.rightObj)
+        val leftObj   = Obj.wrap[T](split.leftObj )
+        val rightObj  = Obj.wrap[T](split.rightObj)
         val leftT     = Timed[Obj](split.leftSpan .value, leftObj )
         val rightT    = Timed[Obj](split.rightSpan.value, rightObj)
         (leftT, rightT)
@@ -261,53 +258,53 @@ object Timeline {
       opt.getOrElse(empty)
     }
 
-    protected def valueBefore ()(implicit tx: S#Tx): SplitPair = ref()
+    protected def valueBefore ()(implicit tx: T): SplitPair = ref()
 
-    protected def trigReceived()(implicit tx: S#Tx): SplitPair = {
+    protected def trigReceived()(implicit tx: T): SplitPair = {
       val now = make()
       ref()   = now
       now
     }
 
-    def changed: IChangeEvent[S, SplitPair] = this
+    def changed: IChangeEvent[T, SplitPair] = this
   }
 
   object Split {
     // XXX TODO --- should have tuple ._1 and ._2 off the shelf
-    private final class LeftExpanded[S <: Sys[S], A](in: IExpr[S, (Timed[Obj], Timed[Obj])], tx0: S#Tx)
-                                                     (implicit targets: ITargets[S])
-      extends MappedIExpr[S, (Timed[Obj], Timed[Obj]), Timed[Obj]](in, tx0) {
+    private final class LeftExpanded[T <: Txn[T], A](in: IExpr[T, (Timed[Obj], Timed[Obj])], tx0: T)
+                                                     (implicit targets: ITargets[T])
+      extends MappedIExpr[T, (Timed[Obj], Timed[Obj]), Timed[Obj]](in, tx0) {
 
-      protected def mapValue(inValue: (Timed[Obj], Timed[Obj]))(implicit tx: S#Tx): Timed[Obj] = inValue._1
+      protected def mapValue(inValue: (Timed[Obj], Timed[Obj]))(implicit tx: T): Timed[Obj] = inValue._1
     }
 
     final case class Left(s: Split) extends Ex[Timed[Obj]] {
       override def productPrefix: String = s"Timeline$$Split$$Left" // serialization
 
-      type Repr[S <: Sys[S]] = IExpr[S, Timed[Obj]]
+      type Repr[T <: Txn[T]] = IExpr[T, Timed[Obj]]
 
-      protected def mkRepr[S <: Sys[S]](implicit ctx: Context[S], tx: S#Tx): Repr[S] = {
+      protected def mkRepr[T <: Txn[T]](implicit ctx: Context[T], tx: T): Repr[T] = {
         import ctx.targets
-        new LeftExpanded(s.expand[S], tx)
+        new LeftExpanded(s.expand[T], tx)
       }
     }
 
     // XXX TODO --- should have tuple ._1 and ._2 off the shelf
-    private final class RightExpanded[S <: Sys[S], A](in: IExpr[S, (Timed[Obj], Timed[Obj])], tx0: S#Tx)
-                                                    (implicit targets: ITargets[S])
-      extends MappedIExpr[S, (Timed[Obj], Timed[Obj]), Timed[Obj]](in, tx0) {
+    private final class RightExpanded[T <: Txn[T], A](in: IExpr[T, (Timed[Obj], Timed[Obj])], tx0: T)
+                                                    (implicit targets: ITargets[T])
+      extends MappedIExpr[T, (Timed[Obj], Timed[Obj]), Timed[Obj]](in, tx0) {
 
-      protected def mapValue(inValue: (Timed[Obj], Timed[Obj]))(implicit tx: S#Tx): Timed[Obj] = inValue._2
+      protected def mapValue(inValue: (Timed[Obj], Timed[Obj]))(implicit tx: T): Timed[Obj] = inValue._2
     }
 
     final case class Right(s: Split) extends Ex[Timed[Obj]] {
       override def productPrefix: String = s"Timeline$$Split$$Right" // serialization
 
-      type Repr[S <: Sys[S]] = IExpr[S, Timed[Obj]]
+      type Repr[T <: Txn[T]] = IExpr[T, Timed[Obj]]
 
-      protected def mkRepr[S <: Sys[S]](implicit ctx: Context[S], tx: S#Tx): Repr[S] = {
+      protected def mkRepr[T <: Txn[T]](implicit ctx: Context[T], tx: T): Repr[T] = {
         import ctx.targets
-        new RightExpanded(s.expand[S], tx)
+        new RightExpanded(s.expand[T], tx)
       }
     }
   }
@@ -316,14 +313,14 @@ object Timeline {
 
     override def productPrefix: String = s"Timeline$$Split" // serialization
 
-    type Repr[S <: Sys[S]] = IAction[S] with IExpr[S, (Timed[Obj], Timed[Obj])]
+    type Repr[T <: Txn[T]] = IAction[T] with IExpr[T, (Timed[Obj], Timed[Obj])]
 
     def left  : Ex[Timed[Obj]] = Split.Left (this)
     def right : Ex[Timed[Obj]] = Split.Right(this)
 
-    protected def mkRepr[S <: Sys[S]](implicit ctx: Context[S], tx: S#Tx): Repr[S] = {
+    protected def mkRepr[T <: Txn[T]](implicit ctx: Context[T], tx: T): Repr[T] = {
       import ctx.targets
-      new SplitExpanded(in.expand[S], span.expand[S], elem.expand[S], time.expand[S])
+      new SplitExpanded(in.expand[T], span.expand[T], elem.expand[T], time.expand[T])
     }
   }
 
@@ -336,5 +333,5 @@ object Timeline {
   }
 }
 trait Timeline extends Obj {
-  type Peer[~ <: Sys[~]] = proc.Timeline[~]
+  type Peer[~ <: Txn[~]] = proc.Timeline[~]
 }

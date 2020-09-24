@@ -14,9 +14,8 @@
 package de.sciss.synth.proc.gui
 
 import de.sciss.audiowidgets.TimelineModel
-import de.sciss.lucre.stm
 import de.sciss.lucre.swing.View
-import de.sciss.lucre.synth.Sys
+import de.sciss.lucre.{Cursor, Txn, synth}
 import de.sciss.synth.proc.Transport
 import de.sciss.synth.proc.gui.impl.{TransportViewImpl => Impl}
 
@@ -29,13 +28,13 @@ object TransportView {
     * @param hasLoop          if `true` add a loop button
     * @param hasShortcuts     if `true` add keyboard accelerators
     */
-  def apply[S <: Sys[S]](transport: Transport[S], timelineModel: TimelineModel,
+  def apply[T <: synth.Txn[T]](transport: Transport[T], timelineModel: TimelineModel,
                          hasMillis: Boolean = true, hasLoop: Boolean = true, hasShortcuts: Boolean = true)
-                        (implicit tx: S#Tx, cursor: stm.Cursor[S]): TransportView[S] =
-    Impl[S](transport, timelineModel, hasMillis = hasMillis, hasLoop = hasLoop, hasShortcuts = hasShortcuts)
+                        (implicit tx: T, cursor: Cursor[T]): TransportView[T] =
+    Impl[T](transport, timelineModel, hasMillis = hasMillis, hasLoop = hasLoop, hasShortcuts = hasShortcuts)
 }
 
-trait TransportView[S <: stm.Sys[S]] extends View[S] {
-  def transport    : Transport[S]
+trait TransportView[T <: Txn[T]] extends View[T] {
+  def transport    : Transport[T]
   def timelineModel: TimelineModel
 }

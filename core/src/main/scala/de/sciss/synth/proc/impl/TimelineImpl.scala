@@ -75,7 +75,7 @@ object TimelineImpl {
 
     def tpe: Obj.Type = Timeline
 
-//    def elemFormat: Format[T, S#Acc, Obj[T]] = Obj.serializer[T]
+//    def elemFormat: Format[T, Obj[T]] = Obj.format[T]
 
     override def toString: String = s"Timeline${tree.id}"
   }

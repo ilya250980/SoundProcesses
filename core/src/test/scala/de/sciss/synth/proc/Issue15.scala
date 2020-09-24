@@ -2,10 +2,8 @@ package de.sciss
 package synth
 package proc
 
-import de.sciss.lucre.expr.{BooleanObj, SpanLikeObj}
-import de.sciss.lucre.stm.{Disposable, Folder, Identifier}
-import de.sciss.lucre.{event => evt}
-import de.sciss.serial.Serializer
+import de.sciss.lucre.{BooleanObj, Disposable, Event, Folder, Ident, Log, SpanLikeObj}
+import de.sciss.serial.TFormat
 import de.sciss.span.Span
 
 /*
@@ -20,33 +18,33 @@ class Issue15 extends ConfluentEventSpec {
   ignore /* "AttrMap" */ should "dispatch events after repeated listener (un)registration" in { system =>
     val obs = new Observation
 
-    if (DEBUG) de.sciss.lucre.event.showLog = true
+    if (DEBUG) Log.showEventLog = true
 
     // ---- we create the "workspace" ----
     val (fH, pObjH, tlH, _ /* timedIdH */ , _ /* spanH */) = system.step { implicit tx =>
-      val p         = Proc[S]()
+      val p         = Proc[T]()
       val pObj      = p // Obj(Proc.Elem(p))
       // pObj.attr // initialize for debugger
-      val tl        = Timeline[S]()
-      val span      = SpanLikeObj.newConst[S](Span(0L, 10000L)): SpanLikeObj[S] // Expr[S, SpanLike]
+      val tl        = Timeline[T]()
+      val span      = SpanLikeObj.newConst[T](Span(0L, 10000L)): SpanLikeObj[T] // Expr[S, SpanLike]
       val timed     = tl.add(span, pObj)
       val _pObjH    = tx.newHandle(pObj)
       val _tlH      = tx.newHandle(tl)
       // import de.sciss.lucre.synth.expr.IdentifierSerializer
-      val _timedIdH = tx.newHandle(timed.id)(Identifier.serializer[S])
+      val _timedIdH = tx.newHandle(timed.id)(Ident.format[T])
       // import SpanLikeObj.serializer
       val _spanH    = tx.newHandle(span)
-      val f         = Folder[S]()
+      val f         = Folder[T]()
       val tlObj     = tl // Obj(Timeline.Elem(tl))
       f.addLast(tlObj)
-      implicit val fSer: Serializer[S#Tx, S#Acc, Folder[S]] = Folder.serializer[S]
+      implicit val fSer: TFormat[T, Folder[T]] = Folder.format[T]
       val _fH       = tx.newHandle(f)
       (_fH, _pObjH, _tlH, _timedIdH, _spanH)
     }
 
-    def assertChildren(header: String, size: Int)(implicit tx: S#Tx): Unit = {
+    def assertChildren(header: String, size: Int)(implicit tx: T): Unit = {
       val tl = tlH()
-      val ch = de.sciss.lucre.event.Peek.targets(tl.asInstanceOf[evt.Node[S]])
+      val ch = de.sciss.lucre.event.Peek.targets(tl.asInstanceOf[Event.Node[T]])
       assert(ch.size === size)
       if (DEBUG) {
         println(s"\n---- $header ----")
@@ -63,7 +61,7 @@ class Issue15 extends ConfluentEventSpec {
       }
     }
 
-    def timelineObservation(): Disposable[S#Tx] = system.step { implicit tx =>
+    def timelineObservation(): Disposable[T] = system.step { implicit tx =>
       val tl   = tlH()
       val _obs = tl.changed.react(obs.register)
       obs.assertEmpty()
@@ -80,7 +78,7 @@ class Issue15 extends ConfluentEventSpec {
 
         val pObj    = pObjH()
 //        val tl      = tlH()
-        val muteObj = BooleanObj.newConst[S](true) : BooleanObj[S]
+        val muteObj = BooleanObj.newConst[T](true) : BooleanObj[T]
         // val timed   = BiGroup.Entry(timedIdH(), spanH(), pObj)
         pObj.attr.put(ObjKeys.attrMute, muteObj)
         obs.assertEquals()
@@ -119,8 +117,8 @@ class Issue15 extends ConfluentEventSpec {
     muteObservation()
 
     if (DEBUG) {
-      de.sciss.lucre.confluent.showLog = true
-      de.sciss.lucre.stm      .showLog = true
+      de.sciss.lucre.confluent.Log.showLog = true
+      de.sciss.lucre.Log.showTxnLog = true
     }
 
     // ---- we "close" the timeline view; this produces the illegal state somehow ----

@@ -15,7 +15,7 @@
 //
 //import de.sciss.lucre.stm.{Obj, Sys, TxnLike}
 //import de.sciss.lucre.{stm, event => evt}
-//import de.sciss.serial.{DataInput, Serializer}
+//import de.sciss.serial.{DataInput, TFormat}
 //import de.sciss.synth.proc.impl.{ActionRawImpl => Impl}
 //
 //import scala.collection.immutable.{IndexedSeq => Vec}
@@ -29,38 +29,38 @@
 //
 //  final val attrSource = "action-source"
 //
-//  def compile[S <: Sys[S]](source: Code.ActionRaw)
-//                          (implicit tx: S#Tx, cursor: stm.Cursor[S],
-//                           compiler: Code.Compiler): Future[stm.Source[S#Tx, ActionRaw[S]]] =
+//  def compile[T <: Txn[T]](source: Code.ActionRaw)
+//                          (implicit tx: T, cursor: Cursor[T],
+//                           compiler: Code.Compiler): Future[stm.Source[T, ActionRaw[T]]] =
 //    Impl.compile(source)
 //
-//  def empty[S <: Sys[S]](implicit tx: S#Tx): ActionRaw[S] = Impl.empty[S]
+//  def empty[T <: Txn[T]](implicit tx: T): ActionRaw[T] = Impl.empty[T]
 //
-//  def mkName[S <: Sys[S]]()(implicit tx: S#Tx): String = Impl.mkName[S]()
+//  def mkName[T <: Txn[T]]()(implicit tx: T): String = Impl.mkName[T]()
 //
-//  def newConst[S <: Sys[S]](name: String, jar: Array[Byte])(implicit tx: S#Tx): ActionRaw[S] =
+//  def newConst[T <: Txn[T]](name: String, jar: Array[Byte])(implicit tx: T): ActionRaw[T] =
 //    Impl.newConst(name, jar)
 //
-//  def predef[S <: Sys[S]](id: String)(implicit tx: S#Tx): ActionRaw[S] = Impl.predef(id)
+//  def predef[T <: Txn[T]](id: String)(implicit tx: T): ActionRaw[T] = Impl.predef(id)
 //
 //  def registerPredef(id: String, body: Action.Body)(implicit tx: TxnLike): Unit = Impl.registerPredef(id, body)
 //
 //  object Var {
-//    def apply[S <: Sys[S]](init: ActionRaw[S])(implicit tx: S#Tx): Var[S] = Impl.newVar(init)
+//    def apply[T <: Txn[T]](init: ActionRaw[T])(implicit tx: T): Var[T] = Impl.newVar(init)
 //
-//    def unapply[S <: Sys[S]](a: ActionRaw[S]): Option[Var[S]] =
+//    def unapply[T <: Txn[T]](a: ActionRaw[T]): Option[Var[T]] =
 //      a match {
-//        case x: Var[S] => Some(x)
+//        case x: Var[T] => Some(x)
 //        case _ => None
 //      }
 //
-//    implicit def serializer[S <: Sys[S]]: Serializer[S#Tx, S#Acc, Var[S]] = Impl.varSerializer[S]
+//    implicit def format[T <: Txn[T]]: TFormat[T, Var[T]] = Impl.varFormat[T]
 //  }
-//  trait Var[S <: Sys[S]] extends ActionRaw[S] with stm.Var[S#Tx, ActionRaw[S]]
+//  trait Var[T <: Txn[T]] extends ActionRaw[T] with stm.Var[T, ActionRaw[T]]
 //
-//  implicit def serializer[S <: Sys[S]]: Serializer[S#Tx, S#Acc, ActionRaw[S]] = Impl.serializer[S]
+//  implicit def format[T <: Txn[T]]: TFormat[T, ActionRaw[T]] = Impl.format[T]
 //
-//  def read[S <: Sys[S]](in: DataInput, access: S#Acc)(implicit tx: S#Tx): ActionRaw[S] = serializer[S].read(in, access)
+//  def read[T <: Txn[T]](in: DataInput, access: S#Acc)(implicit tx: T): ActionRaw[T] = format[T].read(in, access)
 //
 //  // ---- body ----
 //
@@ -69,14 +69,14 @@
 //  /** Possible type for `universe.value`. Overcomes erasure. */
 //  final case class FloatVector (xs: Vec[Float ])
 //
-//  def readIdentifiedObj[S <: Sys[S]](in: DataInput, access: S#Acc)(implicit tx: S#Tx): Obj[S] =
+//  def readIdentifiedObj[T <: Txn[T]](in: DataInput, access: S#Acc)(implicit tx: T): Obj[T] =
 //    Impl.readIdentifiedObj(in, access)
 //
 //  type Body                           = Action.Body
-//  type Universe[S <: Sys[S]]          = Action.Universe[S]
+//  type Universe[T <: Txn[T]]          = Action.Universe[T]
 //  val  Universe: Action.Universe.type = Action.Universe
 //}
 //@deprecated("Action should be used instead of ActionRaw", since = "3.31.0")
-//trait ActionRaw[S <: Sys[S]] extends Obj[S] with evt.Publisher[S, Unit] {
-//  def execute(universe: Action.Universe[S])(implicit tx: S#Tx): Unit
+//trait ActionRaw[T <: Txn[T]] extends Obj[T] with evt.Publisher[T, Unit] {
+//  def execute(universe: Action.Universe[T])(implicit tx: T): Unit
 //}

@@ -1,5 +1,5 @@
 /*
- *  TxnImpl.scala
+ *  RTImpl.scala
  *  (SoundProcesses)
  *
  *  Copyright (c) 2010-2020 Hanns Holger Rutz. All rights reserved.
@@ -11,25 +11,26 @@
  *  contact@sciss.de
  */
 
-package de.sciss.lucre.synth.impl
+package de.sciss.lucre.synth
+package impl
 
-import de.sciss.lucre.synth.{Resource, Server, Sys, Txn, log}
+import de.sciss.lucre.synth
 import de.sciss.synth.UGenSource.Vec
 
 import scala.concurrent.stm.{InTxn, Ref, Txn => ScalaTxn}
 
-object TxnImpl {
+object RTImpl {
   var timeoutFun: () => Unit = () => ()
 
-  private final val noBundles = Vector.empty: Txn.Bundles
+  private final val noBundles = Vector.empty: RT.Bundles
 }
 
-sealed trait TxnImpl extends Txn { tx =>
-  import TxnImpl._
+sealed trait RTImpl extends RT { tx =>
+  import RTImpl._
 
   // note: they will always be added in pairs (async -> sync),
   // possibly with empty bundles as placeholders
-  private var bundlesMap = Map.empty[Server, Txn.Bundles]
+  private var bundlesMap = Map.empty[Server, RT.Bundles]
 
   final protected def flush(): Unit =
     bundlesMap.foreach { case (server, bundles) =>
@@ -40,7 +41,7 @@ sealed trait TxnImpl extends Txn { tx =>
   // indicate that we have bundles to flush after the transaction commits
   protected def markBundlesDirty(): Unit
 
-  final def addMessage(resource: Resource, m: Txn.Message, dependencies: Seq[Resource]): Unit = {
+  final def addMessage(resource: Resource, m: RT.Message, dependencies: Seq[Resource]): Unit = {
     val server        = resource.server
     if (!server.peer.isRunning) return
 
@@ -50,7 +51,7 @@ sealed trait TxnImpl extends Txn { tx =>
     implicit val itx: InTxn     = peer
     val txnStampRef: Ref[Int]   = server.messageTimeStamp
     val txnStamp                = txnStampRef.get
-    val payOld: Vec[Txn.Bundle] = bundlesMap.getOrElse(server, noBundles)
+    val payOld: Vec[RT.Bundle]  = bundlesMap.getOrElse(server, noBundles)
     val szOld                   = payOld.size
     val txnStartStamp           = txnStamp - szOld
 
@@ -88,31 +89,31 @@ sealed trait TxnImpl extends Txn { tx =>
       txnStampRef += 2
       val vm        = Vector.empty :+ m
       val messages  = if (msgAsync) {
-        val b1 = new Txn.Bundle(txnStamp     , vm)
-        val b2 = new Txn.Bundle(txnStamp + 1 , Vector.empty)
+        val b1 = new RT.Bundle(txnStamp     , vm)
+        val b2 = new RT.Bundle(txnStamp + 1 , Vector.empty)
         Vector.empty :+ b1 :+ b2
       } else {
-        val b1 = new Txn.Bundle(txnStamp     , Vector.empty)
-        val b2 = new Txn.Bundle(txnStamp + 1 , vm)
+        val b1 = new RT.Bundle(txnStamp     , Vector.empty)
+        val b2 = new RT.Bundle(txnStamp + 1 , vm)
         Vector.empty :+ b1 :+ b2
       }
-      messages: Txn.Bundles
+      messages: RT.Bundles
 
     } else {
       if (resourceStampNew == txnStamp) {
         // append to back
         val vm      = Vector.empty :+ m
         val payNew  = if (msgAsync) {
-          val b1 = new Txn.Bundle(txnStamp     , vm)
-          val b2 = new Txn.Bundle(txnStamp + 1 , Vector.empty)
+          val b1 = new RT.Bundle(txnStamp     , vm)
+          val b2 = new RT.Bundle(txnStamp + 1 , Vector.empty)
           payOld :+ b1 :+ b2
         } else {
-          val b1 = new Txn.Bundle(txnStamp     , Vector.empty)
-          val b2 = new Txn.Bundle(txnStamp + 1 , vm)
+          val b1 = new RT.Bundle(txnStamp     , Vector.empty)
+          val b2 = new RT.Bundle(txnStamp + 1 , vm)
           payOld :+ b1 :+ b2
         }
         txnStampRef += 2
-        payNew: Txn.Bundles
+        payNew: RT.Bundles
 
       } else {
         // we don't need the assertion, since we are going to call payload.apply which would
@@ -120,7 +121,7 @@ sealed trait TxnImpl extends Txn { tx =>
         //            assert (idxNew >= idxOld && idxNew < idxOld + szOld)
         val payIdx = resourceStampNew - txnStartStamp
         val payNew = payOld.updated(payIdx, payOld(payIdx).append(m))
-        payNew: Txn.Bundles
+        payNew: RT.Bundles
       }
     }
 
@@ -128,14 +129,14 @@ sealed trait TxnImpl extends Txn { tx =>
   }
 }
 
-trait TxnFullImpl[T <: Sys.Txn[T]] extends TxnImpl with Sys.Txn[T] {
+trait TxnFullImpl[T <: synth.Txn[T]] extends RTImpl with synth.Txn[T] {
   final protected def markBundlesDirty(): Unit = {
     log("registering after commit handler")
     afterCommit(flush())
   }
 }
 
-final class TxnPlainImpl(val peer: InTxn, val systemTimeNanoSec: Long) extends TxnImpl {
+final class TxnPlainImpl(val peer: InTxn, val systemTimeNanoSec: Long) extends RTImpl {
   override def toString = s"proc.Txn<plain>@${hashCode().toHexString}"
 
   def afterCommit(code: => Unit): Unit = ScalaTxn.afterCommit(_ => code)(peer)

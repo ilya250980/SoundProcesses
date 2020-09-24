@@ -26,6 +26,11 @@ object Proc extends Obj.Type {
 
   // ---- implementation forwards ----
 
+  override def init(): Unit = {
+    super.init()
+    Output.init()
+  }
+
   def apply[T <: Txn[T]]()(implicit tx: T): Proc[T] = Impl[T]()
 
   def read[T <: Txn[T]](in: DataInput)(implicit tx: T): Proc[T] = Impl.read(in)

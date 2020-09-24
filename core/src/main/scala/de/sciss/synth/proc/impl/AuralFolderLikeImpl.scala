@@ -13,82 +13,80 @@
 
 package de.sciss.synth.proc.impl
 
-import de.sciss.lucre.event.impl.ObservableImpl
-import de.sciss.lucre.stm
-import de.sciss.lucre.stm.TxnLike.peer
-import de.sciss.lucre.stm.{Disposable, Folder, Obj}
-import de.sciss.lucre.synth.Sys
+import de.sciss.lucre.Txn.peer
+import de.sciss.lucre.impl.ObservableImpl
+import de.sciss.lucre.{Disposable, Folder, Ident, Obj, Txn}
 import de.sciss.synth.proc.AuralObj.Container
 import de.sciss.synth.proc.{AuralObj, Runner, TimeRef, Transport}
 
 import scala.concurrent.stm.TMap
 
-trait AuralFolderLikeImpl[S <: Sys[S], /*Repr <: Obj[S],*/ View <: AuralObj.FolderLike[S, View]]
-  extends AuralObj.FolderLike[S, View] with BasicAuralObjImpl[S] {
+trait AuralFolderLikeImpl[T <: Txn[T], View <: AuralObj.FolderLike[T, View]]
+  extends AuralObj.FolderLike[T, View] with BasicAuralObjImpl[T] {
   impl: View =>
 
   // ---- abstract ----
 
-  protected def transport: Transport[S]
+  protected def transport: Transport[T]
 
-  protected def performPlay(timeRef: TimeRef)(implicit tx: S#Tx): Unit
+  protected def performPlay(timeRef: TimeRef)(implicit tx: T): Unit
 
-  protected def mkObserver(obj: Repr)(implicit tx: S#Tx): Disposable[S#Tx]
+  protected def mkObserver(obj: Repr)(implicit tx: T): Disposable[T]
 
   // ---- impl ----
 
-  private[this] var observer    : Disposable[S#Tx] = _
-  private[this] var transportObs: Disposable[S#Tx] = _
+  private[this] var observer    : Disposable[T] = _
+  private[this] var transportObs: Disposable[T] = _
 
-  private[this] val refPrepare = TMap.empty[AuralObj[S], Disposable[S#Tx]]
+  private[this] val refPrepare = TMap.empty[AuralObj[T], Disposable[T]]
 
-  final protected def processFolderUpdate(fUpd: stm.Folder.Update[S])(implicit tx: S#Tx): Unit =
+  final protected def processFolderUpdate(fUpd: Folder.Update[T])(implicit tx: T): Unit =
     fUpd.changes.foreach {
       case Folder.Added  (_, elem) => transport.addObject   (elem)
       case Folder.Removed(_, elem) => transport.removeObject(elem)
       case _ =>
     }
 
-  final def init(obj: Repr)(implicit tx: S#Tx): this.type = {
+  final def init(obj: Repr)(implicit tx: T): this.type = {
     observer      = mkObserver(obj)
     transportObs  = transport.react { implicit tx => { // XXX TODO should probably check if `Preparing` or `Running`
-      case Transport.ViewAdded  (_, view) => contents(Container.ViewAdded  [S, View](impl, view.obj.id, view))
-      case Transport.ViewRemoved(_, view) => contents(Container.ViewRemoved[S, View](impl, view.obj.id, view))
+      case Transport.ViewAdded  (_, view) => contents(Container.ViewAdded  [T, View](impl, view.obj.id, view))
+      case Transport.ViewRemoved(_, view) => contents(Container.ViewRemoved[T, View](impl, view.obj.id, view))
       case _ =>
     }}
 
     this
   }
 
-  object contents extends ObservableImpl[S, Container.Update[S, View]] {
-    def apply(update: Container.Update[S, View])(implicit tx: S#Tx): Unit = fire(update)
+  object contents extends ObservableImpl[T, Container.Update[T, View]] {
+    def apply(update: Container.Update[T, View])(implicit tx: T): Unit = fire(update)
   }
 
-  final def views(implicit tx: S#Tx): Set[AuralObj[S]] = transport.views
+  final def views(implicit tx: T): Set[AuralObj[T]] = transport.views
 
-  final def getView    (obj: Obj[S])(implicit tx: S#Tx): Option[AuralObj[S]] = transport.getView    (obj)
-  final def getViewById(id : S#Id  )(implicit tx: S#Tx): Option[AuralObj[S]] = transport.getViewById(id )
+  final def getView    (obj: Obj  [T])(implicit tx: T): Option[AuralObj[T]] = transport.getView    (obj)
+  final def getViewById(id : Ident[T])(implicit tx: T): Option[AuralObj[T]] = transport.getViewById(id )
 
-  final def stop()(implicit tx: S#Tx): Unit = {
+  final def stop()(implicit tx: T): Unit = {
     disposePrepare()
     transport.stop()
     state = Runner.Stopped
   }
 
-  final protected def startTransport(offset: Long)(implicit tx: S#Tx): Unit = {
+  final protected def startTransport(offset: Long)(implicit tx: T): Unit = {
     transport.stop()
     transport.seek(offset)  // XXX TODO -- should we incorporate timeRef.frame) ?
     transport.play()        // XXX TODO -- should we be able to pass the timeRef?
   }
 
-  final def run(timeRef: TimeRef.Option, unit: Unit)(implicit tx: S#Tx): Unit = {
+  final def run(timeRef: TimeRef.Option, unit: Unit)(implicit tx: T): Unit = {
     if (state == Runner.Running) return
     disposePrepare()
     performPlay(timeRef.force)
     state = Runner.Running
   }
 
-  final def prepare(timeRef: TimeRef.Option)(implicit tx: S#Tx): Unit = {
+  final def prepare(timeRef: TimeRef.Option)(implicit tx: T): Unit = {
     if (state != Runner.Stopped) return
     views.foreach { v =>
       v.prepare(timeRef)
@@ -109,13 +107,13 @@ trait AuralFolderLikeImpl[S <: Sys[S], /*Repr <: Obj[S],*/ View <: AuralObj.Fold
     state = Runner.Prepared
   }
 
-  private def disposePrepare()(implicit tx: S#Tx): Unit =
+  private def disposePrepare()(implicit tx: T): Unit =
     if (!refPrepare.isEmpty) {
       refPrepare.foreach(_._2.dispose())
       refPrepare.clear()
     }
 
-  def dispose()(implicit tx: S#Tx): Unit = {
+  def dispose()(implicit tx: T): Unit = {
     disposePrepare()
     observer    .dispose()
     transportObs.dispose()

@@ -17,14 +17,12 @@ import java.io.{ByteArrayOutputStream, IOException}
 
 import de.sciss.equal.Implicits._
 import de.sciss.file.File
-import de.sciss.lucre.event.impl.{DummyObservableImpl, IChangeGenerator}
-import de.sciss.lucre.event.{IChangeEvent, IPull, ITargets}
+import de.sciss.lucre.Txn.peer
 import de.sciss.lucre.expr.graph.impl.MappedIExpr
 import de.sciss.lucre.expr.impl.IActionImpl
-import de.sciss.lucre.expr.{Context, Graph, IAction, IExpr}
-import de.sciss.lucre.stm.Sys
-import de.sciss.lucre.stm.TxnLike.peer
-import de.sciss.lucre.synth
+import de.sciss.lucre.expr.{Context, Graph, IAction}
+import de.sciss.lucre.impl.{DummyObservableImpl, IChangeGeneratorEvent}
+import de.sciss.lucre.{IChangeEvent, IExpr, IPull, ITargets, Txn, synth}
 import de.sciss.model.Change
 import de.sciss.synth.proc
 import de.sciss.synth.proc.Runner.{Done, Failed, Prepared, Running, Stopped}
@@ -36,11 +34,11 @@ import scala.sys.process.{Process => SProcess}
 
 /** Access to operating system functions. */
 object Sys {
-  private final class ExpandedProperty[S <: Sys[S]](key: IExpr[S, String], tx0: S#Tx)
-                                                   (implicit targets: ITargets[S])
-    extends MappedIExpr[S, String, Option[String]](key, tx0) {
+  private final class ExpandedProperty[T <: Txn[T]](key: IExpr[T, String], tx0: T)
+                                                   (implicit targets: ITargets[T])
+    extends MappedIExpr[T, String, Option[String]](key, tx0) {
 
-    protected def mapValue(inValue: String)(implicit tx: S#Tx): Option[String] =
+    protected def mapValue(inValue: String)(implicit tx: T): Option[String] =
       sys.props.get(inValue)
   }
 
@@ -48,16 +46,16 @@ object Sys {
   final case class Property(key: Ex[String]) extends Ex[Option[String]] {
     override def productPrefix: String = s"Sys$$Property" // serialization
 
-    type Repr[S <: Sys[S]] = IExpr[S, Option[String]]
+    type Repr[T <: Txn[T]] = IExpr[T, Option[String]]
 
-    protected def mkRepr[S <: Sys[S]](implicit ctx: Context[S], tx: S#Tx): Repr[S] = {
+    protected def mkRepr[T <: Txn[T]](implicit ctx: Context[T], tx: T): Repr[T] = {
       import ctx.targets
-      new ExpandedProperty[S](key.expand[S], tx)
+      new ExpandedProperty[T](key.expand[T], tx)
     }
   }
 
-  private final class ExpandedExit[S <: Sys[S]](code: IExpr[S, Int]) extends IActionImpl[S] {
-    def executeAction()(implicit tx: S#Tx): Unit = {
+  private final class ExpandedExit[T <: Txn[T]](code: IExpr[T, Int]) extends IActionImpl[T] {
+    def executeAction()(implicit tx: T): Unit = {
       val codeV = code.value
       tx.afterCommit {
         sys.exit(codeV)
@@ -68,17 +66,17 @@ object Sys {
   final case class Exit(code: Ex[Int] = 0) extends Act {
     override def productPrefix: String = s"Sys$$Exit" // serialization
 
-    type Repr[S <: Sys[S]] = IAction[S]
+    type Repr[T <: Txn[T]] = IAction[T]
 
-    protected def mkRepr[S <: Sys[S]](implicit ctx: Context[S], tx: S#Tx): Repr[S] =
-      new ExpandedExit[S](code.expand[S])
+    protected def mkRepr[T <: Txn[T]](implicit ctx: Context[T], tx: T): Repr[T] =
+      new ExpandedExit[T](code.expand[T])
   }
 
-  private final class ExpandedEnv[S <: Sys[S]](key: IExpr[S, String], tx0: S#Tx)
-                                                   (implicit targets: ITargets[S])
-    extends MappedIExpr[S, String, Option[String]](key, tx0) {
+  private final class ExpandedEnv[T <: Txn[T]](key: IExpr[T, String], tx0: T)
+                                                   (implicit targets: ITargets[T])
+    extends MappedIExpr[T, String, Option[String]](key, tx0) {
 
-    protected def mapValue(inValue: String)(implicit tx: S#Tx): Option[String] =
+    protected def mapValue(inValue: String)(implicit tx: T): Option[String] =
       sys.env.get(inValue)
   }
 
@@ -86,11 +84,11 @@ object Sys {
   final case class Env(key: Ex[String]) extends Ex[Option[String]] {
     override def productPrefix: String = s"Sys$$Env" // serialization
 
-    type Repr[S <: Sys[S]] = IExpr[S, Option[String]]
+    type Repr[T <: Txn[T]] = IExpr[T, Option[String]]
 
-    protected def mkRepr[S <: Sys[S]](implicit ctx: Context[S], tx: S#Tx): Repr[S] = {
+    protected def mkRepr[T <: Txn[T]](implicit ctx: Context[T], tx: T): Repr[T] = {
       import ctx.targets
-      new ExpandedEnv[S](key.expand[S], tx)
+      new ExpandedEnv[T](key.expand[T], tx)
     }
   }
 
@@ -113,23 +111,23 @@ object Sys {
     private final val keyDirectory = "directory"
 
     final case class Directory(p: Process) extends Ex[File] {
-      type Repr[S <: Sys[S]] = IExpr[S, File]
+      type Repr[T <: Txn[T]] = IExpr[T, File]
 
       override def productPrefix: String = s"Sys$$Process$$Directory" // serialization
 
-      protected def mkRepr[S <: Sys[S]](implicit ctx: Context[S], tx: S#Tx): Repr[S] = {
+      protected def mkRepr[T <: Txn[T]](implicit ctx: Context[T], tx: T): Repr[T] = {
         val valueOpt = ctx.getProperty[Ex[File]](p, keyDirectory)
-        valueOpt.fold(Const(new File("")).expand[S])(_.expand[S])
+        valueOpt.fold(Const(new File("")).expand[T])(_.expand[T])
       }
     }
 
     final case class Output(p: Process) extends Ex[String] {
-      type Repr[S <: Sys[S]] = IExpr[S, String]
+      type Repr[T <: Txn[T]] = IExpr[T, String]
 
       override def productPrefix: String = s"Sys$$Process$$Output" // serialization
 
-      protected def mkRepr[S <: Sys[S]](implicit ctx: Context[S], tx: S#Tx): Repr[S] = {
-        val px = p.expand[S]
+      protected def mkRepr[T <: Txn[T]](implicit ctx: Context[T], tx: T): Repr[T] = {
+        val px = p.expand[T]
         px.output
       }
     }
@@ -141,44 +139,44 @@ object Sys {
       def nonEmpty: Boolean = !isEmpty
     }
 
-    private final class Expanded[S <: Sys[S]](cmd: IExpr[S, String], args: IExpr[S, Seq[String]],
-                                              dirOpt: Option[IExpr[S, File]])
-                                             (implicit val universe: Universe[S], targets: ITargets[S])
-      extends BasicRunnerImpl[S] with Peer[S] { outer =>
+    private final class Expanded[T <: Txn[T]](cmd: IExpr[T, String], args: IExpr[T, Seq[String]],
+                                              dirOpt: Option[IExpr[T, File]])
+                                             (implicit val universe: Universe[T], targets: ITargets[T])
+      extends BasicRunnerImpl[T] with Peer[T] { outer =>
 
       private[this] val idRef     = Ref(0)
       private[this] val runLocal  = TxnLocal(init = EmptyRun, afterCommit = executeRun)
       private[this] val procRef   = Ref(Option.empty[SProcess])
 
-      object output extends IExpr[S, String] with IChangeGenerator[S, String] {
+      object output extends IExpr[T, String] with IChangeGeneratorEvent[T, String] {
         private[this] val ref = Ref("")
 
-        def value_=(now: String)(implicit tx: S#Tx): Unit = {
+        def value_=(now: String)(implicit tx: T): Unit = {
           val before  = ref.swap(now)
           if (now != before) {
             fire(Change(before, now))
           }
         }
 
-        def value(implicit tx: S#Tx): String = {
+        def value(implicit tx: T): String = {
           ref()
         }
 
-        def dispose()(implicit tx: S#Tx): Unit = ()
+        def dispose()(implicit tx: T): Unit = ()
 
-        override def changed: IChangeEvent[S, String] = this
+        override def changed: IChangeEvent[T, String] = this
 
-        protected def targets: ITargets[S] = outer.targets
+        protected def targets: ITargets[T] = outer.targets
 
-        private[lucre] def pullChange(pull: IPull[S])(implicit tx: S#Tx, phase: IPull.Phase): String =
+        private[lucre] def pullChange(pull: IPull[T])(implicit tx: T, phase: IPull.Phase): String =
           pull.resolveExpr(this)
       }
 
-      object progress extends proc.Runner.Progress[S#Tx] with DummyObservableImpl[S] {
-        def current(implicit tx: S#Tx): Double = -1
+      object progress extends proc.Runner.Progress[T] with DummyObservableImpl[T] {
+        def current(implicit tx: T): Double = -1
       }
 
-      def prepare(attr: proc.Runner.Attr[S])(implicit tx: S#Tx): Unit = {
+      def prepare(attr: proc.Runner.Attr[T])(implicit tx: T): Unit = {
         state = Prepared
       }
 
@@ -193,7 +191,7 @@ object Sys {
             val code    = process.exitValue()
             os.flush()
             val outputV = os.toString("UTF-8")
-            SoundProcesses.step[S]("Sys.Process result") { implicit tx =>
+            SoundProcesses.step[T]("Sys.Process result") { implicit tx =>
               output.value_=(outputV)
               if (state === Running && idRef() == r.id) {
                 state = if (code == 0) {
@@ -208,7 +206,7 @@ object Sys {
         }
       }
 
-      def run()(implicit tx: S#Tx): Unit = {
+      def run()(implicit tx: T): Unit = {
         val cmdV    = cmd .value
         val argsV   = args.value
         val dirV    = dirOpt.flatMap { ex => val v = ex.value; if (v.getPath.isEmpty) None else Some(v) }
@@ -218,15 +216,15 @@ object Sys {
         state       = Running
       }
 
-      def stop()(implicit tx: S#Tx): Unit = {
+      def stop()(implicit tx: T): Unit = {
         killProcess()
         state = Stopped
       }
 
-      protected def disposeData()(implicit tx: S#Tx): Unit =
+      protected def disposeData()(implicit tx: T): Unit =
         killProcess()
 
-      private def killProcess()(implicit tx: S#Tx): Unit =
+      private def killProcess()(implicit tx: T): Unit =
         runLocal() = EmptyRun
     }
 
@@ -234,7 +232,7 @@ object Sys {
 
       override def productPrefix: String = s"Sys$$Process" // serialization
 
-      type Repr[S <: Sys[S]] = Peer[S]
+      type Repr[T <: Txn[T]] = Peer[T]
 
       def directory: Ex[File] = Process.Directory(this)
 
@@ -245,32 +243,32 @@ object Sys {
 
       def output: Ex[String] = Process.Output(this)
 
-      protected def mkRepr[S <: Sys[S]](implicit ctx: Context[S], tx: S#Tx): Repr[S] =
+      protected def mkRepr[T <: Txn[T]](implicit ctx: Context[T], tx: T): Repr[T] =
         tx.system match {
-          case _: synth.Sys[_] =>
+          case _: synth.Txn[_] =>
             // XXX TODO --- ugly ugly ugly
-            mkControlImpl[synth.NoSys](ctx.asInstanceOf[Context[synth.NoSys]], tx.asInstanceOf[synth.NoSys#Tx])
-              .asInstanceOf[Repr[S]]
+            mkControlImpl[synth.AnyTxn](ctx.asInstanceOf[Context[synth.AnyTxn]], tx.asInstanceOf[synth.AnyTxn])
+              .asInstanceOf[Repr[T]]
 
           case _ => throw new Exception("Need a SoundProcesses system")
         }
 
-      private def mkControlImpl[S <: synth.Sys[S]](implicit ctx: Context[S], tx: S#Tx): Repr[S] = {
+      private def mkControlImpl[T <: synth.Txn[T]](implicit ctx: Context[T], tx: T): Repr[T] = {
         import ctx.{cursor, targets, workspace}
-        implicit val h: Universe[S] = Universe()
-        val dirOpt = ctx.getProperty[Ex[File]](this, keyDirectory).map(_.expand[S])
-        new Expanded[S](cmd.expand[S], args.expand[S], dirOpt)
+        implicit val h: Universe[T] = Universe()
+        val dirOpt = ctx.getProperty[Ex[File]](this, keyDirectory).map(_.expand[T])
+        new Expanded[T](cmd.expand[T], args.expand[T], dirOpt)
       }
     }
 
-    trait Peer[S <: Sys[S]] extends proc.Runner[S] {
-      def output: IExpr[S, String]
+    trait Peer[T <: Txn[T]] extends proc.Runner[T] {
+      def output: IExpr[T, String]
     }
   }
 
   /** A shell process. */
   trait Process extends Runner {
-    type Repr[S <: Sys[S]] <: Process.Peer[S]
+    type Repr[T <: Txn[T]] <: Process.Peer[T]
 
     /** The process' current working directory. */
     var directory: Ex[File]

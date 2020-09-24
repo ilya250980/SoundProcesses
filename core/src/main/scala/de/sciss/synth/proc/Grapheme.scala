@@ -13,61 +13,57 @@
 
 package de.sciss.synth.proc
 
-import de.sciss.lucre.bitemp.BiPin
-import de.sciss.lucre.event.EventLike
-import de.sciss.lucre.stm.{Obj, Sys}
-import de.sciss.serial.{DataInput, Serializer}
+import de.sciss.lucre.{BiPin, EventLike, Obj, Txn}
+import de.sciss.serial.{DataInput, TFormat}
 import de.sciss.synth.proc.impl.{GraphemeImpl => Impl}
 
 object Grapheme extends Obj.Type {
   final val typeId = 0x10002
 
-  implicit def serializer[S <: Sys[S]]: Serializer[S#Tx, S#Acc, Grapheme[S]] = Impl.serializer[S]
+  implicit def format[T <: Txn[T]]: TFormat[T, Grapheme[T]] = Impl.format[T]
 
-  trait Modifiable[S <: Sys[S]] extends Grapheme[S] with BiPin.Modifiable[S, Obj[S]] {
-    override def changed: EventLike[S, BiPin.Update[S, Obj[S], Modifiable[S]]]
+  trait Modifiable[T <: Txn[T]] extends Grapheme[T] with BiPin.Modifiable[T, Obj[T]] {
+    override def changed: EventLike[T, BiPin.Update[T, Obj[T], Modifiable[T]]]
   }
 
-  def apply[S <: Sys[S]]()(implicit tx: S#Tx): Modifiable[S] = Impl.modifiable[S]
+  def apply[T <: Txn[T]]()(implicit tx: T): Modifiable[T] = Impl.modifiable[T]
 
   object Modifiable {
-    def read[S <: Sys[S]](in: DataInput, access: S#Acc)(implicit tx: S#Tx): Modifiable[S] =
-      Impl.readModifiable(in, access)
+    def read[T <: Txn[T]](in: DataInput)(implicit tx: T): Modifiable[T] = Impl.readModifiable(in)
 
-    implicit def serializer[S <: Sys[S]]: Serializer[S#Tx, S#Acc, Modifiable[S]] =
-      Impl.modifiableSerializer[S]
+    implicit def format[T <: Txn[T]]: TFormat[T, Modifiable[T]] = Impl.modifiableFormat[T]
 
     /** Extractor to check if a `Grapheme` is actually a `Grapheme.Modifiable`. */
-    def unapply[S <: Sys[S]](g: Grapheme[S]): Option[Modifiable[S]] = {
-      if (g.isInstanceOf[Modifiable[_]]) Some(g.asInstanceOf[Modifiable[S]]) else None
+    def unapply[T <: Txn[T]](g: Grapheme[T]): Option[Modifiable[T]] = {
+      if (g.isInstanceOf[Modifiable[_]]) Some(g.asInstanceOf[Modifiable[T]]) else None
     }
   }
 
-  def read[S <: Sys[S]](in: DataInput, access: S#Acc)(implicit tx: S#Tx): Grapheme[S] = Impl.read(in, access)
+  def read[T <: Txn[T]](in: DataInput)(implicit tx: T): Grapheme[T] = Impl.read(in)
 
-  override def readIdentifiedObj[S <: Sys[S]](in: DataInput, access: S#Acc)(implicit tx: S#Tx): Obj[S] =
-    Impl.readIdentifiedObj(in, access)
+  override def readIdentifiedObj[T <: Txn[T]](in: DataInput)(implicit tx: T): Obj[T] =
+    Impl.readIdentifiedObj(in)
 
   // ---- types from BiPin ----
 
-  type Leaf   [S <: Sys[S]]         = BiPin.Leaf   [S, Obj[S]]
-  type Entry  [S <: Sys[S]]         = BiPin.Entry  [S, Obj[S]]
+  type Leaf   [T <: Txn[T]]         = BiPin.Leaf   [T, Obj[T]]
+  type Entry  [T <: Txn[T]]         = BiPin.Entry  [T, Obj[T]]
   val  Entry: BiPin.Entry.type      = BiPin.Entry
 
-  type Added  [S <: Sys[S]]         = BiPin.Added  [S, Obj[S]]
+  type Added  [T <: Txn[T]]         = BiPin.Added  [T, Obj[T]]
   val  Added: BiPin.Added.type      = BiPin.Added
-  type Removed[S <: Sys[S]]         = BiPin.Removed[S, Obj[S]]
+  type Removed[T <: Txn[T]]         = BiPin.Removed[T, Obj[T]]
   val  Removed: BiPin.Removed.type  = BiPin.Removed
-  type Moved  [S <: Sys[S]]         = BiPin.Moved  [S, Obj[S]]
+  type Moved  [T <: Txn[T]]         = BiPin.Moved  [T, Obj[T]]
   val  Moved: BiPin.Moved.type      = BiPin.Moved
 }
-trait Grapheme[S <: Sys[S]] extends BiPin[S, Obj[S]] {
+trait Grapheme[T <: Txn[T]] extends BiPin[T, Obj[T]] {
   import Grapheme.Modifiable
 
-  override def modifiableOption: Option[Modifiable[S]]
+  override def modifiableOption: Option[Modifiable[T]]
 
-  def firstEvent(implicit tx: S#Tx): Option[Long]
-  def lastEvent (implicit tx: S#Tx): Option[Long]
+  def firstEvent(implicit tx: T): Option[Long]
+  def lastEvent (implicit tx: T): Option[Long]
 
-  override def changed: EventLike[S, BiPin.Update[S, Obj[S], Grapheme[S]]]
+  override def changed: EventLike[T, BiPin.Update[T, Obj[T], Grapheme[T]]]
 }

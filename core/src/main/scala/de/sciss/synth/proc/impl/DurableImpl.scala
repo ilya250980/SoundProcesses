@@ -13,10 +13,10 @@
 
 package de.sciss.synth.proc.impl
 
-import de.sciss.lucre.stm
-import de.sciss.lucre.stm.DataStore
+import de.sciss.lucre.DataStore
 import de.sciss.lucre.synth.InMemory
 import de.sciss.lucre.synth.impl.TxnFullImpl
+import de.sciss.lucre.impl.{DurableImpl => LDurableImpl}
 import de.sciss.synth.proc.Durable
 
 import scala.concurrent.stm.InTxn
@@ -30,25 +30,28 @@ private[proc] object DurableImpl {
   def apply(mainStore: DataStore): Durable = new System(mainStore)
 
   private final class TxnImpl(val system: System, val systemTimeNanoSec: Long, val peer: InTxn)
-    extends stm.impl.DurableImpl.TxnMixin[Durable]
-    with TxnFullImpl[Durable] with Durable.Txn {
+    extends LDurableImpl.TxnMixin[Durable.Txn]
+    with TxnFullImpl[Durable.Txn] with Durable.Txn {
 
-    lazy val inMemory: /* evt. */ InMemory#Tx = system.inMemory.wrap(peer)
+    lazy val inMemory: InMemory.Txn = system.inMemory.wrap(peer)
+
+    implicit def inMemoryBridge: Durable.Txn => InMemory.Txn = _.inMemory
 
     override def toString = s"proc.Durable#Tx@${hashCode.toHexString}"
   }
 
   private final class System(val store: DataStore)
-    extends stm.impl.DurableImpl.Mixin[Durable, /* stm. */ InMemory]
+    extends LDurableImpl.Mixin[Durable.Txn, InMemory.Txn]
     with Durable {
     // with evt.impl.ReactionMapImpl.Mixin[Durable] {
 
     type S = Durable
 
     val inMemory: /* evt. */ InMemory = /* evt. */ InMemory()
-    def inMemoryTx(tx: Tx): I#Tx = tx.inMemory
 
-    def wrap(peer: InTxn, systemTimeNanos: Long): S#Tx = new TxnImpl(this, systemTimeNanos, peer)
+//    def inMemoryTx(tx: Tx): I#Tx = tx.inMemory
+
+    def wrap(peer: InTxn, systemTimeNanos: Long): T = new TxnImpl(this, systemTimeNanos, peer)
 
     override def toString = s"proc.Durable@${hashCode.toHexString}"
   }

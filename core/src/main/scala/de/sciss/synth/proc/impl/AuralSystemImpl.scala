@@ -13,8 +13,8 @@
 
 package de.sciss.synth.proc.impl
 
-import de.sciss.lucre.stm.Disposable
-import de.sciss.lucre.synth.{Server, Txn}
+import de.sciss.lucre.Disposable
+import de.sciss.lucre.synth.{RT, Server}
 import de.sciss.osc.Dump
 import de.sciss.synth.proc.{AuralSystem, SoundProcesses, logAural => logA}
 import de.sciss.synth.{Client, ServerConnection, Server => SServer}
@@ -53,7 +53,7 @@ object AuralSystemImpl {
    *
    * TODO: review
    */
-  private def afterCommit(code: => Unit)(implicit tx: Txn): Unit = tx.afterCommit {
+  private def afterCommit(code: => Unit)(implicit tx: RT): Unit = tx.afterCommit {
     val exec = SoundProcesses.scheduledExecutorService
     // note: `isShutdown` is true during VM shutdown. In that case
     // calling `submit` would throw an exception.
@@ -65,13 +65,13 @@ object AuralSystemImpl {
   private final class Impl extends AuralSystem {
     impl =>
 
-    private sealed trait State extends Disposable[Txn] {
+    private sealed trait State extends Disposable[RT] {
       def serverOption: Option[Server]
       def shutdown(): Unit
     }
 
     private case object StateStopped extends State {
-      def dispose()(implicit tx: Txn): Unit = ()
+      def dispose()(implicit tx: RT): Unit = ()
       def serverOption: Option[Server] = None
       def shutdown(): Unit = ()
     }
@@ -101,9 +101,9 @@ object AuralSystemImpl {
         }
       }
 
-      def init()(implicit tx: Txn): Unit = afterCommit { con }
+      def init()(implicit tx: RT): Unit = afterCommit { con }
 
-      def dispose()(implicit tx: Txn): Unit = afterCommit {
+      def dispose()(implicit tx: RT): Unit = afterCommit {
         logA("Aborting boot")
         con.abort()
       }
@@ -113,7 +113,7 @@ object AuralSystemImpl {
     }
 
     private case class StateRunning(server: Server) extends State {
-      def dispose()(implicit tx: Txn): Unit = {
+      def dispose()(implicit tx: RT): Unit = {
         logA("Stopped server")
         // NodeGraph.removeServer(server)
         clients.get(tx.peer).foreach(_.auralStopped())
@@ -138,7 +138,7 @@ object AuralSystemImpl {
         val list = server.peer.addListener {
           case SServer.Offline =>
             atomic { implicit itx =>
-              implicit val tx: Txn = Txn.wrap(itx)
+              implicit val tx: RT = RT.wrap(itx)
               state.swap(StateStopped).dispose()
             }
         }
@@ -146,7 +146,7 @@ object AuralSystemImpl {
         assert(old.isEmpty)
       }
 
-      def init()(implicit tx: Txn): Unit = {
+      def init()(implicit tx: RT): Unit = {
         logA("Started server")
         // NodeGraph.addServer(server)
         clients.get(tx.peer).foreach(_.auralStarted(server))
@@ -160,21 +160,21 @@ object AuralSystemImpl {
     private val clients = Ref(Vec   .empty[Client])
     private val state   = Ref(StateStopped: State)
 
-    def offline(server: Server.Offline)(implicit tx: Txn): Unit = serverStartedTx(server)
+    def offline(server: Server.Offline)(implicit tx: RT): Unit = serverStartedTx(server)
 
     private def serverStarted(rich: Server): Unit =
       atomic { implicit itx =>
-        implicit val tx: Txn = Txn.wrap(itx)
+        implicit val tx: RT = RT.wrap(itx)
         serverStartedTx(rich)
       }
 
-    private def serverStartedTx(rich: Server)(implicit tx: Txn): Unit = {
+    private def serverStartedTx(rich: Server)(implicit tx: RT): Unit = {
       val running = StateRunning(rich)
       state.swap(running)(tx.peer) // .dispose()
       running.init()
     }
 
-    def start(config: Server.Config, client: Client.Config, connect: Boolean)(implicit tx: Txn): Unit =
+    def start(config: Server.Config, client: Client.Config, connect: Boolean)(implicit tx: RT): Unit =
       state.get(tx.peer) match {
         case StateStopped =>
           installShutdown
@@ -191,35 +191,35 @@ object AuralSystemImpl {
 
     private def shutdown(): Unit = state.single().shutdown()
 
-    def stop()(implicit tx: Txn): Unit =
+    def stop()(implicit tx: RT): Unit =
       state.swap(StateStopped)(tx.peer).dispose()
 
-    def addClient(c: Client)(implicit tx: Txn): Unit = {
+    def addClient(c: Client)(implicit tx: RT): Unit = {
       clients.transform(_ :+ c)(tx.peer)
       // serverOption.foreach(c.auralStarted)
     }
 
-    def addClientNow(c: Client)(implicit tx: Txn): Unit = {
+    def addClientNow(c: Client)(implicit tx: RT): Unit = {
       addClient(c)
       serverOption.foreach(c.auralStarted)
     }
 
-    def serverOption(implicit tx: Txn): Option[Server] = state.get(tx.peer).serverOption
+    def serverOption(implicit tx: RT): Option[Server] = state.get(tx.peer).serverOption
 
-    def removeClient(c: Client)(implicit tx: Txn): Unit =
+    def removeClient(c: Client)(implicit tx: RT): Unit =
       clients.transform { _.filterNot(_ == c) } (tx.peer)
 
-    def whenStarted(fun: Server => Unit)(implicit tx: Txn): Unit = {
+    def whenStarted(fun: Server => Unit)(implicit tx: RT): Unit = {
       state.get(tx.peer) match {
         case StateRunning(server) => tx.afterCommit(fun(server))
         case _ =>
           val c: Client = new Client {
-            def auralStarted(server: Server)(implicit tx: Txn): Unit = {
+            def auralStarted(server: Server)(implicit tx: RT): Unit = {
               removeClient(this)
               tx.afterCommit(fun(server))
             }
 
-            def auralStopped()(implicit tx: Txn): Unit = ()
+            def auralStopped()(implicit tx: RT): Unit = ()
           }
           addClient(c)
       }

@@ -13,24 +13,21 @@
 
 package de.sciss.synth.proc.impl
 
-import de.sciss.lucre.expr.BooleanObj
-import de.sciss.lucre.stm
-import de.sciss.lucre.stm.Obj
-import de.sciss.lucre.stm.TxnLike.peer
-import de.sciss.lucre.synth.Sys
+import de.sciss.lucre.Txn.peer
+import de.sciss.lucre.{BooleanObj, Obj, Source, synth}
 import de.sciss.synth.proc.Runner.{Running, Stopped}
 import de.sciss.synth.proc.{Runner, Timeline, Universe}
 
 import scala.concurrent.stm.Ref
 
 object TimelineRunnerImpl {
-  def apply[S <: Sys[S]](obj: Timeline[S])(implicit tx: S#Tx, universe: Universe[S]): Runner[S] = {
+  def apply[T <: synth.Txn[T]](obj: Timeline[T])(implicit tx: T, universe: Universe[T]): Runner[T] = {
     new Impl(tx.newHandle(obj), universe).init()
   }
 
-  private final class Impl[S <: Sys[S]](objH: stm.Source[S#Tx, Timeline[S]],
-                                        val universe: Universe[S])
-    extends BasicAuralRunnerImpl[S] {
+  private final class Impl[T <: synth.Txn[T]](objH: Source[T, Timeline[T]],
+                                        val universe: Universe[T])
+    extends BasicAuralRunnerImpl[T] {
 
     override def toString = s"Runner.Timeline${hashCode().toHexString}"
 
@@ -38,12 +35,12 @@ object TimelineRunnerImpl {
 
     private[this] val schToken = Ref(-1)
 
-    protected def obj(implicit tx: S#Tx): Obj[S] = objH()
+    protected def obj(implicit tx: T): Obj[T] = objH()
 
-    def init()(implicit tx: S#Tx): this.type =
+    def init()(implicit tx: T): this.type =
       connectAuralSystem()
 
-    private def mkSch()(implicit tx: S#Tx): Unit = {
+    private def mkSch()(implicit tx: T): Unit = {
       val tl = objH()
       tl.lastEvent.foreach { timeStop =>
         val now = 0L  // XXX TODO timeRef.force.span.start
@@ -65,18 +62,18 @@ object TimelineRunnerImpl {
       }
     }
 
-    private def cancelSch()(implicit tx: S#Tx): Unit = {
+    private def cancelSch()(implicit tx: T): Unit = {
       val token = schToken.swap(-1)
       if (token >= 0) universe.scheduler.cancel(token)
     }
 
-    override protected def stateWillChanged(now: Runner.State)(implicit tx: S#Tx): Unit = now match {
+    override protected def stateWillChanged(now: Runner.State)(implicit tx: T): Unit = now match {
       case Running  => mkSch()
       case Stopped  => cancelSch()
       case _        =>
     }
 
-    override protected def disposeData()(implicit tx: S#Tx): Unit = {
+    override protected def disposeData()(implicit tx: T): Unit = {
       super.disposeData()
       cancelSch()
     }

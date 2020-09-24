@@ -1,6 +1,6 @@
 package de.sciss.synth.proc.tests
 
-import de.sciss.lucre.synth.{AudioBus, Bus, InMemory, Txn}
+import de.sciss.lucre.synth.{AudioBus, Bus, InMemory, RT}
 import de.sciss.synth.proc.AuralSystem
 import de.sciss.synth.{AudioBus => SAudioBus}
 
@@ -12,7 +12,7 @@ object BusTest extends App {
   class DummyUser extends AudioBus.User {
     var observed = Vector.empty[Boolean]
 
-    def busChanged(peer: SAudioBus, isDummy: Boolean)(implicit tx: Txn): Unit = observed :+= isDummy
+    def busChanged(peer: SAudioBus, isDummy: Boolean)(implicit tx: RT): Unit = observed :+= isDummy
   }
 
   val sync = new AnyRef

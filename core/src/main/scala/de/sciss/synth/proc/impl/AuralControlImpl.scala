@@ -13,11 +13,10 @@
 
 package de.sciss.synth.proc.impl
 
+import de.sciss.lucre.Txn.peer
+import de.sciss.lucre.edit.UndoManager
 import de.sciss.lucre.expr.Context
-import de.sciss.lucre.stm
-import de.sciss.lucre.stm.TxnLike.peer
-import de.sciss.lucre.stm.{Disposable, Obj, Sys, UndoManager}
-import de.sciss.lucre.synth.{Sys => SSys}
+import de.sciss.lucre.{Disposable, Obj, Source, Txn, synth}
 import de.sciss.synth.proc.{AuralContext, AuralObj, Control, ExprContext, Runner, TimeRef, Universe}
 
 import scala.concurrent.stm.Ref
@@ -25,39 +24,39 @@ import scala.util.control.NonFatal
 import scala.util.{Failure, Success, Try}
 
 object AuralControlImpl extends AuralObj.Factory {
-  type Repr[S <: Sys[S]]  = Control[S]
+  type Repr[T <: Txn[T]]  = Control[T]
   def tpe: Obj.Type       = Control
 
-  def apply[S <: SSys[S]](obj: Control[S], attr: Runner.Attr[S])
-                         (implicit tx: S#Tx, context: AuralContext[S]): AuralObj.Control[S] = {
+  def apply[T <: synth.Txn[T]](obj: Control[T], attr: Runner.Attr[T])
+                         (implicit tx: T, context: AuralContext[T]): AuralObj.Control[T] = {
     val objH = tx.newHandle(obj)
     new Impl(objH, attr)
   }
 
-  private final class Impl[S <: SSys[S]](objH: stm.Source[S#Tx, Control[S]], attr: Runner.Attr[S])
-                                        (implicit context: AuralContext[S])
-    extends BasicViewBaseImpl[S] with AuralObj.Control[S] {
+  private final class Impl[T <: synth.Txn[T]](objH: Source[T, Control[T]], attr: Runner.Attr[T])
+                                        (implicit context: AuralContext[T])
+    extends BasicViewBaseImpl[T] with AuralObj.Control[T] {
 
-    implicit def universe: Universe[S] = context.universe
+    implicit def universe: Universe[T] = context.universe
 
-    private[this] val ctlCtxRef = Ref[Disposable[S#Tx]](Disposable.empty)
+    private[this] val ctlCtxRef = Ref[Disposable[T]](Disposable.empty)
 
-    override type Repr = Control[S]
+    override type Repr = Control[T]
 
     def tpe: Obj.Type = Control
 
-    override def obj(implicit tx: S#Tx): Control[S] = objH()
+    override def obj(implicit tx: T): Control[T] = objH()
 
-    def prepare(timeRef: TimeRef.Option)(implicit tx: S#Tx): Unit =
+    def prepare(timeRef: TimeRef.Option)(implicit tx: T): Unit =
       state = Runner.Prepared
 
     // XXX TODO DRY with ControlRunnerImpl
-    def run(timeRef: TimeRef.Option, target: Unit)(implicit tx: S#Tx): Unit = {
+    def run(timeRef: TimeRef.Option, target: Unit)(implicit tx: T): Unit = {
       val ctl = objH()
-      implicit val u: UndoManager[S]  = UndoManager()
-      implicit val ctx: Context[S]    = ExprContext(Some(objH), attr, None) // XXX TODO --- we lose Runner.Internal here
+      implicit val u: UndoManager[T]  = UndoManager()
+      implicit val ctx: Context[T]    = ExprContext(Some(objH), attr, None) // XXX TODO --- we lose Runner.Internal here
       val g   = ctl.graph.value
-      val ct  = Try(g.expand[S])
+      val ct  = Try(g.expand[T])
       ctlCtxRef.swap(ctx).dispose()
       ct match {
         case Success(c) =>
@@ -77,15 +76,15 @@ object AuralControlImpl extends AuralObj.Factory {
 
     override def toString = s"AuralControl@${hashCode().toHexString}"
 
-    def stop()(implicit tx: S#Tx): Unit = {
+    def stop()(implicit tx: T): Unit = {
       disposeCtlCtx()
       state = Runner.Stopped
     }
 
-    private def disposeCtlCtx()(implicit tx: S#Tx): Unit =
+    private def disposeCtlCtx()(implicit tx: T): Unit =
       ctlCtxRef.swap(Disposable.empty).dispose()
 
-    def dispose()(implicit tx: S#Tx): Unit =
+    def dispose()(implicit tx: T): Unit =
       disposeCtlCtx()
   }
 }

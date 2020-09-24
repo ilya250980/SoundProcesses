@@ -13,10 +13,9 @@
 
 package de.sciss.synth.proc.impl
 
-import de.sciss.lucre.event.impl.DummyObservableImpl
-import de.sciss.lucre.stm.TxnLike.peer
-import de.sciss.lucre.stm.{Disposable, Folder, Obj}
-import de.sciss.lucre.synth.Sys
+import de.sciss.lucre.Txn.peer
+import de.sciss.lucre.impl.DummyObservableImpl
+import de.sciss.lucre.{Disposable, Folder, Obj, Txn}
 import de.sciss.synth.proc.Runner.Attr
 import de.sciss.synth.proc.{Runner, Universe}
 
@@ -24,34 +23,34 @@ import scala.concurrent.stm.Ref
 import scala.util.control.NonFatal
 
 object FolderRunnerImpl {
-  def apply[S <: Sys[S]](obj: Folder[S])(implicit tx: S#Tx, universe: Universe[S]): Runner[S] = {
-//    val rMap = tx.newInMemoryIdMap[Entry[S]]
+  def apply[T <: Txn[T]](obj: Folder[T])(implicit tx: T, universe: Universe[T]): Runner[T] = {
+//    val rMap = tx.newIdentMap[Entry[T]]
     new Impl(/*tx.newHandle(obj),*/ /*rMap*/).init(obj)
   }
 
   // make sure we maintain the runners in the same order as the folder
-  private final class Entry[S <: Sys[S]](val r: Runner[S]) {
-    val pred: Ref[Entry[S]] = Ref.make()
-    val succ: Ref[Entry[S]] = Ref.make()
+  private final class Entry[T <: Txn[T]](val r: Runner[T]) {
+    val pred: Ref[Entry[T]] = Ref.make()
+    val succ: Ref[Entry[T]] = Ref.make()
   }
 
-  private final class Impl[S <: Sys[S]](/*objH: stm.Source[S#Tx, Folder[S]],*/ /*rMap: IdentifierMap[S#Id, S#Tx, Entry[S]]*/)
-                                       (implicit val universe: Universe[S])
-    extends BasicRunnerImpl[S] {
+  private final class Impl[T <: Txn[T]](/*objH: stm.Source[T, Folder[T]],*/ /*rMap: IdentMap[Ident[T], T, Entry[T]]*/)
+                                       (implicit val universe: Universe[T])
+    extends BasicRunnerImpl[T] {
 
     override def toString = s"Runner.Folder${hashCode().toHexString}"
 
-    private[this] var obsF: Disposable[S#Tx] = _
+    private[this] var obsF: Disposable[T] = _
 
-    private[this] val rHead = Ref.make[Entry[S]]()
+    private[this] val rHead = Ref.make[Entry[T]]()
 
-    object progress extends Runner.Progress[S#Tx] with DummyObservableImpl[S] {
-      def current(implicit tx: S#Tx): Double = -1
+    object progress extends Runner.Progress[T] with DummyObservableImpl[T] {
+      def current(implicit tx: T): Double = -1
     }
 
-    private def mkEntry(child: Obj[S])(implicit tx: S#Tx): Entry[S] = {
+    private def mkEntry(child: Obj[T])(implicit tx: T): Entry[T] = {
       val rChild = try {
-        Runner[S](child)
+        Runner[T](child)
       } catch {
         case NonFatal(ex) =>
           ex.printStackTrace()
@@ -60,9 +59,9 @@ object FolderRunnerImpl {
       new Entry(rChild)
     }
 
-    def init(obj: Folder[S])(implicit tx: S#Tx): this.type = {
-      var predSuccR: Ref[Entry[S]] = rHead
-      var pred: Entry[S] = null
+    def init(obj: Folder[T])(implicit tx: T): this.type = {
+      var predSuccR: Ref[Entry[T]] = rHead
+      var pred: Entry[T] = null
       obj.iterator.foreach { child =>
         val e = mkEntry(child)
         predSuccR() = e
@@ -81,7 +80,7 @@ object FolderRunnerImpl {
       this
     }
 
-    private def foreachChild(f: Runner[S] => Unit)(implicit tx: S#Tx): Unit = {
+    private def foreachChild(f: Runner[T] => Unit)(implicit tx: T): Unit = {
       var e = rHead()
       while (e != null) {
         if (e.r != null) f(e.r)
@@ -89,10 +88,10 @@ object FolderRunnerImpl {
       }
     }
 
-    private def addChild(idx: Int, child: Obj[S])(implicit tx: S#Tx): Unit = {
+    private def addChild(idx: Int, child: Obj[T])(implicit tx: T): Unit = {
       val e     = mkEntry(child)
       var succ  = rHead()
-      var pred: Entry[S] = null
+      var pred: Entry[T] = null
       var rem = idx
       while (rem > 0) {
         pred = succ
@@ -107,9 +106,9 @@ object FolderRunnerImpl {
       e.succ() = succ
     }
 
-    private def removeChild(idx: Int /*, child: Obj[S]*/)(implicit tx: S#Tx): Unit = {
+    private def removeChild(idx: Int /*, child: Obj[T]*/)(implicit tx: T): Unit = {
       var e = rHead()
-      var pred: Entry[S] = null
+      var pred: Entry[T] = null
       var rem = idx
       while (rem > 0) {
         pred = e
@@ -123,22 +122,22 @@ object FolderRunnerImpl {
       if (e.r != null) e.r.dispose()
     }
 
-    def prepare(attr: Attr[S])(implicit tx: S#Tx): Unit = {
+    def prepare(attr: Attr[T])(implicit tx: T): Unit = {
       foreachChild(_.prepare(attr)) // XXX TODO --- monitor and reflect `Preparing` like `AuralFolderImpl`
       state = Runner.Prepared
     }
 
-    def run()(implicit tx: S#Tx): Unit = {
+    def run()(implicit tx: T): Unit = {
       foreachChild(_.run())
       state = Runner.Running
     }
 
-    def stop()(implicit tx: S#Tx): Unit = {
+    def stop()(implicit tx: T): Unit = {
       foreachChild(_.stop())
       state = Runner.Stopped
     }
 
-    protected def disposeData()(implicit tx: S#Tx): Unit = {
+    protected def disposeData()(implicit tx: T): Unit = {
       obsF.dispose()
 //      rMap.dispose()
       rHead() = null

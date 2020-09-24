@@ -14,23 +14,22 @@
 package de.sciss.synth.proc.impl
 
 import de.sciss.lucre.expr.{Context, IControl}
-import de.sciss.lucre.stm
-import de.sciss.lucre.stm.Sys
+import de.sciss.lucre.{Source, Txn}
 import de.sciss.synth.proc.Runner.{Failed, Running}
 import de.sciss.synth.proc.{Control, Runner, Universe}
 
 import scala.util.{Failure, Success, Try}
 
 object ControlRunnerImpl {
-  def apply[S <: Sys[S]](obj: Control[S])(implicit tx: S#Tx, universe: Universe[S]): Runner[S] =
+  def apply[T <: Txn[T]](obj: Control[T])(implicit tx: T, universe: Universe[T]): Runner[T] =
     new Impl(tx.newHandle(obj))
 
-  private final class Impl[S <: Sys[S]](objH: stm.Source[S#Tx, Control[S]])(implicit universe: Universe[S])
-    extends BasicControlRunnerImpl[S, IControl[S]](objH) {
+  private final class Impl[T <: Txn[T]](objH: Source[T, Control[T]])(implicit universe: Universe[T])
+    extends BasicControlRunnerImpl[T, IControl[T]](objH) {
 
     override def toString = s"Runner.Control${hashCode().toHexString}"
 
-    protected def run(tr: Try[IRepr])(implicit tx: S#Tx): Unit = {
+    protected def run(tr: Try[IRepr])(implicit tx: T): Unit = {
       val tr1 = tr.flatMap { c =>
         state = Running
         Try(c.initControl())
@@ -44,10 +43,10 @@ object ControlRunnerImpl {
       }
     }
 
-    protected def expandGraph()(implicit tx: S#Tx, ctx: Context[S]): IRepr = {
+    protected def expandGraph()(implicit tx: T, ctx: Context[T]): IRepr = {
       val ctl = objH()
       val g   = ctl.graph.value
-      g.expand[S]
+      g.expand[T]
     }
   }
 }

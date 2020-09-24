@@ -1,11 +1,9 @@
 package de.sciss.synth.proc.tests
 
 import de.sciss.file._
-import de.sciss.lucre.artifact.{Artifact, ArtifactLocation}
-import de.sciss.lucre.stm
-import de.sciss.lucre.stm.Source
 import de.sciss.lucre.synth.impl.ServerImpl
 import de.sciss.lucre.synth.{InMemory, Server, Sys}
+import de.sciss.lucre.{Artifact, ArtifactLocation, Cursor, Source, synth}
 import de.sciss.processor.Processor
 import de.sciss.span.Span
 import de.sciss.synth.io.{AudioFile, AudioFileSpec}
@@ -23,7 +21,7 @@ object Issue73 {
     new Issue73(system)
   }
 }
-class Issue73[S <: Sys[S]](val system: S)(implicit cursor: stm.Cursor[S]) {
+class Issue73[T <: synth.Txn[T]](val system: Sys)(implicit cursor: Cursor[T]) {
   def frame(secs: Double): Long = (secs * TimeRef.SampleRate).toLong
 
   val durBounceMin: Double        = 0.2 // 10.0
@@ -34,8 +32,8 @@ class Issue73[S <: Sys[S]](val system: S)(implicit cursor: stm.Cursor[S]) {
 
   println(s"numFrames ${specIn.numFrames}; numChannels ${specIn.numChannels}") // numFrames 208338; numChannels 1
 
-  val groupH: Source[S#Tx, Timeline.Modifiable[S]] = cursor.step { implicit tx =>
-    val proc      = Proc[S]()
+  val groupH: Source[T, Timeline.Modifiable[T]] = cursor.step { implicit tx =>
+    val proc      = Proc[T]()
     proc.name     = "issue"
     proc.graph()  = SynthGraph {
       import de.sciss.numbers.Implicits._
@@ -46,20 +44,20 @@ class Issue73[S <: Sys[S]](val system: S)(implicit cursor: stm.Cursor[S]) {
       factor.roundTo(0.01).poll(30.0.reciprocal, "f")
       Out.ar(0, in)
     }
-    val locIn = ArtifactLocation.newConst[S](fIn.parent)
+    val locIn = ArtifactLocation.newConst[T](fIn.parent)
     val artIn = Artifact(locIn, fIn)
     val cueIn = AudioCue.Obj(artIn, specIn, 0L, 1.0)
     proc.attr.put("in", cueIn)
-    val group     = Timeline[S]()
+    val group     = Timeline[T]()
     group.add(Span(frame(0.0), frame(durBounceSec)), proc)
     tx.newHandle(group)
   }
 
-  implicit val bridge: S#Tx => system.I#Tx = system.inMemoryTx
+//  implicit val bridge: T => system.I#Tx = system.inMemoryTx
 
-  implicit val u: Universe[S] = cursor.step { implicit tx => Universe.dummy }
-  val bounce: Bounce[S]   = Bounce()
-  val bCfg: Bounce.ConfigBuilder[S] = Bounce.Config()
+  implicit val u: Universe[T] = cursor.step { implicit tx => Universe.dummy }
+  val bounce: Bounce[T]   = Bounce()
+  val bCfg: Bounce.ConfigBuilder[T] = Bounce.Config()
   bCfg.group              = groupH :: Nil
   bCfg.span               = Span(frame(0.0), frame(durBounceSec))
   bCfg.realtime           = true

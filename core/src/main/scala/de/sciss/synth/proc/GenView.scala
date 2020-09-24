@@ -13,9 +13,7 @@
 
 package de.sciss.synth.proc
 
-import de.sciss.lucre.event.Observable
-import de.sciss.lucre.stm.{Disposable, Obj, Sys}
-import de.sciss.lucre.synth.{Sys => SSys}
+import de.sciss.lucre.{Disposable, Obj, Observable, Txn, synth}
 import de.sciss.synth.proc.impl.{GenViewImpl => Impl}
 
 import scala.util.Try
@@ -40,9 +38,9 @@ object GenView {
   trait Factory {
     def typeId: Int
 
-    type Repr[~ <: Sys[~]] <: Obj[~]
+    type Repr[~ <: Txn[~]] <: Obj[~]
 
-    def apply[S <: SSys[S]](obj: Repr[S])(implicit tx: S#Tx, universe: Universe[S]): GenView[S]
+    def apply[T <: synth.Txn[T]](obj: Repr[T])(implicit tx: T, universe: Universe[T]): GenView[T]
   }
 
   def addFactory   (f: Factory): Unit     = Impl.addFactory   (f)
@@ -50,16 +48,16 @@ object GenView {
 
   def factories: Iterable[Factory] = Impl.factories
 
-  def apply[S <: SSys[S]](obj: Obj[S])(implicit tx: S#Tx, universe: Universe[S]): GenView[S] = Impl(obj)
+  def apply[T <: synth.Txn[T]](obj: Obj[T])(implicit tx: T, universe: Universe[T]): GenView[T] = Impl(obj)
 }
-trait GenView[S <: Sys[S]] extends Observable[S#Tx, GenView.State] with Disposable[S#Tx] {
+trait GenView[T <: Txn[T]] extends Observable[T, GenView.State] with Disposable[T] {
   def typeId: Int
 
-  def reactNow(fun: S#Tx => GenView.State => Unit)(implicit tx: S#Tx): Disposable[S#Tx]
+  def reactNow(fun: T => GenView.State => Unit)(implicit tx: T): Disposable[T]
 
-  def state(implicit tx: S#Tx): GenView.State
+  def state(implicit tx: T): GenView.State
 
   def valueType: Obj.Type
 
-  def value(implicit tx: S#Tx): Option[Try[Obj[S]]]
+  def value(implicit tx: T): Option[Try[Obj[T]]]
 }

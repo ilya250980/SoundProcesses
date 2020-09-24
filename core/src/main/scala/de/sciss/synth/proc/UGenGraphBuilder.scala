@@ -13,11 +13,12 @@
 
 package de.sciss.synth.proc
 
-import de.sciss.lucre.synth.{Server, Sys}
+import de.sciss.lucre.Txn
+import de.sciss.lucre.synth.Server
+import de.sciss.synth.proc.impl.{UGenGraphBuilderImpl => Impl}
 import de.sciss.synth.{NestedUGenGraphBuilder, UGenGraph}
 
 import scala.util.control.ControlThrowable
-import impl.{UGenGraphBuilderImpl => Impl}
 
 object UGenGraphBuilder {
   def get: UGenGraphBuilder = UGenGraph.builder match {
@@ -37,20 +38,20 @@ object UGenGraphBuilder {
     * created and consumed within the same transaction. That is to say, to be transactionally safe, it may only
     * be stored in a `TxnLocal`, but not a full STM ref.
     */
-  def apply[S <: Sys[S]](context: Context[S], proc: Proc[S])
-                        (implicit tx: S#Tx): State[S] = Impl(context, proc)
+  def apply[T <: Txn[T]](context: Context[T], proc: Proc[T])
+                        (implicit tx: T): State[T] = Impl(context, proc)
 
-  def init[S <: Sys[S]](proc: Proc[S])(implicit tx: S#Tx): Incomplete[S] = Impl.init(proc)
+  def init[T <: Txn[T]](proc: Proc[T])(implicit tx: T): Incomplete[T] = Impl.init(proc)
 
   case class ScanIn(numChannels: Int, fixed: Boolean)
 
-  trait Context[S <: Sys[S]] {
+  trait Context[T <: Txn[T]] {
     def server: Server
 
-    def requestInput[Res](req: UGenGraphBuilder.Input { type Value = Res }, io: Requester[S])(implicit tx: S#Tx): Res
+    def requestInput[Res](req: UGenGraphBuilder.Input { type Value = Res }, io: Requester[T])(implicit tx: T): Res
   }
 
-  trait IO[S <: Sys[S]] {
+  trait IO[T <: Txn[T]] {
     def acceptedInputs: Map[Key, Map[Input, Input#Value]]
 
     /** Current set of used outputs (scan keys to number of channels).
@@ -59,26 +60,26 @@ object UGenGraphBuilder {
     def outputs: Map[String, Int]
   }
 
-  trait Requester[S <: Sys[S]] extends IO[S] {
+  trait Requester[T <: Txn[T]] extends IO[T] {
     /** Asks for a unique (monotonously increasing) number that can be used
       * to created a unique control name, for example.
       */
     def allocUniqueId(): Int
   }
 
-  sealed trait State[S <: Sys[S]] extends IO[S] {
+  sealed trait State[T <: Txn[T]] extends IO[T] {
     def rejectedInputs: Set[Key]
 
     def isComplete: Boolean
   }
 
-  trait Incomplete[S <: Sys[S]] extends State[S] {
-    def retry(context: Context[S])(implicit tx: S#Tx): State[S]
+  trait Incomplete[T <: Txn[T]] extends State[T] {
+    def retry(context: Context[T])(implicit tx: T): State[T]
 
     final def isComplete = false
   }
 
-  trait Complete[S <: Sys[S]] extends State[S] {
+  trait Complete[T <: Txn[T]] extends State[T] {
     def result: NestedUGenGraphBuilder.Result
 
     final def isComplete = true

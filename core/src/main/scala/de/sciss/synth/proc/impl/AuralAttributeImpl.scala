@@ -13,15 +13,12 @@
 
 package de.sciss.synth.proc.impl
 
-import de.sciss.lucre.event.impl.DummyObservableImpl
-import de.sciss.lucre.expr.{BooleanObj, DoubleObj, DoubleVector, Expr, ExprLike, IExpr, IntObj, IntVector}
-import de.sciss.lucre.stm
-import de.sciss.lucre.stm.{Disposable, Folder, NoSys, Obj, TxnLike}
-import de.sciss.lucre.synth.Sys
+import de.sciss.lucre.impl.DummyObservableImpl
+import de.sciss.lucre.{AnyTxn, BooleanObj, Disposable, DoubleObj, DoubleVector, Expr, ExprLike, Folder, IExpr, IntObj, IntVector, Obj, Source, Txn, synth}
 import de.sciss.synth.Curve
 import de.sciss.synth.proc.AuralAttribute.{Factory, Observer, Scalar, Target}
 import de.sciss.synth.proc.Runner.{Prepared, Running, State, Stopped}
-import de.sciss.synth.proc.{AuralAttribute, AuralContext, ControlValuesView, EnvSegment, FadeSpec, Grapheme, Output, StartLevelViewFactory, TimeRef, Timeline}
+import de.sciss.synth.proc.{AuralAttribute, AuralContext, ControlValuesView, EnvSegment, FadeSpec, Grapheme, Proc, StartLevelViewFactory, TimeRef, Timeline}
 import de.sciss.synth.ugen.ControlValues
 
 import scala.collection.immutable.{IndexedSeq => Vec, Seq => ISeq}
@@ -30,7 +27,7 @@ import scala.concurrent.stm.Ref
 object AuralAttributeImpl {
   private[this] val sync = new AnyRef
 
-  import TxnLike.peer
+  import de.sciss.lucre.Txn.peer
 
   // ---- Factory ----
 
@@ -42,30 +39,30 @@ object AuralAttributeImpl {
 
   def factories: Iterable[Factory] = map.values
 
-  def apply[S <: Sys[S]](key: String, value: Obj[S], observer: Observer[S])
-                        (implicit tx: S#Tx, context: AuralContext[S]): AuralAttribute[S] = {
+  def apply[T <: synth.Txn[T]](key: String, value: Obj[T], observer: Observer[T])
+                              (implicit tx: T, context: AuralContext[T]): AuralAttribute[T] = {
     val tid = value.tpe.typeId
     map.get(tid) match {
       case Some(factory) =>
-        factory(key, value.asInstanceOf[factory.Repr[S]], observer)
+        factory(key, value.asInstanceOf[factory.Repr[T]], observer)
       case None =>
         Console.err.println(s"Warning: AuralAttribute - no factory for ${value.tpe}")
-        new DummyAttribute[S](key, tx.newHandle(value))
+        new DummyAttribute[T](key, tx.newHandle(value))
     }
   }
 
-  def expr[S <: Sys[S], A](key: String, value: IExpr[S, A], observer: Observer[S])
-                          (implicit tx: S#Tx, context: AuralContext[S]): AuralAttribute[S] = {
+  def expr[T <: synth.Txn[T], A](key: String, value: IExpr[T, A], observer: Observer[T])
+                          (implicit tx: T, context: AuralContext[T]): AuralAttribute[T] = {
     val v = value.value
     v match {
-      case _: Int       => IntExprLike      (key, value.asInstanceOf[ExprLike[S, Int      ]], observer)
-      case _: Double    => DoubleExprLike   (key, value.asInstanceOf[ExprLike[S, Double   ]], observer)
-      case _: Boolean   => BooleanExprLike  (key, value.asInstanceOf[ExprLike[S, Boolean  ]], observer)
-      case _: FadeSpec  => FadeSpecExprLike (key, value.asInstanceOf[ExprLike[S, FadeSpec ]], observer)
+      case _: Int       => IntExprLike      (key, value.asInstanceOf[ExprLike[T, Int      ]], observer)
+      case _: Double    => DoubleExprLike   (key, value.asInstanceOf[ExprLike[T, Double   ]], observer)
+      case _: Boolean   => BooleanExprLike  (key, value.asInstanceOf[ExprLike[T, Boolean  ]], observer)
+      case _: FadeSpec  => FadeSpecExprLike (key, value.asInstanceOf[ExprLike[T, FadeSpec ]], observer)
       case sq: ISeq[_] if sq.forall(_.isInstanceOf[Double]) =>
-        DoubleVectorExprLike (key, value.asInstanceOf[ExprLike[S, ISeq[Double]]], observer)
+        DoubleVectorExprLike (key, value.asInstanceOf[ExprLike[T, ISeq[Double]]], observer)
       case sq: ISeq[_] if sq.forall(_.isInstanceOf[Int]) =>
-        IntVectorExprLike    (key, value.asInstanceOf[ExprLike[S, ISeq[Int]   ]], observer)
+        IntVectorExprLike    (key, value.asInstanceOf[ExprLike[T, ISeq[Int]   ]], observer)
       case _ => 
         Console.err.println(s"Warning: AuralAttribute - no factory for $value")
         new DummyExprLike(key, value)
@@ -80,7 +77,7 @@ object AuralAttributeImpl {
     DoubleVector.typeId -> DoubleVectorAttribute,
     IntVector   .typeId -> IntVectorAttribute,
     Grapheme    .typeId -> AuralGraphemeAttribute,
-    Output      .typeId -> AuralOutputAttribute,
+    Proc.Output .typeId -> AuralOutputAttribute,
     Folder      .typeId -> AuralFolderAttribute,
     Timeline    .typeId -> AuralTimelineAttribute,
     EnvSegment  .typeId -> AuralEnvSegmentAttribute
@@ -104,61 +101,61 @@ object AuralAttributeImpl {
     startLevelMap += tid -> f
   }
 
-  def startLevelView[S <: Sys[S]](obj: Obj[S])(implicit tx: S#Tx): ControlValuesView[S] = {
+  def startLevelView[T <: synth.Txn[T]](obj: Obj[T])(implicit tx: T): ControlValuesView[T] = {
     val tid = obj.tpe.typeId
     startLevelMap.get(tid) match {
       case Some(factory) =>
-        factory.mkStartLevelView(obj.asInstanceOf[factory.Repr[S]])
+        factory.mkStartLevelView(obj.asInstanceOf[factory.Repr[T]])
       case None =>
-        DummyScalarOptionView.asInstanceOf[ControlValuesView[S]]
+        DummyScalarOptionView.asInstanceOf[ControlValuesView[T]]
     }
   }
 
-  private object DummyScalarOptionView extends ControlValuesView[NoSys] with DummyObservableImpl[NoSys] {
-    def apply()(implicit tx: NoSys#Tx): Option[ControlValues] = None
+  private object DummyScalarOptionView extends ControlValuesView[AnyTxn] with DummyObservableImpl[AnyTxn] {
+    def apply()(implicit tx: AnyTxn): Option[ControlValues] = None
   }
 
   // ---- ----
 
-  private final class Playing[S <: Sys[S]](val timeRef: TimeRef, val wallClock: Long,
-                                           val target: Target[S], val value: AuralAttribute.Value) {
+  private final class Playing[T <: Txn[T]](val timeRef: TimeRef, val wallClock: Long,
+                                           val target: Target[T], val value: AuralAttribute.Value) {
     def shiftTo(newWallClock: Long): TimeRef = {
       val delta = newWallClock - wallClock
       timeRef.shift(delta)
     }
 
-    def updateValue(newValue: AuralAttribute.Value): Playing[S] =
+    def updateValue(newValue: AuralAttribute.Value): Playing[T] =
       new Playing(timeRef, wallClock, target, newValue)
   }
 
-  trait ExprImpl[S <: Sys[S], A]
-    extends AuralAttributeImpl[S] { attr =>
+  trait ExprImpl[T <: synth.Txn[T], A]
+    extends AuralAttributeImpl[T] { attr =>
 
     // ---- abstract ----
 
-    protected val context: AuralContext[S]
+    protected val context: AuralContext[T]
 
-    type Repr <: ExprLike[S, A]
+    type Repr <: ExprLike[T, A]
 
     /** Creates a value representation of this input. If the value is a `Stream`,
       * that stream's node reference will be disposed when the input stops (is replaced by other input).
       */
-    protected def mkValue(timeRef: TimeRef, in: A)(implicit tx: S#Tx): AuralAttribute.Value
+    protected def mkValue(timeRef: TimeRef, in: A)(implicit tx: T): AuralAttribute.Value
 
     // ---- impl ----
 
 //    import context.{scheduler => sched}
     import context.universe.{scheduler => sched}
 
-    private[this] var obs: Disposable[S#Tx] = _
-    private[this] val playRef = Ref(Option.empty[Playing[S]])
+    private[this] var obs: Disposable[T] = _
+    private[this] val playRef = Ref(Option.empty[Playing[T]])
 
-    final def targetOption(implicit tx: S#Tx): Option[Target[S]] = playRef().map(_.target)
+    final def targetOption(implicit tx: T): Option[Target[T]] = playRef().map(_.target)
 
-    final def prepare(timeRef: TimeRef.Option)(implicit tx: S#Tx): Unit =
+    final def prepare(timeRef: TimeRef.Option)(implicit tx: T): Unit =
       state = Prepared
 
-    final def run(timeRef: TimeRef.Option, target: Target[S])(implicit tx: S#Tx): Unit /* Instance */ = {
+    final def run(timeRef: TimeRef.Option, target: Target[T])(implicit tx: T): Unit /* Instance */ = {
       state = Running
       val timeF   = timeRef.force
       val value   = updateTarget(timeF, target, obj.value)
@@ -166,19 +163,19 @@ object AuralAttributeImpl {
       require(playRef.swap(Some(playing))(tx.peer).isEmpty)
     }
 
-    final def stop()(implicit tx: S#Tx): Unit = {
+    final def stop()(implicit tx: T): Unit = {
       stopNoFire()
       state = Stopped
     }
 
-    private def updateTarget(timeRef: TimeRef, target: Target[S], value: A)
-                            (implicit tx: S#Tx): AuralAttribute.Value = {
+    private def updateTarget(timeRef: TimeRef, target: Target[T], value: A)
+                            (implicit tx: T): AuralAttribute.Value = {
       val ctlVal = mkValue(timeRef, value)
       target.put(this, ctlVal)
       ctlVal
     }
 
-    final protected def valueChanged(value: A)(implicit tx: S#Tx): Unit = {
+    final protected def valueChanged(value: A)(implicit tx: T): Unit = {
       playRef().foreach { p =>
         val trNew     = p.shiftTo(sched.time)
         val newValue  = updateTarget(trNew, p.target, value)
@@ -190,7 +187,7 @@ object AuralAttributeImpl {
       }
     }
 
-    def init(expr: ExprLike[S, A])(implicit tx: S#Tx): this.type = {
+    def init(expr: ExprLike[T, A])(implicit tx: T): this.type = {
       obs = expr.changed.react { implicit tx => change =>
         valueChanged(change.now)
       }
@@ -198,98 +195,98 @@ object AuralAttributeImpl {
     }
 
     @inline
-    private def freeValue(p: Playing[S])(implicit tx: S#Tx): Unit = p.value match {
+    private def freeValue(p: Playing[T])(implicit tx: T): Unit = p.value match {
       case AuralAttribute.Stream(nodeRef, _) => nodeRef.node.dispose()
       case _ =>
     }
 
-    private def stopNoFire()(implicit tx: S#Tx): Unit =
+    private def stopNoFire()(implicit tx: T): Unit =
       playRef.swap(None).foreach { p =>
         p.target.remove(this)
         freeValue(p)
       }
 
-    def dispose()(implicit tx: S#Tx): Unit = {
+    def dispose()(implicit tx: T): Unit = {
       obs.dispose()
       stopNoFire()
     }
   }
 
-  private trait SingleChannelImpl[S <: Sys[S], A] extends ExprImpl[S, A] {
-    final def preferredNumChannels(implicit tx: S#Tx): Int = 1
+  private trait SingleChannelImpl[T <: synth.Txn[T], A] extends ExprImpl[T, A] {
+    final def preferredNumChannels(implicit tx: T): Int = 1
   }
 
-  private abstract class NumericExprStartLevel[S <: Sys[S], A](obj: stm.Source[S#Tx, Expr[S, A]])
-    extends ControlValuesView[S] {
+  private abstract class NumericExprStartLevel[T <: Txn[T], A](obj: Source[T, Expr[T, A]])
+    extends ControlValuesView[T] {
 
     def mkValue(in: A): ControlValues
 
-    def apply()(implicit tx: S#Tx): Option[ControlValues] = Some(mkValue(obj().value))
+    def apply()(implicit tx: T): Option[ControlValues] = Some(mkValue(obj().value))
 
-    def react(fun: S#Tx => Option[ControlValues] => Unit)(implicit tx: S#Tx): Disposable[S#Tx] =
+    def react(fun: T => Option[ControlValues] => Unit)(implicit tx: T): Disposable[T] =
       obj().changed.react { implicit tx => ch =>
         val lvlCh = ch.map(mkValue)
         if (lvlCh.isSignificant) fun(tx)(Some(lvlCh.now))
       }
   }
 
-  private trait NumericExprImpl[S <: Sys[S], A] extends ExprImpl[S, A] {
+  private trait NumericExprImpl[T <: synth.Txn[T], A] extends ExprImpl[T, A] {
     def mkValue(in: A): AuralAttribute.Scalar
 
-    final def mkValue(timeRef: TimeRef, value: A)(implicit tx: S#Tx): AuralAttribute.Value = mkValue(value)
+    final def mkValue(timeRef: TimeRef, value: A)(implicit tx: T): AuralAttribute.Value = mkValue(value)
   }
 
   // ------------------- IntObj -------------------
 
   private[this] object IntAttribute extends Factory with StartLevelViewFactory {
-    type Repr[S <: stm.Sys[S]] = IntObj[S]
+    type Repr[T <: Txn[T]] = IntObj[T]
 
     def tpe: Obj.Type = IntObj
 
-    def apply[S <: Sys[S]](key: String, value: IntObj[S], observer: Observer[S])
-                          (implicit tx: S#Tx, context: AuralContext[S]): AuralAttribute[S] =
+    def apply[T <: synth.Txn[T]](key: String, value: IntObj[T], observer: Observer[T])
+                          (implicit tx: T, context: AuralContext[T]): AuralAttribute[T] =
       new IntAttribute(key, tx.newHandle(value)).init(value)
 
-    def mkStartLevelView[S <: Sys[S]](value: Repr[S])(implicit tx: S#Tx): ControlValuesView[S] =
+    def mkStartLevelView[T <: Txn[T]](value: Repr[T])(implicit tx: T): ControlValuesView[T] =
       new IntStartLevel(tx.newHandle(value))
   }
 
-  private final class IntStartLevel[S <: Sys[S]](obj: stm.Source[S#Tx, IntObj[S]])
+  private final class IntStartLevel[T <: Txn[T]](obj: Source[T, IntObj[T]])
     extends NumericExprStartLevel(obj) {
 
     def mkValue(in: Int): ControlValues = in.toFloat
   }
   
-  private final class IntAttribute[S <: Sys[S]](val key: String, objH: stm.Source[S#Tx, IntObj[S]])
-                                               (implicit val context: AuralContext[S])
-    extends SingleChannelImpl[S, Int] with NumericExprImpl[S, Int] {
+  private final class IntAttribute[T <: synth.Txn[T]](val key: String, objH: Source[T, IntObj[T]])
+                                               (implicit val context: AuralContext[T])
+    extends SingleChannelImpl[T, Int] with NumericExprImpl[T, Int] {
 
     // def tpe: Obj.Type = IntObj
 
-    type Repr = IntObj[S]
+    type Repr = IntObj[T]
 
     def mkValue(in: Int): Scalar = in.toFloat
 
-    override def obj(implicit tx: S#Tx): Repr = objH()
+    override def obj(implicit tx: T): Repr = objH()
 
     override def toString = s"IntAttribute($key)@${hashCode.toHexString}"
   }
 
   private[this] object IntExprLike {
-    def apply[S <: Sys[S]](key: String, value: ExprLike[S, Int], observer: Observer[S])
-                          (implicit tx: S#Tx, context: AuralContext[S]): AuralAttribute[S] =
+    def apply[T <: synth.Txn[T]](key: String, value: ExprLike[T, Int], observer: Observer[T])
+                          (implicit tx: T, context: AuralContext[T]): AuralAttribute[T] =
       new IntExprLike(key, value).init(value)
   }
 
-  private final class IntExprLike[S <: Sys[S]](val key: String, _obj: ExprLike[S, Int])
-                                              (implicit val context: AuralContext[S])
-    extends SingleChannelImpl[S, Int] with NumericExprImpl[S, Int] {
+  private final class IntExprLike[T <: synth.Txn[T]](val key: String, _obj: ExprLike[T, Int])
+                                              (implicit val context: AuralContext[T])
+    extends SingleChannelImpl[T, Int] with NumericExprImpl[T, Int] {
 
-    type Repr = ExprLike[S, Int]
+    type Repr = ExprLike[T, Int]
 
     def mkValue(in: Int): Scalar = in.toFloat
 
-    override def obj(implicit tx: S#Tx): Repr = _obj
+    override def obj(implicit tx: T): Repr = _obj
 
     override def toString = s"IntExprLike($key)@${hashCode.toHexString}"
   }
@@ -297,54 +294,54 @@ object AuralAttributeImpl {
   // ------------------- DoubleObj ------------------- 
 
   private[this] object DoubleAttribute extends Factory with StartLevelViewFactory  {
-    type Repr[S <: stm.Sys[S]] = DoubleObj[S]
+    type Repr[T <: Txn[T]] = DoubleObj[T]
 
     def tpe: Obj.Type = DoubleObj
 
-    def apply[S <: Sys[S]](key: String, value: DoubleObj[S], observer: Observer[S])
-                          (implicit tx: S#Tx, context: AuralContext[S]): AuralAttribute[S] =
+    def apply[T <: synth.Txn[T]](key: String, value: DoubleObj[T], observer: Observer[T])
+                          (implicit tx: T, context: AuralContext[T]): AuralAttribute[T] =
       new DoubleAttribute(key, tx.newHandle(value)).init(value)
 
-    def mkStartLevelView[S <: Sys[S]](value: Repr[S])(implicit tx: S#Tx): ControlValuesView[S] =
+    def mkStartLevelView[T <: Txn[T]](value: Repr[T])(implicit tx: T): ControlValuesView[T] =
       new DoubleStartLevel(tx.newHandle(value))
   }
 
-  private final class DoubleStartLevel[S <: Sys[S]](obj: stm.Source[S#Tx, DoubleObj[S]])
+  private final class DoubleStartLevel[T <: Txn[T]](obj: Source[T, DoubleObj[T]])
     extends NumericExprStartLevel(obj) {
 
     def mkValue(in: Double): ControlValues = in
   }
   
-  private final class DoubleAttribute[S <: Sys[S]](val key: String, objH: stm.Source[S#Tx, DoubleObj[S]])
-                                                  (implicit val context: AuralContext[S])
-    extends SingleChannelImpl[S, Double] with NumericExprImpl[S, Double] {
+  private final class DoubleAttribute[T <: synth.Txn[T]](val key: String, objH: Source[T, DoubleObj[T]])
+                                                  (implicit val context: AuralContext[T])
+    extends SingleChannelImpl[T, Double] with NumericExprImpl[T, Double] {
 
     // def tpe: Obj.Type = DoubleObj
 
-    type Repr = DoubleObj[S]
+    type Repr = DoubleObj[T]
 
     def mkValue(value: Double): Scalar = value.toFloat
 
-    def obj(implicit tx: S#Tx): Repr = objH()
+    def obj(implicit tx: T): Repr = objH()
 
     override def toString = s"DoubleAttribute($key)@${hashCode.toHexString}"
   }
 
   private[this] object DoubleExprLike {
-    def apply[S <: Sys[S]](key: String, value: ExprLike[S, Double], observer: Observer[S])
-                          (implicit tx: S#Tx, context: AuralContext[S]): AuralAttribute[S] =
+    def apply[T <: synth.Txn[T]](key: String, value: ExprLike[T, Double], observer: Observer[T])
+                          (implicit tx: T, context: AuralContext[T]): AuralAttribute[T] =
       new DoubleExprLike(key, value).init(value)
   }
 
-  private final class DoubleExprLike[S <: Sys[S]](val key: String, _obj: ExprLike[S, Double])
-                                              (implicit val context: AuralContext[S])
-    extends SingleChannelImpl[S, Double] with NumericExprImpl[S, Double] {
+  private final class DoubleExprLike[T <: synth.Txn[T]](val key: String, _obj: ExprLike[T, Double])
+                                              (implicit val context: AuralContext[T])
+    extends SingleChannelImpl[T, Double] with NumericExprImpl[T, Double] {
 
-    type Repr = ExprLike[S, Double]
+    type Repr = ExprLike[T, Double]
 
     def mkValue(in: Double): Scalar = in.toFloat
 
-    override def obj(implicit tx: S#Tx): Repr = _obj
+    override def obj(implicit tx: T): Repr = _obj
 
     override def toString = s"DoubleExprLike($key)@${hashCode.toHexString}"
   }
@@ -352,54 +349,54 @@ object AuralAttributeImpl {
   // ------------------- BooleanObj ------------------- 
 
   private[this] object BooleanAttribute extends Factory with StartLevelViewFactory {
-    type Repr[S <: stm.Sys[S]] = BooleanObj[S]
+    type Repr[T <: Txn[T]] = BooleanObj[T]
 
     def tpe: Obj.Type = BooleanObj
 
-    def apply[S <: Sys[S]](key: String, value: BooleanObj[S], observer: Observer[S])
-                          (implicit tx: S#Tx, context: AuralContext[S]): AuralAttribute[S] =
+    def apply[T <: synth.Txn[T]](key: String, value: BooleanObj[T], observer: Observer[T])
+                          (implicit tx: T, context: AuralContext[T]): AuralAttribute[T] =
       new BooleanAttribute(key, tx.newHandle(value)).init(value)
 
-    def mkStartLevelView[S <: Sys[S]](value: Repr[S])(implicit tx: S#Tx): ControlValuesView[S] =
+    def mkStartLevelView[T <: Txn[T]](value: Repr[T])(implicit tx: T): ControlValuesView[T] =
       new BooleanStartLevel(tx.newHandle(value))
   }
 
-  private final class BooleanStartLevel[S <: Sys[S]](obj: stm.Source[S#Tx, BooleanObj[S]])
+  private final class BooleanStartLevel[T <: Txn[T]](obj: Source[T, BooleanObj[T]])
     extends NumericExprStartLevel(obj) {
 
     def mkValue(in: Boolean): ControlValues = if (in) 1f else 0f
   }
   
-  private final class BooleanAttribute[S <: Sys[S]](val key: String, objH: stm.Source[S#Tx, BooleanObj[S]])
-                                                   (implicit val context: AuralContext[S])
-    extends SingleChannelImpl[S, Boolean] with NumericExprImpl[S, Boolean] {
+  private final class BooleanAttribute[T <: synth.Txn[T]](val key: String, objH: Source[T, BooleanObj[T]])
+                                                   (implicit val context: AuralContext[T])
+    extends SingleChannelImpl[T, Boolean] with NumericExprImpl[T, Boolean] {
 
     // def tpe: Obj.Type = BooleanObj
 
-    type Repr = BooleanObj[S]
+    type Repr = BooleanObj[T]
 
     def mkValue(in: Boolean): Scalar = if (in) 1f else 0f
 
-    def obj(implicit tx: S#Tx): Repr = objH()
+    def obj(implicit tx: T): Repr = objH()
 
     override def toString = s"BooleanAttribute($key)@${hashCode.toHexString}"
   }
 
   private[this] object BooleanExprLike {
-    def apply[S <: Sys[S]](key: String, value: ExprLike[S, Boolean], observer: Observer[S])
-                          (implicit tx: S#Tx, context: AuralContext[S]): AuralAttribute[S] =
+    def apply[T <: synth.Txn[T]](key: String, value: ExprLike[T, Boolean], observer: Observer[T])
+                          (implicit tx: T, context: AuralContext[T]): AuralAttribute[T] =
       new BooleanExprLike(key, value).init(value)
   }
 
-  private final class BooleanExprLike[S <: Sys[S]](val key: String, _obj: ExprLike[S, Boolean])
-                                                 (implicit val context: AuralContext[S])
-    extends SingleChannelImpl[S, Boolean] with NumericExprImpl[S, Boolean] {
+  private final class BooleanExprLike[T <: synth.Txn[T]](val key: String, _obj: ExprLike[T, Boolean])
+                                                 (implicit val context: AuralContext[T])
+    extends SingleChannelImpl[T, Boolean] with NumericExprImpl[T, Boolean] {
 
-    type Repr = ExprLike[S, Boolean]
+    type Repr = ExprLike[T, Boolean]
 
     def mkValue(in: Boolean): Scalar = if (in) 1f else 0f
 
-    override def obj(implicit tx: S#Tx): Repr = _obj
+    override def obj(implicit tx: T): Repr = _obj
 
     override def toString = s"BooleanExprLike($key)@${hashCode.toHexString}"
   }
@@ -407,25 +404,25 @@ object AuralAttributeImpl {
   // ------------------- FadeSpec.Obj ------------------- 
 
   private[this] object FadeSpecAttribute extends Factory {
-    type Repr[S <: stm.Sys[S]] = FadeSpec.Obj[S]
+    type Repr[T <: Txn[T]] = FadeSpec.Obj[T]
 
     def tpe: Obj.Type = FadeSpec.Obj
 
-    def apply[S <: Sys[S]](key: String, value: FadeSpec.Obj[S], observer: Observer[S])
-                          (implicit tx: S#Tx, context: AuralContext[S]): AuralAttribute[S] =
+    def apply[T <: synth.Txn[T]](key: String, value: FadeSpec.Obj[T], observer: Observer[T])
+                          (implicit tx: T, context: AuralContext[T]): AuralAttribute[T] =
       new FadeSpecAttribute(key, tx.newHandle(value)).init(value)
   }
-  private final class FadeSpecAttribute[S <: Sys[S]](val key: String, objH: stm.Source[S#Tx, FadeSpec.Obj[S]])
-                                                    (implicit val context: AuralContext[S])
-    extends ExprImpl[S, FadeSpec] {
+  private final class FadeSpecAttribute[T <: synth.Txn[T]](val key: String, objH: Source[T, FadeSpec.Obj[T]])
+                                                    (implicit val context: AuralContext[T])
+    extends ExprImpl[T, FadeSpec] {
 
     // def tpe: Obj.Type = FadeSpec.Obj
 
-    type Repr = FadeSpec.Obj[S]
+    type Repr = FadeSpec.Obj[T]
 
-    def preferredNumChannels(implicit tx: S#Tx): Int = 4
+    def preferredNumChannels(implicit tx: T): Int = 4
 
-    def mkValue(timeRef: TimeRef, spec: FadeSpec)(implicit tx: S#Tx): Scalar = {
+    def mkValue(timeRef: TimeRef, spec: FadeSpec)(implicit tx: T): Scalar = {
       val v = Vector[Float](
         (spec.numFrames / TimeRef.SampleRate).toFloat, spec.curve.id.toFloat, spec.curve match {
           case Curve.parametric(c)  => c
@@ -435,28 +432,28 @@ object AuralAttributeImpl {
       v
     }
 
-    def obj(implicit tx: S#Tx): Repr = objH()
+    def obj(implicit tx: T): Repr = objH()
 
     override def toString = s"FadeSpecAttribute($key)@${hashCode.toHexString}"
   }
 
   private[this] object FadeSpecExprLike {
-    def apply[S <: Sys[S]](key: String, value: ExprLike[S, FadeSpec], observer: Observer[S])
-                          (implicit tx: S#Tx, context: AuralContext[S]): AuralAttribute[S] =
+    def apply[T <: synth.Txn[T]](key: String, value: ExprLike[T, FadeSpec], observer: Observer[T])
+                          (implicit tx: T, context: AuralContext[T]): AuralAttribute[T] =
       new FadeSpecExprLike(key, value).init(value)
   }
 
-  private final class FadeSpecExprLike[S <: Sys[S]](val key: String, _obj: ExprLike[S, FadeSpec])
-                                                   (implicit val context: AuralContext[S])
-    extends ExprImpl[S, FadeSpec] {
+  private final class FadeSpecExprLike[T <: synth.Txn[T]](val key: String, _obj: ExprLike[T, FadeSpec])
+                                                   (implicit val context: AuralContext[T])
+    extends ExprImpl[T, FadeSpec] {
 
     // def tpe: Obj.Type = FadeSpec.Obj
 
-    type Repr = ExprLike[S, FadeSpec]
+    type Repr = ExprLike[T, FadeSpec]
 
-    def preferredNumChannels(implicit tx: S#Tx): Int = 4
+    def preferredNumChannels(implicit tx: T): Int = 4
 
-    def mkValue(timeRef: TimeRef, spec: FadeSpec)(implicit tx: S#Tx): Scalar = {
+    def mkValue(timeRef: TimeRef, spec: FadeSpec)(implicit tx: T): Scalar = {
       val v = Vector[Float](
         (spec.numFrames / TimeRef.SampleRate).toFloat, spec.curve.id.toFloat, spec.curve match {
           case Curve.parametric(c)  => c
@@ -466,7 +463,7 @@ object AuralAttributeImpl {
       v
     }
 
-    def obj(implicit tx: S#Tx): Repr = _obj
+    def obj(implicit tx: T): Repr = _obj
 
     override def toString = s"FadeSpecExprLike($key)@${hashCode.toHexString}"
   }
@@ -474,56 +471,56 @@ object AuralAttributeImpl {
   // ------------------- DoubleVector ------------------- 
 
   private[this] object DoubleVectorAttribute extends Factory with StartLevelViewFactory {
-    type Repr[S <: stm.Sys[S]] = DoubleVector[S]
+    type Repr[T <: Txn[T]] = DoubleVector[T]
 
     def tpe: Obj.Type = DoubleVector
 
-    def apply[S <: Sys[S]](key: String, value: DoubleVector[S], observer: Observer[S])
-                          (implicit tx: S#Tx, context: AuralContext[S]): AuralAttribute[S] =
+    def apply[T <: synth.Txn[T]](key: String, value: DoubleVector[T], observer: Observer[T])
+                          (implicit tx: T, context: AuralContext[T]): AuralAttribute[T] =
       new DoubleVectorAttribute(key, tx.newHandle(value)).init(value)
 
-    def mkStartLevelView[S <: Sys[S]](value: Repr[S])(implicit tx: S#Tx): ControlValuesView[S] =
+    def mkStartLevelView[T <: Txn[T]](value: Repr[T])(implicit tx: T): ControlValuesView[T] =
       new DoubleVectorStartLevel(tx.newHandle(value))
   }
 
-  private final class DoubleVectorStartLevel[S <: Sys[S]](obj: stm.Source[S#Tx, DoubleVector[S]])
+  private final class DoubleVectorStartLevel[T <: Txn[T]](obj: Source[T, DoubleVector[T]])
     extends NumericExprStartLevel(obj) {
     
     def mkValue(in: Vec[Double]): ControlValues = in.map(_.toFloat)
   }
   
-  private final class DoubleVectorAttribute[S <: Sys[S]](val key: String, objH: stm.Source[S#Tx, DoubleVector[S]])
-                                                        (implicit val context: AuralContext[S])
-    extends ExprImpl[S, Vec[Double]] with NumericExprImpl[S, Vec[Double]] {
+  private final class DoubleVectorAttribute[T <: synth.Txn[T]](val key: String, objH: Source[T, DoubleVector[T]])
+                                                        (implicit val context: AuralContext[T])
+    extends ExprImpl[T, Vec[Double]] with NumericExprImpl[T, Vec[Double]] {
 
     // def tpe: Obj.Type = DoubleVector
 
-    type Repr = DoubleVector[S]
+    type Repr = DoubleVector[T]
 
-    def preferredNumChannels(implicit tx: S#Tx): Int = objH().value.size
+    def preferredNumChannels(implicit tx: T): Int = objH().value.size
 
     def mkValue(in: Vec[Double]): Scalar = in.map(_.toFloat)
 
-    def obj(implicit tx: S#Tx): Repr = objH()
+    def obj(implicit tx: T): Repr = objH()
 
     override def toString = s"DoubleVectorAttribute($key)@${hashCode.toHexString}"
   }
 
   private[this] object DoubleVectorExprLike {
-    def apply[S <: Sys[S]](key: String, value: ExprLike[S, ISeq[Double]], observer: Observer[S])
-                          (implicit tx: S#Tx, context: AuralContext[S]): AuralAttribute[S] =
+    def apply[T <: synth.Txn[T]](key: String, value: ExprLike[T, ISeq[Double]], observer: Observer[T])
+                          (implicit tx: T, context: AuralContext[T]): AuralAttribute[T] =
       new DoubleVectorExprLike(key, value).init(value)
   }
 
-  private final class DoubleVectorExprLike[S <: Sys[S]](val key: String, _obj: ExprLike[S, ISeq[Double]])
-                                                        (implicit val context: AuralContext[S])
-    extends ExprImpl[S, ISeq[Double]] with NumericExprImpl[S, ISeq[Double]] {
+  private final class DoubleVectorExprLike[T <: synth.Txn[T]](val key: String, _obj: ExprLike[T, ISeq[Double]])
+                                                        (implicit val context: AuralContext[T])
+    extends ExprImpl[T, ISeq[Double]] with NumericExprImpl[T, ISeq[Double]] {
 
     // def tpe: Obj.Type = DoubleVector
 
-    type Repr = ExprLike[S, ISeq[Double]]
+    type Repr = ExprLike[T, ISeq[Double]]
 
-    def preferredNumChannels(implicit tx: S#Tx): Int = mkValue0(_obj.value).size
+    def preferredNumChannels(implicit tx: T): Int = mkValue0(_obj.value).size
 
     def mkValue(in: ISeq[Double]): Scalar = mkValue0(in)
 
@@ -532,7 +529,7 @@ object AuralAttributeImpl {
       case d: Double => d.toFloat
     } .toIndexedSeq
 
-    def obj(implicit tx: S#Tx): Repr = _obj
+    def obj(implicit tx: T): Repr = _obj
 
     override def toString = s"DoubleVectorExprLike($key)@${hashCode.toHexString}"
   }
@@ -540,56 +537,56 @@ object AuralAttributeImpl {
   // ------------------- IntVector ------------------- 
 
   private[this] object IntVectorAttribute extends Factory with StartLevelViewFactory {
-    type Repr[S <: stm.Sys[S]] = IntVector[S]
+    type Repr[T <: Txn[T]] = IntVector[T]
 
     def tpe: Obj.Type = IntVector
 
-    def apply[S <: Sys[S]](key: String, value: IntVector[S], observer: Observer[S])
-                          (implicit tx: S#Tx, context: AuralContext[S]): AuralAttribute[S] =
+    def apply[T <: synth.Txn[T]](key: String, value: IntVector[T], observer: Observer[T])
+                          (implicit tx: T, context: AuralContext[T]): AuralAttribute[T] =
       new IntVectorAttribute(key, tx.newHandle(value)).init(value)
 
-    def mkStartLevelView[S <: Sys[S]](value: Repr[S])(implicit tx: S#Tx): ControlValuesView[S] =
+    def mkStartLevelView[T <: Txn[T]](value: Repr[T])(implicit tx: T): ControlValuesView[T] =
       new IntVectorStartLevel(tx.newHandle(value))
   }
 
-  private final class IntVectorStartLevel[S <: Sys[S]](obj: stm.Source[S#Tx, IntVector[S]])
+  private final class IntVectorStartLevel[T <: Txn[T]](obj: Source[T, IntVector[T]])
     extends NumericExprStartLevel(obj) {
 
     def mkValue(in: Vec[Int]): ControlValues = in.map(_.toFloat)
   }
 
-  private final class IntVectorAttribute[S <: Sys[S]](val key: String, objH: stm.Source[S#Tx, IntVector[S]])
-                                                        (implicit val context: AuralContext[S])
-    extends ExprImpl[S, Vec[Int]] with NumericExprImpl[S, Vec[Int]] {
+  private final class IntVectorAttribute[T <: synth.Txn[T]](val key: String, objH: Source[T, IntVector[T]])
+                                                        (implicit val context: AuralContext[T])
+    extends ExprImpl[T, Vec[Int]] with NumericExprImpl[T, Vec[Int]] {
 
     // def tpe: Obj.Type = IntVector
 
-    type Repr = IntVector[S]
+    type Repr = IntVector[T]
 
-    def preferredNumChannels(implicit tx: S#Tx): Int = objH().value.size
+    def preferredNumChannels(implicit tx: T): Int = objH().value.size
 
     def mkValue(in: Vec[Int]): Scalar = in.map(_.toFloat)
 
-    def obj(implicit tx: S#Tx): Repr = objH()
+    def obj(implicit tx: T): Repr = objH()
 
     override def toString = s"IntVectorAttribute($key)@${hashCode.toHexString}"
   }
 
   private[this] object IntVectorExprLike {
-    def apply[S <: Sys[S]](key: String, value: ExprLike[S, ISeq[Int]], observer: Observer[S])
-                          (implicit tx: S#Tx, context: AuralContext[S]): AuralAttribute[S] =
+    def apply[T <: synth.Txn[T]](key: String, value: ExprLike[T, ISeq[Int]], observer: Observer[T])
+                          (implicit tx: T, context: AuralContext[T]): AuralAttribute[T] =
       new IntVectorExprLike(key, value).init(value)
   }
 
-  private final class IntVectorExprLike[S <: Sys[S]](val key: String, _obj: ExprLike[S, ISeq[Int]])
-                                                       (implicit val context: AuralContext[S])
-    extends ExprImpl[S, ISeq[Int]] with NumericExprImpl[S, ISeq[Int]] {
+  private final class IntVectorExprLike[T <: synth.Txn[T]](val key: String, _obj: ExprLike[T, ISeq[Int]])
+                                                       (implicit val context: AuralContext[T])
+    extends ExprImpl[T, ISeq[Int]] with NumericExprImpl[T, ISeq[Int]] {
 
     // def tpe: Obj.Type = IntVector
 
-    type Repr = ExprLike[S, ISeq[Int]]
+    type Repr = ExprLike[T, ISeq[Int]]
 
-    def preferredNumChannels(implicit tx: S#Tx): Int = mkValue0(_obj.value).size
+    def preferredNumChannels(implicit tx: T): Int = mkValue0(_obj.value).size
 
     def mkValue(in: ISeq[Int]): Scalar = mkValue0(in)
 
@@ -598,50 +595,50 @@ object AuralAttributeImpl {
       case d: Int => d.toFloat
     } .toIndexedSeq
 
-    def obj(implicit tx: S#Tx): Repr = _obj
+    def obj(implicit tx: T): Repr = _obj
 
     override def toString = s"IntVectorExprLike($key)@${hashCode.toHexString}"
   }
 
   // ------------------- generic (dummy) -------------------
 
-  private abstract class DummyBase[S <: Sys[S]](val key: String)
-    extends AuralAttribute[S] with DummyObservableImpl[S] {
+  private abstract class DummyBase[T <: Txn[T]](val key: String)
+    extends AuralAttribute[T] with DummyObservableImpl[T] {
 
     // final def tpe: Obj.Type = throw new UnsupportedOperationException("DummyAttribute.tpe")
 
-    final def preferredNumChannels(implicit tx: S#Tx): Int = 0
+    final def preferredNumChannels(implicit tx: T): Int = 0
 
-    final def targetOption(implicit tx: S#Tx): Option[Target[S]] = None
+    final def targetOption(implicit tx: T): Option[Target[T]] = None
 
-    final def state(implicit tx: S#Tx): State = Stopped
+    final def state(implicit tx: T): State = Stopped
 
-    final def prepare(timeRef: TimeRef.Option)(implicit tx: S#Tx): Unit = ()
+    final def prepare(timeRef: TimeRef.Option)(implicit tx: T): Unit = ()
 
-    final def run(timeRef: TimeRef.Option, target: Target[S])(implicit tx: S#Tx): Unit = ()
+    final def run(timeRef: TimeRef.Option, target: Target[T])(implicit tx: T): Unit = ()
     
-    final def stop   ()(implicit tx: S#Tx): Unit = ()
-    final def dispose()(implicit tx: S#Tx): Unit = ()
+    final def stop   ()(implicit tx: T): Unit = ()
+    final def dispose()(implicit tx: T): Unit = ()
   }
 
-  private final class DummyAttribute[S <: Sys[S]](key: String, objH: stm.Source[S#Tx, Obj[S]])
-    extends DummyBase[S](key) {
+  private final class DummyAttribute[T <: Txn[T]](key: String, objH: Source[T, Obj[T]])
+    extends DummyBase[T](key) {
 
-    type Repr = Obj[S]
+    type Repr = Obj[T]
 
-    def obj(implicit tx: S#Tx): Repr = objH()
+    def obj(implicit tx: T): Repr = objH()
 
     override def toString = s"DummyAttribute($key)@${hashCode.toHexString}"
   }
   
-  private final class DummyExprLike[S <: Sys[S], A](key: String, _obj: ExprLike[S, A])
-    extends DummyBase[S](key) {
+  private final class DummyExprLike[T <: Txn[T], A](key: String, _obj: ExprLike[T, A])
+    extends DummyBase[T](key) {
 
-    type Repr = ExprLike[S, A]
+    type Repr = ExprLike[T, A]
 
-    def obj(implicit tx: S#Tx): Repr = _obj
+    def obj(implicit tx: T): Repr = _obj
 
     override def toString = s"DummyExprLike($key)@${hashCode.toHexString}"
   }
 }
-trait AuralAttributeImpl[S <: Sys[S]] extends AuralAttribute[S] with BasicViewBaseImpl[S]
+trait AuralAttributeImpl[T <: Txn[T]] extends AuralAttribute[T] with BasicViewBaseImpl[T]

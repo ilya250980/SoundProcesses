@@ -16,9 +16,6 @@ package de.sciss.synth
 import java.text.SimpleDateFormat
 import java.util.{Date, Locale}
 
-import de.sciss.lucre.stm
-import de.sciss.lucre.stm.Sys
-
 import scala.annotation.elidable
 import scala.annotation.elidable.CONFIG
 
@@ -28,7 +25,7 @@ package object proc {
   var showAuralLog      = false
   var showTransportLog  = false
 
-  type Workspace[S <: Sys[S]] = stm.Workspace[S]
+//  type Workspace[T <: Txn[T]] = stm.Workspace[T]
 
   @elidable(CONFIG) private[sciss] def logAural(what: => String): Unit =
     if (showAuralLog) Console.out.println(s"${logHeader.format(new Date())}aural $what")

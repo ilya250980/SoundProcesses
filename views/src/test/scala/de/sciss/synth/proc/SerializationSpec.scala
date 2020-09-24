@@ -1,7 +1,7 @@
 package de.sciss.synth.proc
 
 import de.sciss.lucre.expr
-import de.sciss.lucre.stm.store.BerkeleyDB
+import de.sciss.lucre.store.BerkeleyDB
 import de.sciss.lucre.swing.{Graph => WGraph, graph => wgraph}
 import org.scalatest.Outcome
 import org.scalatest.flatspec.FixtureAnyFlatSpec
@@ -9,6 +9,7 @@ import org.scalatest.matchers.should.Matchers
 
 class SerializationSpec extends FixtureAnyFlatSpec with Matchers {
   type S = Durable
+  type T = Durable.Txn
   type FixtureParam = S
 
   SoundProcesses.init()
@@ -26,7 +27,7 @@ class SerializationSpec extends FixtureAnyFlatSpec with Matchers {
 
   "An Widget object" should "be serializable" in { cursor =>
     val (wH, gIn) = cursor.step { implicit tx =>
-      val w = Widget[S]()
+      val w = Widget[T]()
       val g = WGraph {
         import expr.ExImport._
         import wgraph._

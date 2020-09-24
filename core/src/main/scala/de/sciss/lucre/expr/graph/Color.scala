@@ -13,10 +13,9 @@
 
 package de.sciss.lucre.expr.graph
 
-import de.sciss.lucre.event.ITargets
+import de.sciss.lucre.{IExpr, ITargets, Txn}
 import de.sciss.lucre.expr.graph.impl.MappedIExpr
-import de.sciss.lucre.expr.{Context, IExpr}
-import de.sciss.lucre.stm.Sys
+import de.sciss.lucre.expr.Context
 import de.sciss.numbers.IntFunctions
 import de.sciss.synth.proc
 import de.sciss.synth.proc.Color.Palette
@@ -43,23 +42,23 @@ object Color {
     /** There are sixteen predefined colors (identifiers 0 to 15). */
     def apply(id: Ex[Int]): Ex[proc.Color] = Impl(id)
 
-    private final class Expanded[S <: Sys[S]](id: IExpr[S, Int], tx0: S#Tx)(implicit targets: ITargets[S])
-      extends MappedIExpr[S, Int, proc.Color](id, tx0) {
+    private final class Expanded[T <: Txn[T]](id: IExpr[T, Int], tx0: T)(implicit targets: ITargets[T])
+      extends MappedIExpr[T, Int, proc.Color](id, tx0) {
 
-      protected def mapValue(inValue: Int)(implicit tx: S#Tx): proc.Color = {
+      protected def mapValue(inValue: Int)(implicit tx: T): proc.Color = {
         val idx = IntFunctions.mod(inValue, Palette.size)
         Palette(idx)
       }
     }
 
     private final case class Impl(id: Ex[Int]) extends Ex[proc.Color] {
-      type Repr[S <: Sys[S]] = IExpr[S, proc.Color]
+      type Repr[T <: Txn[T]] = IExpr[T, proc.Color]
 
       override def productPrefix: String = s"Color$$Predef" // serialization
 
-      protected def mkRepr[S <: Sys[S]](implicit ctx: Context[S], tx: S#Tx): Repr[S] = {
+      protected def mkRepr[T <: Txn[T]](implicit ctx: Context[T], tx: T): Repr[T] = {
         import ctx.targets
-        new Expanded(id.expand[S], tx)
+        new Expanded(id.expand[T], tx)
       }
     }
   }

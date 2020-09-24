@@ -13,23 +13,23 @@
 
 package de.sciss.synth.proc
 
-import de.sciss.lucre.stm.{Disposable, Sys}
+import de.sciss.lucre.{Disposable, Ident, Txn}
 
 object AuxContext {
-  sealed trait Update[S <: Sys[S], +A]
-  final case class Added  [S <: Sys[S], A](id: S#Id, value: A) extends Update[S, A]
-  final case class Removed[S <: Sys[S]   ](id: S#Id          ) extends Update[S, Nothing]
+  sealed trait Update[T <: Txn[T], +A]
+  final case class Added  [T <: Txn[T], A](id: Ident[T], value: A) extends Update[T, A]
+  final case class Removed[T <: Txn[T]   ](id: Ident[T]          ) extends Update[T, Nothing]
 
 }
-trait AuxContext[S <: Sys[S]] {
-  def putAux[A](id: S#Id, value: A)(implicit tx: S#Tx): Unit
+trait AuxContext[T <: Txn[T]] {
+  def putAux[A](id: Ident[T], value: A)(implicit tx: T): Unit
 
-  def getAux[A](id: S#Id)(implicit tx: S#Tx): Option[A]
+  def getAux[A](id: Ident[T])(implicit tx: T): Option[A]
 
   /** Waits for the auxiliary object to appear. If the object
     * appears the function is applied, otherwise nothing happens.
     */
-  def observeAux[A](id: S#Id)(fun: S#Tx => AuxContext.Update[S, A] => Unit)(implicit tx: S#Tx): Disposable[S#Tx]
+  def observeAux[A](id: Ident[T])(fun: T => AuxContext.Update[T, A] => Unit)(implicit tx: T): Disposable[T]
 
-  def removeAux(id: S#Id)(implicit tx: S#Tx): Unit
+  def removeAux(id: Ident[T])(implicit tx: T): Unit
 }

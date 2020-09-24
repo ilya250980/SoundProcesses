@@ -13,89 +13,87 @@
 
 package de.sciss.synth.proc
 
-import de.sciss.lucre.event.Observable
 import de.sciss.lucre.expr.Context
-import de.sciss.lucre.stm.{Disposable, Obj, Sys}
-import de.sciss.lucre.synth.{Sys => SSys}
+import de.sciss.lucre.{Disposable, Ident, Obj, Observable, Txn, synth}
 import de.sciss.synth.proc.impl.{TransportImpl => Impl}
 
 object Transport {
   /** Creates a `Transport` independent of a running aural system, along with attributes.
     * It will create and destroy an aural context with the state of the provided system.
     */
-  def apply[S <: SSys[S]](universe: Universe[S], attr: Context.Attr[S])(implicit tx: S#Tx): Transport[S] =
+  def apply[T <: synth.Txn[T]](universe: Universe[T], attr: Context.Attr[T])(implicit tx: T): Transport[T] =
     Impl(universe, attr)
 
   /** Creates a `Transport` independent of a running aural system.
     * It will create and destroy an aural context with the state of the provided system.
     */
-  def apply[S <: SSys[S]](universe: Universe[S])(implicit tx: S#Tx): Transport[S] =
+  def apply[T <: synth.Txn[T]](universe: Universe[T])(implicit tx: T): Transport[T] =
     Impl(universe)
 
   /** Creates a `Transport` for a running existing aural context, along with attributes. */
-  def apply[S <: SSys[S]](context: AuralContext[S], attr: Context.Attr[S])(implicit tx: S#Tx): Transport[S] =
-    Impl[S](context, attr)
+  def apply[T <: synth.Txn[T]](context: AuralContext[T], attr: Context.Attr[T])(implicit tx: T): Transport[T] =
+    Impl[T](context, attr)
 
   /** Creates a `Transport` for a running existing aural context. */
-  def apply[S <: SSys[S]](context: AuralContext[S])(implicit tx: S#Tx): Transport[S] =
-    Impl[S](context)
+  def apply[T <: synth.Txn[T]](context: AuralContext[T])(implicit tx: T): Transport[T] =
+    Impl[T](context)
 
-  sealed trait Update[S <: Sys[S]] {
-    def transport: Transport[S]
+  sealed trait Update[T <: Txn[T]] {
+    def transport: Transport[T]
   }
 
-  final case class AuralStarted[S <: Sys[S]](transport: Transport[S], context: AuralContext[S]) extends Update[S]
+  final case class AuralStarted[T <: Txn[T]](transport: Transport[T], context: AuralContext[T]) extends Update[T]
 
-  sealed trait StateUpdate[S <: Sys[S]] extends Update[S] {
+  sealed trait StateUpdate[T <: Txn[T]] extends Update[T] {
     def position: Long
   }
 
-  sealed trait ModelUpdate[S <: Sys[S]] extends Update[S] {
-    def obj: Obj[S]
+  sealed trait ModelUpdate[T <: Txn[T]] extends Update[T] {
+    def obj: Obj[T]
   }
 
-  final case class ObjectAdded  [S <: Sys[S]](transport: Transport[S], obj: Obj[S]) extends ModelUpdate[S]
-  final case class ObjectRemoved[S <: Sys[S]](transport: Transport[S], obj: Obj[S]) extends ModelUpdate[S]
+  final case class ObjectAdded  [T <: Txn[T]](transport: Transport[T], obj: Obj[T]) extends ModelUpdate[T]
+  final case class ObjectRemoved[T <: Txn[T]](transport: Transport[T], obj: Obj[T]) extends ModelUpdate[T]
 
-  sealed trait ViewUpdate[S <: Sys[S]] extends Update[S] {
-    def view: AuralObj[S]
+  sealed trait ViewUpdate[T <: Txn[T]] extends Update[T] {
+    def view: AuralObj[T]
   }
 
-  final case class ViewAdded  [S <: Sys[S]](transport: Transport[S], view: AuralObj[S])
-    extends ViewUpdate[S]
+  final case class ViewAdded  [T <: Txn[T]](transport: Transport[T], view: AuralObj[T])
+    extends ViewUpdate[T]
 
-  final case class ViewRemoved[S <: Sys[S]](transport: Transport[S], view: AuralObj[S])
-    extends ViewUpdate[S]
+  final case class ViewRemoved[T <: Txn[T]](transport: Transport[T], view: AuralObj[T])
+    extends ViewUpdate[T]
 
-  final case class Play[S <: Sys[S]](transport: Transport[S], position: Long) extends StateUpdate[S]
-  final case class Stop[S <: Sys[S]](transport: Transport[S], position: Long) extends StateUpdate[S]
-  final case class Seek[S <: Sys[S]](transport: Transport[S], position: Long, isPlaying: Boolean) extends StateUpdate[S]
+  final case class Play[T <: Txn[T]](transport: Transport[T], position: Long) extends StateUpdate[T]
+  final case class Stop[T <: Txn[T]](transport: Transport[T], position: Long) extends StateUpdate[T]
+  final case class Seek[T <: Txn[T]](transport: Transport[T], position: Long, isPlaying: Boolean) extends StateUpdate[T]
 }
 
 /** New reduced definition of a t_(P) transport mechanism. */
-trait Transport[S <: Sys[S]]
-  extends Disposable[S#Tx] with Observable[S#Tx, Transport.Update[S]] {
+trait Transport[T <: Txn[T]]
+  extends Disposable[T] with Observable[T, Transport.Update[T]] {
 
-  def play()(implicit tx: S#Tx): Unit
-  def stop()(implicit tx: S#Tx): Unit
+  def play()(implicit tx: T): Unit
+  def stop()(implicit tx: T): Unit
 
-  def seek(position: Long)(implicit tx: S#Tx): Unit
-  def position(implicit tx: S#Tx): Long
+  def seek(position: Long)(implicit tx: T): Unit
+  def position(implicit tx: T): Long
 
-  def isPlaying(implicit tx: S#Tx): Boolean
+  def isPlaying(implicit tx: T): Boolean
 
-  def views(implicit tx: S#Tx): Set[AuralObj[S]]
+  def views(implicit tx: T): Set[AuralObj[T]]
 
-  def getView    (obj: Obj[S])(implicit tx: S#Tx): Option[AuralObj[S]]
-  def getViewById(id : S#Id  )(implicit tx: S#Tx): Option[AuralObj[S]]
+  def getView    (obj: Obj  [T])(implicit tx: T): Option[AuralObj[T]]
+  def getViewById(id : Ident[T])(implicit tx: T): Option[AuralObj[T]]
 
-  def addObject   (obj: Obj[S])(implicit tx: S#Tx): Unit
-  def removeObject(obj: Obj[S])(implicit tx: S#Tx): Unit
+  def addObject   (obj: Obj[T])(implicit tx: T): Unit
+  def removeObject(obj: Obj[T])(implicit tx: T): Unit
 
   // not sure if the transport should generate the context or if use site should provide it?
-  def contextOption(implicit tx: S#Tx): Option[AuralContext[S]]
+  def contextOption(implicit tx: T): Option[AuralContext[T]]
 
-  implicit val universe: Universe[S]
+  implicit val universe: Universe[T]
 
-  def scheduler: Scheduler[S]
+  def scheduler: Scheduler[T]
 }

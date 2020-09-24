@@ -11,9 +11,9 @@
  *  contact@sciss.de
  */
 
-package de.sciss.lucre.synth.impl
+package de.sciss.lucre.synth
+package impl
 
-import de.sciss.lucre.synth.{Node, Resource, Server, Synth, SynthDef, Txn}
 import de.sciss.synth.{AddAction, ControlSet, Synth => SSynth}
 
 import scala.collection.immutable.{Seq => ISeq}
@@ -24,7 +24,7 @@ final case class SynthImpl(peer: SSynth, definition: SynthDef) extends NodeImpl 
   def server: Server = definition.server
 
   def play(target: Node, args: ISeq[ControlSet], addAction: AddAction, dependencies: List[Resource])
-          (implicit tx: Txn): Unit = {
+          (implicit tx: RT): Unit = {
 
     val s = server
     requireOffline()

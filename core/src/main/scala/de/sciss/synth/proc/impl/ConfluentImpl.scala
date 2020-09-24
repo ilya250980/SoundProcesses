@@ -13,10 +13,9 @@
 
 package de.sciss.synth.proc.impl
 
-import de.sciss.lucre.stm.DataStore
 import de.sciss.lucre.synth.InMemory
 import de.sciss.lucre.synth.impl.TxnFullImpl
-import de.sciss.lucre.{confluent, stm}
+import de.sciss.lucre.{DataStore, confluent, Durable => LDurable}
 import de.sciss.synth.proc.{Confluent, Durable, log}
 
 import scala.concurrent.stm.InTxn
@@ -26,6 +25,7 @@ import scala.concurrent.stm.InTxn
  */
 private[proc] object ConfluentImpl {
   private type S = Confluent
+  private type T = Confluent.Txn
 
   def apply(storeFactory: DataStore.Factory): S = {
     // We can share the event store between confluent and durable, because there are
@@ -40,25 +40,31 @@ private[proc] object ConfluentImpl {
     new System(storeFactory, durable)
   }
 
-  private sealed trait TxnImpl extends Confluent.Txn with confluent.impl.TxnMixin[S] with TxnFullImpl[S] {
-    final lazy val inMemory: /* evt. */ InMemory#Tx = system.inMemory.wrap(peer)
+  private sealed trait TxnImpl extends Confluent.Txn with confluent.impl.TxnMixin[T] with TxnFullImpl[T] {
+    override def system: Confluent
+
+    final lazy val inMemory: InMemory.Txn = system.inMemory.wrap(peer)
   }
 
-  private final class RegularTxn(val system: S, val durable: /* evt. */ Durable#Tx,
+  private final class RegularTxn(val system: S, val durable: /* evt. */ Durable.Txn,
                                  val inputAccess: S#Acc, val isRetroactive: Boolean,
-                                 val cursorCache: confluent.Cache[S#Tx],
+                                 val cursorCache: confluent.Cache[T],
                                  val systemTimeNanoSec: Long)
-    extends confluent.impl.RegularTxnMixin[S, stm.Durable] with TxnImpl {
+    extends confluent.impl.RegularTxnMixin[T, LDurable.Txn] with TxnImpl {
+
+    implicit def inMemoryBridge: T => InMemory.Txn = _.inMemory
 
     lazy val peer: InTxn = durable.peer
   }
 
   private final class RootTxn(val system: S, val peer: InTxn)
-    extends confluent.impl.RootTxnMixin[S, stm.Durable] with TxnImpl {
+    extends confluent.impl.RootTxnMixin[T, LDurable.Txn] with TxnImpl {
 
     def systemTimeNanoSec: Long = 0L
 
-    lazy val durable: /* evt. */ Durable#Tx = {
+    implicit def inMemoryBridge: T => InMemory.Txn = _.inMemory
+
+    lazy val durable: /* evt. */ Durable.Txn = {
       log("txn durable")
       system.durable.wrap(peer)
     }
@@ -66,15 +72,17 @@ private[proc] object ConfluentImpl {
 
   private final class System(protected val storeFactory: DataStore.Factory,
                              val durable: /* evt. */ Durable)
-    extends confluent.impl.Mixin[S]
+    extends confluent.impl.Mixin[T]
     with Confluent {
 
-    def inMemory            : I     = durable.inMemory
-    def durableTx (tx: S#Tx): D#Tx  = tx.durable
-    def inMemoryTx(tx: S#Tx): I#Tx  = tx.inMemory
+    def inMemory: InMemory = durable.inMemory
 
-    protected def wrapRegular(dtx: /* evt. */ Durable#Tx, inputAccess: S#Acc, retroactive: Boolean,
-                              cursorCache: confluent.Cache[S#Tx], systemTimeNanos: Long) =
+    def durableTx (tx: T): D  = tx.durable
+
+//    def inMemoryTx(tx: T): I#Tx  = tx.inMemory
+
+    protected def wrapRegular(dtx: /* evt. */ Durable.Txn, inputAccess: S#Acc, retroactive: Boolean,
+                              cursorCache: confluent.Cache[T], systemTimeNanos: Long) =
       new RegularTxn(system = this, durable = dtx, inputAccess = inputAccess, isRetroactive = retroactive,
         cursorCache = cursorCache, systemTimeNanoSec = systemTimeNanos)
 

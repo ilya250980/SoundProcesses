@@ -13,71 +13,69 @@
 
 package de.sciss.synth.proc.impl
 
-import de.sciss.lucre.bitemp.impl.BiPinImpl
-import de.sciss.lucre.bitemp.impl.BiPinImpl.Tree
-import de.sciss.lucre.event.Targets
-import de.sciss.lucre.stm.impl.ObjSerializer
-import de.sciss.lucre.stm.{Copy, Elem, NoSys, Obj, Sys}
-import de.sciss.lucre.{event => evt}
-import de.sciss.serial.{DataInput, Serializer}
+import de.sciss.lucre.Event.Targets
+import de.sciss.lucre.impl.BiPinImpl.Tree
+import de.sciss.lucre.impl.{BiPinImpl, ObjFormat}
+import de.sciss.lucre.{AnyTxn, Copy, Elem, Obj, Txn}
+import de.sciss.serial.{DataInput, TFormat}
 import de.sciss.synth.proc.Grapheme
 
 object GraphemeImpl {
   import de.sciss.synth.proc.Grapheme.Modifiable
 
-  def read[S <: Sys[S]](in: DataInput, access: S#Acc)(implicit tx: S#Tx): Grapheme[S] =
-    serializer[S].read(in, access)
+  def read[T <: Txn[T]](in: DataInput)(implicit tx: T): Grapheme[T] =
+    format[T].readT(in)
 
-  def readModifiable[S <: Sys[S]](in: DataInput, access: S#Acc)(implicit tx: S#Tx): Grapheme.Modifiable[S] = {
-    modifiableSerializer[S].read(in, access)
+  def readModifiable[T <: Txn[T]](in: DataInput)(implicit tx: T): Grapheme.Modifiable[T] = {
+    modifiableFormat[T].readT(in)
   }
 
-  implicit def serializer[S <: Sys[S]]: Serializer[S#Tx, S#Acc, Grapheme[S]] =
-    anySer.asInstanceOf[Ser[S]]
+  implicit def format[T <: Txn[T]]: TFormat[T, Grapheme[T]] =
+    anyFmt.asInstanceOf[Fmt[T]]
 
-  implicit def modifiableSerializer[S <: Sys[S]]: Serializer[S#Tx, S#Acc, Grapheme.Modifiable[S]] =
-    anySer.asInstanceOf[Serializer[S#Tx, S#Acc, Grapheme.Modifiable[S]]] // whatever... right now it is modifiable
+  implicit def modifiableFormat[T <: Txn[T]]: TFormat[T, Grapheme.Modifiable[T]] =
+    anyFmt.asInstanceOf[TFormat[T, Grapheme.Modifiable[T]]] // whatever... right now it is modifiable
 
-  private val anySer = new Ser[NoSys]
+  private val anyFmt = new Fmt[AnyTxn]
 
-  private final class Ser[S <: Sys[S]] extends ObjSerializer[S, Grapheme[S]] {
+  private final class Fmt[T <: Txn[T]] extends ObjFormat[T, Grapheme[T]] {
     def tpe: Obj.Type = Grapheme
   }
 
-  def readIdentifiedObj[S <: Sys[S]](in: DataInput, access: S#Acc)(implicit tx: S#Tx): Grapheme[S] = {
-    val targets = Targets.read(in, access)
+  def readIdentifiedObj[T <: Txn[T]](in: DataInput)(implicit tx: T): Grapheme[T] = {
+    val targets = Targets.read(in)
     new Impl(targets) {
-      val tree: Tree[S, Obj[S]] = readTree(in, access)
+      val tree: Tree[T, Obj[T]] = readTree(in)
     }
   }
 
-  def modifiable[S <: Sys[S]](implicit tx: S#Tx): Modifiable[S] = {
-    val targets = evt.Targets[S]
-    new Impl[S](targets) {
-      val tree: Tree[S, Obj[S]] = newTree()
+  def modifiable[T <: Txn[T]](implicit tx: T): Modifiable[T] = {
+    val targets = Targets[T]()
+    new Impl[T](targets) {
+      val tree: Tree[T, Obj[T]] = newTree()
     } // .connect()
   }
 
   // ---- actual implementation ----
 
-  private abstract class Impl[S <: Sys[S]](protected val targets: evt.Targets[S])
-    extends BiPinImpl.Impl[S, Obj, Impl[S]] with Grapheme.Modifiable[S] {
+  private abstract class Impl[T <: Txn[T]](protected val targets: Targets[T])
+    extends BiPinImpl.Impl[T, Obj, Impl[T]] with Grapheme.Modifiable[T] {
     in =>
 
     final def tpe: Obj.Type = Grapheme
 
     override def toString: String = s"Grapheme$id"
 
-    final def modifiableOption: Option[Modifiable[S]] = Some(this)
+    final def modifiableOption: Option[Modifiable[T]] = Some(this)
 
-    final def copy[Out <: Sys[Out]]()(implicit tx: S#Tx, txOut: Out#Tx, context: Copy[S, Out]): Elem[Out] =
-      new Impl[Out](evt.Targets[Out]) { out =>
+    final def copy[Out <: Txn[Out]]()(implicit tx: T, txOut: Out, context: Copy[T, Out]): Elem[Out] =
+      new Impl[Out](Targets[Out]()) { out =>
         val tree: Tree[Out, A] = out.newTree()
-        context.defer[PinAux](in, out)(BiPinImpl.copyTree[S, Out, Obj, Impl[Out]](in.tree, out.tree, out))
+        context.defer[PinAux](in, out)(BiPinImpl.copyTree[T, Out, Obj, Impl[Out]](in.tree, out.tree, out))
         // out.connect()
       }
 
-    final def firstEvent(implicit tx: S#Tx): Option[Long] = eventAfter  (Long.MinValue)
-    final def lastEvent (implicit tx: S#Tx): Option[Long] = eventBefore (Long.MaxValue)
+    final def firstEvent(implicit tx: T): Option[Long] = eventAfter  (Long.MinValue)
+    final def lastEvent (implicit tx: T): Option[Long] = eventBefore (Long.MaxValue)
   }
 }

@@ -13,23 +13,23 @@
 
 package de.sciss.synth.proc.impl
 
-import de.sciss.lucre.stm.Disposable
-import de.sciss.lucre.synth.{Server, Sys, Txn}
+import de.sciss.lucre.Disposable
+import de.sciss.lucre.synth.{RT, Server, Txn}
 import de.sciss.synth.proc.{AuralContext, AuralSystem, SoundProcesses, Universe}
 
 /** An `AuralSystem.Client` that issues full transactions and creates an `AuralContext` */
-trait AuralSystemTxBridge[S <: Sys[S]] extends AuralSystem.Client with Disposable[S#Tx] {
+trait AuralSystemTxBridge[T <: Txn[T]] extends AuralSystem.Client with Disposable[T] {
   // ---- abstract ----
 
-  implicit val universe: Universe[S]
+  implicit val universe: Universe[T]
 
-  protected def auralStartedTx()(implicit tx: S#Tx, auralContext: AuralContext[S]): Unit
+  protected def auralStartedTx()(implicit tx: T, auralContext: AuralContext[T]): Unit
 
-  protected def auralStoppedTx()(implicit tx: S#Tx): Unit
+  protected def auralStoppedTx()(implicit tx: T): Unit
 
   // ---- impl ----
 
-  final def connectAuralSystem()(implicit tx: S#Tx): this.type = {
+  final def connectAuralSystem()(implicit tx: T): this.type = {
     import universe.auralSystem
     auralSystem.addClient(this)
     auralSystem.serverOption.foreach { server =>
@@ -38,31 +38,31 @@ trait AuralSystemTxBridge[S <: Sys[S]] extends AuralSystem.Client with Disposabl
     this
   }
 
-  final def disconnectAuralSystem()(implicit tx: S#Tx): Unit = {
+  final def disconnectAuralSystem()(implicit tx: T): Unit = {
     import universe.auralSystem
     auralSystem.removeClient(this)
   }
 
-  final def auralStarted(server: Server)(implicit tx: Txn): Unit = {
+  final def auralStarted(server: Server)(implicit tx: RT): Unit = {
     // The reasoning for the txn decoupling
-    // is the discrepancy between Txn and S#Tx
+    // is the discrepancy between Txn and T
     tx.afterCommit {
       import universe.cursor
-      SoundProcesses.step("auralStarted") { implicit tx: S#Tx =>
+      SoundProcesses.step("auralStarted") { implicit tx: T =>
         auralStartedTx(server)
       }
     }
   }
 
-  final def auralStartedTx(server: Server)(implicit tx: S#Tx): Unit = {
-    implicit val auralContext: AuralContext[S] = AuralContext(server)
+  final def auralStartedTx(server: Server)(implicit tx: T): Unit = {
+    implicit val auralContext: AuralContext[T] = AuralContext(server)
     auralStartedTx()
   }
 
-  final def auralStopped()(implicit tx: Txn): Unit =
+  final def auralStopped()(implicit tx: RT): Unit =
     tx.afterCommit {
       import universe.cursor
-      SoundProcesses.step("auralStopped") { implicit tx: S#Tx =>
+      SoundProcesses.step("auralStopped") { implicit tx: T =>
         auralStoppedTx()
       }
     }

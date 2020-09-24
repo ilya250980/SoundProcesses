@@ -13,22 +13,22 @@
 
 package de.sciss.synth.proc.impl
 
-import de.sciss.lucre.stm.{Disposable, IdentifierMap, Obj, Sys}
+import de.sciss.lucre.{Disposable, IdentMap, Obj, Txn}
 
 import scala.concurrent.stm.Ref
 
-final class ContextEntry[S <: Sys[S]](val data: Disposable[S#Tx]) {
+final class ContextEntry[T <: Txn[T]](val data: Disposable[T]) {
   val count: Ref[Int] = Ref(0)
 }
 
-trait ContextImpl[S <: Sys[S]] {
+trait ContextImpl[T <: Txn[T]] {
 
-  protected def objMap: IdentifierMap[S#Id, S#Tx, ContextEntry[S]]
+  protected def objMap: IdentMap[T, ContextEntry[T]]
 
-  final def acquire[A <: Disposable[S#Tx]](obj: Obj[S])(init: => A)(implicit tx: S#Tx): A = {
+  final def acquire[A <: Disposable[T]](obj: Obj[T])(init: => A)(implicit tx: T): A = {
     val id = obj.id
     val e  = objMap.getOrElse(id, {
-      val e0 = new ContextEntry[S](init)
+      val e0 = new ContextEntry[T](init)
       objMap.put(id, e0)
       e0
     })
@@ -36,10 +36,10 @@ trait ContextImpl[S <: Sys[S]] {
     e.data.asInstanceOf[A]
   }
 
-  final def get[A](obj: Obj[S])(implicit tx: S#Tx): Option[A] =
+  final def get[A](obj: Obj[T])(implicit tx: T): Option[A] =
     objMap.get(obj.id).map(_.data.asInstanceOf[A])
 
-  final def release(obj: Obj[S])(implicit tx: S#Tx): Unit = {
+  final def release(obj: Obj[T])(implicit tx: T): Unit = {
     val id  = obj.id
     val e   = objMap.getOrElse(id, sys.error(s"No data cached for $obj"))
     val c   = e.count.transformAndGet(_ - 1)(tx.peer)

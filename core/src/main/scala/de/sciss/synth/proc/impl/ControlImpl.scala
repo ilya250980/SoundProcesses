@@ -13,11 +13,10 @@
 
 package de.sciss.synth.proc.impl
 
-import de.sciss.lucre.event.Targets
-import de.sciss.lucre.stm.impl.ObjSerializer
-import de.sciss.lucre.stm.{Copy, Elem, NoSys, Obj, Sys}
-import de.sciss.lucre.{event => evt}
-import de.sciss.serial.{DataInput, DataOutput, Serializer}
+import de.sciss.lucre.Event.Targets
+import de.sciss.lucre.impl.{GeneratorEvent, ObjFormat, SingleEventNode}
+import de.sciss.lucre.{AnyTxn, Copy, Elem, Obj, Pull, Txn}
+import de.sciss.serial.{DataInput, DataOutput, TFormat}
 import de.sciss.synth.proc.Control
 
 import scala.collection.immutable.{IndexedSeq => Vec}
@@ -25,24 +24,24 @@ import scala.collection.immutable.{IndexedSeq => Vec}
 object ControlImpl {
   private final val SER_VERSION = 0x4374  // "Ct"
 
-  def apply[S <: Sys[S]]()(implicit tx: S#Tx): Control[S] = new New[S]
+  def apply[T <: Txn[T]]()(implicit tx: T): Control[T] = new New[T](tx)
 
-  def read[S <: Sys[S]](in: DataInput, access: S#Acc)(implicit tx: S#Tx): Control[S] =
-    serializer[S].read(in, access)
+  def read[T <: Txn[T]](in: DataInput)(implicit tx: T): Control[T] =
+    format[T].readT(in)
 
-  def serializer[S <: Sys[S]]: Serializer[S#Tx, S#Acc, Control[S]] = anySer.asInstanceOf[Ser[S]]
+  def format[T <: Txn[T]]: TFormat[T, Control[T]] = anyFmt.asInstanceOf[Fmt[T]]
 
-  private val anySer = new Ser[NoSys]
+  private val anyFmt = new Fmt[AnyTxn]
 
-  private class Ser[S <: Sys[S]] extends ObjSerializer[S, Control[S]] {
+  private class Fmt[T <: Txn[T]] extends ObjFormat[T, Control[T]] {
     def tpe: Obj.Type = Control
   }
 
-  def readIdentifiedObj[S <: Sys[S]](in: DataInput, access: S#Acc)(implicit tx: S#Tx): Control[S] = {
-    val targets = Targets.read(in, access)
+  def readIdentifiedObj[T <: Txn[T]](in: DataInput)(implicit tx: T): Control[T] = {
+    val targets = Targets.read(in)
     val serVer  = in.readShort()
     if (serVer == SER_VERSION) {
-      new Read(in, access, targets)
+      new Read(in, targets, tx)
     } else {
       sys.error(s"Incompatible serialized (found $serVer, required $SER_VERSION)")
     }
@@ -50,13 +49,13 @@ object ControlImpl {
 
   // ---- node impl ----
 
-  private sealed trait Impl[S <: Sys[S]]
-    extends Control[S] with evt.impl.SingleNode[S, Control.Update[S]] {
+  private sealed trait Impl[T <: Txn[T]]
+    extends Control[T] with SingleEventNode[T, Control.Update[T]] {
     proc =>
 
     // --- abstract ----
 
-    //    protected def outputsMap: SkipList.Map[S, String, Output[S]]
+    //    protected def outputsMap: SkipList.Map[T, String, Output[T]]
 
     // --- impl ----
 
@@ -64,9 +63,9 @@ object ControlImpl {
 
     override def toString: String = s"Control$id"
 
-    def copy[Out <: Sys[Out]]()(implicit tx: S#Tx, txOut: Out#Tx, context: Copy[S, Out]): Elem[Out] =
+    def copy[Out <: Txn[Out]]()(implicit tx: T, txOut: Out, context: Copy[T, Out]): Elem[Out] =
       new Impl[Out] { out =>
-        protected val targets: Targets[Out]                     = Targets[Out]
+        protected val targets: Targets[Out]                     = Targets[Out]()
         val graph     : Control.GraphObj.Var[Out]                   = context(proc.graph)
         //        val outputsMap: SkipList.Map[Out, String, Output[Out]]  = SkipList.Map.empty
 
@@ -75,23 +74,23 @@ object ControlImpl {
 
     // ---- key maps ----
 
-    final def connect()(implicit tx: S#Tx): this.type = {
+    final def connect()(implicit tx: T): this.type = {
       graph.changed ---> changed
       this
     }
 
-    private def disconnect()(implicit tx: S#Tx): Unit = {
+    private def disconnect()(implicit tx: T): Unit = {
       graph.changed -/-> changed
     }
 
     object changed extends Changed
-      with evt.impl.Generator[S, Control.Update[S]] {
-      def pullUpdate(pull: evt.Pull[S])(implicit tx: S#Tx): Option[Control.Update[S]] = {
+      with GeneratorEvent[T, Control.Update[T]] {
+      def pullUpdate(pull: Pull[T])(implicit tx: T): Option[Control.Update[T]] = {
         val graphCh     = graph.changed
         val graphOpt    = if (pull.contains(graphCh)) pull(graphCh) else None
-        val stateOpt    = if (pull.isOrigin(this)) Some(pull.resolve[Control.Update[S]]) else None
+        val stateOpt    = if (pull.isOrigin(this)) Some(pull.resolve[Control.Update[T]]) else None
 
-        val seq0 = graphOpt.fold(Vec.empty[Control.Change[S]]) { u =>
+        val seq0 = graphOpt.fold(Vec.empty[Control.Change[T]]) { u =>
           Vector(Control.GraphChange(u))
         }
 
@@ -108,25 +107,28 @@ object ControlImpl {
       //      outputsMap.write(out)
     }
 
-    final protected def disposeData()(implicit tx: S#Tx): Unit = {
+    final protected def disposeData()(implicit tx: T): Unit = {
       disconnect()
       graph     .dispose()
       //      outputsMap.dispose()
     }
   }
 
-  private final class New[S <: Sys[S]](implicit tx0: S#Tx) extends Impl[S] {
-    protected val targets: Targets[S] = Targets(tx0)
-    val graph     : Control.GraphObj.Var[S]                 = Control.GraphObj.newVar(Control.GraphObj.empty)
-    //    val outputsMap: SkipList.Map[S, String, Output[S]]  = SkipList.Map.empty
+  private final class New[T <: Txn[T]](tx0: T) extends Impl[T] {
+    protected val targets: Targets[T] = Targets()(tx0)
+
+    val graph: Control.GraphObj.Var[T] = Control.GraphObj.newVar(Control.GraphObj.empty(tx0))(tx0)
+
+    //    val outputsMap: SkipList.Map[T, String, Output[T]]  = SkipList.Map.empty
+
     connect()(tx0)
   }
 
-  private final class Read[S <: Sys[S]](in: DataInput, access: S#Acc, protected val targets: Targets[S])
-                                       (implicit tx0: S#Tx)
-    extends Impl[S] {
+  private final class Read[T <: Txn[T]](in: DataInput, protected val targets: Targets[T], tx0: T)
+    extends Impl[T] {
 
-    val graph     : Control.GraphObj.Var[S]                 = Control.GraphObj.readVar(in, access)
-    //    val outputsMap: SkipList.Map[S, String, Output[S]]  = SkipList.Map.read   (in, access)
+    val graph: Control.GraphObj.Var[T] = Control.GraphObj.readVar(in)(tx0)
+
+    //    val outputsMap: SkipList.Map[T, String, Output[T]]  = SkipList.Map.read   (in, access)
   }
 }

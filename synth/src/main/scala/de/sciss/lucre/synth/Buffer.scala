@@ -53,10 +53,10 @@ object Buffer {
   private trait ProxyResource extends Resource with Proxy {
     def self: Buffer
 
-    def isOnline(implicit tx: Txn): Boolean = self.isOnline
+    def isOnline(implicit tx: RT): Boolean = self.isOnline
 
-    private[synth] def timeStamp                    (implicit tx: Txn): TimeStamp = self.timeStamp
-    private[synth] def timeStamp_=(value: TimeStamp)(implicit tx: Txn): Unit      = self.timeStamp = value
+    private[synth] def timeStamp                    (implicit tx: RT): TimeStamp = self.timeStamp
+    private[synth] def timeStamp_=(value: TimeStamp)(implicit tx: RT): Unit      = self.timeStamp = value
 
     def server: Server = self.server
   }
@@ -65,7 +65,7 @@ object Buffer {
   def disposeWithNode(buf: Buffer, nr: NodeRef): Resource = new ProxyResource {
     val self: Buffer = buf
 
-    def dispose()(implicit tx: Txn): Unit = nr.node.onEndTxn { implicit tx =>
+    def dispose()(implicit tx: RT): Unit = nr.node.onEndTxn { implicit tx =>
       // println(s"disposeWithNode($buf, $nr)")
       self.dispose()
     }
@@ -79,7 +79,7 @@ object Buffer {
                    (implicit exec: ExecutionContext): Resource = new ProxyResource {
     val self: Buffer = buf
 
-    def dispose()(implicit tx: Txn): Unit = {
+    def dispose()(implicit tx: RT): Unit = {
       nr.node.onEnd {
         val fut = self.server.!!(osc.Bundle.now(self.peer.writeMsg(path = artifact.getPath)))
         fut.foreach { _ =>
@@ -90,7 +90,7 @@ object Buffer {
   }
 
   def diskIn(server: Server)(path: String, startFrame: Long = 0L, numFrames: Int = defaultCueBufferSize,
-                             numChannels: Int = 1)(implicit tx: Txn): Buffer = {
+                             numChannels: Int = 1)(implicit tx: RT): Buffer = {
     validateCueBufferSize(server, numFrames)
     val res = create(server, numFrames = numFrames, numChannels = numChannels, closeOnDisposal = true)
     // res.allocRead(path, startFrame = startFrame, numFrames = numFrames)
@@ -101,7 +101,7 @@ object Buffer {
 
   def diskOut(server: Server)(path: String, fileType: AudioFileType = AudioFileType.AIFF,
                               sampleFormat: SampleFormat = SampleFormat.Float,
-                              numFrames: Int = defaultRecBufferSize, numChannels: Int = 1)(implicit tx: Txn): Buffer = {
+                              numFrames: Int = defaultRecBufferSize, numChannels: Int = 1)(implicit tx: RT): Buffer = {
     validateCueBufferSize(server, numFrames)
     val res = create(server, numFrames = numFrames, numChannels = numChannels, closeOnDisposal = true)
     res.alloc()
@@ -109,42 +109,42 @@ object Buffer {
     res
   }
 
-  def fft(server: Server)(size: Int)(implicit tx: Txn): Modifiable = {
+  def fft(server: Server)(size: Int)(implicit tx: RT): Modifiable = {
     require(size >= 2 && isPowerOfTwo(size), "Must be a power of two and >= 2 : " + size)
     val res = create(server, numFrames = size, numChannels = 1)
     res.alloc()
     res
   }
 
-  def apply(server: Server)(numFrames: Int, numChannels: Int = 1)(implicit tx: Txn): Modifiable = {
+  def apply(server: Server)(numFrames: Int, numChannels: Int = 1)(implicit tx: RT): Modifiable = {
     val res = create(server, numFrames = numFrames, numChannels = numChannels)
     res.alloc()
     res
   }
 
   private def create(server: Server, numFrames: Int, numChannels: Int, closeOnDisposal: Boolean = false)
-                    (implicit tx: Txn): BufferImpl = {
+                    (implicit tx: RT): BufferImpl = {
     val id    = server.allocBuffer()
     val peer  = SBuffer(server.peer, id)
     BufferImpl(server, peer)(numFrames = numFrames, numChannels = numChannels, closeOnDisposal = closeOnDisposal)
   }
 
   trait Modifiable extends Buffer {
-    def zero()(implicit tx: Txn): Unit
+    def zero()(implicit tx: RT): Unit
 
-    def fill(index: Int, num: Int, value: Float)(implicit tx: Txn): Unit
+    def fill(index: Int, num: Int, value: Float)(implicit tx: RT): Unit
 
-    def setn(values: IndexedSeq[Float])(implicit tx: Txn): Unit
+    def setn(values: IndexedSeq[Float])(implicit tx: RT): Unit
 
-    def setn(pairs: (Int, IndexedSeq[Float])*)(implicit tx: Txn): Unit
+    def setn(pairs: (Int, IndexedSeq[Float])*)(implicit tx: RT): Unit
 
-    def gen(cmd: BufferGen.Command)(implicit tx: Txn): Unit
+    def gen(cmd: BufferGen.Command)(implicit tx: RT): Unit
 
     def read(path: String, fileStartFrame: Long = 0L, numFrames: Int = -1, bufStartFrame: Int = 0)
-            (implicit tx: Txn): Unit
+            (implicit tx: RT): Unit
 
     def readChannel(path: String, channels: Seq[Int], fileStartFrame: Long = 0L, numFrames: Int = -1,
-                    bufStartFrame: Int = 0)(implicit tx: Txn): Unit
+                    bufStartFrame: Int = 0)(implicit tx: RT): Unit
   }
 }
 
@@ -157,5 +157,5 @@ trait Buffer extends Resource {
 
   def write(path: String, fileType: AudioFileType = AudioFileType.AIFF,
             sampleFormat: SampleFormat = SampleFormat.Float, numFrames: Int = -1, startFrame: Int = 0,
-            leaveOpen: Boolean = false /* , completion: Optional[Packet] = None */)(implicit tx: Txn): Unit
+            leaveOpen: Boolean = false /* , completion: Optional[Packet] = None */)(implicit tx: RT): Unit
 }

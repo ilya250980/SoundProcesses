@@ -16,7 +16,7 @@ package impl
 
 import de.sciss.lucre.Event.Targets
 import de.sciss.lucre.data.SkipList
-import de.sciss.lucre.impl.{ObjFormat, SingleEventNode}
+import de.sciss.lucre.impl.{GeneratorEvent, ObjFormat, SingleEventNode}
 import de.sciss.lucre.{AnyTxn, Copy, Elem, Obj, Pull, Txn}
 import de.sciss.serial.{DataInput, DataOutput, TFormat}
 
@@ -159,7 +159,7 @@ object ProcImpl {
     }
 
     object changed extends Changed
-      with evt.impl.Generator[T, Proc.Update[T]]
+      with GeneratorEvent[T, Proc.Update[T]]
       // with evt.impl.Root[T, Proc.Update[T]]
       // extends evt.impl.EventImpl[T, Proc.Update[T], Proc[T]]
        {

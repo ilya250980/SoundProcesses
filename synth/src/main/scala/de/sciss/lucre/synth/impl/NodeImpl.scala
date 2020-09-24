@@ -11,11 +11,11 @@
  *  contact@sciss.de
  */
 
-package de.sciss.lucre.synth.impl
+package de.sciss.lucre.synth
+package impl
 
 import java.util.concurrent.{Executors, ScheduledExecutorService}
 
-import de.sciss.lucre.synth.{AudioBus, AudioBusNodeSetter, BusNodeSetter, ControlBus, ControlBusNodeSetter, Group, Node, Txn, log}
 import de.sciss.synth.{ControlABusMap, ControlFillRange, ControlKBusMap, ControlSet}
 
 import scala.collection.immutable.{IndexedSeq => Vec}
@@ -24,7 +24,7 @@ import scala.concurrent.stm.{InTxn, Ref, TxnExecutor}
 object NodeImpl {
   private val EmptyOnEnd: OnEnd = OnEnd(Vector.empty, Vector.empty)
 
-  private final case class OnEnd(direct: Vec[() => Unit], inTxn: Vec[Txn => Unit]) {
+  private final case class OnEnd(direct: Vec[() => Unit], inTxn: Vec[RT => Unit]) {
     def nonEmpty: Boolean = direct.nonEmpty || inTxn.nonEmpty
   }
 
@@ -55,14 +55,14 @@ trait NodeImpl extends ResourceImpl with Node {
     val onEnd = onEndFuns.single.swap(EmptyOnEnd)
     if (onEnd.nonEmpty) {
       spawn { implicit itx =>
-        implicit val ptx: Txn = Txn.wrap(itx)
+        implicit val rt: RT = RT.wrap(itx)
         setOnline(value = false)
         processOnEnd(onEnd)
       }
     }
   }
 
-  private[this] def processOnEnd(onEnd: OnEnd)(implicit tx: Txn): Unit = {
+  private[this] def processOnEnd(onEnd: OnEnd)(implicit tx: RT): Unit = {
     onEnd.direct.foreach(_.apply()  )
     onEnd.inTxn .foreach(_.apply(tx))
   }
@@ -76,20 +76,20 @@ trait NodeImpl extends ResourceImpl with Node {
       def run(): Unit = TxnExecutor.defaultAtomic(fun)
     })
 
-  final def onEndTxn(fun: Txn => Unit)(implicit tx: Txn): Unit =
+  final def onEndTxn(fun: RT => Unit)(implicit tx: RT): Unit =
     onEndFuns.transform(e => e.copy(inTxn = e.inTxn :+ fun))(tx.peer)
 
-  final def onEnd(code: => Unit)(implicit tx: Txn): Unit =
+  final def onEnd(code: => Unit)(implicit tx: RT): Unit =
     onEndFuns.transform(e => e.copy(direct = e.direct :+ (() => code)))(tx.peer)
 
-  final def read(assoc: (AudioBus, String))(implicit tx: Txn): AudioBusNodeSetter = {
+  final def read(assoc: (AudioBus, String))(implicit tx: RT): AudioBusNodeSetter = {
     val (rb, name) = assoc
     val reader = BusNodeSetter.reader(name, rb, this)
     registerSetter(reader)
     reader
   }
 
-  final def read(assoc: (ControlBus, String))(implicit tx: Txn): ControlBusNodeSetter = {
+  final def read(assoc: (ControlBus, String))(implicit tx: RT): ControlBusNodeSetter = {
     val (rb, name) = assoc
     val reader = BusNodeSetter.reader(name, rb, this)
     registerSetter(reader)
@@ -100,49 +100,49 @@ trait NodeImpl extends ResourceImpl with Node {
     * This creates a `DynamicAudioBusUser` which will be freed automatically when
     * this node ends.
     */
-  final def write(assoc: (AudioBus, String))(implicit tx: Txn): AudioBusNodeSetter = {
+  final def write(assoc: (AudioBus, String))(implicit tx: RT): AudioBusNodeSetter = {
     val (rb, name) = assoc
     val writer = BusNodeSetter.writer(name, rb, this)
     registerSetter(writer)
     writer
   }
 
-  final def write(assoc: (ControlBus, String))(implicit tx: Txn): ControlBusNodeSetter = {
+  final def write(assoc: (ControlBus, String))(implicit tx: RT): ControlBusNodeSetter = {
     val (rb, name) = assoc
     val writer = BusNodeSetter.writer(name, rb, this)
     registerSetter(writer)
     writer
   }
 
-  final def readWrite(assoc: (AudioBus, String))(implicit tx: Txn): AudioBusNodeSetter = {
+  final def readWrite(assoc: (AudioBus, String))(implicit tx: RT): AudioBusNodeSetter = {
     val (rb, name) = assoc
     val rw = BusNodeSetter.readerWriter(name, rb, this)
     registerSetter(rw)
     rw
   }
 
-  final def readWrite(assoc: (ControlBus, String))(implicit tx: Txn): ControlBusNodeSetter = {
+  final def readWrite(assoc: (ControlBus, String))(implicit tx: RT): ControlBusNodeSetter = {
     val (rb, name) = assoc
     val rw = BusNodeSetter.readerWriter(name, rb, this)
     registerSetter(rw)
     rw
   }
 
-  final def map(assoc: (AudioBus, String))(implicit tx: Txn): AudioBusNodeSetter = {
+  final def map(assoc: (AudioBus, String))(implicit tx: RT): AudioBusNodeSetter = {
     val (rb, name) = assoc
     val mapper = BusNodeSetter.mapper(name, rb, this)
     registerSetter(mapper)
     mapper
   }
 
-  final def map(assoc: (ControlBus, String))(implicit tx: Txn): ControlBusNodeSetter = {
+  final def map(assoc: (ControlBus, String))(implicit tx: RT): ControlBusNodeSetter = {
     val (rb, name) = assoc
     val mapper = BusNodeSetter.mapper(name, rb, this)
     registerSetter(mapper)
     mapper
   }
 
-  private def registerSetter(bns: BusNodeSetter)(implicit tx: Txn): Unit = {
+  private def registerSetter(bns: BusNodeSetter)(implicit tx: RT): Unit = {
     requireOnline()
     bns.add()
     onEndTxn {
@@ -150,10 +150,10 @@ trait NodeImpl extends ResourceImpl with Node {
     }
   }
 
-  final def dispose()(implicit tx: Txn): Unit = free()
+  final def dispose()(implicit tx: RT): Unit = free()
 
   /** Note: this is graceful in not throwing up if the node was already freed. */
-  final def free()(implicit tx: Txn): Unit = {
+  final def free()(implicit tx: RT): Unit = {
     // requireOnline()
     if (isOnline) {
       tx.addMessage(this, peer.freeMsg)
@@ -165,57 +165,57 @@ trait NodeImpl extends ResourceImpl with Node {
     }
   }
 
-  final def set(pairs: ControlSet*)(implicit tx: Txn): Unit = {
+  final def set(pairs: ControlSet*)(implicit tx: RT): Unit = {
     requireOnline()
     tx.addMessage(this, peer.setMsg(pairs: _*))
   }
 
-  final def setn(pairs: ControlSet*)(implicit tx: Txn): Unit = {
+  final def setn(pairs: ControlSet*)(implicit tx: RT): Unit = {
     requireOnline()
     tx.addMessage(this, peer.setnMsg(pairs: _*))
   }
 
-  final def fill(data: ControlFillRange*)(implicit tx: Txn): Unit = {
+  final def fill(data: ControlFillRange*)(implicit tx: RT): Unit = {
     requireOnline()
     tx.addMessage(this, peer.fillMsg(data: _*))
   }
 
-  final def mapn(pairs: ControlKBusMap*)(implicit tx: Txn): Unit = {
+  final def mapn(pairs: ControlKBusMap*)(implicit tx: RT): Unit = {
     requireOnline()
     tx.addMessage(this, peer.mapnMsg(pairs: _*))
   }
 
-  final def mapan(pairs: ControlABusMap*)(implicit tx: Txn): Unit = {
+  final def mapan(pairs: ControlABusMap*)(implicit tx: RT): Unit = {
     requireOnline()
     tx.addMessage(this, peer.mapanMsg(pairs: _*)) // , dependencies = this :: Nil /* ?! */)
   }
 
-  final def moveToHead(group: Group)(implicit tx: Txn): Unit = {
+  final def moveToHead(group: Group)(implicit tx: RT): Unit = {
     require(isOnline && group.isOnline, s"Both source $this and target $group must be online")
     tx.addMessage(this, peer.moveToHeadMsg(group.peer), dependencies = group :: Nil)
   }
 
-  final def moveToTail(group: Group)(implicit tx: Txn): Unit = {
+  final def moveToTail(group: Group)(implicit tx: RT): Unit = {
     require(isOnline && group.isOnline, s"Both source $this and target $group must be online")
     tx.addMessage(this, peer.moveToTailMsg(group.peer), dependencies = group :: Nil)
   }
 
-  final def moveBefore(target: Node)(implicit tx: Txn): Unit = {
+  final def moveBefore(target: Node)(implicit tx: RT): Unit = {
     require(isOnline && target.isOnline, s"Both source $this and target $target must be online")
     tx.addMessage(this, peer.moveBeforeMsg(target.peer), dependencies = target :: Nil)
   }
 
-  final def moveAfter(target: Node)(implicit tx: Txn): Unit = {
+  final def moveAfter(target: Node)(implicit tx: RT): Unit = {
     require(isOnline && target.isOnline, s"Both source $this and target $target must be online")
     tx.addMessage(this, peer.moveAfterMsg(target.peer), dependencies = target :: Nil)
   }
 
-  final def run(state: Boolean)(implicit tx: Txn): Unit = {
+  final def run(state: Boolean)(implicit tx: RT): Unit = {
     requireOnline()
     tx.addMessage(this, peer.runMsg(state), dependencies = Nil)
   }
 
-  final def release(releaseTime: Double)(implicit tx: Txn): Unit = {
+  final def release(releaseTime: Double)(implicit tx: RT): Unit = {
     requireOnline()
     tx.addMessage(this, peer.releaseMsg(releaseTime))
   }

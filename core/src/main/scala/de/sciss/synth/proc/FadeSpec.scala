@@ -13,16 +13,14 @@
 
 package de.sciss.synth.proc
 
-import de.sciss.lucre.event.{Pull, Targets}
-import de.sciss.lucre.expr.graph.Ex
-import de.sciss.lucre.expr.{DoubleObj, LongObj, Type, Expr => _Expr}
-import de.sciss.lucre.expr.graph.{FadeSpec => _FadeSpec}
-import de.sciss.lucre.stm.{Copy, Elem, Sys}
-import de.sciss.lucre.{expr, stm}
-import de.sciss.serial.{DataInput, DataOutput, ImmutableSerializer}
+import de.sciss.lucre.Event.Targets
+import de.sciss.lucre.expr.graph.{Ex, FadeSpec => _FadeSpec}
+import de.sciss.lucre.impl.{ExprNodeImpl, ExprTypeImpl}
+import de.sciss.lucre.{Copy, DoubleObj, Elem, Ident, LongObj, Pull, Txn, Expr => _Expr, Obj => LObj, Var => LVar}
+import de.sciss.serial.{ConstFormat, DataInput, DataOutput}
 import de.sciss.synth.Curve
 import de.sciss.synth.Curve.linear
-import de.sciss.{lucre, model => m}
+import de.sciss.{model => m}
 
 object FadeSpec {
   final val typeId = 14
@@ -34,12 +32,12 @@ object FadeSpec {
 
   private final val COOKIE = 0x4664 // 'Fd'
 
-  implicit object serializer extends ImmutableSerializer[FadeSpec] {
+  implicit object format extends ConstFormat[FadeSpec] {
     def write(v: FadeSpec, out: DataOutput): Unit = {
       import v._
       out.writeShort(COOKIE)
       out.writeLong (numFrames)
-      Curve.serializer.write(curve, out)
+      Curve.format.write(curve, out)
       out.writeFloat(floor)
     }
 
@@ -47,13 +45,13 @@ object FadeSpec {
       val cookie = in.readShort()
       if (cookie != COOKIE) sys.error(s"Unexpected cookie $cookie, expected $COOKIE")
       val numFrames = in.readLong()
-      val curve     = Curve.serializer.read(in)
+      val curve     = Curve.format.read(in)
       val floor     = in.readFloat()
       FadeSpec(numFrames = numFrames, curve = curve, floor = floor)
     }
   }
 
-  object Obj extends expr.impl.ExprTypeImpl[FadeSpec, FadeSpec.Obj] {
+  object Obj extends ExprTypeImpl[FadeSpec, FadeSpec.Obj] {
     def typeId: Int = FadeSpec.typeId
 
     import FadeSpec.{Obj => Repr}
@@ -70,44 +68,44 @@ object FadeSpec {
       _init
     }
 
-    protected def mkConst[S <: Sys[S]](id: S#Id, value: A)(implicit tx: S#Tx): Const[S] =
-      new _Const[S](id, value)
+    protected def mkConst[T <: Txn[T]](id: Ident[T], value: A)(implicit tx: T): Const[T] =
+      new _Const[T](id, value)
 
-    protected def mkVar[S <: Sys[S]](targets: Targets[S], vr: S#Var[_Ex[S]], connect: Boolean)
-                                    (implicit tx: S#Tx): Var[S] = {
-      val res = new _Var[S](targets, vr)
+    protected def mkVar[T <: Txn[T]](targets: Targets[T], vr: LVar[T, E[T]], connect: Boolean)
+                                    (implicit tx: T): Var[T] = {
+      val res = new _Var[T](targets, vr)
       if (connect) res.connect()
       res
     }
 
-    private final class _Const[S <: Sys[S]](val id: S#Id, val constValue: A)
-      extends ConstImpl[S] with Repr[S]
+    private final class _Const[T <: Txn[T]](val id: Ident[T], val constValue: A)
+      extends ConstImpl[T] with Repr[T]
 
-    private final class _Var[S <: Sys[S]](val targets: Targets[S], val ref: S#Var[_Ex[S]])
-      extends VarImpl[S] with Repr[S]
+    private final class _Var[T <: Txn[T]](val targets: Targets[T], val ref: LVar[T, E[T]])
+      extends VarImpl[T] with Repr[T]
 
-    def valueSerializer: ImmutableSerializer[FadeSpec] = FadeSpec.serializer
+    def valueFormat: ConstFormat[FadeSpec] = FadeSpec.format
 
-    def apply[S <: Sys[S]](numFrames: LongObj[S], shape: CurveObj[S], floor: DoubleObj[S])
-                          (implicit tx: S#Tx): Obj[S] = {
-      val targets = Targets[S]
+    def apply[T <: Txn[T]](numFrames: LongObj[T], shape: CurveObj[T], floor: DoubleObj[T])
+                          (implicit tx: T): Obj[T] = {
+      val targets = Targets[T]()
       new Apply(targets, numFrames, shape, floor).connect()
     }
 
-    def unapply[S <: Sys[S]](expr: Obj[S]): Option[(LongObj[S], CurveObj[S], DoubleObj[S])] =
+    def unapply[T <: Txn[T]](expr: Obj[T]): Option[(LongObj[T], CurveObj[T], DoubleObj[T])] =
       expr match {
-        case impl: Apply[S] => Some((impl.numFrames, impl.shape, impl.floor))
+        case impl: Apply[T] => Some((impl.numFrames, impl.shape, impl.floor))
         case _ => None
       }
 
-    private object Apply extends Type.Extension1[Obj] {
+    private object Apply extends _Expr.Type.Extension1[Obj] {
       final val opId = 0
 
-      def readExtension[S <: Sys[S]](opId: Int, in: DataInput, access: S#Acc, targets: Targets[S])
-                                    (implicit tx: S#Tx): Obj[S] = {
-        val numFrames = LongObj  .read(in, access)
-        val shape     = CurveObj .read(in, access)
-        val floor     = DoubleObj.read(in, access)
+      def readExtension[T <: Txn[T]](opId: Int, in: DataInput, targets: Targets[T])
+                                    (implicit tx: T): Obj[T] = {
+        val numFrames = LongObj  .read(in)
+        val shape     = CurveObj .read(in)
+        val floor     = DoubleObj.read(in)
         new Apply(targets, numFrames, shape, floor)
       }
 
@@ -116,21 +114,21 @@ object FadeSpec {
       val opHi: Int = opId
       val opLo: Int = opId
     }
-    private final class Apply[S <: Sys[S]](protected val targets: Targets[S],
-                                           val numFrames: LongObj[S],
-                                           val shape: CurveObj[S],
-                                           val floor: DoubleObj[S])
-      extends lucre.expr.impl.NodeImpl[S, FadeSpec] with Obj[S] {
+    private final class Apply[T <: Txn[T]](protected val targets: Targets[T],
+                                           val numFrames: LongObj[T],
+                                           val shape: CurveObj[T],
+                                           val floor: DoubleObj[T])
+      extends ExprNodeImpl[T, FadeSpec] with Obj[T] {
 
-      def tpe: stm.Obj.Type = FadeSpec.Obj
+      def tpe: LObj.Type = FadeSpec.Obj
 
-      def copy[Out <: Sys[Out]]()(implicit tx: S#Tx, txOut: Out#Tx, context: Copy[S, Out]): Elem[Out] =
-        new Apply(Targets[Out], context(numFrames), context(shape), context(floor)).connect()
+      def copy[Out <: Txn[Out]]()(implicit tx: T, txOut: Out, context: Copy[T, Out]): Elem[Out] =
+        new Apply(Targets[Out](), context(numFrames), context(shape), context(floor)).connect()
 
-      def value(implicit tx: S#Tx): FadeSpec = FadeSpec(numFrames.value, shape.value, floor.value.toFloat)
+      def value(implicit tx: T): FadeSpec = FadeSpec(numFrames.value, shape.value, floor.value.toFloat)
 
       object changed extends Changed {
-        def pullUpdate(pull: Pull[S])(implicit tx: S#Tx): Option[m.Change[FadeSpec]] = {
+        def pullUpdate(pull: Pull[T])(implicit tx: T): Option[m.Change[FadeSpec]] = {
           val framesEvt = numFrames.changed
           val framesChO = if (pull.contains(framesEvt)) pull(framesEvt) else None
           val shapeEvt  = shape.changed
@@ -162,7 +160,7 @@ object FadeSpec {
         }
       }
 
-      protected def disposeData()(implicit tx: S#Tx): Unit = disconnect()
+      protected def disposeData()(implicit tx: T): Unit = disconnect()
 
       protected def writeData(out: DataOutput): Unit = {
         out.writeByte(1)  // 'node' not 'var'
@@ -172,21 +170,21 @@ object FadeSpec {
         floor    .write(out)
       }
 
-      def connect()(implicit tx: S#Tx): this.type = {
+      def connect()(implicit tx: T): this.type = {
         numFrames.changed ---> changed
         shape    .changed ---> changed
         floor    .changed ---> changed
         this
       }
 
-      private def disconnect()(implicit tx: S#Tx): Unit = {
+      private def disconnect()(implicit tx: T): Unit = {
         numFrames.changed -/-> changed
         shape    .changed -/-> changed
         floor    .changed -/-> changed
       }
     }
   }
-  trait Obj[S <: Sys[S]] extends _Expr[S, FadeSpec]
+  trait Obj[T <: Txn[T]] extends _Expr[T, FadeSpec]
 
   implicit final class ExOps(private val x: Ex[FadeSpec]) extends AnyVal {
     def numFrames : Ex[Long]   = _FadeSpec.NumFrames(x)

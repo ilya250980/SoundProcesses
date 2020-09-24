@@ -13,7 +13,7 @@
 
 package de.sciss.synth.proc.graph.impl
 
-import de.sciss.lucre.synth.{DynamicUser, Node, Txn}
+import de.sciss.lucre.synth.{DynamicUser, Node, RT}
 import de.sciss.osc
 import de.sciss.synth.message
 
@@ -27,7 +27,7 @@ trait SendReplyResponder extends DynamicUser {
 
   protected def synth   : Node
 
-  protected def added()(implicit tx: Txn): Unit
+  protected def added()(implicit tx: RT): Unit
 
   protected def body: Body
 
@@ -37,7 +37,7 @@ trait SendReplyResponder extends DynamicUser {
 
   private[this] val _added = Ref(initialValue = false)
 
-  final def add()(implicit tx: Txn): Unit = if (!_added.swap(true)(tx.peer)) {
+  final def add()(implicit tx: RT): Unit = if (!_added.swap(true)(tx.peer)) {
     trigResp.add()
     // Responder.add is non-transactional. Thus, if the transaction fails, we need to remove it.
     scala.concurrent.stm.Txn.afterRollback { _ =>
@@ -48,7 +48,7 @@ trait SendReplyResponder extends DynamicUser {
     // synth.onEnd(trigResp.remove())
   }
 
-  final def remove()(implicit tx: Txn): Unit = if (_added.swap(false)(tx.peer)) {
+  final def remove()(implicit tx: RT): Unit = if (_added.swap(false)(tx.peer)) {
     trigResp.remove()
     scala.concurrent.stm.Txn.afterRollback { _ =>
       trigResp.add()

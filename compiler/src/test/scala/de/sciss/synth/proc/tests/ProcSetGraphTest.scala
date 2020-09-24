@@ -1,7 +1,7 @@
 package de.sciss.synth.proc.tests
 
 import de.sciss.file._
-import de.sciss.lucre.stm.store.BerkeleyDB
+import de.sciss.lucre.store.BerkeleyDB
 import de.sciss.synth.proc.{Code, Durable, MacroImplicits, Proc, SoundProcesses, Workspace}
 
 object ProcSetGraphTest {
@@ -11,12 +11,12 @@ object ProcSetGraphTest {
   def main(args: Array[String]): Unit = {
     SoundProcesses.init()
 
-    type S      = Durable
+    type T      = Durable.Txn
     val dir     = File.createTempIn(userHome / "Documents", suffix = ".mllt", directory = true)
     val ds      = BerkeleyDB.factory(dir)
     val ws      = Workspace.Durable.empty(dir, ds)
     ws.cursor.step { implicit tx =>
-      val p = Proc[S]()
+      val p = Proc[T]()
       import de.sciss.synth._
       import ugen._
       p.setGraph {

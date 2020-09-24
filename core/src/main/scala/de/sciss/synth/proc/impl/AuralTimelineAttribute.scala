@@ -13,13 +13,11 @@
 
 package de.sciss.synth.proc.impl
 
-import de.sciss.lucre.bitemp.BiGroup
 import de.sciss.lucre.data.SkipOctree
-import de.sciss.lucre.geom.{LongPoint2D, LongSpace}
-import de.sciss.lucre.stm
-import de.sciss.lucre.stm.{DummySerializerFactory, Obj, TxnLike}
-import de.sciss.lucre.synth.Sys
-import de.sciss.serial.Serializer
+import de.sciss.lucre.geom.{LongPoint2D, LongPoint2DLike, LongSpace, LongSquare}
+import de.sciss.lucre.impl.DummyTFormat
+import de.sciss.lucre.{BiGroup, Obj, Source, Txn, synth}
+import de.sciss.serial.TFormat
 import de.sciss.synth.proc.AuralAttribute.{Factory, Observer}
 import de.sciss.synth.proc.{AuralAttribute, AuralContext, Timeline}
 
@@ -30,48 +28,45 @@ import scala.concurrent.stm.Ref
 object AuralTimelineAttribute extends Factory {
   import AuralTimelineBase.spanToPoint
 
-  type Repr[S <: stm.Sys[S]] = Timeline[S]
+  type Repr[T <: Txn[T]] = Timeline[T]
 
-  private type Leaf[S <: Sys[S]] = AuralTimelineBase.Leaf[S, AuralAttribute[S]]
+  private type Leaf[T <: Txn[T]] = AuralTimelineBase.Leaf[T, AuralAttribute[T]]
 
   def tpe: Obj.Type = Timeline
 
-  def apply[S <: Sys[S]](key: String, timeline: Timeline[S], observer: Observer[S])
-                        (implicit tx: S#Tx, context: AuralContext[S]): AuralAttribute[S] = {
-    val system  = tx.system
-    val res     = prepare[S, system.I](key, timeline, observer, system) // IntelliJ highlight bug
+  def apply[T <: synth.Txn[T]](key: String, timeline: Timeline[T], observer: Observer[T])
+                        (implicit tx: T, context: AuralContext[T]): AuralAttribute[T] = {
+    val res = prepare[T, tx.I](key, timeline, observer)(tx, tx.inMemoryBridge, context)
     res.init(timeline)
   }
 
-  private def prepare[S <: Sys[S], I1 <: stm.Sys[I1]](key: String, value: Timeline[S],
-                                                      observer: Observer[S], system: S { type I = I1 })
-                   (implicit tx: S#Tx, context: AuralContext[S]): AuralTimelineAttribute[S, I1] = {
-    implicit val iSys: S#Tx => I1#Tx  = system.inMemoryTx
-    implicit val itx: I1#Tx = iSys(tx)
-    implicit val pointView: (Leaf[S], I1#Tx) => LongPoint2D = (l, _) => spanToPoint(l._1)
-    implicit val dummyKeySer: Serializer[I1#Tx, I1#Acc, Leaf[S]] =
-      DummySerializerFactory[I1].dummySerializer
+  private def prepare[T <: synth.Txn[T], I1 <: Txn[I1]](key: String, value: Timeline[T],
+                                                      observer: Observer[T])
+                   (implicit tx: T, iSys: T => I1, context: AuralContext[T]): AuralTimelineAttribute[T, I1] = {
+    implicit val itx: I1 = iSys(tx)
+    implicit val pointView: (Leaf[T], I1) => LongPoint2D = (l, _) => spanToPoint(l._1)
+    implicit val dummyKeySer: TFormat[I1, Leaf[T]] = DummyTFormat[I1, Leaf[T]]
+    import LongSpace.TwoDim
 
-    val tree = SkipOctree.empty[I1, LongSpace.TwoDim, Leaf[S]](BiGroup.MaxSquare)
+    val tree = SkipOctree.empty[I1, LongPoint2DLike, LongSquare, Leaf[T]](BiGroup.MaxSquare)
 
     new AuralTimelineAttribute(key, tx.newHandle(value), observer, tree)
   }
 }
-final class AuralTimelineAttribute[S <: Sys[S], I <: stm.Sys[I]](val key: String,
-                                                                 objH: stm.Source[S#Tx, Timeline[S]],
-                                                                 observer: Observer[S],
-                                                                 protected val tree: SkipOctree[I, LongSpace.TwoDim, AuralTimelineAttribute.Leaf[S]])
-        (implicit protected val context: AuralContext[S], protected val iSys: S#Tx => I#Tx)
-  extends AuralTimelineBase[S, I, AuralAttribute.Target[S], AuralAttribute[S]]
-  with AuralAttribute[S]
-  with Observer[S] {
+final class AuralTimelineAttribute[T <: synth.Txn[T],
+  I <: Txn[I]](val key: String, objH: Source[T, Timeline[T]], observer: Observer[T],
+               protected val tree: SkipOctree[I, LongPoint2DLike, LongSquare, AuralTimelineAttribute.Leaf[T]])
+              (implicit protected val context: AuralContext[T], protected val iSys: T => I)
+  extends AuralTimelineBase[T, I, AuralAttribute.Target[T], AuralAttribute[T]]
+  with AuralAttribute[T]
+  with Observer[T] {
   attr =>
 
-  import TxnLike.peer
+  import Txn.peer
 
-  type Elem = AuralAttribute[S]
+  type Elem = AuralAttribute[T]
 
-  def obj(implicit tx: S#Tx): Timeline[S] = objH()
+  def obj(implicit tx: T): Timeline[T] = objH()
 
   // we sample the first encountered objects for which temporary views
   // have to built in order to get the number-of-channels. these
@@ -79,12 +74,12 @@ final class AuralTimelineAttribute[S <: Sys[S], I <: stm.Sys[I]](val key: String
   private[this] val prefChansElemRef  = Ref[Vec[Elem]](Vector.empty)
   private[this] val prefChansNumRef   = Ref(-2)   // -2 = cache invalid. across contents of `prefChansElemRef`
 
-  protected def makeViewElem(obj: Obj[S])(implicit tx: S#Tx): Elem = AuralAttribute(key, obj, attr)
+  protected def makeViewElem(obj: Obj[T])(implicit tx: T): Elem = AuralAttribute(key, obj, attr)
 
-  protected def viewPlaying(h: ElemHandle)(implicit tx: S#Tx): Unit = ()
-  protected def viewStopped(h: ElemHandle)(implicit tx: S#Tx): Unit = ()
+  protected def viewPlaying(h: ElemHandle)(implicit tx: T): Unit = ()
+  protected def viewStopped(h: ElemHandle)(implicit tx: T): Unit = ()
 
-  def preferredNumChannels(implicit tx: S#Tx): Int = {
+  def preferredNumChannels(implicit tx: T): Int = {
     val cache = prefChansNumRef()
     if (cache > -2) {
       // println(s"preferredNumChannels - cached: $cache")
@@ -124,13 +119,13 @@ final class AuralTimelineAttribute[S <: Sys[S], I <: stm.Sys[I]](val key: String
   }
 
   // if cache is affected, simply forward, so that cache is rebuilt.
-  def attrNumChannelsChanged(attr: Elem)(implicit tx: S#Tx): Unit =
+  def attrNumChannelsChanged(attr: Elem)(implicit tx: T): Unit =
     if (prefChansElemRef().contains(attr)) {  // then invalidate, otherwise ignore (what can we do?)
       prefChansNumRef() = -2
       observer.attrNumChannelsChanged(this)
     }
 
-  override def dispose()(implicit tx: S#Tx): Unit = {
+  override def dispose()(implicit tx: T): Unit = {
     super.dispose()
     prefChansElemRef.swap(Vector.empty).foreach(_.dispose())
   }

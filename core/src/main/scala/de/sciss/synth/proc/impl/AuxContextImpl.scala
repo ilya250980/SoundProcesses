@@ -13,26 +13,25 @@
 
 package de.sciss.synth.proc.impl
 
-import de.sciss.lucre.stm
-import de.sciss.lucre.stm.{Disposable, IdentifierMap}
+import de.sciss.lucre.{Disposable, Ident, IdentMap, Source, Txn}
 import de.sciss.synth.proc.AuxContext
 
 /** Building block for things like AuralContext. */
-trait AuxContextImpl[S <: stm.Sys[S]] {
+trait AuxContextImpl[T <: Txn[T]] {
   // ---- abstract ----
 
   /** Objects */
-  protected def auxMap      : IdentifierMap[S#Id, S#Tx, Any]
+  protected def auxMap      : IdentMap[T, Any]
   /** Observers */
-  protected def auxObservers: IdentifierMap[S#Id, S#Tx, List[AuxObserver]]
+  protected def auxObservers: IdentMap[T, List[AuxObserver]]
 
   // ---- impl ----
 
-  protected final class AuxObserver(idH: stm.Source[S#Tx, S#Id],
-                                    val fun: S#Tx => AuxContext.Update[S, Any] => Unit)
-    extends Disposable[S#Tx] {
+  protected final class AuxObserver(idH: Source[T, Ident[T]],
+                                    val fun: T => AuxContext.Update[T, Any] => Unit)
+    extends Disposable[T] {
 
-    def dispose()(implicit tx: S#Tx): Unit = {
+    def dispose()(implicit tx: T): Unit = {
       val id    = idH()
       val list0 = auxObservers.getOrElse(id, Nil)
       val list1 = list0.filterNot(_ == this)
@@ -40,15 +39,15 @@ trait AuxContextImpl[S <: stm.Sys[S]] {
     }
   }
 
-  final def observeAux[A](id: S#Id)(fun: S#Tx => AuxContext.Update[S, A] => Unit)(implicit tx: S#Tx): Disposable[S#Tx] = {
+  final def observeAux[A](id: Ident[T])(fun: T => AuxContext.Update[T, A] => Unit)(implicit tx: T): Disposable[T] = {
     val list0 = auxObservers.getOrElse(id, Nil)
-    val obs   = new AuxObserver(tx.newHandle(id), fun.asInstanceOf[S#Tx => AuxContext.Update[S, Any] => Unit])
+    val obs   = new AuxObserver(tx.newHandle(id), fun.asInstanceOf[T => AuxContext.Update[T, Any] => Unit])
     val list1 = obs :: list0
     auxObservers.put(id, list1)
     obs
   }
 
-  final def putAux[A](id: S#Id, value: A)(implicit tx: S#Tx): Unit = {
+  final def putAux[A](id: Ident[T], value: A)(implicit tx: T): Unit = {
     auxMap.put(id, value)
 //    implicit val itx = tx.peer
     val list = auxObservers.getOrElse(id, Nil)
@@ -60,9 +59,9 @@ trait AuxContextImpl[S <: stm.Sys[S]] {
     }
   }
 
-  final def getAux[A](id: S#Id)(implicit tx: S#Tx): Option[A] = auxMap.get(id).asInstanceOf[Option[A]]
+  final def getAux[A](id: Ident[T])(implicit tx: T): Option[A] = auxMap.get(id).asInstanceOf[Option[A]]
 
-  final def removeAux(id: S#Id)(implicit tx: S#Tx): Unit = {
+  final def removeAux(id: Ident[T])(implicit tx: T): Unit = {
     val list      = auxObservers.getOrElse(id, Nil)
     val hasObs    = list.nonEmpty
     val contained = hasObs && auxMap.contains(id)

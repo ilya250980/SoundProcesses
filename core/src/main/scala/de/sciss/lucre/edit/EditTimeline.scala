@@ -297,13 +297,16 @@ object EditTimeline {
               def putCue(newCue: AudioCue.Obj[T]): Unit =
                 EditAttrMap.put(objT.attr, Proc.graphAudio, newCue)
 
+              def any2stringadd: Any = ()
+
               audioCue match {
                 case AudioCue.Obj.Shift(peer, amt) =>
+                  val dStart = LongObj.newConst[T](dStartC)
                   amt match {
                     case LongObj.Var(amtVr) =>
-                      EditExprVar[T, Long, LongObj](amtVr, amtVr() + dStartC)
+                      EditExprVar[T, Long, LongObj](amtVr, amtVr() + dStart)
                     case _ =>
-                      val newCue = AudioCue.Obj.Shift(peer, LongObj.newVar[T](amt + dStartC))
+                      val newCue = AudioCue.Obj.Shift(peer, LongObj.newVar[T](amt + dStart))
                       putCue(newCue)
                   }
                 case other =>

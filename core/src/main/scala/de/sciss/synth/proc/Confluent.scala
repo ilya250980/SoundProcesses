@@ -13,29 +13,30 @@
 
 package de.sciss.synth.proc
 
-import de.sciss.lucre.confluent
-import de.sciss.lucre.stm.DataStore
-import de.sciss.lucre.synth.{InMemory, Sys}
+import de.sciss.lucre.synth.InMemory
+import de.sciss.lucre.{ConfluentLike, DataStore, confluent, synth}
 import de.sciss.synth.proc
-import de.sciss.synth.proc.impl.{ConfluentImpl => Impl}
+import de.sciss.synth.proc.impl.ConfluentImpl
 
 object Confluent {
   import proc.{Confluent => S}
 
-  def apply(storeFactory: DataStore.Factory): S = Impl(storeFactory)
+  def apply(storeFactory: DataStore.Factory): S = ConfluentImpl(storeFactory)
 
-  trait Txn extends confluent.Txn[S] with Sys.Txn[S] {
+  trait Txn extends confluent.Txn[Txn] with synth.Txn[Txn] {
 //    private[proc] def durable : Durable#Tx
 //    private[proc] def inMemory: InMemory#Tx
+
+    type I  = InMemory.Txn
+    type D  = Durable .Txn
   }
 
-//  implicit def inMemory(tx: S#Tx): InMemory#Tx = tx.inMemory
-//  implicit def durable (tx: S#Tx): Durable #Tx = tx.durable
+//  implicit def inMemory(tx: T): InMemory#Tx = tx.inMemory
+//  implicit def durable (tx: T): Durable #Tx = tx.durable
 }
 
-trait Confluent extends confluent.Sys[Confluent] with Sys[Confluent] {
+trait Confluent extends ConfluentLike[Confluent.Txn] with synth.Sys {
   protected type S  = Confluent
-  type D            = Durable
-  type I            = InMemory
-  type Tx           = Confluent.Txn // Sys.Txn[ S ] with ConfluentReactiveLike.Txn[ S ]
+  type D            = Durable   .Txn
+  type I            = InMemory  .Txn
 }

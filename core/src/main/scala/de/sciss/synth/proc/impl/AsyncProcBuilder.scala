@@ -13,12 +13,12 @@
 
 package de.sciss.synth.proc.impl
 
-import de.sciss.lucre.synth.Sys
+import de.sciss.lucre.Txn
 import de.sciss.synth.proc.Proc
 
 /** An object used in the preparatory phase of playing a process. It allows
   * the addition of asynchronous processors.
   */
-final class AsyncProcBuilder[S <: Sys[S]](val obj: Proc[S]) {
-  var resources: List[AsyncResource[S]] = Nil
+final class AsyncProcBuilder[T <: Txn[T]](val obj: Proc[T]) {
+  var resources: List[AsyncResource[T]] = Nil
 }

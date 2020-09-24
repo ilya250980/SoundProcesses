@@ -16,6 +16,7 @@ package de.sciss.synth.proc
 import de.sciss.lucre.Event.Targets
 import de.sciss.lucre.impl.ExprTypeImpl
 import de.sciss.lucre.{Ident, Txn, Var => LVar}
+import de.sciss.lucre.expr.graph.Act
 import de.sciss.serial.{ConstFormat, DataInput, DataOutput, Writable}
 import de.sciss.{lucre, synth}
 import de.sciss.synth.proc.impl.{CodeImpl => Impl}
@@ -325,29 +326,29 @@ object Code {
 
     def typeId: Int = Code.typeId
 
-    def valueSerializer: ConstFormat[Code] = Code.format
+    def valueFormat: ConstFormat[Code] = Code.format
 
     def tryParse(value: Any): Option[Code] = value match {
       case x: Code  => Some(x)
       case _        => None
     }
 
-    protected def mkConst[T <: Txn[T]](id: Ident[T], value: A)(implicit tx: T): Const[T] =
-      new _Const[T](id, value)
+    protected def mkConst[Tx <: Txn[Tx]](id: Ident[Tx], value: A)(implicit tx: Tx): Const[Tx] =
+      new _Const[Tx](id, value)
 
-    protected def mkVar[T <: Txn[T]](targets: Targets[T], vr: LVar[T, E[T]], connect: Boolean)(implicit tx: T): Var[T] = {
-      val res = new _Var[T](targets, vr)
+    protected def mkVar[Tx <: Txn[Tx]](targets: Targets[Tx], vr: LVar[Tx, E[Tx]], connect: Boolean)(implicit tx: Tx): Var[Tx] = {
+      val res = new _Var[Tx](targets, vr)
       if (connect) res.connect()
       res
     }
 
-    private final class _Const[T <: Txn[T]](val id: Ident[T], val constValue: A)
-      extends ConstImpl[T] with Repr[T]
+    private final class _Const[Tx <: Txn[Tx]](val id: Ident[Tx], val constValue: A)
+      extends ConstImpl[Tx] with Repr[Tx]
 
-    private final class _Var[T <: Txn[T]](val targets: Targets[T], val ref: LVar[T, E[T]])
-      extends VarImpl[T] with Repr[T]
+    private final class _Var[Tx <: Txn[Tx]](val targets: Targets[Tx], val ref: LVar[Tx, E[Tx]])
+      extends VarImpl[Tx] with Repr[Tx]
   }
-  trait Obj[T <: Txn[T]] extends lucre.Expr[T, Code]
+  trait Obj[Tx <: Txn[Tx]] extends lucre.Expr[Tx, Code]
 
   type T[I, O] = Code { type In = I; type Out = O }
 }

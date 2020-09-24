@@ -1,27 +1,23 @@
 package de.sciss.synth.proc.tests
 
-import de.sciss.file._
-import de.sciss.lucre.artifact.{Artifact, ArtifactLocation}
-import de.sciss.lucre.expr.{DoubleObj, DoubleVector, IntObj, LongObj}
-import de.sciss.lucre.stm
-import de.sciss.lucre.synth.Sys
+import de.sciss.lucre.synth.Txn
+import de.sciss.lucre.{Cursor, DoubleObj, IntObj, LongObj}
 import de.sciss.span.Span
 import de.sciss.synth
-import de.sciss.synth.io.AudioFile
 import de.sciss.synth.proc.Implicits._
-import de.sciss.synth.proc.{Action, ActionRaw, AudioCue, AuralContext, EnvSegment, Grapheme, Proc, SynthGraphObj, Timeline, Transport, graph}
+import de.sciss.synth.proc.{AuralContext, EnvSegment, Grapheme, Proc, Timeline, Transport, graph}
 
 object AuralTests2 extends AuralTestLike.Factory {
   def main(args: Array[String]): Unit = init(args)
 
-  def run[S <: Sys[S]](name: String)(implicit cursor: stm.Cursor[S]): Unit =
-    new AuralTests2[S](name)
+  def run[T <: Txn[T]](name: String)(implicit cursor: Cursor[T]): Unit =
+    new AuralTests2[T](name)
 }
-class AuralTests2[S <: Sys[S]](name: String)(implicit cursor: stm.Cursor[S]) extends AuralTestLike[S] {
-  def run()(implicit context: AuralContext[S]): Unit =
+class AuralTests2[T <: Txn[T]](name: String)(implicit cursor: Cursor[T]) extends AuralTestLike[T] {
+  def run()(implicit context: AuralContext[T]): Unit =
     name match {
       case "--test1" => test1()
-      case "--test2" => test2()
+//      case "--test2" => test2()
       case "--test3" => test3()
       case "--test4" => test4()
       case "--test5" => test5()
@@ -36,7 +32,7 @@ class AuralTests2[S <: Sys[S]](name: String)(implicit cursor: stm.Cursor[S]) ext
 
   ////////////////////////////////////////////////////////////////////////////////////// 5
 
-  def test5()(implicit context: AuralContext[S]): Unit = {
+  def test5()(implicit context: AuralContext[T]): Unit = {
     println("----test3----")
     println(
       """
@@ -56,7 +52,7 @@ class AuralTests2[S <: Sys[S]](name: String)(implicit cursor: stm.Cursor[S]) ext
         Out.ar(0, Pan2.ar(osc))
       }
 
-      val gr = Grapheme[S]()
+      val gr = Grapheme[T]()
       val f1 =  400
       val f2 = 1000
       val t0 =  1.0
@@ -64,9 +60,9 @@ class AuralTests2[S <: Sys[S]](name: String)(implicit cursor: stm.Cursor[S]) ext
       val t2 = 10.0
       gr.add(frame(0.0), IntObj.newConst(400))
       gr.add(frame(t0) , EnvSegment.Obj.newConst(EnvSegment.Single( 400, Curve.lin)))
-      val t2Obj = frame(t2): LongObj[S]
+      val t2Obj = frame(t2): LongObj[T]
       val t2H   = tx.newHandle(t2Obj)
-      val ev    = EnvSegment.Single(1000, Curve.lin): EnvSegment.Obj[S]
+      val ev    = EnvSegment.Single(1000, Curve.lin): EnvSegment.Obj[T]
       val evH   = tx.newHandle(ev)
       gr.add(t2Obj, ev)
 
@@ -102,7 +98,7 @@ class AuralTests2[S <: Sys[S]](name: String)(implicit cursor: stm.Cursor[S]) ext
 
   ////////////////////////////////////////////////////////////////////////////////////// 4
 
-  def test4()(implicit context: AuralContext[S]): Unit = {
+  def test4()(implicit context: AuralContext[T]): Unit = {
     println("----test3----")
     println(
       """
@@ -123,7 +119,7 @@ class AuralTests2[S <: Sys[S]](name: String)(implicit cursor: stm.Cursor[S]) ext
         Out.ar(0, Pan2.ar(osc))
       }
 
-      val gr = Grapheme[S]()
+      val gr = Grapheme[T]()
       gr.add(frame(0.0), EnvSegment.Obj.newConst(EnvSegment.Single( 600, Curve.exp)))
       val ev = EnvSegment.Obj.newVar(EnvSegment.Single(1000, Curve.lin))
       val evH = tx.newHandle(ev)
@@ -150,7 +146,7 @@ class AuralTests2[S <: Sys[S]](name: String)(implicit cursor: stm.Cursor[S]) ext
 
   ////////////////////////////////////////////////////////////////////////////////////// 3
 
-  def test3()(implicit context: AuralContext[S]): Unit = {
+  def test3()(implicit context: AuralContext[T]): Unit = {
     println("----test4----")
     println(
       """
@@ -169,7 +165,7 @@ class AuralTests2[S <: Sys[S]](name: String)(implicit cursor: stm.Cursor[S]) ext
         Out.ar(0, Pan2.ar(osc))
       }
 
-      val gr = Grapheme[S]()
+      val gr = Grapheme[T]()
       gr.add(frame(0.0), EnvSegment.Obj.newConst(EnvSegment.Single( 400, Curve.exp)))
       gr.add(frame(3.0), EnvSegment.Obj.newConst(EnvSegment.Single(1000, Curve.lin)))
       gr.add(frame(6.0), IntObj.newConst(400))
@@ -181,84 +177,9 @@ class AuralTests2[S <: Sys[S]](name: String)(implicit cursor: stm.Cursor[S]) ext
     }
   }
 
-  ////////////////////////////////////////////////////////////////////////////////////// 2
-
-  import synth._
-  import ugen._
-
-  def test2()(implicit context: AuralContext[S]): Unit = {
-    println("----test2----")
-    println(
-      """
-        |Expected behaviour:
-        |We record two seconds of sound to a `BufferOut` element,
-        |then play back.
-        |
-        |""".stripMargin)
-
-    cursor.step { implicit tx =>
-      val _view1 = procV {
-        import graph.Ops._
-        val dur       = "rec-dur".ir // (8.0)
-        dur.poll(0, "dur should be 8")
-        val indicesIn = "buses-in".ir
-        val numCh     = NumChannels(indicesIn)
-        val numFrames = dur * SampleRate.ir
-        val in        = WhiteNoise.ar(Pad(Impulse.ar(SinOsc.ar(0.25).abs.linExp(0, 1, 5, 50)), indicesIn))
-        val buf       = graph.BufferOut(artifact = "file", action = "done", numFrames = numFrames, numChannels = numCh)
-        val rec       = RecordBuf.ar(in = in, buf = buf, loop = 0)
-        val done      = Done.kr(rec)
-        graph.StopSelf(done)
-      }
-
-      val f     = File.createTemp("buffer", ".aif")
-      val loc   = ArtifactLocation.newConst[S](f.parent)
-      val art   = Artifact[S](loc, f)
-
-      val t2 = Transport[S](context)
-
-      val body: Action.Body = new Action.Body {
-        def apply[T <: stm.Sys[T]](universe: Action.Universe[T])(implicit tx: T#Tx): Unit = {
-          val spec = AudioFile.readSpec(f)
-          println(spec)
-          val _proc2 = Proc[T]()
-          val g = SynthGraph {
-            val in = graph.DiskIn.ar("file")
-            Out.ar(0, Pan2.ar(in * 0.5))
-          }
-          _proc2.graph() = SynthGraphObj.newConst[T](g)
-          val attr2 = _proc2.attr
-          val cue = AudioCue(f, spec, offset = 0L, gain = 1.0)
-          attr2.put("file", AudioCue.Obj.newConst[T](cue))
-          //          val _view2T = AuralObj.Proc(_proc2)
-          //          _view2T.play()
-          val t2T = t2.asInstanceOf[Transport[T]]
-          t2T.addObject(_proc2)
-          t2T.play()
-          stopAndQuit()
-        }
-      }
-
-      ActionRaw.registerPredef("buffer-test", body)
-      val action = ActionRaw.predef[S]("buffer-test")
-
-      val attr1 = _view1.obj.attr
-      attr1.put("rec-dur" , IntObj.newConst[S](8))
-      attr1.put("buses-in", DoubleVector.newConst[S](Vector(0, 1)))
-      attr1.put("file", art)
-      attr1.put("done", action)
-
-      _view1.play()
-
-      //      val t = Transport[S]
-      //      t.addObject(proc1)
-      //      t.play()
-    }
-  }
-
   ////////////////////////////////////////////////////////////////////////////////////// 1
 
-  def test1()(implicit context: AuralContext[S]): Unit = {
+  def test1()(implicit context: AuralContext[T]): Unit = {
     println("----test1----")
     println(
       """
@@ -270,7 +191,7 @@ class AuralTests2[S <: Sys[S]](name: String)(implicit cursor: stm.Cursor[S]) ext
         |""".stripMargin)
 
     cursor.step { implicit tx =>
-      val tl = Timeline[S]()
+      val tl = Timeline[T]()
 
       val pGen = proc {
         val sig = PinkNoise.ar(Seq(1, 1))
@@ -284,7 +205,7 @@ class AuralTests2[S <: Sys[S]](name: String)(implicit cursor: stm.Cursor[S]) ext
         Out.ar(0, sig * 0.2)
       }
       pDif.name = "dif"
-      val difIn = Timeline[S]()
+      val difIn = Timeline[T]()
       pDif.attr.put(Proc.mainIn, difIn)
 
       difIn.add(Span.from(frame(0.0)), genOut)
@@ -293,7 +214,7 @@ class AuralTests2[S <: Sys[S]](name: String)(implicit cursor: stm.Cursor[S]) ext
       //      tl.add(Span.from(frame(2.0)), pGen)
       //      tl.add(Span.from(frame(2.0)), pDif)
 
-      val t = Transport[S](context)
+      val t = Transport[T](context)
       t.addObject(tl)
       t.play()
 

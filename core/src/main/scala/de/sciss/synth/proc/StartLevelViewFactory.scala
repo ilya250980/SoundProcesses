@@ -13,13 +13,12 @@
 
 package de.sciss.synth.proc
 
-import de.sciss.lucre.stm.{Obj, Sys}
-import de.sciss.lucre.synth.{Sys => SSys}
+import de.sciss.lucre.{Obj, Txn, synth}
 
 trait StartLevelViewFactory {
   def tpe: Obj.Type
 
-  type Repr[~ <: Sys[~]] <: Obj[~]
+  type Repr[~ <: Txn[~]] <: Obj[~]
 
-  def mkStartLevelView[S <: SSys[S]](value: Repr[S])(implicit tx: S#Tx): ControlValuesView[S] // ScalarOptionView[S]
+  def mkStartLevelView[T <: synth.Txn[T]](value: Repr[T])(implicit tx: T): ControlValuesView[T] // ScalarOptionView[T]
 }

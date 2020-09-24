@@ -13,8 +13,8 @@
 
 package de.sciss.synth.proc
 
-import de.sciss.lucre.stm.{Obj, Sys}
+import de.sciss.lucre.{Obj, Txn}
 
-trait Gen[S <: Sys[S]] extends Obj[S] {
+trait Gen[T <: Txn[T]] extends Obj[T] {
   def valueType: Obj.Type
 }

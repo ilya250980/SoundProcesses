@@ -13,10 +13,10 @@
 
 package de.sciss.synth.proc.gui.impl
 
-import de.sciss.lucre.stm.{Cursor, Sys}
+import de.sciss.lucre.{Cursor, Txn}
 
-trait CursorHolder[S <: Sys[S]] {
-  protected def cursor: Cursor[S]
+trait CursorHolder[T <: Txn[T]] {
+  protected def cursor: Cursor[T]
 
-  final protected def atomic[A](fun: S#Tx => A): A = cursor.step(fun)
+  final protected def atomic[A](fun: T => A): A = cursor.step(fun)
 }

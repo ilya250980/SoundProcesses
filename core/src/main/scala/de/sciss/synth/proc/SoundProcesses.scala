@@ -17,11 +17,10 @@ import java.util.concurrent.ScheduledExecutorService
 
 import de.sciss.lucre
 import de.sciss.lucre.expr.LucreExpr
-import de.sciss.lucre.stm
-import de.sciss.lucre.stm.Sys
 import de.sciss.lucre.synth.impl.NodeImpl
+import de.sciss.lucre.{Cursor, Txn}
 
-import scala.concurrent.stm.Txn
+import scala.concurrent.stm.{Txn => STMTxn}
 import scala.concurrent.{ExecutionContext, Future}
 
 object SoundProcesses {
@@ -64,8 +63,8 @@ object SoundProcesses {
     * handle errors that happen during the transaction. If the `Future` is ignored,
     * the safer way is to call `step` which invokes an error handler in that case.
     */
-  def atomic[S <: Sys[S], A](fun: S#Tx => A)(implicit cursor: stm.Cursor[S]): Future[A] = {
-    if (Txn.findCurrent.isDefined) throw new IllegalStateException("Cannot nest transactions")
+  def atomic[T <: Txn[T], A](fun: T => A)(implicit cursor: Cursor[T]): Future[A] = {
+    if (STMTxn.findCurrent.isDefined) throw new IllegalStateException("Cannot nest transactions")
     Future {
       cursor.step(fun)
     } (executionContext)
@@ -84,8 +83,8 @@ object SoundProcesses {
     * If an error occurs within the `fun`, `errorHandler` is invoked with the
     * `context` string argument and the error.
     */
-  def step[S <: Sys[S]](context: String)(fun: S#Tx => Unit)(implicit cursor: stm.Cursor[S]): Unit = {
-    if (Txn.findCurrent.isDefined) throw new IllegalStateException("Cannot nest transactions")
+  def step[T <: Txn[T]](context: String)(fun: T => Unit)(implicit cursor: Cursor[T]): Unit = {
+    if (STMTxn.findCurrent.isDefined) throw new IllegalStateException("Cannot nest transactions")
     Future {
       try {
         cursor.step(fun)
@@ -98,7 +97,7 @@ object SoundProcesses {
 
   private[this] lazy val _init: Unit = {
     LucreExpr     .init()
-    ActionRaw     .init()
+//    ActionRaw     .init()
     AudioCue      .init()
     Code          .init()
     Color         .init()
@@ -106,11 +105,11 @@ object SoundProcesses {
     Action        .init()
     Cursors       .init()
     CurveObj      .init()
-    Ensemble      .init()
+//    Ensemble      .init()
     FadeSpec      .init()
 //    Folder        .init()
     Grapheme      .init()
-    Output        .init()
+//    Output        .init()
     Proc          .init()
     SynthGraphObj .init()
     Timeline      .init()

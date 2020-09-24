@@ -15,9 +15,8 @@ package de.sciss.synth.proc
 
 import java.io.File
 
-import de.sciss.lucre.stm
-import de.sciss.lucre.stm.Obj
-import de.sciss.lucre.synth.{Server, Sys}
+import de.sciss.lucre.synth.Server
+import de.sciss.lucre.{Obj, Source, Txn, synth}
 import de.sciss.processor.ProcessorFactory
 import de.sciss.span.Span
 import de.sciss.synth.Client
@@ -27,17 +26,17 @@ import scala.collection.immutable.{Iterable => IIterable}
 import scala.language.implicitConversions
 
 object Bounce {
-  def apply[S <: Sys[S]]()(implicit universe: Universe[S]): Bounce[S] =
-    new Impl[S](universe)
+  def apply[T <: synth.Txn[T]]()(implicit universe: Universe[T]): Bounce[T] =
+    new Impl[T](universe)
 
-  private type GroupH[S <: Sys[S]] = IIterable[stm.Source[S#Tx, Obj[S]]]
+  private type GroupH[T <: Txn[T]] = IIterable[Source[T, Obj[T]]]
 
-  sealed trait ConfigLike[S <: Sys[S]] {
+  sealed trait ConfigLike[T <: Txn[T]] {
     /** The group to transport through the bounce.
       * This parameter is initially unspecified in the builder, and calling the getter will throw an error.
       * This parameter must be specified before generating a `Config` instance.
       */
-    def group: GroupH[S]
+    def group: GroupH[T]
 
     /** The span of the timeline to bounce. */
     def span: Span
@@ -60,32 +59,32 @@ object Bounce {
     /** An arbitrary function may be provided which is called when the server is initialized (logical time zero).
       * This entry is typically used to set up extra routing synths, main volume, etc.
       */
-    def beforePrepare: (S#Tx, Server) => Unit
-    def beforePlay   : (S#Tx, Server) => Unit
+    def beforePrepare: (T, Server) => Unit
+    def beforePlay   : (T, Server) => Unit
 
     /** Whether to run the server in real-time or offline. */
     def realtime: Boolean
 
-    def actions: IIterable[Scheduler.Entry[S]]
+    def actions: IIterable[Scheduler.Entry[T]]
   }
   object Config {
     val NoOp: (Any, Any) => Unit = (_, _) => ()
 
-    def apply[S <: Sys[S]](): ConfigBuilder[S] = new ConfigBuilder
+    def apply[T <: Txn[T]](): ConfigBuilder[T] = new ConfigBuilder
 
-    implicit def build[S <: Sys[S]](b: ConfigBuilder[S]): Config[S] = b.build
+    implicit def build[T <: Txn[T]](b: ConfigBuilder[T]): Config[T] = b.build
   }
-  sealed trait Config[S <: Sys[S]] extends ConfigLike[S] {
+  sealed trait Config[T <: Txn[T]] extends ConfigLike[T] {
     def server: Server.Config
     def client: Client.Config
   }
-  final class ConfigBuilder[S <: Sys[S]] private[Bounce] () extends ConfigLike[S] {
-    private var _group: GroupH[S] = _
-    def group: GroupH[S] = {
+  final class ConfigBuilder[T <: Txn[T]] private[Bounce] () extends ConfigLike[T] {
+    private var _group: GroupH[T] = _
+    def group: GroupH[T] = {
       if (_group == null) throw new IllegalStateException("A group has not yet been assigned")
       _group
     }
-    def group_=(value: GroupH[S]): Unit = _group = value
+    def group_=(value: GroupH[T]): Unit = _group = value
 
     /** The default span is from zero to one second. */
     var span  : Span                    = Span(0L, TimeRef.SampleRate.toLong)
@@ -106,27 +105,27 @@ object Bounce {
       res
     }
 
-    var beforePrepare: (S#Tx, Server) => Unit  = Config.NoOp
-    var beforePlay   : (S#Tx, Server) => Unit  = Config.NoOp
+    var beforePrepare: (T, Server) => Unit  = Config.NoOp
+    var beforePlay   : (T, Server) => Unit  = Config.NoOp
 
     /** The default mode is offline (realtime == `false`) */
     var realtime: Boolean = false
 
-    var actions: IIterable[Scheduler.Entry[S]] = Nil
+    var actions: IIterable[Scheduler.Entry[T]] = Nil
 
-    def build: Config[S] = ConfigImpl(group = group, span = span, server = server, client = client,
+    def build: Config[T] = ConfigImpl(group = group, span = span, server = server, client = client,
       beforePrepare = beforePrepare, beforePlay = beforePlay, realtime = realtime, actions = actions)
   }
 
-  private final case class ConfigImpl[S <: Sys[S]](group        : GroupH[S],
+  private final case class ConfigImpl[T <: Txn[T]](group        : GroupH[T],
                                                    span         : Span,
                                                    server       : Server.Config,
                                                    client       : Client.Config,
-                                                   beforePrepare: (S#Tx, Server) => Unit,
-                                                   beforePlay   : (S#Tx, Server) => Unit,
+                                                   beforePrepare: (T, Server) => Unit,
+                                                   beforePlay   : (T, Server) => Unit,
                                                    realtime     : Boolean,
-                                                   actions      : IIterable[Scheduler.Entry[S]])
-    extends Config[S] {
+                                                   actions      : IIterable[Scheduler.Entry[T]])
+    extends Config[T] {
 
     override def productPrefix = "Config"
   }
@@ -135,8 +134,8 @@ object Bounce {
     override def toString = s"$productPrefix($code)"
   }
 }
-trait Bounce[S <: Sys[S]] extends ProcessorFactory {
+trait Bounce[T <: Txn[T]] extends ProcessorFactory {
   type Product  = File
-  type Config   = Bounce.Config[S]
+  type Config   = Bounce.Config[T]
   type Repr     = Generic
 }

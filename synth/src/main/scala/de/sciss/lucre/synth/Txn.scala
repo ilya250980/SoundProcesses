@@ -61,6 +61,9 @@ trait RT extends LTxnLike {
 }
 
 /** A typed transaction with full Lucre support coupled to real-time audio. */
-trait Txn[T <: Txn[T]] extends LTxn[T] with RT
+trait Txn[T <: Txn[T]] extends LTxn[T] with RT {
+  // in-memory is also sound synthesis equipped.
+  override type I <: Txn[I]
+}
 
 trait AnyTxn extends Txn[AnyTxn]

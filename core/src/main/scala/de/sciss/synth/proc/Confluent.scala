@@ -14,7 +14,7 @@
 package de.sciss.synth.proc
 
 import de.sciss.lucre.synth.InMemory
-import de.sciss.lucre.{ConfluentLike, DataStore, DurableLike, InMemoryLike, confluent, synth}
+import de.sciss.lucre.{ConfluentLike, DataStore, confluent, synth}
 import de.sciss.synth.proc
 import de.sciss.synth.proc.impl.ConfluentImpl
 

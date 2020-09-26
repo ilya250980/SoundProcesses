@@ -44,6 +44,9 @@ private[proc] object ConfluentImpl {
     override def system: Confluent
 
     final lazy val inMemory: InMemory.Txn = system.inMemory.wrap(peer)
+
+    final def inMemoryBridge : T => InMemory.Txn = _.inMemory
+    final def durableBridge  : T => Durable .Txn = _.durable
   }
 
   private final class RegularTxn(val system: S, val durable: /* evt. */ Durable.Txn,
@@ -52,8 +55,6 @@ private[proc] object ConfluentImpl {
                                  val systemTimeNanoSec: Long)
     extends confluent.impl.RegularTxnMixin[T, LDurable.Txn] with TxnImpl {
 
-    implicit def inMemoryBridge: T => InMemory.Txn = _.inMemory
-
     lazy val peer: InTxn = durable.peer
   }
 
@@ -61,8 +62,6 @@ private[proc] object ConfluentImpl {
     extends confluent.impl.RootTxnMixin[T, LDurable.Txn] with TxnImpl {
 
     def systemTimeNanoSec: Long = 0L
-
-    implicit def inMemoryBridge: T => InMemory.Txn = _.inMemory
 
     lazy val durable: /* evt. */ Durable.Txn = {
       log("txn durable")

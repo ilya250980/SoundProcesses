@@ -35,12 +35,13 @@ object Workspace {
   trait Confluent extends Workspace[proc.Confluent.Txn] {
     type S = proc.Confluent
     type T = proc.Confluent.Txn
+    type D = proc.Durable  .Txn
 
     // have to restate this for some reason?
     // cf. http://stackoverflow.com/questions/16495522/pattern-matching-refuses-to-recognize-member-type-value-x-is-not-a-member-of-2
     // def system: S
 
-    def cursors: Cursors[T, S#D]
+    def cursors: Cursors[T, D]
   }
 
   object Durable {

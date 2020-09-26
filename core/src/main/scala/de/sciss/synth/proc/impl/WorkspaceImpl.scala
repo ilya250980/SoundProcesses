@@ -11,17 +11,18 @@
  *  contact@sciss.de
  */
 
-package de.sciss.synth.proc.impl
+package de.sciss.synth.proc
+package impl
 
 import java.io.{File, FileInputStream, FileNotFoundException, FileOutputStream, IOException}
 import java.util.Properties
 
 import de.sciss.file._
 import de.sciss.lucre.synth.{InMemory => InMem}
-import de.sciss.lucre.{Cursor, DataStore, Disposable, Folder, Source, Txn, TxnLike, Workspace, confluent}
+import de.sciss.lucre.{Cursor, DataStore, Disposable, Folder, Source, Txn, TxnLike, confluent}
 import de.sciss.serial.{DataInput, DataOutput, TFormat}
 import de.sciss.synth.proc
-import de.sciss.synth.proc.{Cursors, log, Confluent => Cf, Durable => Dur}
+import de.sciss.synth.proc.{Confluent => Cf, Durable => Dur}
 
 import scala.collection.immutable.{IndexedSeq => Vec}
 import scala.concurrent.stm.{Ref, Txn => STMTxn}

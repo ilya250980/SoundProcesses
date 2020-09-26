@@ -16,7 +16,7 @@ package de.sciss.synth.proc
 import java.io.File
 
 import de.sciss.lucre
-import de.sciss.lucre.{DataStore, Workspace => LWorkspace}
+import de.sciss.lucre.{DataStore, Txn, Workspace => LWorkspace}
 import de.sciss.synth.proc
 import de.sciss.synth.proc.impl.{WorkspaceImpl => Impl}
 
@@ -24,7 +24,7 @@ object Workspace {
   /** File name extension (excluding leading period) */
   final val ext = "mllt"
 
-  def read (dir: File, ds: DataStore.Factory /* config: BerkeleyDB.Config */): LWorkspace[_] /*[~] forSome { type ~ <: SSys[~] }*/ =
+  def read (dir: File, ds: DataStore.Factory /* config: BerkeleyDB.Config */): Workspace[_] /*[~] forSome { type ~ <: SSys[~] }*/ =
     Impl.read(dir, ds)  // IntelliJ highlight bug
 
   object Confluent {
@@ -32,7 +32,7 @@ object Workspace {
     def empty(dir: File, ds: DataStore.Factory /* config: BerkeleyDB.Config */): Confluent = Impl.emptyConfluent(dir, ds)
   }
 
-  trait Confluent extends LWorkspace[proc.Confluent.Txn] {
+  trait Confluent extends Workspace[proc.Confluent.Txn] {
     type S = proc.Confluent
     type T = proc.Confluent.Txn
 
@@ -47,16 +47,21 @@ object Workspace {
     def read (dir: File, ds: DataStore.Factory /* config: BerkeleyDB.Config */): Durable = Impl.readDurable (dir, ds)
     def empty(dir: File, ds: DataStore.Factory /* config: BerkeleyDB.Config */): Durable = Impl.emptyDurable(dir, ds)
   }
-  trait Durable extends LWorkspace[proc.Durable.Txn] {
+  trait Durable extends Workspace[proc.Durable.Txn] {
     type S = proc.Durable
   }
 
   object InMemory {
     def apply(): InMemory = Impl.applyInMemory()
   }
-  trait InMemory extends LWorkspace[lucre.synth.InMemory.Txn] {
+  trait InMemory extends Workspace[lucre.synth.InMemory.Txn] {
     type S = lucre.synth.InMemory
   }
 
   val Implicits: LWorkspace.Implicits.type = LWorkspace.Implicits
+}
+trait Workspace[T <: Txn[T]] extends LWorkspace[T] {
+//  /** Since we obtain `Workspace[_]` from read methods, this is lesser evil, since we
+//    * cannot make totally "wrong" casts here. */
+//  def cast[T1 <: Txn[T1]]: Workspace[T1] = this.asInstanceOf[Workspace[T1]]
 }

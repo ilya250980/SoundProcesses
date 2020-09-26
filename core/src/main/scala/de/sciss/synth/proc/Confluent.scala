@@ -14,7 +14,7 @@
 package de.sciss.synth.proc
 
 import de.sciss.lucre.synth.InMemory
-import de.sciss.lucre.{ConfluentLike, DataStore, confluent, synth}
+import de.sciss.lucre.{ConfluentLike, DataStore, DurableLike, InMemoryLike, confluent, synth}
 import de.sciss.synth.proc
 import de.sciss.synth.proc.impl.ConfluentImpl
 
@@ -39,4 +39,7 @@ trait Confluent extends ConfluentLike[Confluent.Txn] with synth.Sys {
   protected type S  = Confluent
   type D            = Durable   .Txn
   type I            = InMemory  .Txn
+
+  override def durable : Durable
+  override def inMemory: InMemory
 }

@@ -44,7 +44,11 @@ object Universe {
     implicit val scheduler    : Scheduler [T]
   }
 }
-trait Universe[T <: Txn[T]] extends Universe.Base[T] with Disposable[T] with Observable[T, Universe.Update[T]]{
+trait Universe[T <: Txn[T]] extends Universe.Base[T] with Disposable[T] with Observable[T, Universe.Update[T]] {
+  /** Since we obtain `Universe[_]` from some methods, this is lesser evil, since we
+    * cannot make totally "wrong" casts here. */
+  def cast[T1 <: Txn[T1]]: Universe[T1] = this.asInstanceOf[Universe[T1]]
+
   def mkRunner(obj: Obj[T])(implicit tx: T): Option[Runner[T]]
 
   def runners(implicit tx: T): Iterator[Runner[T]]

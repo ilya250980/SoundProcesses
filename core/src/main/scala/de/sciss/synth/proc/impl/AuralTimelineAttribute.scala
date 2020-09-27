@@ -45,7 +45,7 @@ object AuralTimelineAttribute extends Factory {
                    (implicit tx: T, iSys: T => I1, context: AuralContext[T]): AuralTimelineAttribute[T, I1] = {
     implicit val itx: I1 = iSys(tx)
     implicit val pointView: (Leaf[T], I1) => LongPoint2D = (l, _) => spanToPoint(l._1)
-    implicit val dummyKeySer: TFormat[I1, Leaf[T]] = DummyTFormat[I1, Leaf[T]]
+    implicit val dummyKeyFmt: TFormat[I1, Leaf[T]] = DummyTFormat[I1, Leaf[T]]
     import LongSpace.TwoDim
 
     val tree = SkipOctree.empty[I1, LongPoint2DLike, LongSquare, Leaf[T]](BiGroup.MaxSquare)

@@ -81,7 +81,7 @@ object Timeline {
   private final class CellViewImpl[T <: Txn[T]](h: Source[T, LObj[T]], key: String)
     extends ObjCellViewVarImpl[T, proc.Timeline, Timeline](h, key) {
 
-    implicit def serializer: TFormat[T, Option[proc.Timeline[T]]] =
+    implicit def format: TFormat[T, Option[proc.Timeline[T]]] =
       TFormat.option
 
     protected def lower(peer: proc.Timeline[T])(implicit tx: T): Timeline =

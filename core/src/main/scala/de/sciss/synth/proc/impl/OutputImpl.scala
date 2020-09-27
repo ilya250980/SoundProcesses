@@ -14,7 +14,7 @@
 package de.sciss.synth.proc
 package impl
 
-import de.sciss.lucre.impl.{ConstObjImpl, ObjFormat}
+import de.sciss.lucre.impl.{ConstObjImpl, ObjCastFormat}
 import de.sciss.lucre.{AnyTxn, Copy, Elem, Ident, Obj, Txn}
 import de.sciss.serial.{DataInput, DataOutput, TFormat}
 
@@ -31,11 +31,11 @@ object OutputImpl {
   def read[T <: Txn[T]](in: DataInput)(implicit tx: T): Proc.Output[T] =
     format[T].readT(in)
 
-  def format[T <: Txn[T]]: TFormat[T, Proc.Output[T]] = anyFmt.asInstanceOf[Fmt[T]]
+  def format[T <: Txn[T]]: TFormat[T, Proc.Output[T]] = anyFmt.cast
 
   private val anyFmt = new Fmt[AnyTxn]
 
-  private final class Fmt[T <: Txn[T]] extends ObjFormat[T, Proc.Output[T]] {
+  private final class Fmt[T <: Txn[T]] extends ObjCastFormat[T, Proc.Output] {
     def tpe: Obj.Type = Proc.Output
   }
 

@@ -15,7 +15,7 @@ package de.sciss.synth.proc.impl
 
 import de.sciss.lucre.Event.Targets
 import de.sciss.lucre.impl.BiPinImpl.Tree
-import de.sciss.lucre.impl.{BiPinImpl, ObjFormat}
+import de.sciss.lucre.impl.{BiPinImpl, ObjCastFormat}
 import de.sciss.lucre.{AnyTxn, Copy, Elem, Obj, Txn}
 import de.sciss.serial.{DataInput, TFormat}
 import de.sciss.synth.proc.Grapheme
@@ -30,15 +30,18 @@ object GraphemeImpl {
     modifiableFormat[T].readT(in)
   }
 
-  implicit def format[T <: Txn[T]]: TFormat[T, Grapheme[T]] =
-    anyFmt.asInstanceOf[Fmt[T]]
+  implicit def format[T <: Txn[T]]: TFormat[T, Grapheme[T]] = anyFmt.cast
 
-  implicit def modifiableFormat[T <: Txn[T]]: TFormat[T, Grapheme.Modifiable[T]] =
-    anyFmt.asInstanceOf[TFormat[T, Grapheme.Modifiable[T]]] // whatever... right now it is modifiable
+  implicit def modifiableFormat[T <: Txn[T]]: TFormat[T, Grapheme.Modifiable[T]] = anyModFmt.cast
 
-  private val anyFmt = new Fmt[AnyTxn]
+  private val anyFmt    = new Fmt[AnyTxn]
+  private val anyModFmt = new ModFmt[AnyTxn]
 
-  private final class Fmt[T <: Txn[T]] extends ObjFormat[T, Grapheme[T]] {
+  private final class Fmt[T <: Txn[T]] extends ObjCastFormat[T, Grapheme] {
+    def tpe: Obj.Type = Grapheme
+  }
+
+  private final class ModFmt[T <: Txn[T]] extends ObjCastFormat[T, Grapheme.Modifiable] {
     def tpe: Obj.Type = Grapheme
   }
 

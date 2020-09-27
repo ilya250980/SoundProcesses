@@ -64,6 +64,9 @@ trait RT extends LTxnLike {
 trait Txn[T <: Txn[T]] extends LTxn[T] with RT {
   // in-memory is also sound synthesis equipped.
   override type I <: Txn[I]
+
+  /** an "evidence" type that can be used for up-casing `LTxn` to `Txn` */
+  type Ev <: Txn[Ev]
 }
 
 trait AnyTxn extends Txn[AnyTxn]

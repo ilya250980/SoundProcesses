@@ -171,9 +171,9 @@ object Bounce {
 
     protected def mkRepr[T <: Txn[T]](implicit ctx: Context[T], tx: T): Repr[T] =
       tx.system match {
-        case _: synth.Txn[_] =>
+        case stx: synth.Txn[_] =>
           // XXX TODO --- ugly ugly ugly
-          mkControlImpl[synth.AnyTxn](ctx.asInstanceOf[Context[synth.AnyTxn]], tx.asInstanceOf[synth.AnyTxn])
+          mkControlImpl[stx.Ev](ctx.asInstanceOf[Context[stx.Ev]], tx.asInstanceOf[stx.Ev])
             .asInstanceOf[Repr[T]]
 
         case _ => throw new Exception("Need a SoundProcesses system")

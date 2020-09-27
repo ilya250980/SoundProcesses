@@ -14,7 +14,7 @@
 package de.sciss.synth.proc.impl
 
 import de.sciss.lucre.Event.Targets
-import de.sciss.lucre.impl.{GeneratorEvent, ObjFormat, SingleEventNode}
+import de.sciss.lucre.impl.{GeneratorEvent, ObjCastFormat, SingleEventNode}
 import de.sciss.lucre.{AnyTxn, Copy, Elem, Obj, Pull, Txn}
 import de.sciss.serial.{DataInput, DataOutput, TFormat}
 import de.sciss.synth.proc.Action
@@ -30,11 +30,11 @@ object ActionImpl {
   def read[T <: Txn[T]](in: DataInput)(implicit tx: T): Action[T] =
     format[T].readT(in)
 
-  def format[T <: Txn[T]]: TFormat[T, Action[T]] = anyFmt.asInstanceOf[Fmt[T]]
+  def format[T <: Txn[T]]: TFormat[T, Action[T]] = anyFmt.cast
 
   private val anyFmt = new Fmt[AnyTxn]
 
-  private class Fmt[T <: Txn[T]] extends ObjFormat[T, Action[T]] {
+  private class Fmt[T <: Txn[T]] extends ObjCastFormat[T, Action] {
     def tpe: Obj.Type = Action
   }
 

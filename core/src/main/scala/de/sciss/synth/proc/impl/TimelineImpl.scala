@@ -16,7 +16,7 @@ package impl
 
 import de.sciss.lucre.Event.Targets
 import de.sciss.lucre.impl.BiGroupImpl.TreeImpl
-import de.sciss.lucre.impl.{BiGroupImpl, ObjFormat}
+import de.sciss.lucre.impl.{BiGroupImpl, ObjCastFormat}
 import de.sciss.lucre.{AnyTxn, Copy, Elem, Obj, Txn}
 import de.sciss.serial.{DataInput, TFormat}
 
@@ -28,25 +28,18 @@ object TimelineImpl {
 
   // ---- serialization ----
 
-  implicit def format[T <: Txn[T]]: TFormat[T, Timeline[T]] =
-    anyFmt.asInstanceOf[Fmt[T]]
+  implicit def format[T <: Txn[T]]: TFormat[T, Timeline[T]] = anyFmt.cast
 
-  implicit def modFormat[T <: Txn[T]]: TFormat[T, Timeline.Modifiable[T]] =
-    anyModFmt.asInstanceOf[ModFmt[T]]
-
-  //  def modRead[T <: Txn[T]](in: DataInput, access: S#Acc)(implicit tx: T): Timeline.Modifiable[T] = {
-  //    val targets = evt.Targets.read[T](in, access)
-  //    read(in, access, targets)
-  //  }
+  implicit def modFormat[T <: Txn[T]]: TFormat[T, Timeline.Modifiable[T]] = anyModFmt.cast
 
   private val anyFmt    = new Fmt   [AnyTxn]
   private val anyModFmt = new ModFmt[AnyTxn]
 
-  private class Fmt[T <: Txn[T]] extends ObjFormat[T, Timeline[T]] {
+  private class Fmt[T <: Txn[T]] extends ObjCastFormat[T, Timeline] {
     def tpe: Obj.Type = Timeline
   }
 
-  private class ModFmt[T <: Txn[T]] extends ObjFormat[T, Timeline.Modifiable[T]] {
+  private class ModFmt[T <: Txn[T]] extends ObjCastFormat[T, Timeline.Modifiable] {
     def tpe: Obj.Type = Timeline
   }
 

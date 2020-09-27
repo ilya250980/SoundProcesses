@@ -16,7 +16,7 @@ package impl
 
 import de.sciss.lucre.Event.Targets
 import de.sciss.lucre.data.SkipList
-import de.sciss.lucre.impl.{GeneratorEvent, ObjFormat, SingleEventNode}
+import de.sciss.lucre.impl.{GeneratorEvent, ObjCastFormat, SingleEventNode}
 import de.sciss.lucre.{AnyTxn, Copy, Elem, Obj, Pull, Txn}
 import de.sciss.serial.{DataInput, DataOutput, TFormat}
 
@@ -30,11 +30,11 @@ object ProcImpl {
   def read[T <: Txn[T]](in: DataInput)(implicit tx: T): Proc[T] =
     format[T].readT(in)
 
-  def format[T <: Txn[T]]: TFormat[T, Proc[T]] = anySer.asInstanceOf[Ser[T]]
+  def format[T <: Txn[T]]: TFormat[T, Proc[T]] = anyFmt.cast
 
-  private val anySer = new Ser[AnyTxn]
+  private val anyFmt = new Mod[AnyTxn]
 
-  private class Ser[T <: Txn[T]] extends ObjFormat[T, Proc[T]] {
+  private class Mod[T <: Txn[T]] extends ObjCastFormat[T, Proc] {
     def tpe: Obj.Type = Proc
   }
 

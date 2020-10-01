@@ -17,6 +17,7 @@ package impl
 import de.sciss.lucre.synth
 import de.sciss.synth.UGenSource.Vec
 
+import scala.collection.immutable.{Seq => ISeq}
 import scala.concurrent.stm.{InTxn, Ref, Txn => ScalaTxn}
 
 object RTImpl {
@@ -41,7 +42,7 @@ sealed trait RTImpl extends RT { tx =>
   // indicate that we have bundles to flush after the transaction commits
   protected def markBundlesDirty(): Unit
 
-  final def addMessage(resource: Resource, m: RT.Message, dependencies: Seq[Resource]): Unit = {
+  final def addMessage(resource: Resource, m: RT.Message, dependencies: ISeq[Resource]): Unit = {
     val server        = resource.server
     if (!server.peer.isRunning) return
 

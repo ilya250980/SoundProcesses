@@ -13,11 +13,11 @@
 
 package de.sciss.synth.proc
 
-import de.sciss.lucre.{Cursor, Disposable, Obj, Txn, Workspace}
+import de.sciss.lucre.{Cursor, Disposable, Obj, Txn, Workspace => LWorkspace}
 import de.sciss.synth.proc.impl.{GenContextImpl => Impl}
 
 object GenContext {
-  def apply[T <: Txn[T]]()(implicit tx: T, cursor: Cursor[T], workspace: Workspace[T]): GenContext[T] =
+  def apply[T <: Txn[T]]()(implicit tx: T, cursor: Cursor[T], workspace: LWorkspace[T]): GenContext[T] =
     Impl[T]()
 }
 /** Context for rendering generated objects. */
@@ -53,5 +53,5 @@ trait GenContext[T <: Txn[T]] extends Disposable[T] {
 
   implicit def cursor: Cursor[T]
 
-  implicit def workspace: Workspace[T]
+  implicit def workspace: LWorkspace[T]
 }

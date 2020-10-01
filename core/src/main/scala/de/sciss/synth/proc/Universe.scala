@@ -13,21 +13,21 @@
 
 package de.sciss.synth.proc
 
-import de.sciss.lucre.{Cursor, Disposable, Obj, Observable, Sys, Txn, Workspace, synth}
+import de.sciss.lucre.{Cursor, Disposable, Obj, Observable, Sys, Txn, Workspace => LWorkspace, synth}
 import de.sciss.synth.proc.impl.RunnerUniverseImpl
 
 object Universe {
   def dummy[T <: synth.Txn[T]](implicit tx: T, cursor: Cursor[T]): Universe[T] = {
     implicit val system: Sys = tx.system
-    implicit val workspace: Workspace[T] = Workspace.Implicits.dummy
+    implicit val workspace: LWorkspace[T] = Workspace.Implicits.dummy
     apply[T]()
   }
 
-  def apply[T <: synth.Txn[T]]()(implicit tx: T, cursor: Cursor[T], workspace: Workspace[T]): Universe[T] =
+  def apply[T <: synth.Txn[T]]()(implicit tx: T, cursor: Cursor[T], workspace: LWorkspace[T]): Universe[T] =
     RunnerUniverseImpl[T]()
 
   def apply[T <: synth.Txn[T]](genContext: GenContext[T], scheduler: Scheduler[T], auralSystem: AuralSystem)
-                        (implicit tx: T, cursor: Cursor[T], workspace: Workspace[T]): Universe[T] =
+                        (implicit tx: T, cursor: Cursor[T], workspace: LWorkspace[T]): Universe[T] =
     RunnerUniverseImpl[T](genContext, scheduler, auralSystem)
 
   sealed trait Update[T <: Txn[T]]
@@ -38,7 +38,7 @@ object Universe {
   trait Base[T <: Txn[T]] {
     def auralSystem: AuralSystem
 
-    implicit def workspace    : Workspace [T]
+    implicit def workspace    : LWorkspace[T]
     implicit def cursor       : Cursor    [T]
     implicit def genContext   : GenContext[T]
     implicit val scheduler    : Scheduler [T]

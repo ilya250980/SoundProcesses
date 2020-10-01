@@ -16,7 +16,7 @@ package de.sciss.synth.proc
 import de.sciss.lucre.edit.UndoManager
 import de.sciss.lucre.expr.Context
 import de.sciss.lucre.expr.impl.ContextMixin
-import de.sciss.lucre.{Cursor, Obj, Source, Txn, Workspace}
+import de.sciss.lucre.{Cursor, Obj, Source, Txn, Workspace => LWorkspace}
 
 object ExprContext {
   def apply[T <: Txn[T]](selfH: Option[Source[T, Obj[T]]] = None,
@@ -35,7 +35,7 @@ object ExprContext {
     extends ContextMixin[T] with ExprContext[T] {
 
     implicit def cursor   : Cursor    [T] = universe.cursor
-    implicit def workspace: Workspace [T] = universe.workspace
+    implicit def workspace: LWorkspace[T] = universe.workspace
   }
 }
 trait ExprContext[T <: Txn[T]] extends Context[T] {

@@ -2,7 +2,7 @@ package de.sciss.synth.proc
 
 import de.sciss.lucre.edit.UndoManager
 import de.sciss.lucre.synth.InMemory
-import de.sciss.lucre.{Cursor, Workspace}
+import de.sciss.lucre.{Cursor, Workspace => LWorkspace}
 
 trait InMemoryAppLike extends AppLike {
   type S = InMemory
@@ -10,5 +10,5 @@ trait InMemoryAppLike extends AppLike {
   implicit val system: S with Cursor[T] = InMemory()
 
   implicit val undoT: UndoManager[T] = UndoManager()
-  implicit lazy val workspace: Workspace[T] = Workspace.Implicits.dummy
+  implicit lazy val workspace: LWorkspace[T] = Workspace.Implicits.dummy
 }

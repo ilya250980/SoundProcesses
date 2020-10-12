@@ -1,7 +1,7 @@
 lazy val baseName  = "SoundProcesses"
 lazy val baseNameL = baseName.toLowerCase
 
-lazy val projectVersion = "4.0.0"
+lazy val projectVersion = "4.0.1"
 lazy val mimaVersion    = "4.0.0" // used for migration-manager
 
 lazy val commonSettings = Seq(

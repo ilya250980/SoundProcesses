@@ -170,7 +170,7 @@ object Bounce {
     type Repr[T <: Txn[T]] = proc.Runner[T]
 
     protected def mkRepr[T <: Txn[T]](implicit ctx: Context[T], tx: T): Repr[T] =
-      tx.system match {
+      tx match {
         case stx: synth.Txn[_] =>
           // XXX TODO --- ugly ugly ugly
           mkControlImpl[stx.Ev](ctx.asInstanceOf[Context[stx.Ev]], tx.asInstanceOf[stx.Ev])

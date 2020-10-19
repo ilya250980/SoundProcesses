@@ -93,8 +93,8 @@ abstract class AuralTestLike[T <: synth.Txn[T]](implicit cursor: Cursor[T]) {
 
   final def procV(graph: => Unit)(implicit tx: T, context: AuralContext[T]): AuralObj.Proc[T] = {
     val pObj  = proc(graph)
-    val _view = AuralObj.Proc(pObj)
-    _view
+    val _view = AuralObj(pObj)
+    _view.asInstanceOf[AuralObj.Proc[T]]
   }
 
   final def proc(graph: => Unit)(implicit tx: T): Proc[T] = {

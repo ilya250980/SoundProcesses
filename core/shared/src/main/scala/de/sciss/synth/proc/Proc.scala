@@ -14,10 +14,11 @@
 package de.sciss.synth.proc
 
 import de.sciss.lucre.{Obj, Publisher, Txn}
+import de.sciss.lucre.synth.{Txn => STxn}
 import de.sciss.model
 import de.sciss.serial.{DataInput, TFormat}
 import de.sciss.synth.SynthGraph
-import de.sciss.synth.proc.impl.{OutputImpl, ProcImpl => Impl}
+import de.sciss.synth.proc.impl.{AuralProcImpl, OutputImpl, ProcImpl => Impl}
 
 import scala.collection.immutable.{IndexedSeq => Vec}
 
@@ -29,6 +30,7 @@ object Proc extends Obj.Type {
   override def init(): Unit = {
     super.init()
     Output.init()
+    AuralObjFactory.init()
   }
 
   def apply[T <: Txn[T]]()(implicit tx: T): Proc[T] = Impl[T]()
@@ -104,6 +106,23 @@ object Proc extends Obj.Type {
     def add   (key: String)(implicit tx: T): Output[T]
 
     def remove(key: String)(implicit tx: T): Boolean
+  }
+
+  // AuralObj.Factory
+
+  private object AuralObjFactory extends AuralObj.Factory {
+    type Repr[T <: Txn[T]] = Proc[T]
+
+    private lazy val _init: Unit =
+      AuralObj.addFactory(this)
+
+    def init(): Unit = _init
+
+    def tpe: Obj.Type = Proc
+
+    def apply[T <: STxn[T]](obj: Proc[T], attr: Runner.Attr[T] = Runner.emptyAttr[T])
+                           (implicit tx: T, context: AuralContext[T]): AuralObj.Proc[T] =
+      AuralProcImpl(obj, attr)
   }
 }
 

@@ -2,6 +2,8 @@ package de.sciss.lucre.synth
 
 import java.util.concurrent.{Executors, ScheduledExecutorService, TimeUnit}
 
+import de.sciss.lucre.synth.Executor.Cancelable
+
 import scala.concurrent.ExecutionContext
 
 trait ExecutorPlatform {
@@ -25,6 +27,13 @@ trait ExecutorPlatform {
 
   def schedule(time: Long, unit: TimeUnit)(body: => Unit): Unit =
     pool.schedule((() => body): Runnable, time, unit)
+
+  def scheduleWithCancel(time: Long, unit: TimeUnit)(body: => Unit): Cancelable = {
+    val fut = pool.schedule((() => body): Runnable, time, unit)
+    new Cancelable {
+      def cancel(): Unit = fut.cancel(false)
+    }
+  }
 
   /** Default execution-context used for scheduling and spawning functions.
     * It uses the `scheduledExecutorService`.

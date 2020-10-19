@@ -13,7 +13,8 @@
 
 package de.sciss.lucre.synth.impl
 
-import de.sciss.lucre.synth.{BlockAllocator, logAlloc}
+import de.sciss.lucre.synth.BlockAllocator
+import de.sciss.lucre.synth.Log.logAlloc
 
 import scala.annotation.tailrec
 import scala.collection.immutable.{SortedMap => ISortedMap}

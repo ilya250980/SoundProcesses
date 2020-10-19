@@ -16,6 +16,7 @@ package de.sciss.synth.proc.impl
 import java.util.concurrent.TimeUnit
 
 import de.sciss.lucre.data.SkipList
+import de.sciss.lucre.synth.Executor
 import de.sciss.lucre.{Cursor, Txn}
 import de.sciss.serial.ConstFormat
 import de.sciss.synth.proc.Scheduler.Entry
@@ -142,15 +143,13 @@ object SchedulerImpl {
       val actualDelayN  = math.max(0L, ((info.delay - jitter) / sampleRateN).toLong)
       logT(f"scheduled:     $info; log dly = ${TimeRef.framesAndSecs(info.delay)}, act dly = ${actualDelayN * 1.0e-9}%1.3fs")
       tx.afterCommit {
-        SoundProcesses.scheduledExecutorService.schedule(new Runnable {
-          def run(): Unit = {
-            logT(s"scheduled: exe $info")
-            val nowNanos = calcTimeNanoSec(info.targetTime)
-            cursor.stepTag(nowNanos) { implicit tx =>
-              eventReached(info)    // this calls `time_=(info.targetTime)`
-            }
+        Executor.schedule(actualDelayN, TimeUnit.NANOSECONDS) {
+          logT(s"scheduled: exe $info")
+          val nowNanos = calcTimeNanoSec(info.targetTime)
+          cursor.stepTag(nowNanos) { implicit tx =>
+            eventReached(info) // this calls `time_=(info.targetTime)`
           }
-        }, actualDelayN, TimeUnit.NANOSECONDS)
+        }
       }
     }
   }

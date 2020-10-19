@@ -14,7 +14,7 @@
 package de.sciss.synth.proc.impl
 
 import de.sciss.lucre.Disposable
-import de.sciss.lucre.synth.{RT, Server}
+import de.sciss.lucre.synth.{Executor, RT, Server}
 import de.sciss.osc.Dump
 import de.sciss.synth.proc.{AuralSystem, SoundProcesses, logAural => logA}
 import de.sciss.synth.{Client, ServerConnection, Server => SServer}
@@ -54,12 +54,10 @@ object AuralSystemImpl {
    * TODO: review
    */
   private def afterCommit(code: => Unit)(implicit tx: RT): Unit = tx.afterCommit {
-    val exec = SoundProcesses.scheduledExecutorService
+    val exec = Executor
     // note: `isShutdown` is true during VM shutdown. In that case
     // calling `submit` would throw an exception.
-    if (exec.isShutdown) code else exec.submit(new Runnable() {
-      def run(): Unit = code
-    })
+    if (exec.isShutdown) code else exec.defer(code)
   }
 
   private final class Impl extends AuralSystem {
@@ -95,9 +93,7 @@ object AuralSystemImpl {
 
           case ServerConnection.Running(s) =>
             if (dumpOSC) s.dumpOSC(Dump.Text)
-            SoundProcesses.scheduledExecutorService.submit(new Runnable() {
-              def run(): Unit = serverStarted(Server(s))
-            })
+            Executor.defer { serverStarted(Server(s)) }
         }
       }
 

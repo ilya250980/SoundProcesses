@@ -17,6 +17,7 @@ package impl
 import java.io.{ByteArrayOutputStream, DataOutputStream}
 
 import de.sciss.lucre.Txn.{peer => txPeer}
+import de.sciss.lucre.synth.Log.log
 import de.sciss.osc
 import de.sciss.osc.TimeTag
 import de.sciss.synth.{AllocatorExhausted, ControlABusMap, ControlSet, UGenGraph, addToHead, message, Client => SClient, Server => SServer}

@@ -67,7 +67,7 @@ class Issue73[T <: synth.Txn[T]](val system: Sys)(implicit cursor: Cursor[T]) {
   sCfg.sampleRate         = 48000
   sCfg.pickPort()
 
-  de.sciss.lucre.synth.showLog = true
+  de.sciss.lucre.synth.Log.showLog = true
 //  //  showTransportLog  = false
   bCfg.beforePlay = { (_, s) => s.peer.dumpOSC() }
   ServerImpl.DEBUG = true

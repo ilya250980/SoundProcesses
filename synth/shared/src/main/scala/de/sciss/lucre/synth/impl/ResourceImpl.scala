@@ -14,6 +14,8 @@
 package de.sciss.lucre.synth
 package impl
 
+import de.sciss.lucre.synth.Log.log
+
 import scala.concurrent.stm.Ref
 
 trait ResourceImpl extends Resource {

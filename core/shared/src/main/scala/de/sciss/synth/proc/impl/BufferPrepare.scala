@@ -51,7 +51,7 @@ object BufferPrepare {
     if (numFrL > 0x3FFFFFFF) sys.error(s"File $f is too large ($numFrL frames) for an in-memory buffer")
     val res = new Impl[T](path = f.getAbsolutePath, numFrames = numFrL.toInt, off0 = offset,
       numChannels = spec.numChannels, buf = buf, key = key)
-    import de.sciss.synth.proc.SoundProcesses.executionContext
+    import de.sciss.lucre.synth.Executor.context
     tx.afterCommit(res.start())
     res
   }

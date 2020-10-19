@@ -16,7 +16,7 @@ package de.sciss.synth.proc.impl
 import de.sciss.equal.Implicits._
 import de.sciss.file._
 import de.sciss.lucre.impl.ObservableImpl
-import de.sciss.lucre.synth.{AudioBus, Buffer, Bus, BusNodeSetter, NodeRef, Server}
+import de.sciss.lucre.synth.{AudioBus, Buffer, Bus, BusNodeSetter, Executor, NodeRef, Server}
 import de.sciss.lucre.{Artifact, Disposable, DoubleVector, ExprLike, IExpr, IntVector, Obj, Source, StringObj, Txn, TxnLike, synth}
 import de.sciss.numbers
 import de.sciss.span.Span
@@ -1004,7 +1004,7 @@ object AuralProcImpl {
 //              ctx.dispose()
             }
           }
-        } (SoundProcesses.executionContext)
+        } (Executor.context)
         nr.addResource(late)
 
       case UGB.Input.StopSelf =>
@@ -1105,7 +1105,7 @@ object AuralProcImpl {
       } else {
         val prep = setPlayingPrepare(res)
         tx.afterCommit {
-          import SoundProcesses.executionContext
+          import Executor.{context => executionContext}
           val reduced = Future.reduceLeft(res)((_, _) => ())
           reduced.foreach { _ =>
             cursor.step { implicit tx =>

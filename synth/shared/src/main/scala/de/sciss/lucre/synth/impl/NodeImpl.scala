@@ -14,8 +14,6 @@
 package de.sciss.lucre.synth
 package impl
 
-import java.util.concurrent.{Executors, ScheduledExecutorService}
-
 import de.sciss.synth.{ControlABusMap, ControlFillRange, ControlKBusMap, ControlSet}
 
 import scala.collection.immutable.{IndexedSeq => Vec}
@@ -26,23 +24,6 @@ object NodeImpl {
 
   private final case class OnEnd(direct: Vec[() => Unit], inTxn: Vec[RT => Unit]) {
     def nonEmpty: Boolean = direct.nonEmpty || inTxn.nonEmpty
-  }
-
-  var poolSize: Option[Int] = None
-
-  lazy val pool: ScheduledExecutorService = {
-    // system wide scheduler
-    val res = poolSize match {
-      case Some(sz) => Executors.newScheduledThreadPool(sz)
-      case _        => Executors.newSingleThreadScheduledExecutor()
-    }
-    sys.addShutdownHook(shutdownScheduler())
-    res
-  }
-
-  private def shutdownScheduler(): Unit = {
-    log("Shutting down scheduler thread pool")
-    pool.shutdown()
   }
 }
 
@@ -72,9 +53,7 @@ trait NodeImpl extends ResourceImpl with Node {
   // is executed within the osc receiver actor.
   // decouple it instead.
   private def spawn(fun: InTxn => Unit): Unit =
-    pool.submit(new Runnable {
-      def run(): Unit = TxnExecutor.defaultAtomic(fun)
-    })
+    Executor.defer { TxnExecutor.defaultAtomic(fun) }
 
   final def onEndTxn(fun: RT => Unit)(implicit tx: RT): Unit =
     onEndFuns.transform(e => e.copy(inTxn = e.inTxn :+ fun))(tx.peer)

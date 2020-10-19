@@ -45,7 +45,7 @@ object BounceTest {
   }
 }
 class BounceTest[T <: synth.Txn[T]](/*val system: T,*/ realtime: Boolean)(implicit cursor: Cursor[T]) {
-  de.sciss.lucre.synth.showLog = true
+  de.sciss.lucre.synth.Log.showLog = true
   showTransportLog  = !realtime
 
   def frame(secs: Double): Long = (secs * TimeRef.SampleRate).toLong

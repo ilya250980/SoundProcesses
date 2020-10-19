@@ -23,7 +23,7 @@ object AsyncBounceTest {
     // implicit val system = InMemory()
     implicit val system: S = Durable(BerkeleyDB.tmp())
 
-    de.sciss.lucre.synth.showLog = true
+    de.sciss.lucre.synth.Log.showLog = true
     showTransportLog  = true
 
     def frame(secs: Double): Long = (secs * TimeRef.SampleRate).toLong

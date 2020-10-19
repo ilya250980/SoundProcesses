@@ -15,6 +15,7 @@ package de.sciss.lucre.synth
 package impl
 
 import de.sciss.lucre.synth
+import de.sciss.lucre.synth.Log.log
 import de.sciss.synth.UGenSource.Vec
 
 import scala.collection.immutable.{Seq => ISeq}

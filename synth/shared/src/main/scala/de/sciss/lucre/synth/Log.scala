@@ -1,5 +1,5 @@
 /*
- *  package.scala
+ *  Log.scala
  *  (SoundProcesses)
  *
  *  Copyright (c) 2010-2020 Hanns Holger Rutz. All rights reserved.
@@ -11,14 +11,14 @@
  *  contact@sciss.de
  */
 
-package de.sciss.lucre
+package de.sciss.lucre.synth
 
 import scala.annotation.elidable
 import java.util.{Locale, Date}
 import elidable.CONFIG
 import java.text.SimpleDateFormat
 
-package object synth {
+object Log {
   var showLog       = false
   var showAllocLog  = false
 

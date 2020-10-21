@@ -24,12 +24,12 @@ import de.sciss.synth.ControlSet
 import de.sciss.synth.UGenSource.Vec
 import de.sciss.synth.io.AudioFileType
 import de.sciss.synth.proc.AuralObj.{TargetPlaying, TargetPrepared, TargetState, TargetStop}
+import de.sciss.synth.proc.Implicits._
 import de.sciss.synth.proc.Runner.{Prepared, Preparing, Running, Stopped}
 import de.sciss.synth.proc.TimeRef.SampleRate
-import de.sciss.synth.proc.Implicits._
 import de.sciss.synth.proc.UGenGraphBuilder.{Complete, Incomplete, MissingIn}
 import de.sciss.synth.proc.graph.impl.{ActionResponder, StopSelfResponder}
-import de.sciss.synth.proc.{Action, AudioCue, AuralAttribute, AuralContext, AuralNode, AuralObj, AuralOutput, FadeSpec, Gen, GenView, ObjKeys, Proc, Runner, SoundProcesses, TimeRef, graph, UGenGraphBuilder => UGB, logAural => logA}
+import de.sciss.synth.proc.{Action, AudioCue, AuralAttribute, AuralContext, AuralNode, AuralObj, AuralOutput, FadeSpec, Gen, GenView, ObjKeys, Proc, Runner, TimeRef, graph, UGenGraphBuilder => UGB, logAural => logA}
 
 import scala.concurrent.Future
 import scala.concurrent.stm.{Ref, TMap, TxnLocal}
@@ -1105,7 +1105,7 @@ object AuralProcImpl {
       } else {
         val prep = setPlayingPrepare(res)
         tx.afterCommit {
-          import Executor.{context => executionContext}
+          import Executor.{context => ec}
           val reduced = Future.reduceLeft(res)((_, _) => ())
           reduced.foreach { _ =>
             cursor.step { implicit tx =>

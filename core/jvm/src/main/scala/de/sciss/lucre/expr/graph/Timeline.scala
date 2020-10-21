@@ -14,13 +14,13 @@
 package de.sciss.lucre.expr.graph
 
 import de.sciss.lucre.Adjunct.HasDefault
-import de.sciss.lucre.{Adjunct, Caching, IChangeEvent, IExpr, IPush, ITargets, ProductWithAdjuncts, Source, SpanLikeObj, Sys, Txn, Obj => LObj}
+import de.sciss.lucre.Txn.peer
 import de.sciss.lucre.edit.EditTimeline
-import de.sciss.lucre.impl.IChangeGeneratorEvent
 import de.sciss.lucre.expr.graph.impl.{AbstractCtxCellView, ExpandedObjMakeImpl, MappedIExpr, ObjCellViewVarImpl, ObjImplBase}
 import de.sciss.lucre.expr.impl.{IActionImpl, ITriggerConsumer}
 import de.sciss.lucre.expr.{CellView, Context, IAction}
-import de.sciss.lucre.Txn.peer
+import de.sciss.lucre.impl.IChangeGeneratorEvent
+import de.sciss.lucre.{Adjunct, Caching, IChangeEvent, IExpr, IPush, ITargets, ProductWithAdjuncts, Source, SpanLikeObj, Sys, Txn, Obj => LObj}
 import de.sciss.serial.{DataInput, TFormat}
 import de.sciss.span.{Span => _Span, SpanLike => _SpanLike}
 import de.sciss.synth.proc

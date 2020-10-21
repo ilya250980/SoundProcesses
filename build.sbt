@@ -1,7 +1,7 @@
 lazy val baseName  = "SoundProcesses"
 lazy val baseNameL = baseName.toLowerCase
 
-lazy val projectVersion = "4.1.0-SNAPSHOT"
+lazy val projectVersion = "4.1.0"
 lazy val mimaVersion    = "4.1.0" // used for migration-manager
 
 lazy val commonJvmSettings = Seq(
@@ -26,27 +26,28 @@ lazy val commonSettings = Seq(
   parallelExecution in Test := false,
   updateOptions      := updateOptions.value.withLatestSnapshots(false),
   testOptions in Test += Tests.Argument("-oF"), // "show full stack traces" (?)
-  fork in run := true  // required for shutdown hook, and also the scheduled thread pool, it seems
+  fork in run := true,  // required for shutdown hook, and also the scheduled thread pool, it seems
+  publishConfiguration := publishConfiguration.value.withOverwrite(true), // yeah whatever crossproject plugin bugs
 ) ++ publishSettings
 
 lazy val deps = new {
   val main = new {
-    val audioFile           = "2.1.0-SNAPSHOT"
-    val equal               = "0.1.6-SNAPSHOT"
+    val audioFile           = "2.1.0"
+    val equal               = "0.1.6"
     val fileUtil            = "1.1.5"
-    val lucre               = "4.1.0-SNAPSHOT"
+    val lucre               = "4.1.0"
     val numbers             = "0.2.1"
-    val scalaCollider       = "2.1.0-SNAPSHOT"
-    val scalaColliderIf     = "1.0.0"
+    val scalaCollider       = "2.1.0"
+    val scalaColliderIf     = "1.1.0"
     val span                = "2.0.0"
     val topology            = "1.1.3"
-    val ugens               = "1.19.8"
+    val ugens               = "1.20.0"
   }
 
   val views = new {
     val audioWidgets        = "2.0.0"
-    val lucreSwing          = "2.0.0"
-    val scalaColliderSwing  = "2.0.0"
+    val lucreSwing          = "2.1.0"
+    val scalaColliderSwing  = "2.1.0"
     val swingPlus           = "0.4.2"
   }
   
@@ -75,10 +76,8 @@ lazy val root = project.withId(baseNameL).in(file("."))
   .settings(commonJvmSettings)
   .settings(
     name := baseName,
-    publishArtifact in(Compile, packageBin) := false, // there are no binaries
-    publishArtifact in(Compile, packageDoc) := false, // there are no javadocs
-    publishArtifact in(Compile, packageSrc) := false, // there are no sources
-    // packagedArtifacts := Map.empty
+    publish := {},
+    publishArtifact := false,
     autoScalaLibrary := false,
     mimaFailOnNoPrevious := false
   )

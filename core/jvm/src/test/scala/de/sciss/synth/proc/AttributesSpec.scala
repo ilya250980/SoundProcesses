@@ -2,8 +2,7 @@ package de.sciss.synth.proc
 
 import de.sciss.ConfluentEventSpec
 import de.sciss.file._
-import de.sciss.lucre.{Artifact, ArtifactLocation}
-import de.sciss.lucre.{DoubleVector, BooleanObj, DoubleObj, IntObj, LongObj, StringObj}
+import de.sciss.lucre.{Artifact, ArtifactLocation, BooleanObj, DoubleObj, DoubleVector, IntObj, LongObj, StringObj}
 import de.sciss.synth.Curve
 import de.sciss.synth.io.AudioFileSpec
 

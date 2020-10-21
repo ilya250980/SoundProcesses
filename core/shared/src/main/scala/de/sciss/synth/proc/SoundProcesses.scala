@@ -21,7 +21,7 @@ import de.sciss.lucre.{Cursor, Txn}
 import scala.concurrent.Future
 import scala.concurrent.stm.{Txn => STMTxn}
 
-object SoundProcesses {
+object SoundProcesses extends SoundProcessesPlatform {
 //  /** Returns the size of the thread pool used in `atomic`,
 //    * where `None` indicates that a single-threaded context is used
 //    * (default).
@@ -95,30 +95,23 @@ object SoundProcesses {
 
   private[this] lazy val _init: Unit = {
     LucreExpr     .init()
-//    ActionRaw     .init()
-    AudioCue      .init()
     Code          .init()
     Color         .init()
     Control       .init()
     Action        .init()
     Cursors       .init()
     CurveObj      .init()
-//    Ensemble      .init()
     FadeSpec      .init()
-//    Folder        .init()
     Grapheme      .init()
-//    Output        .init()
     Proc          .init()
     SynthGraphObj .init()
     Timeline      .init()
     Markdown      .init()
     EnvSegment    .init()
 
-    lucre.expr.graph.Artifact         .init()
-    lucre.expr.graph.ArtifactLocation .init()
-    lucre.expr.graph.Folder           .init()
-    lucre.expr.graph.Timeline         .init()
-    lucre.expr.graph.AudioCue         .init()
+    lucre.expr.graph.Folder.init()
+
+    initPlatform()
   }
 
   /** Registers all known types. */

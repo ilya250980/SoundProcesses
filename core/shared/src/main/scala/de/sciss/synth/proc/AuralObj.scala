@@ -17,7 +17,7 @@ import de.sciss.lucre
 import de.sciss.lucre.synth.NodeRef
 import de.sciss.lucre.{Ident, Obj, Observable, SpanLikeObj, Txn, TxnLike, synth}
 import de.sciss.synth.proc
-import de.sciss.synth.proc.impl.{AuralActionImpl, AuralControlImpl, AuralFolderImpl, AuralProcImpl, AuralTimelineImpl, AuralObjImpl => Impl}
+import de.sciss.synth.proc.impl.{AuralActionImpl, AuralControlImpl, AuralFolderImpl, AuralTimelineImpl, AuralObjImpl => Impl}
 
 object AuralObj {
   import lucre.{Folder => _Folder}

@@ -18,7 +18,7 @@ import de.sciss.lucre.expr.graph.impl.MappedIExpr
 import de.sciss.lucre.{IExpr, ITargets, Txn}
 
 /** Access to operating system functions. */
-object Sys {
+object Sys extends SysPlatform {
   private final class ExpandedProperty[T <: Txn[T]](key: IExpr[T, String], tx0: T)
                                                    (implicit targets: ITargets[T])
     extends MappedIExpr[T, String, Option[String]](key, tx0) {

@@ -15,18 +15,12 @@ package de.sciss.synth.proc
 
 import de.sciss.lucre.Event.Targets
 import de.sciss.lucre.impl.{DummyEvent, ExprTypeImpl}
-import de.sciss.lucre.swing.graph.{Widget => _Widget}
 import de.sciss.lucre.swing.{Graph => _Graph}
 import de.sciss.lucre.{Copy, Elem, Event, EventLike, Expr, Ident, Obj, Publisher, Txn, Var => LVar}
 import de.sciss.serial.{ConstFormat, DataInput, DataOutput, TFormat}
 import de.sciss.synth.UGenSource.Vec
-import de.sciss.synth.proc
-import de.sciss.synth.proc.Code.{Example, Import}
-import de.sciss.synth.proc.impl.{CodeImpl, WidgetImpl => Impl}
+import de.sciss.synth.proc.impl.{WidgetImpl => Impl}
 import de.sciss.{lucre, model}
-
-import scala.collection.immutable.{Seq => ISeq}
-import scala.concurrent.Future
 
 // XXX TODO --- complete DRY with Control
 object Widget extends Obj.Type with WidgetPlatform {

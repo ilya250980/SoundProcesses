@@ -1,8 +1,8 @@
 lazy val baseName  = "SoundProcesses"
 lazy val baseNameL = baseName.toLowerCase
 
-lazy val projectVersion = "4.1.1"
-lazy val mimaVersion    = "4.1.0" // used for migration-manager
+lazy val projectVersion = "4.2.0-SNAPSHOT"
+lazy val mimaVersion    = "4.2.0" // used for migration-manager
 
 lazy val commonJvmSettings = Seq(
   crossScalaVersions := Seq("2.13.3", "2.12.12"),  // N.B. nsc API has breakage in minor versions (2.13.0 versus 2.13.1)
@@ -46,7 +46,7 @@ lazy val deps = new {
 
   val views = new {
     val audioWidgets        = "2.0.0"
-    val lucreSwing          = "2.1.0"
+    val lucreSwing          = "2.2.0-SNAPSHOT"
     val scalaColliderSwing  = "2.1.0"
     val swingPlus           = "0.4.2"
   }
@@ -68,21 +68,21 @@ lazy val root = project.withId(baseNameL).in(file("."))
   .aggregate(
     synth.jvm, synth.js, 
     core .jvm, core .js, 
-    views, 
+    views.jvm, views.js,
     compiler,
   )
 //  .dependsOn(synth, core, views, compiler)
   .settings(commonSettings)
   .settings(commonJvmSettings)
   .settings(
-    name := baseName,
-    publish := {},
-    publishArtifact := false,
-    autoScalaLibrary := false,
-    mimaFailOnNoPrevious := false
+    name                  := baseName,
+    publish               := {},
+    publishArtifact       := false,
+    autoScalaLibrary      := false,
+    mimaFailOnNoPrevious  := false
   )
 
-lazy val synth = crossProject(JSPlatform, JVMPlatform).in(file("synth"))
+lazy val synth = crossProject(JVMPlatform, JSPlatform).in(file("synth"))
   .settings(commonSettings)
   .jvmSettings(commonJvmSettings)
   .settings(
@@ -105,7 +105,7 @@ lazy val testSettings = Seq(
   }
 )
 
-lazy val core = crossProject(JSPlatform, JVMPlatform).in(file("core"))
+lazy val core = crossProject(JVMPlatform, JSPlatform).in(file("core"))
   .dependsOn(synth)
   .enablePlugins(BuildInfoPlugin)
   .settings(commonSettings)
@@ -135,16 +135,22 @@ lazy val core = crossProject(JSPlatform, JVMPlatform).in(file("core"))
     mimaPreviousArtifacts := Set("de.sciss" %% s"$baseNameL-core" % mimaVersion)
   )
 
-lazy val views = project.withId(s"$baseNameL-views").in(file("views"))
-  .dependsOn(core.jvm)
+lazy val views = crossProject(JVMPlatform, JSPlatform).in(file("views"))
+  .dependsOn(core)
   .settings(commonSettings)
-  .settings(commonJvmSettings)
+  .jvmSettings(commonJvmSettings)
   .settings(testSettings)
   .settings(
+    name := s"$baseName-views",
     description := "Views for Sound Processes",
     libraryDependencies ++= Seq(
-      "de.sciss"        %% "span"                     % deps.main.span,              // sbt bug
-      "de.sciss"        %% "lucre-swing"              % deps.views.lucreSwing,
+//      "de.sciss"        %%% "span"                    % deps.main.span,              // sbt bug
+      "de.sciss"        %%% "lucre-swing"             % deps.views.lucreSwing,
+    ),
+    mimaPreviousArtifacts := Set("de.sciss" %% s"$baseNameL-views" % mimaVersion)
+  )
+  .jvmSettings(
+    libraryDependencies ++= Seq(
       "de.sciss"        %% "swingplus"                % deps.views.swingPlus,
       "de.sciss"        %% "audiowidgets-app"         % deps.views.audioWidgets,
       "de.sciss"        %% "scalacolliderswing-core"  % deps.views.scalaColliderSwing,
@@ -152,11 +158,10 @@ lazy val views = project.withId(s"$baseNameL-views").in(file("views"))
       "de.sciss"        %  "submin"                   % deps.test.submin    % Test,
       "de.sciss"        %% s"lucre-${deps.test.bdb}"  % deps.main.lucre     % Test,
     ),
-    mimaPreviousArtifacts := Set("de.sciss" %% s"$baseNameL-views" % mimaVersion)
   )
 
 lazy val compiler = project.withId(s"$baseNameL-compiler").in(file("compiler"))
-  .dependsOn(core.jvm, views)
+  .dependsOn(core.jvm, views.jvm)
   .settings(commonSettings)
   .settings(commonJvmSettings)
   .settings(testSettings)

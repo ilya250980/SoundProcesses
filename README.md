@@ -19,11 +19,11 @@ For tutorials, see the [Mellite website](https://www.sciss.de/mellite/tutorials.
 
 ## building
 
-SoundProcesses builds with sbt against Scala 2.13, 2.12.
+SoundProcesses builds with sbt against Scala 2.13, 2.12 (JVM) and Scala 2.13 (JS).
 The last version to support Scala 2.11 was 3.31.0.
 The dependencies should be downloaded automatically from Maven Central repository.
 
-There is a beginning of Scala.js support (modules `synth` and `core`), but it is still in experimental stage.
+The Scala.js support it is still in experimental stage.
 Linker errors and bugs are to be expected here.
 
 ## linking
@@ -32,7 +32,7 @@ The following dependency is necessary:
 
     "de.sciss" %% "soundprocesses" % v
 
-The current version `v` is `"4.1.1"`.
+The current version `v` is `"4.2.0"`.
 
 The following sub modules are available:
 
@@ -58,3 +58,4 @@ the Mellite website contains [tutorials on SoundProcesses](https://www.sciss.de/
   peer constant. This was done in order to satisfy `Obj` property, e.g. for any `IntObj` including 
   its constants. A future version may go back to 'cheap' constants which must be explicitly lifted 
   if one wants to access `attr` on them.
+

@@ -2,7 +2,7 @@
 
 [![Gitter](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/Sciss/Mellite?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 [![Build Status](https://travis-ci.org/Sciss/SoundProcesses.svg?branch=main)](https://travis-ci.org/Sciss/SoundProcesses)
-[![Maven Central](https://maven-badges.herokuapp.com/maven-central/de.sciss/soundprocesses_2.13/badge.svg)](https://maven-badges.herokuapp.com/maven-central/de.sciss/soundprocesses_2.13)
+[![Maven Central](https://maven-badges.herokuapp.com/maven-central/de.sciss/soundprocesses-core_2.13/badge.svg)](https://maven-badges.herokuapp.com/maven-central/de.sciss/soundprocesses-core_2.13)
 
 ## statement
 
@@ -28,18 +28,14 @@ Linker errors and bugs are to be expected here.
 
 ## linking
 
-The following dependency is necessary:
-
-    "de.sciss" %% "soundprocesses" % v
-
-The current version `v` is `"4.2.0"`.
-
 The following sub modules are available:
 
     "de.sciss" %% "lucre-synth"             % v  // transactional layer for ScalaCollider
     "de.sciss" %% "soundprocesses-core"     % v  // everything but views and compiler
     "de.sciss" %% "soundprocesses-views"    % v  // common swing views
     "de.sciss" %% "soundprocesses-compiler" % v  // compiler integration
+
+The current version `v` is `"4.2.0"`.
 
 ## contributing
 

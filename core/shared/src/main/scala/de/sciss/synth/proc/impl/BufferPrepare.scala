@@ -19,7 +19,7 @@ import de.sciss.lucre.synth.{Buffer, NodeRef, RT}
 import de.sciss.lucre.synth
 import de.sciss.osc
 import de.sciss.processor.impl.ProcessorImpl
-import de.sciss.synth.io.AudioFileSpec
+import de.sciss.audiofile.AudioFileSpec
 import de.sciss.synth.proc.graph
 import de.sciss.lucre.Txn
 

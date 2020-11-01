@@ -16,7 +16,7 @@ package de.sciss.lucre.expr.graph
 import de.sciss.lucre.expr.graph.impl.MappedIExpr
 import de.sciss.lucre.expr.{Context, graph}
 import de.sciss.lucre.{IExpr, ITargets, Txn}
-import de.sciss.synth.io.{AudioFileType, SampleFormat, AudioFileSpec => _AudioFileSpec}
+import de.sciss.audiofile.{AudioFileType, SampleFormat, AudioFileSpec => _AudioFileSpec}
 
 import scala.annotation.switch
 

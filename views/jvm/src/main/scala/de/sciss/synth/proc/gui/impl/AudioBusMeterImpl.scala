@@ -84,6 +84,7 @@ final class AudioBusMeterImpl(val strips: ISeq[AudioBusMeter.Strip])
           defer {
             val meter = meters(stripIdx)
             meter.update(pairs, 0, time)
+            ()
           }
       }
       scala.concurrent.stm.Txn.afterRollback(_ => resp.remove())(tx.peer)

@@ -20,7 +20,7 @@ import de.sciss.lucre.expr.impl.AbstractExObjBridgeImpl
 import de.sciss.lucre.expr.{CellView, Context}
 import de.sciss.lucre.{Adjunct, IExpr, ITargets, Txn, Obj => LObj}
 import de.sciss.serial.DataInput
-import de.sciss.synth.io.{AudioFileSpec => _AudioFileSpec}
+import de.sciss.audiofile.{AudioFileSpec => _AudioFileSpec}
 import de.sciss.synth.proc.{AudioCue => _AudioCue}
 
 object AudioCue {

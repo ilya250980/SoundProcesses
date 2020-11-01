@@ -17,7 +17,7 @@ import java.io.File
 
 import de.sciss.lucre.synth.Resource.TimeStamp
 import de.sciss.synth.{Buffer => SBuffer}
-import de.sciss.synth.io.{AudioFileType, SampleFormat}
+import de.sciss.audiofile.{AudioFileType, SampleFormat}
 import de.sciss.lucre.synth.impl.BufferImpl
 import de.sciss.osc
 import de.sciss.synth.message.BufferGen

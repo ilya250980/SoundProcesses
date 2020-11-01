@@ -39,6 +39,7 @@ trait ConfluentEventSpec extends FixtureAnyFlatSpec with Matchers {
       val ob = seqRef.get(tx.peer)
       assert(ob === expected.toIndexedSeq, "Expected\n   " + expected.mkString("[", ", ", "]")
         + "\n...but observed\n   " + ob.mkString("[", ", ", "]"))
+      ()
     }
 
     def clear()(implicit tx: T): Unit = {

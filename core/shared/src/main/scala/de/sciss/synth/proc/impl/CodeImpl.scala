@@ -157,6 +157,7 @@ object CodeImpl {
       blocking {
         compileThunk[A](code, tt = tt, execute = false)
       }
+      ()
     }
 
   /** Compiles a source code consisting of a body which is wrapped in its prelude/postlude,

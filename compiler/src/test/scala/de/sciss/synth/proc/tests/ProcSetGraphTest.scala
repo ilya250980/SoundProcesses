@@ -27,6 +27,7 @@ object ProcSetGraphTest {
         val c = CombN.ar(s, 0.2, 0.2, 4)
         val l = Line.kr(1, 0, 10, doneAction = freeSelf)
         Out.ar(0, c * l)
+        ()
       }
       ws.root.addLast(p)
 

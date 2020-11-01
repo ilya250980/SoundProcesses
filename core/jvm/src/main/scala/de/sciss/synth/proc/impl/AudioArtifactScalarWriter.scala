@@ -60,6 +60,7 @@ object AudioArtifactScalarWriter {
       }
 
       synth.write(bus -> "out")
+      ()
     }
   }
 }

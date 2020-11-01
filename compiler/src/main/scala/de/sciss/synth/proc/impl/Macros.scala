@@ -71,6 +71,7 @@ object Macros {
       val code                = Code.SynthGraph(sourceExpr.splice)
       val codeObj             = Code.Obj.newVar[T](Code.Obj.newConst[T](code))
       p.attr.put(Proc.attrSource, codeObj)
+      ()
     }
   }
 
@@ -93,6 +94,7 @@ object Macros {
       val code                = Code.Control(sourceExpr.splice)
       val codeObj             = Code.Obj.newVar[T](Code.Obj.newConst[T](code))
       w.attr.put(Control.attrSource, codeObj)
+      ()
     }
   }
 
@@ -115,6 +117,7 @@ object Macros {
       val code                = Code.Action(sourceExpr.splice)
       val codeObj             = Code.Obj.newVar[T](Code.Obj.newConst[T](code))
       w.attr.put(Action.attrSource, codeObj)
+      ()
     }
   }
 
@@ -137,6 +140,7 @@ object Macros {
       val code                = Widget.Code(sourceExpr.splice)
       val codeObj             = Code.Obj.newVar[T](Code.Obj.newConst[T](code))
       w.attr.put(Widget.attrSource, codeObj)
+      ()
     }
   }
 }

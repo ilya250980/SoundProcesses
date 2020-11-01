@@ -91,16 +91,17 @@ abstract class AuralTestLike[T <: synth.Txn[T]](implicit cursor: Cursor[T]) {
       scala.sys.exit()
     }
 
-  final def procV(graph: => Unit)(implicit tx: T, context: AuralContext[T]): AuralObj.Proc[T] = {
+  final def procV(graph: => Any)(implicit tx: T, context: AuralContext[T]): AuralObj.Proc[T] = {
     val pObj  = proc(graph)
     val _view = AuralObj(pObj)
     _view.asInstanceOf[AuralObj.Proc[T]]
   }
 
-  final def proc(graph: => Unit)(implicit tx: T): Proc[T] = {
+  final def proc(graph: => Any)(implicit tx: T): Proc[T] = {
     val p = Proc[T]()
     val g = SynthGraph {
       graph
+      ()
     }
     p.graph() = SynthGraphObj.newConst[T](g)
     p // Obj(Proc.Elem(p))
@@ -124,6 +125,7 @@ abstract class AuralTestLike[T <: synth.Txn[T]](implicit cursor: Cursor[T]) {
     // val imp = ExprImplicits[T]
     // import imp._
     proc.attr.put(key, value: DoubleObj[T])
+    ()
   }
 
   final def stopAndQuit(delay: Double = 4.0): Unit =
@@ -146,6 +148,7 @@ abstract class AuralTestLike[T <: synth.Txn[T]](implicit cursor: Cursor[T]) {
       val attr = sink.attr
       attr.get(key).fold[Unit] {
         attr.put(key, `this`)
+        ()
       } {
         case f: Folder[T] => f.addLast(`this`)
         case prev =>
@@ -153,6 +156,7 @@ abstract class AuralTestLike[T <: synth.Txn[T]](implicit cursor: Cursor[T]) {
           f.addLast(prev)
           f.addLast(`this`)
           attr.put(key, f)
+          ()
       }
     }
 
@@ -160,11 +164,14 @@ abstract class AuralTestLike[T <: synth.Txn[T]](implicit cursor: Cursor[T]) {
       val (sink, key) = that
       val attr = sink.attr
       attr.get(key).getOrElse(sys.error(s"Attribute $key was not assigned")) match {
-        case `sink` => attr.remove(key)
+        case `sink` =>
+          attr.remove(key)
+          ()
         case f: Folder[T] =>
           val idx = f.indexOf(`this`)
           if (idx < 0) sys.error(s"Attribute $key has a folder but does not contain ${`this`}")
           f.removeAt(idx)
+          ()
 
         case other => sys.error(s"Cannot remove output from $other")
       }
@@ -181,6 +188,7 @@ abstract class AuralTestLike[T <: synth.Txn[T]](implicit cursor: Cursor[T]) {
     def add(span: SpanLike, obj: Obj[T])(implicit tx: T): Unit = {
       val tlm = tl.modifiableOption.get  // yo
       tlm.add(SpanLikeObj.newConst(span), obj)
+      ()
     }
 
     def remove(span: SpanLike, obj: Obj[T])(implicit tx: T): Unit = {

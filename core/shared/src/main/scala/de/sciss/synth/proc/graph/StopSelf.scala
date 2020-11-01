@@ -39,5 +39,6 @@ final case class StopSelf(trig: GE, pause: GE = 1) extends Lazy.Expander[Unit] {
     val b = UGenGraphBuilder.get
     b.requestInput(Input.StopSelf)
     SendReply(trig.rate, trig, values = 0, msgName = StopSelf.replyName)
+    ()
   }
 }

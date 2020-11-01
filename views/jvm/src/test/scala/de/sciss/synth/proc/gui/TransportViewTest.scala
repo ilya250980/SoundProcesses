@@ -35,6 +35,7 @@ object TransportViewTest {
         pack().centerOnScreen()
         open()
       }
+      ()
     }
   }
 }

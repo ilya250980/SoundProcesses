@@ -115,6 +115,7 @@ object Implicits {
         case _                  =>
           val valueVr = StringObj.newVar(valueC)
           attr.put(ObjKeys.attrName, valueVr)
+          ()
       }
     }
 
@@ -131,6 +132,7 @@ object Implicits {
         case _                  =>
           val valueVr = BooleanObj.newVar(valueC)
           attr.put(ObjKeys.attrMute, valueVr)
+          ()
       }
     }
   }

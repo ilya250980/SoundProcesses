@@ -14,7 +14,6 @@
 package de.sciss.synth.proc
 
 import de.sciss.lucre.{Obj, Publisher, Txn}
-import de.sciss.lucre.synth.{Txn => STxn}
 import de.sciss.model
 import de.sciss.serial.{DataInput, TFormat}
 import de.sciss.synth.SynthGraph

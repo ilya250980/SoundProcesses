@@ -4,7 +4,7 @@ import de.sciss.ConfluentEventSpec
 import de.sciss.file._
 import de.sciss.lucre.{Artifact, ArtifactLocation, BooleanObj, DoubleObj, DoubleVector, IntObj, LongObj, StringObj}
 import de.sciss.synth.Curve
-import de.sciss.synth.io.AudioFileSpec
+import de.sciss.audiofile.AudioFileSpec
 
 /*
   To run only this suite:

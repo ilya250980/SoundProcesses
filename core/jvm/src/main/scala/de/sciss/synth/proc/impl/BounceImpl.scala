@@ -22,7 +22,7 @@ import de.sciss.lucre.synth.{Buffer, RT, Server, Synth, Txn}
 import de.sciss.processor.Processor
 import de.sciss.processor.impl.ProcessorImpl
 import de.sciss.synth.Ops.stringToControl
-import de.sciss.synth.io.{AudioFile, AudioFileType, SampleFormat}
+import de.sciss.audiofile.{AudioFile, AudioFileType, SampleFormat}
 import de.sciss.synth.proc.Runner.{Prepared, Preparing, Running, Stopped}
 import de.sciss.synth.proc.{AuralObj, AuralSystem, Bounce, Runner, Scheduler, TimeRef, Transport, Universe, logTransport, showTransportLog}
 import de.sciss.synth.{Client, SynthGraph, addToTail, Server => SServer}
@@ -133,6 +133,7 @@ final class BounceImpl[T <: Txn[T] /*, I <: stm.Sys[I] */](val parentUniverse: U
             tx.afterCommit {
               if (DEBUG) s.peer.dumpOSC()
               pServer.trySuccess(s)
+              ()
             }
           }
 
@@ -408,8 +409,12 @@ final class BounceImpl[T <: Txn[T] /*, I <: stm.Sys[I] */](val parentUniverse: U
             case obj if obj.state == Preparing =>
               val p = Promise[Unit]()
               obj.react { implicit tx => state => if (isReady(state)) {
-                tx.afterCommit(p.tryComplete(Success(())))
+                tx.afterCommit {
+                  p.tryComplete(Success(()))
+                  ()
+                }
               }}
+              ()
               p.future
           }
           val set2 = views.flatMap {

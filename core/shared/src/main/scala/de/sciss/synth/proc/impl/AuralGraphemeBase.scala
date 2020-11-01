@@ -226,6 +226,7 @@ trait AuralGraphemeBase[T <: Txn[T], I <: Txn[I], Target, Elem <: AuralViewBase[
     if (idx < 0) throw new IllegalStateException(s"View ${h.view} not found.")
     val seq1  = seq0.patch(idx, Nil, 1)
     if (seq1.isEmpty) viewTree.remove(start) else viewTree.put(start, seq1)
+    ()
   }
 
   private def elemAdded(pin: BiPin[T, Obj[T]], start: Long, child: Obj[T])(implicit tx: T): Boolean = {

@@ -249,6 +249,7 @@ object Runner {
       r.reactNow { implicit tx => state =>
         if (state.idle) r.dispose()
       }
+      ()
     }
   }
 }

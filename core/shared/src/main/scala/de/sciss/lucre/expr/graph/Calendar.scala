@@ -227,6 +227,7 @@ object Calendar {
         fire(())
       }
       tokens.add(token)
+      ()
     }
 
     private[lucre] def pullUpdate(pull: IPull[T])(implicit tx: T): Option[Unit] =

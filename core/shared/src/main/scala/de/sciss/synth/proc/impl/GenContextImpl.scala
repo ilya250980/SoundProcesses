@@ -37,6 +37,9 @@ object GenContextImpl {
                                        (implicit val cursor: Cursor[T], val workspace: Workspace[T])
     extends ContextImpl[T] with GenContext[T] {
 
-    def dispose()(implicit tx: T): Unit = map.remove(workspace)
+    def dispose()(implicit tx: T): Unit = {
+      map.remove(workspace)
+      ()
+    }
   }
 }

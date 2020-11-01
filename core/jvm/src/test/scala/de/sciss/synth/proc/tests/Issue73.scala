@@ -6,7 +6,7 @@ import de.sciss.lucre.synth.{InMemory, Server, Sys}
 import de.sciss.lucre.{Artifact, ArtifactLocation, Cursor, Source, synth}
 import de.sciss.processor.Processor
 import de.sciss.span.Span
-import de.sciss.synth.io.{AudioFile, AudioFileSpec}
+import de.sciss.audiofile.{AudioFile, AudioFileSpec}
 import de.sciss.synth.proc.Implicits._
 import de.sciss.synth.proc.{AudioCue, Bounce, Proc, SoundProcesses, TimeRef, Timeline, Universe}
 import de.sciss.synth.{SynthGraph, ugen}
@@ -19,6 +19,7 @@ object Issue73 {
     type S = InMemory
     implicit val system: S = InMemory()
     new Issue73(system)
+    ()
   }
 }
 class Issue73[T <: synth.Txn[T]](val system: Sys)(implicit cursor: Cursor[T]) {

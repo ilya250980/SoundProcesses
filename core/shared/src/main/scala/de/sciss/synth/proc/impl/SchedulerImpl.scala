@@ -20,7 +20,7 @@ import de.sciss.lucre.synth.Executor
 import de.sciss.lucre.{Cursor, Txn}
 import de.sciss.serial.ConstFormat
 import de.sciss.synth.proc.Scheduler.Entry
-import de.sciss.synth.proc.{Scheduler, SoundProcesses, TimeRef, logTransport => logT}
+import de.sciss.synth.proc.{Scheduler, TimeRef, logTransport => logT}
 
 import scala.concurrent.stm.{InTxn, Ref, TMap, TxnLocal}
 import scala.util.control.NonFatal

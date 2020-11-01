@@ -33,6 +33,7 @@ final class MemoryClassLoader extends ClassLoader {
         }
       }
       mapClasses ++= entries
+      ()
     }
   }
 

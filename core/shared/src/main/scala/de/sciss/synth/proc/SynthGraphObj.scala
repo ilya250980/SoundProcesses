@@ -88,6 +88,7 @@ object SynthGraphObj extends ExprTypeImpl[SynthGraph, SynthGraphObj] {
       // ref.map   += ((p, id))
       // ref.count  = id + 1
       ref.put(p, id)
+      ()
     }
 
     private def writeElemSeq(xs: Seq[Any], out: DataOutput, ref: RefMapOut): Unit = {

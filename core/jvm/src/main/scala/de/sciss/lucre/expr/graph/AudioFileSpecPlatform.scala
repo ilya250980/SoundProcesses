@@ -4,10 +4,10 @@ import de.sciss.file.File
 import de.sciss.lucre.expr.Context
 import de.sciss.lucre.{IExpr, ITargets, Txn}
 import de.sciss.lucre.expr.graph.impl.MappedIExpr
-import de.sciss.synth.io.AudioFile
+import de.sciss.audiofile.AudioFile
 
 import scala.util.Try
-import de.sciss.synth.io.{AudioFileSpec => _AudioFileSpec}
+import de.sciss.audiofile.{AudioFileSpec => _AudioFileSpec}
 
 trait AudioFileSpecPlatform {
   def read(in: Ex[File]): Ex[Option[_AudioFileSpec]] = Read(in)

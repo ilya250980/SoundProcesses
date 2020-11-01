@@ -250,16 +250,19 @@ object Bus {
       val m0 = mapRef.getOrElse(server, emptySortedMap)
       val m1 = m0 + ((full.numChannels, this))
       mapRef.put(server, m1)
+      ()
     }
 
     protected def remove()(implicit tx: RT): Unit = {
       // println(s"---------FREE (${full.numChannels}) -> ${full.index}")
       server.freeAudioBus(full.index, full.numChannels)
       val m = mapRef(server) - full.numChannels
-      if (m.isEmpty)
+      if (m.isEmpty) {
         mapRef.remove(server)
-      else
+      } else {
         mapRef.put(server, m)
+      }
+      ()
     }
   }
 
@@ -273,6 +276,7 @@ object Bus {
   private[synth] def serverRemoved(server: Server)(implicit tx: RT): Unit = {
     readOnlyBuses .remove(server)
     writeOnlyBuses.remove(server)
+    ()
   }
 
   private def createReadOnlyBus(server: Server, numChannels: Int)(implicit tx: RT): AudioBusHolder =
@@ -336,8 +340,10 @@ object Bus {
     def removeReader(u: AU)(implicit tx: RT): Unit = remove(readers, u)
     def removeWriter(u: AU)(implicit tx: RT): Unit = remove(writers, u)
 
-    private def remove(users: TSet[AU], u: AU)(implicit tx: RT): Unit =
+    private def remove(users: TSet[AU], u: AU)(implicit tx: RT): Unit = {
       users.remove(u)
+      ()
+    }
 
     override def toString = s"h-abus($bus)"
   }

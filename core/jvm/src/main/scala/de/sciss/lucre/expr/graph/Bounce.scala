@@ -24,7 +24,7 @@ import de.sciss.lucre.{IExpr, Txn, synth, Obj => LObj}
 import de.sciss.numbers
 import de.sciss.processor.Processor
 import de.sciss.span.Span
-import de.sciss.synth.io.AudioFileSpec
+import de.sciss.audiofile.AudioFileSpec
 import de.sciss.synth.proc.impl.BasicRunnerImpl
 import de.sciss.synth.proc.{SoundProcesses, Universe}
 import de.sciss.synth.{Client, Server, proc}

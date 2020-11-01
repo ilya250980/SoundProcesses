@@ -34,6 +34,7 @@ object ActionResponder {
     // we cannot make values.size zero, because then in the multi-channel expansion,
     // the SendReply collapses :)
     SendReply.kr(trig = trig, values = values.getOrElse(0) /* Vec.empty[GE] */ , msgName = replyName(key), id = 0)
+    ()
   }
 
   var DEBUG = false

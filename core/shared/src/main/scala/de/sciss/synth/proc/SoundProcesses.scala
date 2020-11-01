@@ -91,6 +91,7 @@ object SoundProcesses extends SoundProcessesPlatform {
           errorHandler(context, t)
       }
     } (Executor.context)
+    ()
   }
 
   private[this] lazy val _init: Unit = {

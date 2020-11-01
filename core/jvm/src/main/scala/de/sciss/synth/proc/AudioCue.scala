@@ -21,7 +21,7 @@ import de.sciss.lucre.impl.{ExprNodeImpl, ExprTypeImpl}
 import de.sciss.lucre.{Artifact, Copy, DoubleObj, Elem, Expr, Ident, LongObj, Pull, Txn, Obj => LObj, Var => LVar}
 import de.sciss.model.Change
 import de.sciss.serial.{ConstFormat, DataInput, DataOutput}
-import de.sciss.synth.io.AudioFileSpec
+import de.sciss.audiofile.AudioFileSpec
 import de.sciss.synth.proc.ExImport.audioFileSpecOps
 
 import scala.annotation.switch

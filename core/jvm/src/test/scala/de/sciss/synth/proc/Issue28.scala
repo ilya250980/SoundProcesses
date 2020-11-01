@@ -25,12 +25,14 @@ class Issue28 extends BounceSpec {
         import graph._
         import ugen._
         ScanOut(WhiteNoise.ar(0.1))     // actual signal has no significance
+        ()
       }
       _p1.name = "noise"
       val _p2 = proc {
         import graph._
         import ugen._
         ScanOut(SinOsc.ar(441) * 0.1)   // actual signal has no significance
+        ()
       }
       _p2.name = "sine"
       val _p3 = proc {
@@ -38,6 +40,7 @@ class Issue28 extends BounceSpec {
         import ugen._
         val sig = ScanInFix(numChannels = 1)
         Out.ar(0, sig)
+        ()
       }
       _p3.name = "main"
 
@@ -72,11 +75,13 @@ class Issue28 extends BounceSpec {
               // may cause a second status reply to come in,
               // despite `Responder.once`, so make it a "try"
               pStatus.tryComplete(Success(m))
+              ()
           }
           s ! GroupDumpTree(1 -> false)
           s ! Status
         }
       }
+      ()
     }
 
     val res = runServer() { s =>

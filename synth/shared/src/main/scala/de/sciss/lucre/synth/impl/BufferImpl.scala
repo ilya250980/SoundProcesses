@@ -14,7 +14,7 @@
 package de.sciss.lucre.synth
 package impl
 
-import de.sciss.synth.io.{AudioFileType, SampleFormat}
+import de.sciss.audiofile.{AudioFileType, SampleFormat}
 import de.sciss.synth.message.BufferGen
 import de.sciss.synth.{FillRange, Buffer => SBuffer}
 

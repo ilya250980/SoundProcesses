@@ -378,6 +378,7 @@ object TransportViewImpl {
       new ActionCue(elem, key, onOff = true , select = false)
       new ActionCue(elem, key, onOff = false, select = true )
       new ActionCue(elem, key, onOff = true , select = true )
+      ()
     }
   }
 }

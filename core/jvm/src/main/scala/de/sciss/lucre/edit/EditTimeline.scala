@@ -36,10 +36,12 @@ object EditTimeline {
 
   def remove[T <: Txn[T]](tl: Timeline.Modifiable[T], span: SpanLikeObj[T], elem: Obj[T])
                          (implicit tx: T): Unit =
-    UndoManager.find[T].fold[Unit](
-      removeDo  (tl, span, elem)
-    ) { implicit undo =>
+    UndoManager.find[T].fold[Unit] {
+      removeDo(tl, span, elem)
+      ()
+    } { implicit undo =>
       removeUndo(tl, span, elem)
+      ()
     }
 
   def removeUndo[T <: Txn[T]](tl: Timeline.Modifiable[T], span: SpanLikeObj[T], elem: Obj[T])
@@ -54,17 +56,20 @@ object EditTimeline {
     */
   def unlink[T <: Txn[T]](tl: Timeline.Modifiable[T], span: SpanLike, source: Proc.Output[T])
                          (implicit tx: T): Unit =
-    UndoManager.find[T].fold[Unit](
+    UndoManager.find[T].fold[Unit] {
       unlinkImpl(tl, span, source)
-    ) { implicit undo =>
+      ()
+    } { implicit undo =>
       undo.capture("Unlink Object") {
         unlinkUndo(tl, span, source)
       }
     }
 
   def unlinkUndo[T <: Txn[T]](tl: Timeline.Modifiable[T], span: SpanLike, source: Proc.Output[T])
-                             (implicit tx: T): Unit =
+                             (implicit tx: T): Unit = {
     unlinkImpl(tl, span, source)
+    ()
+  }
 
   def unlinkAndRemove[T <: Txn[T]](tl: Timeline.Modifiable[T], span: SpanLikeObj[T], elem: Obj[T])
                          (implicit tx: T): Unit = {
@@ -110,8 +115,10 @@ object EditTimeline {
   // ---- private: add ----
 
   private def addDo[T <: Txn[T]](tl: Timeline.Modifiable[T], span: SpanLikeObj[T], elem: Obj[T])
-                                (implicit tx: T): Unit =
+                                (implicit tx: T): Unit = {
     tl.add(span, elem)
+    ()
+  }
 
   private final class Add[T <: Txn[T]](tl0: Timeline.Modifiable[T], span0: SpanLikeObj[T], elem0: Obj[T], tx0: T)
     extends BasicUndoableEdit[T] {
@@ -159,6 +166,7 @@ object EditTimeline {
       val span  = spanH()
       val elem  = elemH()
       tl.add(span, elem)
+      ()
     }
 
     private def invalidMessage = s"$name: element was not found"
@@ -314,6 +322,7 @@ object EditTimeline {
                   putCue(newCue)
               }
             }
+            ()
           case _ =>
         }
       }

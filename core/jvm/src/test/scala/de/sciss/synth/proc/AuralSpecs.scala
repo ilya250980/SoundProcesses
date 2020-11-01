@@ -19,6 +19,7 @@ class AuralSpecs extends BounceSpec {
       val _p = proc {
         import ugen._
         Out.ar(0, SinOsc.ar(freq))
+        ()
       }
       tx.newHandle(_p)
     }
@@ -50,6 +51,7 @@ class AuralSpecs extends BounceSpec {
         val amp   = "amp".ir(0.0)
         val noise = LFPulse.ar(SampleRate.ir * 0.5) * Seq(amp, amp)
         graph.ScanOut("out", noise)
+        ()
       }
       import Implicits._
       proc1.name = "sine"
@@ -59,6 +61,7 @@ class AuralSpecs extends BounceSpec {
         val freq  = "freq".ir(111.0)
         val in    = graph.ScanIn("in")
         Out.ar(0, SinOsc.ar(freq) * in)
+        ()
       }
       proc2.name = "mod"
       doubleAttr(proc2, "freq", freq)

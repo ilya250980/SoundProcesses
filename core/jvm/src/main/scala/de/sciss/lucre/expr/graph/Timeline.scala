@@ -232,8 +232,10 @@ object Timeline {
     def value(implicit tx: T): SplitPair =
       IPush.tryPull(this).fold(ref())(_.now)
 
-    def executeAction()(implicit tx: T): Unit =
+    def executeAction()(implicit tx: T): Unit = {
       trigReceived() // .foreach(fire) --- we don't need to fire, there is nobody listening;
+      ()
+    }
 
     private def findSpan(tl: proc.Timeline[T], elemObj: LObj[T])(implicit tx: T): Option[SpanLikeObj[T]] = {
       val spanV = span.value

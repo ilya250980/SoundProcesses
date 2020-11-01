@@ -13,9 +13,7 @@
 
 package de.sciss.synth.proc
 
-import de.sciss.lucre.{Txn, expr}
-
-import scala.language.implicitConversions
+import de.sciss.lucre.expr
 
 object Ops extends Ops
 trait Ops extends expr.Ops with OpsPlatform

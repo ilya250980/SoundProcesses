@@ -18,7 +18,7 @@ import java.net.SocketAddress
 import de.sciss.lucre.synth.Executor
 import de.sciss.lucre.{Disposable, Txn, TxnLike}
 import de.sciss.osc
-import de.sciss.synth.proc.{SensorSystem, SoundProcesses}
+import de.sciss.synth.proc.SensorSystem
 
 import scala.collection.immutable.{IndexedSeq => Vec}
 import scala.concurrent.stm.Ref

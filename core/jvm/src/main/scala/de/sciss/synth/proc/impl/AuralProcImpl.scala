@@ -22,7 +22,7 @@ import de.sciss.numbers
 import de.sciss.span.Span
 import de.sciss.synth.ControlSet
 import de.sciss.synth.UGenSource.Vec
-import de.sciss.synth.io.AudioFileType
+import de.sciss.audiofile.AudioFileType
 import de.sciss.synth.proc.AuralObj.{TargetPlaying, TargetPrepared, TargetState, TargetStop}
 import de.sciss.synth.proc.Implicits._
 import de.sciss.synth.proc.Runner.{Prepared, Preparing, Running, Stopped}

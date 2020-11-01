@@ -10,8 +10,10 @@ import de.sciss.synth.proc.{AuralContext, EnvSegment, Grapheme, Proc, Timeline, 
 object AuralTests2 extends AuralTestLike.Factory {
   def main(args: Array[String]): Unit = init(args)
 
-  def run[T <: Txn[T]](name: String)(implicit cursor: Cursor[T]): Unit =
+  def run[T <: Txn[T]](name: String)(implicit cursor: Cursor[T]): Unit = {
     new AuralTests2[T](name)
+    ()
+  }
 }
 class AuralTests2[T <: Txn[T]](name: String)(implicit cursor: Cursor[T]) extends AuralTestLike[T] {
   def run()(implicit context: AuralContext[T]): Unit =
@@ -84,6 +86,7 @@ class AuralTests2[T <: Txn[T]](name: String)(implicit cursor: Cursor[T]) extends
             println("Removing last point")
             val gr = grH()
             gr.remove(t2H(), evH())
+            ()
           }
         }
       }

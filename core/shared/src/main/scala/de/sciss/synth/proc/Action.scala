@@ -174,6 +174,7 @@ object Action extends Obj.Type {
         ref = ExElem.write(g.action, out, ref)
         val cx = g.controls
         writeControls(cx, out, ref)
+        ()
       }
 
       def read(in: DataInput): Graph = {

@@ -92,6 +92,7 @@ final class StreamBuffer(key: String, idx: Int, protected val synth: Node,
     // initial buffer fills. XXX TODO: fuse both reads into one
     updateBuffer(0)
     updateBuffer(1)
+    ()
   }
 
   protected val body: Body = {

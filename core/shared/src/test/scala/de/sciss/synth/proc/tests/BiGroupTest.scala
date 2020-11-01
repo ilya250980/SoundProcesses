@@ -22,7 +22,10 @@ class BiGroupTest[T <: Txn[T]](cursor: Cursor[T]) /* extends ExprImplicits[S] */
   }
 
   def add(span: SpanLike = Span(33, 44), elem: Long = 55): Unit =
-    t { implicit tx => bi.add(span, elem) }
+    t { implicit tx =>
+      bi.add(span, elem)
+      ()
+    }
 
   def addValVar(span: SpanLike = Span(33, 44), init: Long = 66): LongObj.Var[T] =
     t { implicit tx =>

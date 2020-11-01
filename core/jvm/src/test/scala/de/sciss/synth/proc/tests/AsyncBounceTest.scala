@@ -5,7 +5,7 @@ import de.sciss.lucre.store.BerkeleyDB
 import de.sciss.lucre.{Artifact, ArtifactLocation, InMemory}
 import de.sciss.processor.Processor
 import de.sciss.span.Span
-import de.sciss.synth.io.{AudioFile, AudioFileSpec}
+import de.sciss.audiofile.{AudioFile, AudioFileSpec}
 import de.sciss.synth.proc.{AudioCue, Bounce, Durable, Proc, TimeRef, Timeline, UGenGraphBuilder, Universe, graph, showTransportLog}
 import de.sciss.synth.{SynthGraph, freeSelf, ugen}
 

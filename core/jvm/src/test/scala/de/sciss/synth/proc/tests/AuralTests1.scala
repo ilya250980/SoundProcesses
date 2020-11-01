@@ -5,7 +5,7 @@ import de.sciss.lucre.synth.{Txn => STxn}
 import de.sciss.lucre.{Artifact, ArtifactLocation, BooleanObj, Cursor, DoubleObj, IntObj, SpanLikeObj}
 import de.sciss.span.Span
 import de.sciss.synth.Curve.{exponential, linear}
-import de.sciss.synth.io.{AudioFile, AudioFileType}
+import de.sciss.audiofile.{AudioFile, AudioFileType}
 import de.sciss.synth.proc.Implicits._
 import de.sciss.synth.proc.{AudioCue, AuralContext, AuralObj, FadeSpec, Grapheme, Implicits, ObjKeys, Proc, SynthGraphObj, TimeRef, Timeline, Transport, graph}
 import de.sciss.{numbers, synth}
@@ -13,8 +13,10 @@ import de.sciss.{numbers, synth}
 object AuralTests1 extends AuralTestLike.Factory {
   def main(args: Array[String]): Unit = init(args)
 
-  def run[T <: STxn[T]](name: String)(implicit cursor: Cursor[T]): Unit =
+  def run[T <: STxn[T]](name: String)(implicit cursor: Cursor[T]): Unit = {
     new AuralTests1[T](name)
+    ()
+  }
 }
 class AuralTests1[T <: STxn[T]](name: String)(implicit cursor: Cursor[T]) extends AuralTestLike[T] {
 

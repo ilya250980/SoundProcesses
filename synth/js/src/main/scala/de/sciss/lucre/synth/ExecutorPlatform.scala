@@ -13,8 +13,10 @@ trait ExecutorPlatform {
     context.execute(() => body)
 //    js.timers.setTimeout(0.0)(body)
 
-  def schedule(time: Long, unit: TimeUnit)(body: => Unit): Unit =
+  def schedule(time: Long, unit: TimeUnit)(body: => Unit): Unit = {
     js.timers.setTimeout(Duration(time, unit))(body)
+    ()
+  }
 
   def scheduleWithCancel(time: Long, unit: TimeUnit)(body: => Unit): Cancelable = {
     val handle = js.timers.setTimeout(Duration(time, unit))(body)

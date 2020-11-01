@@ -7,7 +7,8 @@ import de.sciss.lucre.{Disposable, DoubleObj, Folder, Obj, Source}
 import de.sciss.numbers
 import de.sciss.span.Span
 import de.sciss.synth.SynthGraph
-import de.sciss.synth.io.AudioFile
+import de.sciss.audiofile.AudioFile
+import de.sciss.audiofile.AudioFile.Frames
 import org.scalactic.source
 import org.scalatest.flatspec.FixtureAsyncFlatSpec
 import org.scalatest.matchers.should.Matchers
@@ -86,6 +87,7 @@ abstract class BounceSpec extends FixtureAsyncFlatSpec with Matchers {
       val attr = sink.attr
       attr.get(key).fold[Unit] {
         attr.put(key, `this`)
+        ()
       } {
         case f: Folder[T] => f.addLast(`this`)
         case prev =>
@@ -93,6 +95,7 @@ abstract class BounceSpec extends FixtureAsyncFlatSpec with Matchers {
           f.addLast(prev)
           f.addLast(`this`)
           attr.put(key, f)
+          ()
       }
     }
 
@@ -100,11 +103,14 @@ abstract class BounceSpec extends FixtureAsyncFlatSpec with Matchers {
       val (sink, key) = that
       val attr = sink.attr
       attr.get(key).getOrElse(sys.error(s"Attribute $key was not assigned")) match {
-        case `sink` => attr.remove(key)
+        case `sink` =>
+          attr.remove(key)
+          ()
         case f: Folder[T] =>
           val idx = f.indexOf(`this`)
           if (idx < 0) sys.error(s"Attribute $key has a folder but does not contain ${`this`}")
           f.removeAt(idx)
+          ()
 
         case other => sys.error(s"Cannot remove output from $other")
       }
@@ -116,10 +122,11 @@ abstract class BounceSpec extends FixtureAsyncFlatSpec with Matchers {
   def frame  (secs  : Double): Long   = (secs  * TimeRef.SampleRate).toLong
   def seconds(frames: Long  ): Double = frames / TimeRef.SampleRate
 
-  def proc(graph: => Unit)(implicit tx: T): Proc[T] = {
+  def proc(graph: => Any)(implicit tx: T): Proc[T] = {
     val p = Proc[T]()
     val g = SynthGraph {
       graph
+      ()
     }
     p.graph() = SynthGraphObj.newConst[T](g)
     p
@@ -191,8 +198,10 @@ abstract class BounceSpec extends FixtureAsyncFlatSpec with Matchers {
 
   final def mkSilent(len: Int): Array[Float] = new Array(len)
 
-  def doubleAttr(proc: Proc[T], key: String, value: Double)(implicit tx: T): Unit =
+  def doubleAttr(proc: Proc[T], key: String, value: Double)(implicit tx: T): Unit = {
     proc.attr.put(key, value: DoubleObj[T])
+    ()
+  }
 
   def addOutput(proc: Proc[T], key: String = "out")(implicit tx: T): Proc.Output[T] =
     proc.outputs.add(key)
@@ -286,7 +295,7 @@ abstract class BounceSpec extends FixtureAsyncFlatSpec with Matchers {
     // as bounce will block and hang
     import ExecutionContext.Implicits.global
     processor.start()(global)
-    val fDone = processor.map { f =>
+    val fDone: Future[Frames] = processor.map { f =>
       if (debugKeep) println(s"Bounce file: $f")
       try {
         val a = AudioFile.openRead(f)
@@ -297,7 +306,10 @@ abstract class BounceSpec extends FixtureAsyncFlatSpec with Matchers {
         a.close()
         buf
       } finally {
-        if (!debugKeep) f.delete()
+        if (!debugKeep) {
+          f.delete()
+          ()
+        }
       }
     } (global)
 

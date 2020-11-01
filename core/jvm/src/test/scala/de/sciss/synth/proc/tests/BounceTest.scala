@@ -42,6 +42,7 @@ object BounceTest {
       implicit val system: S = Durable(BerkeleyDB.tmp())
       new BounceTest(/*system,*/ realtime = realtime)
     }
+    ()
   }
 }
 class BounceTest[T <: synth.Txn[T]](/*val system: T,*/ realtime: Boolean)(implicit cursor: Cursor[T]) {

@@ -22,16 +22,23 @@ trait ExecutorPlatform {
 
   def isShutdown: Boolean = pool.isShutdown
 
-  def defer(body: => Unit): Unit =
+  def defer(body: => Unit): Unit = {
     pool.submit((() => body): Runnable)
+    ()
+  }
 
-  def schedule(time: Long, unit: TimeUnit)(body: => Unit): Unit =
+  def schedule(time: Long, unit: TimeUnit)(body: => Unit): Unit = {
     pool.schedule((() => body): Runnable, time, unit)
+    ()
+  }
 
   def scheduleWithCancel(time: Long, unit: TimeUnit)(body: => Unit): Cancelable = {
     val fut = pool.schedule((() => body): Runnable, time, unit)
     new Cancelable {
-      def cancel(): Unit = fut.cancel(false)
+      def cancel(): Unit = {
+        fut.cancel(false)
+        ()
+      }
     }
   }
 

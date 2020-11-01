@@ -47,6 +47,7 @@ object SchedulerTest extends App {
         val now2 = sched.time
         println(s"Logically ${now2 - now1} frames elapsed.")
       }
+      ()
     }
     sched.schedule(now + frames(3.0)) { implicit tx =>
       println(s"After 3   seconds (txn hash ${tx.hashCode().toHexString})")

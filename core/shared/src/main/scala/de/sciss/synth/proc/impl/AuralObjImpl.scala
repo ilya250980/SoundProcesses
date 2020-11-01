@@ -14,10 +14,9 @@
 package de.sciss.synth.proc.impl
 
 import de.sciss.lucre.impl.DummyObservableImpl
-import de.sciss.lucre.{Folder, Obj, Source, Txn}
-import de.sciss.lucre.synth
+import de.sciss.lucre.{Folder, Obj, Source, Txn, synth}
 import de.sciss.synth.proc.AuralObj.Factory
-import de.sciss.synth.proc.{Action, AuralContext, AuralObj, Control, Proc, Runner, TimeRef, Timeline}
+import de.sciss.synth.proc.{Action, AuralContext, AuralObj, Control, Runner, TimeRef, Timeline}
 
 object AuralObjImpl {
   private val sync = new AnyRef

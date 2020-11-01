@@ -16,7 +16,7 @@ package de.sciss.synth.proc.impl
 import de.sciss.lucre.Disposable
 import de.sciss.lucre.synth.{Executor, RT, Server}
 import de.sciss.osc.Dump
-import de.sciss.synth.proc.{AuralSystem, SoundProcesses, logAural => logA}
+import de.sciss.synth.proc.{AuralSystem, logAural => logA}
 import de.sciss.synth.{Client, ServerConnection, Server => SServer}
 
 import scala.collection.immutable.{IndexedSeq => Vec}
@@ -85,7 +85,7 @@ object AuralSystemImpl {
         logA(s"Booting (connect = $connect)")
         launch {
           case ServerConnection.Aborted =>
-            state.single.swap(StateStopped)
+            state.single.set(StateStopped)
             //            atomic { implicit itx =>
             //              implicit val tx = Txn.wrap(itx)
             //              state.swap(StateStopped).dispose()
@@ -97,7 +97,10 @@ object AuralSystemImpl {
         }
       }
 
-      def init()(implicit tx: RT): Unit = afterCommit { con }
+      def init()(implicit tx: RT): Unit = afterCommit {
+        con
+        ()
+      }
 
       def dispose()(implicit tx: RT): Unit = afterCommit {
         logA("Aborting boot")

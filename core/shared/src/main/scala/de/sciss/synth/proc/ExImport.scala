@@ -30,7 +30,7 @@ object ExImport extends ExImportPlatform {
   implicit object colorIsValue          extends Ex.Value[Color]
   implicit object curveIsValue          extends Ex.Value[Curve]
 
-  type AudioFileSpec  = de.sciss.synth.io .AudioFileSpec
+  type AudioFileSpec  = de.sciss.audiofile.AudioFileSpec
   type Color          = proc              .Color
   type Curve          = de.sciss.synth    .Curve
   type FadeSpec       = proc              .FadeSpec

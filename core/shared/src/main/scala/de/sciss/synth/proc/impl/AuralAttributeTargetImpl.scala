@@ -72,7 +72,11 @@ final class AuralAttributeTargetImpl[T <: STxn[T]](target: NodeRef.Full[T], val 
   }
 
   private final class AddRemoveEdge(edge: NodeRef.Edge) extends DynamicUser {
-    def add   ()(implicit tx: RT): Unit = server.addEdge   (edge)
+    def add()(implicit tx: RT): Unit = {
+      server.addEdge(edge)
+      ()
+    }
+
     def remove()(implicit tx: RT): Unit = server.removeEdge(edge)
 
     override def toString = s"AddRemoveEdge($edge)"

@@ -96,6 +96,7 @@ final case class ScanOut(key: String, in: GE)
       if (ui.rate == audio) ui else UGen.SingleOut("K2A", audio, Vector(ui))
     }
     UGen.ZeroOut("Out", audio, busArg +: sigArgAr, isIndividual = true)
+    ()
   }
 }
 

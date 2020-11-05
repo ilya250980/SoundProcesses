@@ -21,7 +21,7 @@ import de.sciss.lucre.{Cursor, Txn}
 import scala.concurrent.Future
 import scala.concurrent.stm.{Txn => STMTxn}
 
-object SoundProcesses extends SoundProcessesPlatform {
+object SoundProcesses /*extends SoundProcessesPlatform*/ {
 //  /** Returns the size of the thread pool used in `atomic`,
 //    * where `None` indicates that a single-threaded context is used
 //    * (default).
@@ -114,7 +114,7 @@ object SoundProcesses extends SoundProcessesPlatform {
     lucre.expr.graph.AudioCue .init()
     lucre.expr.graph.Timeline .init()
 
-    initPlatform()
+//    initPlatform()
   }
 
   /** Registers all known types. */

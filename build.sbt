@@ -48,7 +48,7 @@ lazy val deps = new {
 
   val views = new {
     val audioWidgets        = "2.0.0"
-    val lucreSwing          = "2.2.0"
+    val lucreSwing          = "2.3.0-SNAPSHOT"
     val scalaColliderSwing  = "2.2.0-SNAPSHOT"
     val swingPlus           = "0.4.2"
   }

@@ -13,8 +13,6 @@
 
 package de.sciss.synth.proc.impl
 
-import java.io.File
-
 import de.sciss.lucre.synth.{Buffer, NodeRef, RT}
 import de.sciss.lucre.{Artifact, Txn, synth}
 import de.sciss.osc

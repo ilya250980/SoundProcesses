@@ -13,6 +13,7 @@
 
 package de.sciss.synth.proc.impl
 
+import de.sciss.audiofile.AudioFileType
 import de.sciss.equal.Implicits._
 import de.sciss.lucre.impl.ObservableImpl
 import de.sciss.lucre.synth.{AudioBus, Buffer, Bus, BusNodeSetter, Executor, NodeRef, Server}
@@ -21,7 +22,6 @@ import de.sciss.numbers
 import de.sciss.span.Span
 import de.sciss.synth.ControlSet
 import de.sciss.synth.UGenSource.Vec
-import de.sciss.audiofile.AudioFileType
 import de.sciss.synth.proc.AuralObj.{TargetPlaying, TargetPrepared, TargetState, TargetStop}
 import de.sciss.synth.proc.Implicits._
 import de.sciss.synth.proc.Runner.{Prepared, Preparing, Running, Stopped}

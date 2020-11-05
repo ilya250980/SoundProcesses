@@ -49,9 +49,15 @@ the Mellite website contains [tutorials on SoundProcesses](https://www.sciss.de/
 
 ## notes
 
-- currently constant `Expr` object do carry 
+- currently, constant `Expr` object do carry 
   an `id` and thus are **not identical to each other** when created repeatedly even with the same 
   peer constant. This was done in order to satisfy `Obj` property, e.g. for any `IntObj` including 
   its constants. A future version may go back to 'cheap' constants which must be explicitly lifted 
   if one wants to access `attr` on them.
 
+## Scala.js
+
+The following abstractions are currently not supported
+
+- `Bounce`
+- (`Ex`) `Sys.Process`, `Sys.Exit`, `AudioFileSpec.Read`

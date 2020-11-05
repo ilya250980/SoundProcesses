@@ -17,7 +17,7 @@ import de.sciss.lucre
 import de.sciss.lucre.synth.NodeRef
 import de.sciss.lucre.{Ident, Obj, Observable, SpanLikeObj, Txn, TxnLike, synth}
 import de.sciss.synth.proc
-import de.sciss.synth.proc.impl.{AuralActionImpl, AuralControlImpl, AuralFolderImpl, AuralTimelineImpl, AuralObjImpl => Impl}
+import de.sciss.synth.proc.impl.{AuralActionImpl, AuralControlImpl, AuralFolderImpl, AuralProcImpl, AuralTimelineImpl, AuralObjImpl => Impl}
 
 object AuralObj {
   import lucre.{Folder => _Folder}
@@ -66,14 +66,14 @@ object AuralObj {
 
   // ---- proc ----
 
-  object Proc /*extends AuralObj.Factory*/ {
-//    type Repr[T <: Txn[T]] = _Proc[T]
-//
-//    def tpe: Obj.Type = _Proc
-//
-//    def apply[T <: synth.Txn[T]](obj: _Proc[T], attr: Runner.Attr[T] = Runner.emptyAttr[T])
-//                           (implicit tx: T, context: AuralContext[T]): AuralObj.Proc[T] =
-//      AuralProcImpl(obj, attr)
+  object Proc extends AuralObj.Factory {
+    type Repr[T <: Txn[T]] = _Proc[T]
+
+    def tpe: Obj.Type = _Proc
+
+    def apply[T <: synth.Txn[T]](obj: _Proc[T], attr: Runner.Attr[T] = Runner.emptyAttr[T])
+                           (implicit tx: T, context: AuralContext[T]): AuralObj.Proc[T] =
+      AuralProcImpl(obj, attr)
 
     sealed trait Update[T <: Txn[T]] {
       def proc: Proc[T]

@@ -13,7 +13,11 @@
 
 package de.sciss.synth.proc
 
-import de.sciss.lucre.expr
+import de.sciss.lucre.{Txn, expr}
+
+import scala.language.implicitConversions
 
 object Ops extends Ops
-trait Ops extends expr.Ops with OpsPlatform
+trait Ops extends expr.Ops /*with OpsPlatform*/ {
+  implicit def audioCueObjOps[T <: Txn[T]](obj: AudioCue.Obj[T]): AudioCue.Obj.Ops[T] = new AudioCue.Obj.Ops(obj)
+}

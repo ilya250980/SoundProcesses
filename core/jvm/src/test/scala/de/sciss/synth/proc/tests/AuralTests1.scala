@@ -365,8 +365,8 @@ class AuralTests1[T <: STxn[T]](name: String)(implicit cursor: Cursor[T]) extend
         Out.ar(0, sig)  // let it be heard
       }
       val f     = File.createTemp("disk", ".w64")
-      val loc   = ArtifactLocation.newConst[T](f.parent)
-      val art   = Artifact(loc, f) // loc.add(f)
+      val loc   = ArtifactLocation.newConst[T](f.parent.toURI)
+      val art   = Artifact(loc, f.toURI) // loc.add(f)
       val artH  = tx.newHandle(art)
       pRec.attr.put("disk", art)
 
@@ -383,7 +383,7 @@ class AuralTests1[T <: STxn[T]](name: String)(implicit cursor: Cursor[T]) extend
           val spec  = AudioFile.readSpec(f)
           assert(spec.fileType == AudioFileType.Wave64 && spec.numChannels == 2)
           val art   = artH()
-          println(s"${art.value} - ${AudioFile.readSpec(art.value)}")
+          println(s"${art.value} - ${AudioFile.readSpec(art.value.getPath)}")
           val gr    = AudioCue.Obj[T](art, spec, 0L, 1.0)
           val pPlay = proc {
             val sig   = graph.DiskIn.ar("disk")
@@ -525,8 +525,8 @@ class AuralTests1[T <: STxn[T]](name: String)(implicit cursor: Cursor[T]) extend
         val sig   = Pan2.ar(sig0)
         Out.ar(0, sig)
       }
-      val loc     = ArtifactLocation.newConst[T](f.parent)
-      val artif   = Artifact(loc, f) // loc.add(f)
+      val loc     = ArtifactLocation.newConst[T](f.parent.toURI)
+      val artif   = Artifact(loc, f.toURI) // loc.add(f)
       val oAudio  = AudioCue.Obj[T](artif, spec, offset = 0L, gain = 2.0)
 
       _proc.attr.put("metal", oAudio)
@@ -573,7 +573,7 @@ class AuralTests1[T <: STxn[T]](name: String)(implicit cursor: Cursor[T]) extend
       println(spec)
       // val aOff    = ((5 * 60 + 14) * spec.sampleRate).toLong  // "So I took a turn..."
       val aOff    = frame(5 * 60 + 14)
-      val vAudio  = AudioCue(f, spec, offset = aOff, gain = 2.0)
+      val vAudio  = AudioCue(f.toURI, spec, offset = aOff, gain = 2.0)
       val gAudio = AudioCue.Obj.newConst[T](vAudio)
       _proc1.name = "tape"
       _proc1.attr.put("sig", gAudio)

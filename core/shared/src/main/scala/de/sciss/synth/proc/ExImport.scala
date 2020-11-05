@@ -13,11 +13,12 @@
 
 package de.sciss.synth.proc
 
-import de.sciss.lucre.expr.graph.{AudioFileSpec, Ex, Obj}
+import de.sciss.lucre.Adjunct.HasDefault
+import de.sciss.lucre.expr.graph.{AudioFileSpec, Ex, Obj, AudioCue => _AudioCue}
 import de.sciss.lucre.expr.impl.{ExObjBridgeImpl => Impl}
 import de.sciss.synth.proc
 
-object ExImport extends ExImportPlatform {
+object ExImport /*extends ExImportPlatform*/ {
   // XXX TODO --- this is all a bit messy
 
   implicit val codeExAttrBridge       : Obj.Bridge[Code       ] with Obj.CanMake[Code       ] = new Impl(Code       .Obj)
@@ -26,10 +27,14 @@ object ExImport extends ExImportPlatform {
   implicit val envSegmentExAttrBridge : Obj.Bridge[EnvSegment ] with Obj.CanMake[EnvSegment ] = new Impl(EnvSegment .Obj)
   implicit val fadeSpecExAttrBridge   : Obj.Bridge[FadeSpec   ] with Obj.CanMake[FadeSpec   ] = new Impl(FadeSpec   .Obj)
 
+  implicit def audioCueType: Obj.Bridge[AudioCue] with Obj.CanMake[AudioCue] with HasDefault[AudioCue] =
+    _AudioCue.Type
+
   implicit object audioFileSpecIsValue  extends Ex.Value[AudioFileSpec]
   implicit object colorIsValue          extends Ex.Value[Color]
   implicit object curveIsValue          extends Ex.Value[Curve]
 
+  type AudioCue       = proc              .AudioCue
   type AudioFileSpec  = de.sciss.audiofile.AudioFileSpec
   type Color          = proc              .Color
   type Curve          = de.sciss.synth    .Curve

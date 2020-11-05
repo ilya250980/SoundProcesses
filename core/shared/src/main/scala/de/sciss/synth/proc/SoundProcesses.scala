@@ -100,6 +100,7 @@ object SoundProcesses extends SoundProcessesPlatform {
     Color         .init()
     Control       .init()
     Action        .init()
+    AudioCue      .init()
     Cursors       .init()
     CurveObj      .init()
     FadeSpec      .init()
@@ -110,7 +111,8 @@ object SoundProcesses extends SoundProcessesPlatform {
     Markdown      .init()
     EnvSegment    .init()
 
-    lucre.expr.graph.Folder.init()
+    lucre.expr.graph.AudioCue .init()
+    lucre.expr.graph.Timeline .init()
 
     initPlatform()
   }

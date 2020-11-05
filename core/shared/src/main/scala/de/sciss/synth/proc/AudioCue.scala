@@ -13,16 +13,17 @@
 
 package de.sciss.synth.proc
 
-import de.sciss.file.File
+import de.sciss.audiofile.AudioFileSpec
 import de.sciss.lucre.Event.Targets
 import de.sciss.lucre.expr.LongExtensions
-import de.sciss.lucre.expr.graph.{Ex, AudioCue => _AudioCue}
+import de.sciss.lucre.expr.graph.Ex
+import de.sciss.lucre.expr.graph.{AudioCue => _AudioCue}
 import de.sciss.lucre.impl.{ExprNodeImpl, ExprTypeImpl}
 import de.sciss.lucre.{Artifact, Copy, DoubleObj, Elem, Expr, Ident, LongObj, Pull, Txn, Obj => LObj, Var => LVar}
 import de.sciss.model.Change
 import de.sciss.serial.{ConstFormat, DataInput, DataOutput}
-import de.sciss.audiofile.AudioFileSpec
 import de.sciss.synth.proc.ExImport.audioFileSpecOps
+import java.net.URI
 
 import scala.annotation.switch
 
@@ -31,14 +32,16 @@ object AudioCue {
 
   def init(): Unit = Obj.init()
 
-  private final val COOKIE = 0x4143 // 'AC'
+  private final val COOKIE_OLD  = 0x4143 // 'AC'
+  private final val COOKIE      = 0x4144
 
   implicit object format extends ConstFormat[AudioCue] {
     def write(v: AudioCue, out: DataOutput): Unit = {
       import v._
       // out.writeByte(audioCookie)
       out.writeShort(AudioCue.COOKIE)
-      out.writeUTF(artifact.getPath) // artifact.write(out)
+      Artifact.Value.write(artifact, out)
+//      out.writeUTF(artifact.getPath   )
       AudioFileSpec.format.write(spec, out)
       out.writeLong(offset)
       out.writeDouble(gain)
@@ -46,8 +49,14 @@ object AudioCue {
 
     def read(in: DataInput): AudioCue = {
       val cookie = in.readShort()
-      if (cookie != COOKIE) sys.error(s"Unexpected cookie $cookie, expected $COOKIE")
-      val artifact  = new File(in.readUTF())
+      val artifact = if (cookie == COOKIE) {
+        Artifact.Value.read(in)
+      } else if (cookie == COOKIE_OLD) {
+        val path = in.readUTF()
+        new URI("file", path, null)
+      } else {
+        sys.error(s"Unexpected cookie $cookie, expected $COOKIE")
+      }
       val spec      = AudioFileSpec.format.read(in)
       val offset    = in.readLong()
       val gain      = in.readDouble()
@@ -417,10 +426,10 @@ object AudioCue {
   }
 
   implicit final class ExOps(private val x: Ex[AudioCue]) extends AnyVal {
-    def artifact: Ex[File]          = _AudioCue.Artifact(x)
-    def spec    : Ex[AudioFileSpec] = _AudioCue.Spec    (x)
-    def offset  : Ex[Long]          = _AudioCue.Offset  (x)
-    def gain    : Ex[Double]        = _AudioCue.Gain    (x)
+    def artifact: Ex[Artifact.Value]  = _AudioCue.Artifact(x)
+    def spec    : Ex[AudioFileSpec]   = _AudioCue.Spec    (x)
+    def offset  : Ex[Long]            = _AudioCue.Offset  (x)
+    def gain    : Ex[Double]          = _AudioCue.Gain    (x)
 
     /** A simple forward to `spec.numChannels` */
     def numChannels : Ex[Int]     = spec.numChannels

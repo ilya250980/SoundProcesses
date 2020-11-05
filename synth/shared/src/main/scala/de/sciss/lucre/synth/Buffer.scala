@@ -13,8 +13,6 @@
 
 package de.sciss.lucre.synth
 
-import java.io.File
-
 import de.sciss.lucre.synth.Resource.TimeStamp
 import de.sciss.synth.{Buffer => SBuffer}
 import de.sciss.audiofile.{AudioFileType, SampleFormat}
@@ -75,13 +73,13 @@ object Buffer {
     * The caller is responsible for eventually freeing the buffer!
     * This is because we do not open a transaction after writing completes.
     */
-  def writeWithNode(buf: Buffer, nr: NodeRef, artifact: File)(action: => Unit)
+  def writeWithNode(buf: Buffer, nr: NodeRef, path: String)(action: => Unit)
                    (implicit exec: ExecutionContext): Resource = new ProxyResource {
     val self: Buffer = buf
 
     def dispose()(implicit tx: RT): Unit = {
       nr.node.onEnd {
-        val fut = self.server.!!(osc.Bundle.now(self.peer.writeMsg(path = artifact.getPath)))
+        val fut = self.server.!!(osc.Bundle.now(self.peer.writeMsg(path = path)))
         fut.foreach { _ =>
           action
         }

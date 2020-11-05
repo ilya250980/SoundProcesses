@@ -13,14 +13,13 @@
 
 package de.sciss.lucre.expr.graph
 
-import de.sciss.file.File
+import de.sciss.audiofile.{AudioFileSpec => _AudioFileSpec}
 import de.sciss.lucre.Adjunct.HasDefault
 import de.sciss.lucre.expr.graph.impl.MappedIExpr
 import de.sciss.lucre.expr.impl.AbstractExObjBridgeImpl
 import de.sciss.lucre.expr.{CellView, Context}
-import de.sciss.lucre.{Adjunct, IExpr, ITargets, Txn, Obj => LObj}
+import de.sciss.lucre.{Adjunct, IExpr, ITargets, Txn, Obj => LObj, Artifact => _Artifact}
 import de.sciss.serial.DataInput
-import de.sciss.audiofile.{AudioFileSpec => _AudioFileSpec}
 import de.sciss.synth.proc.{AudioCue => _AudioCue}
 
 object AudioCue {
@@ -58,7 +57,7 @@ object AudioCue {
   }
 
   private val emptyValue =
-    _AudioCue(new File(""), _AudioFileSpec(numChannels = 0, sampleRate = 0.0), offset = 0L, gain = 1.0)
+    _AudioCue(_Artifact.Value.empty, _AudioFileSpec(numChannels = 0, sampleRate = 0.0), offset = 0L, gain = 1.0)
 
   final case class Empty() extends Ex[_AudioCue] {
     override def productPrefix: String = s"AudioCue$$Empty" // serialization
@@ -70,15 +69,15 @@ object AudioCue {
   }
 
   private final class ArtifactExpanded[T <: Txn[T]](in: IExpr[T, _AudioCue], tx0: T)(implicit targets: ITargets[T])
-    extends MappedIExpr[T, _AudioCue, File](in, tx0) {
+    extends MappedIExpr[T, _AudioCue, _Artifact.Value](in, tx0) {
 
-    protected def mapValue(inValue: _AudioCue)(implicit tx: T): File = inValue.artifact
+    protected def mapValue(inValue: _AudioCue)(implicit tx: T): _Artifact.Value = inValue.artifact
   }
 
-  final case class Artifact(in: Ex[_AudioCue]) extends Ex[File] {
+  final case class Artifact(in: Ex[_AudioCue]) extends Ex[_Artifact.Value] {
     override def productPrefix: String = s"AudioCue$$Artifact" // serialization
 
-    type Repr[T <: Txn[T]] = IExpr[T, File]
+    type Repr[T <: Txn[T]] = IExpr[T, _Artifact.Value]
 
     protected def mkRepr[T <: Txn[T]](implicit ctx: Context[T], tx: T): Repr[T] = {
       import ctx.targets
@@ -158,19 +157,19 @@ object AudioCue {
   }
 
   private[lucre] final case class ApplyOp[T <: Txn[T]]()
-    extends QuaternaryOp.Op[File, _AudioFileSpec, Long, Double, _AudioCue] {
+    extends QuaternaryOp.Op[_Artifact.Value, _AudioFileSpec, Long, Double, _AudioCue] {
 
     override def productPrefix: String = s"AudioCue$$ApplyOp" // serialization
 
-    def apply(a: File, b: _AudioFileSpec, c: Long, d: Double): _AudioCue =
+    def apply(a: _Artifact.Value, b: _AudioFileSpec, c: Long, d: Double): _AudioCue =
       _AudioCue(a, b, c, d)
   }
 
-  def apply(artifact: Ex[File], spec: Ex[_AudioFileSpec],
+  def apply(artifact: Ex[_Artifact.Value], spec: Ex[_AudioFileSpec],
             offset: Ex[Long] = 0L, gain: Ex[Double] = 1.0): Ex[_AudioCue] =
     Apply(artifact, spec, offset, gain)
 
-  private final case class Apply(artifact : Ex[File],
+  private final case class Apply(artifact : Ex[_Artifact.Value],
                                  spec     : Ex[_AudioFileSpec],
                                  offset   : Ex[Long],
                                  gain     : Ex[Double])

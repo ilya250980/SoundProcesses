@@ -45,8 +45,8 @@ class Issue73[T <: synth.Txn[T]](val system: Sys)(implicit cursor: Cursor[T]) {
       factor.roundTo(0.01).poll(30.0.reciprocal, "f")
       Out.ar(0, in)
     }
-    val locIn = ArtifactLocation.newConst[T](fIn.parent)
-    val artIn = Artifact(locIn, fIn)
+    val locIn = ArtifactLocation.newConst[T](fIn.parent.toURI)
+    val artIn = Artifact(locIn, fIn.toURI)
     val cueIn = AudioCue.Obj(artIn, specIn, 0L, 1.0)
     proc.attr.put("in", cueIn)
     val group     = Timeline[T]()

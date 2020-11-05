@@ -46,7 +46,7 @@ object AudioArtifactScalarWriter {
 
     def play()(implicit tx: RT): Unit = {
       val file      = audioVal.artifact
-      val path      = file.getAbsolutePath
+      val path      = file.getPath // getAbsolutePath
       val target    = server.defaultGroup // XXX
       val rb        = Buffer(server)(numFrames = 1, numChannels = bus.numChannels)
       rb.read(path, fileStartFrame = audioVal.fileOffset, numFrames = 1)

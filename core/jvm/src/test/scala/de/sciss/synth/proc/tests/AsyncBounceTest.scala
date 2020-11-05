@@ -54,8 +54,8 @@ object AsyncBounceTest {
       val tmpDir  = File.createTemp("artifacts", deleteOnExit = true, directory = true)
       val tmpF    = tmpDir / "buffer.aif"
       tmpF.deleteOnExit()
-      val loc     = ArtifactLocation.newConst[T](tmpDir)
-      val art     = Artifact(loc, tmpF) // .add(tmpF)
+      val loc     = ArtifactLocation.newConst[T](tmpDir.toURI)
+      val art     = Artifact(loc, tmpF.toURI) // .add(tmpF)
       val aSpec   = AudioFileSpec(numChannels = 1, numFrames = numFr, sampleRate = sr)
       val af      = AudioFile.openWrite(tmpF, aSpec)
       val aBuf    = Array(Array.tabulate(numFr) { i =>

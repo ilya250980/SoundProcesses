@@ -16,12 +16,11 @@ package de.sciss.synth.proc.impl
 import java.io.File
 
 import de.sciss.lucre.synth.{Buffer, NodeRef, RT}
-import de.sciss.lucre.synth
+import de.sciss.lucre.{Artifact, Txn, synth}
 import de.sciss.osc
 import de.sciss.processor.impl.ProcessorImpl
 import de.sciss.audiofile.AudioFileSpec
 import de.sciss.synth.proc.graph
-import de.sciss.lucre.Txn
 
 import scala.concurrent.duration.Duration
 import scala.concurrent.stm.Ref
@@ -38,7 +37,7 @@ object BufferPrepare {
     * @param buf      the buffer to read into. This buffer must have been allocated already.
     * @param key      the key of the `graph.Buffer` element, used for setting the synth control eventually
     */
-  case class Config(f: File, spec: AudioFileSpec, offset: Long, buf: Buffer.Modifiable, key: String) {
+  case class Config(f: Artifact.Value, spec: AudioFileSpec, offset: Long, buf: Buffer.Modifiable, key: String) {
     override def productPrefix = "BufferPrepare.Config"
     override def toString = s"$productPrefix($f, numChannels = ${spec.numChannels}, numFrames = ${spec.numFrames}, offset = $offset, key = $key)"
   }
@@ -49,7 +48,7 @@ object BufferPrepare {
     if (!buf.isOnline) sys.error("Buffer must be allocated")
     val numFrL = spec.numFrames
     if (numFrL > 0x3FFFFFFF) sys.error(s"File $f is too large ($numFrL frames) for an in-memory buffer")
-    val res = new Impl[T](path = f.getAbsolutePath, numFrames = numFrL.toInt, off0 = offset,
+    val res = new Impl[T](path = f.getPath, numFrames = numFrL.toInt, off0 = offset,
       numChannels = spec.numChannels, buf = buf, key = key)
     import de.sciss.lucre.synth.Executor.context
     tx.afterCommit(res.start())

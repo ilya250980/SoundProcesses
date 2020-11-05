@@ -1,3 +1,3 @@
-package de.sciss.lucre.expr.graph
-
-trait ProcPlatform
+//package de.sciss.lucre.expr.graph
+//
+//trait ProcPlatform

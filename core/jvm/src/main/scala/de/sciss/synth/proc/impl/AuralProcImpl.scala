@@ -14,7 +14,6 @@
 package de.sciss.synth.proc.impl
 
 import de.sciss.equal.Implicits._
-import de.sciss.file._
 import de.sciss.lucre.impl.ObservableImpl
 import de.sciss.lucre.synth.{AudioBus, Buffer, Bus, BusNodeSetter, Executor, NodeRef, Server}
 import de.sciss.lucre.{Artifact, Disposable, DoubleVector, ExprLike, IExpr, IntVector, Obj, Source, StringObj, Txn, TxnLike, synth}
@@ -740,7 +739,7 @@ object AuralProcImpl {
                                                info: UGB.Input.Stream.Spec, idx: Int,
                                                bufSize: Int)(implicit tx: T): BufferAndGain = {
       val spec      = cue.spec
-      val path      = cue.artifact.getAbsolutePath
+      val path      = cue.artifact.getPath // getAbsolutePath
       val _gain     = cue.gain
       val offsetT   = ((cue.offset + timeRef.offset) * spec.sampleRate / SampleRate + 0.5).toLong
       val _buf      = if (info.isNative) {
@@ -771,7 +770,7 @@ object AuralProcImpl {
 
     final protected def readAudioCueToBuffer(cue: AudioCue)(implicit tx: T): Buffer = {
       val spec      = cue.spec
-      val path      = cue.artifact.getAbsolutePath
+      val path      = cue.artifact.getPath //.getAbsolutePath
       val offset    = cue.fileOffset
       val numFrames = math.max(0L, spec.numFrames - offset)
       // XXX TODO - for now, gain is ignored.
@@ -881,10 +880,10 @@ object AuralProcImpl {
 
         case UGB.Input.DiskOut.Value(numCh) =>
           // XXX TODO ugly ugly ugly
-          val f: File = runnerAttr.get(key) match {
+          val f: Artifact.Value = runnerAttr.get(key) match {
             case Some(ex: IExpr[T, _]) =>
               ex.value match {
-                case a: File => a
+                case a: Artifact.Value => a
                 case a =>
                   sys.error(s"Cannot use attribute $a as disk-out artifact")
               }
@@ -892,17 +891,18 @@ object AuralProcImpl {
               sys.error(s"Cannot use attribute $a as disk-out artifact")
             case None =>
               val valueOpt = procCached().attr.get(key)
-              valueOpt.fold[File] {
+              valueOpt.fold[Artifact.Value] {
                 sys.error(s"Missing attribute $key for disk-out artifact")
               } {
-                case a: Artifact[T] => a.value.absolute
+                case a: Artifact[T] => a.value // .absolute
                 case a => sys.error(s"Cannot use attribute $a as an artifact")
               }
           }
           val rb: Buffer = {
-            val ext       = f.ext.toLowerCase
+            import Artifact.Value.Ops
+            val ext       = f.extL
             val tpe       = AudioFileType.writable.find(_.extensions.contains(ext)).getOrElse(AudioFileType.AIFF)
-            val _buf      = Buffer.diskOut(server)(path = f.path, fileType = tpe, numChannels = numCh)
+            val _buf      = Buffer.diskOut(server)(path = f.getPath, fileType = tpe, numChannels = numCh)
             _buf
           }
 
@@ -988,7 +988,7 @@ object AuralProcImpl {
         val rb      = Buffer(server)(numFrames = numFrames, numChannels = numChannels)
         val ctlName = graph.BufferOut.controlName(artifact = artifactKey, action = actionKey)
         nr.addControl(ctlName -> rb.id)
-        val late = Buffer.writeWithNode(rb, nr, artV) {
+        val late = Buffer.writeWithNode(rb, nr, artV.getPath) {
           cursor.step { implicit tx =>
             rb.dispose()
             val invoker = procCached()

@@ -4,7 +4,7 @@ import java.util.concurrent.TimeUnit
 
 import de.sciss.lucre.synth.Executor.Cancelable
 
-import scala.concurrent.ExecutionContext
+import scala.concurrent.{ExecutionContext, Future}
 import scala.concurrent.duration.Duration
 import scala.scalajs.js
 

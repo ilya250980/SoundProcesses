@@ -14,9 +14,9 @@
 package de.sciss.lucre.expr.graph
 
 import java.awt.EventQueue
+import java.io.File
 
 import de.sciss.equal.Implicits._
-import de.sciss.file._
 import de.sciss.lucre.Txn.peer
 import de.sciss.lucre.expr.Context
 import de.sciss.lucre.impl.ObservableImpl
@@ -81,7 +81,7 @@ object Bounce {
       // Application.applyAudioPreferences(cfg.server, cfg.client, useDevice = false, pickPort = false)
 //      applyAudioPreferences(cfg.server, cfg.client)
       val sCfg                = cfg.server
-      sCfg.nrtOutputPath      = out.value.path // audioF.path
+      sCfg.nrtOutputPath      = out.value.getPath // audioF.path
       sCfg.nrtHeaderFormat    = specV.fileType
       sCfg.nrtSampleFormat    = specV.sampleFormat
       val numPrivate          = 256 // Prefs.audioNumPrivate.getOrElse(Prefs.defaultAudioNumPrivate)

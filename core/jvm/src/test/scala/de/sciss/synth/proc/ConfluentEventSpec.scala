@@ -1,7 +1,7 @@
-package de.sciss
+package de.sciss.synth.proc
 
+import de.sciss.lucre
 import de.sciss.lucre.store.BerkeleyDB
-import de.sciss.synth.proc.{Confluent, Durable, SoundProcesses}
 import org.scalatest.Outcome
 import org.scalatest.flatspec.FixtureAnyFlatSpec
 import org.scalatest.matchers.should.Matchers

@@ -17,7 +17,6 @@ import java.io.{File, RandomAccessFile}
 import java.nio.ByteBuffer
 
 import de.sciss.equal.Implicits._
-import de.sciss.file._
 import de.sciss.lucre.synth.{Buffer, RT, Server, Synth, Txn}
 import de.sciss.processor.Processor
 import de.sciss.processor.impl.ProcessorImpl
@@ -200,7 +199,7 @@ final class BounceImpl[T <: Txn[T] /*, I <: stm.Sys[I] */](val parentUniverse: U
         //          import ugen._
         //        }
         val buf = Buffer.diskOut(server)(
-          path          = resultFile.path,
+          path          = resultFile.getPath,
           fileType      = config.server.nrtHeaderFormat,
           sampleFormat  = config.server.nrtSampleFormat,
           numChannels   = numChannels

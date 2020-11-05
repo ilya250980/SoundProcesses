@@ -1,6 +1,5 @@
 package de.sciss.synth.proc
 
-import de.sciss.ConfluentEventSpec
 import de.sciss.file._
 import de.sciss.lucre.{Artifact, ArtifactLocation, BooleanObj, DoubleObj, DoubleVector, IntObj, LongObj, StringObj}
 import de.sciss.synth.Curve

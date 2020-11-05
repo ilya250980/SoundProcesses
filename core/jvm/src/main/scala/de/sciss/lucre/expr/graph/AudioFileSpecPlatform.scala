@@ -1,6 +1,7 @@
 package de.sciss.lucre.expr.graph
 
-import de.sciss.file.File
+import java.io.File
+
 import de.sciss.lucre.expr.Context
 import de.sciss.lucre.{IExpr, ITargets, Txn}
 import de.sciss.lucre.expr.graph.impl.MappedIExpr

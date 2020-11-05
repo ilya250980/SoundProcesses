@@ -36,7 +36,7 @@ lazy val deps = new {
   val main = new {
     val audioFile           = "2.2.0-SNAPSHOT"
     val equal               = "0.1.6"
-    val fileUtil            = "1.1.5"
+//    val fileUtil            = "1.1.5"
     val lucre               = "4.2.0-SNAPSHOT"
     val numbers             = "0.2.1"
     val scalaCollider       = "2.2.0-SNAPSHOT"
@@ -123,18 +123,22 @@ lazy val core = crossProject(JVMPlatform, JSPlatform).in(file("core"))
     ),
     buildInfoPackage := "de.sciss.synth.proc",
     libraryDependencies ++= Seq(
-      "de.sciss"          %% "span"                         % deps.main.span,              // sbt bug
-      "de.sciss"          %% "lucre-confluent"              % deps.main.lucre,
-      "de.sciss"          %% "lucre-expr"                   % deps.main.lucre,
-      "de.sciss"          %% "scalacollider-if"             % deps.main.scalaColliderIf,
-      "de.sciss"          %% "fileutil"                     % deps.main.fileUtil,
-      "de.sciss"          %% "equal"                        % deps.main.equal,
-      "org.scala-lang"    %  "scala-compiler"               % scalaVersion.value            % Provided,
-      "de.sciss"          %% s"lucre-${deps.test.bdb}"      % deps.main.lucre               % Test,
-      "de.sciss"          %% "scalacolliderswing-plotting"  % deps.test.scalaColliderSwing  % Test,
-      "org.rogach"        %% "scallop"                      % deps.test.scallop             % Test
+      "de.sciss"          %%% "span"                         % deps.main.span,              // sbt bug
+      "de.sciss"          %%% "lucre-confluent"              % deps.main.lucre,
+      "de.sciss"          %%% "lucre-expr"                   % deps.main.lucre,
+      "de.sciss"          %%% "scalacollider-if"             % deps.main.scalaColliderIf,
+//      "de.sciss"          %%  "fileutil"                     % deps.main.fileUtil,
+      "de.sciss"          %%% "equal"                        % deps.main.equal,
+      "org.scala-lang"    %   "scala-compiler"               % scalaVersion.value            % Provided,  // XXX TODO JVM only
+      "org.rogach"        %%% "scallop"                      % deps.test.scallop             % Test
     ),
     mimaPreviousArtifacts := Set("de.sciss" %% s"$baseNameL-core" % mimaVersion)
+  )
+  .jvmSettings(
+    libraryDependencies ++= Seq(
+      "de.sciss"          %% s"lucre-${deps.test.bdb}"      % deps.main.lucre               % Test,
+      "de.sciss"          %% "scalacolliderswing-plotting"  % deps.test.scalaColliderSwing  % Test,
+    ),
   )
 
 lazy val views = crossProject(JVMPlatform, JSPlatform).in(file("views"))

@@ -13,9 +13,8 @@
 
 package de.sciss.lucre.expr.graph
 
-import java.io.{ByteArrayOutputStream, IOException}
+import java.io.{ByteArrayOutputStream, File, IOException}
 
-import de.sciss.file.File
 import de.sciss.lucre.expr.{Context, Graph, IAction}
 import de.sciss.lucre.impl.{DummyObservableImpl, IChangeGeneratorEvent}
 import de.sciss.lucre.{IChangeEvent, IExpr, IPull, ITargets, Txn, synth}

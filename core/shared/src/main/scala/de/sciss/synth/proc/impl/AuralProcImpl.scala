@@ -18,7 +18,7 @@ import de.sciss.equal.Implicits._
 import de.sciss.lucre.impl.ObservableImpl
 import de.sciss.lucre.synth.{AudioBus, Buffer, Bus, BusNodeSetter, Executor, NodeRef, Server}
 import de.sciss.lucre.{Artifact, Disposable, DoubleVector, ExprLike, IExpr, IntVector, Obj, Source, StringObj, Txn, TxnLike, synth}
-import de.sciss.numbers
+import de.sciss.{asyncfile, numbers}
 import de.sciss.span.Span
 import de.sciss.synth.ControlSet
 import de.sciss.synth.UGenSource.Vec
@@ -899,7 +899,7 @@ object AuralProcImpl {
               }
           }
           val rb: Buffer = {
-            import Artifact.Value.Ops
+            import asyncfile.Ops._
             val ext       = f.extL
             val tpe       = AudioFileType.writable.find(_.extensions.contains(ext)).getOrElse(AudioFileType.AIFF)
             val _buf      = Buffer.diskOut(server)(path = f.getPath, fileType = tpe, numChannels = numCh)

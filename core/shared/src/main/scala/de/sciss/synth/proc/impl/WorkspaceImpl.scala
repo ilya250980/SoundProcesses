@@ -2,8 +2,9 @@ package de.sciss.synth.proc.impl
 
 import java.net.URI
 
+import de.sciss.asyncfile
 import de.sciss.lucre.synth.{InMemory => InMem}
-import de.sciss.lucre.{Artifact, Cursor, Disposable, Folder, Source, Txn, TxnLike}
+import de.sciss.lucre.{Cursor, Disposable, Folder, Source, Txn, TxnLike}
 import de.sciss.serial.{DataInput, DataOutput, TFormat}
 import de.sciss.synth.proc
 import de.sciss.synth.proc.impl.WorkspaceImpl.Data
@@ -72,7 +73,10 @@ trait WorkspaceImpl[T <: Txn[T]] {
 
   // ---- implemented ----
 
-  override def toString = s"Workspace<${folder.fold("in-memory")(f => Artifact.Value.name(f))}>" // + hashCode().toHexString
+  override def toString = {
+    import asyncfile.Ops._
+    s"Workspace<${folder.fold("in-memory")(_.name)}>"
+  }
 
   private[this] val _dependents  = Ref(Vec.empty[Disposable[T]])
 

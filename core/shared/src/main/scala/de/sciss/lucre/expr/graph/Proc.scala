@@ -13,10 +13,11 @@
 
 package de.sciss.lucre.expr.graph
 
+import de.sciss.asyncfile
 import de.sciss.lucre.expr.graph.impl.{ExpandedObjMakeImpl, ObjImplBase}
 import de.sciss.lucre.expr.{Context, IAction}
 import de.sciss.lucre.StringObj
-import de.sciss.lucre.{IExpr, ITargets, Source, Sys, Txn, Artifact => _Artifact}
+import de.sciss.lucre.{IExpr, ITargets, Source, Sys, Txn}
 import de.sciss.synth.proc
 
 object Proc /*extends ProcPlatform*/ {
@@ -85,7 +86,7 @@ object Proc /*extends ProcPlatform*/ {
       val peer    = proc.Proc[T]()
       val a       = peer.attr
       val cueV    = cue.value
-      import _Artifact.Value.Ops
+      import asyncfile.Ops._
       val name    = StringObj         .newVar[T](cueV.artifact.base)
       val cueObj  = proc.AudioCue.Obj .newVar[T](cueV)
       a.put(proc.ObjKeys.attrName   , name)

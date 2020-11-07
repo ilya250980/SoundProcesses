@@ -15,19 +15,18 @@ package de.sciss.synth.proc.impl
 
 import java.util.concurrent.TimeUnit
 
+import de.sciss.audiofile.AudioFileSpec
 import de.sciss.lucre.synth.{Buffer, Executor, NodeRef, RT}
 import de.sciss.lucre.{Artifact, Txn, synth}
-import de.sciss.osc
-import de.sciss.processor.impl.{FutureProxy, ProcessorImpl}
-import de.sciss.audiofile.AudioFileSpec
 import de.sciss.model.impl.ModelImpl
+import de.sciss.osc
 import de.sciss.processor.Processor
+import de.sciss.processor.impl.FutureProxy
 import de.sciss.synth.proc.graph
 
-import scala.concurrent.duration.Duration
 import scala.concurrent.stm.Ref
 import scala.concurrent.stm.TxnExecutor.{defaultAtomic => atomic}
-import scala.concurrent.{Await, ExecutionContext, Future, Promise, TimeoutException, blocking, duration}
+import scala.concurrent.{ExecutionContext, Future, Promise, TimeoutException}
 
 object BufferPrepare {
 
@@ -55,7 +54,7 @@ object BufferPrepare {
     if (numFrL > 0x3FFFFFFF) sys.error(s"File $f is too large ($numFrL frames) for an in-memory buffer")
     val res = new Impl[T](path = f.getPath, numFrames = numFrL.toInt, off0 = offset,
       numChannels = spec.numChannels, buf = buf, key = key)
-    import de.sciss.lucre.synth.Executor.context
+    import Executor.context
     tx.afterCommit(res.start())
     res
   }
@@ -157,6 +156,7 @@ object BufferPrepare {
       val res = body().andThen { case _ => cleanUp() }
       res.onComplete(t => dispatch(Processor.Result(self, t)))
       promise.completeWith(res)
+      ()
     }
 
     protected def body(): Future[Prod] = {

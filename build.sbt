@@ -34,13 +34,14 @@ lazy val commonSettings = Seq(
 
 lazy val deps = new {
   val main = new {
-    val audioFile           = "2.2.0-SNAPSHOT"
+    val audioFile           = "2.2.0"
     val equal               = "0.1.6"
 //    val fileUtil            = "1.1.5"
     val lucre               = "4.2.0-SNAPSHOT"
     val numbers             = "0.2.1"
-    val scalaCollider       = "2.2.0-SNAPSHOT"
-    val scalaColliderIf     = "1.2.0-SNAPSHOT"
+    val processor           = "0.5.0"
+    val scalaCollider       = "2.3.0-SNAPSHOT"
+    val scalaColliderIf     = "1.2.0"
     val span                = "2.0.0"
     val topology            = "1.1.3"
     val ugens               = "1.20.0"
@@ -123,14 +124,15 @@ lazy val core = crossProject(JVMPlatform, JSPlatform).in(file("core"))
     ),
     buildInfoPackage := "de.sciss.synth.proc",
     libraryDependencies ++= Seq(
-      "de.sciss"          %%% "span"                         % deps.main.span,              // sbt bug
-      "de.sciss"          %%% "lucre-confluent"              % deps.main.lucre,
-      "de.sciss"          %%% "lucre-expr"                   % deps.main.lucre,
-      "de.sciss"          %%% "scalacollider-if"             % deps.main.scalaColliderIf,
-//      "de.sciss"          %%  "fileutil"                     % deps.main.fileUtil,
-      "de.sciss"          %%% "equal"                        % deps.main.equal,
-      "org.scala-lang"    %   "scala-compiler"               % scalaVersion.value            % Provided,  // XXX TODO JVM only
-      "org.rogach"        %%% "scallop"                      % deps.test.scallop             % Test
+      "de.sciss"          %%% "span"              % deps.main.span,              // sbt bug
+      "de.sciss"          %%% "lucre-confluent"   % deps.main.lucre,
+      "de.sciss"          %%% "lucre-expr"        % deps.main.lucre,
+      "de.sciss"          %%% "processor"         % deps.main.processor,
+      "de.sciss"          %%% "scalacollider-if"  % deps.main.scalaColliderIf,
+//      "de.sciss"          %%  "fileutil"          % deps.main.fileUtil,
+      "de.sciss"          %%% "equal"             % deps.main.equal,
+      "org.scala-lang"    %   "scala-compiler"    % scalaVersion.value            % Provided,  // XXX TODO JVM only
+      "org.rogach"        %%% "scallop"           % deps.test.scallop             % Test
     ),
     mimaPreviousArtifacts := Set("de.sciss" %% s"$baseNameL-core" % mimaVersion)
   )

@@ -65,7 +65,7 @@ object SoundProcesses /*extends SoundProcessesPlatform*/ {
     if (STMTxn.findCurrent.isDefined) throw new IllegalStateException("Cannot nest transactions")
     Future {
       cursor.step(fun)
-    } (Executor.context)
+    } (Executor.executionContext)
   }
 
   // called from `step` if an error occurs, passing the context name and the error.
@@ -90,7 +90,7 @@ object SoundProcesses /*extends SoundProcessesPlatform*/ {
         case t: Throwable =>
           errorHandler(context, t)
       }
-    } (Executor.context)
+    } (Executor.executionContext)
     ()
   }
 

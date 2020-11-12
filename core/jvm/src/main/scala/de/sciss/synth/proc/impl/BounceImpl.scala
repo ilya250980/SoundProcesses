@@ -106,10 +106,10 @@ final class BounceImpl[T <: Txn[T] /*, I <: stm.Sys[I] */](val parentUniverse: U
 
     // synchronize via `this`
     private val promiseSync = new AnyRef
-    private var promise     = Option.empty[Promise[_]]
+    private var promiseBnc  = Option.empty[Promise[_]]    // XXX TODO why do we need another one besides `ProcessorImpl`?
 
     override protected def notifyAborted(): Unit = promiseSync.synchronized {
-      promise.foreach(_.tryFailure(Processor.Aborted()))
+      promiseBnc.foreach(_.tryFailure(Processor.Aborted()))
     }
 
     private def addActions(scheduler: Scheduler[T])(implicit tx: T): Unit =
@@ -119,7 +119,7 @@ final class BounceImpl[T <: Txn[T] /*, I <: stm.Sys[I] */](val parentUniverse: U
 
     private def bodyRealtime(sCfg: Server.Config, cCfg: Client.Config): Unit = {
       val pServer = Promise[Server]()
-      promiseSync.synchronized { promise = Some(pServer) }
+      promiseSync.synchronized { promiseBnc = Some(pServer) }
       val (span, scheduler, transport, __aural) = cursor.step { implicit tx =>
         val _scheduler  = Scheduler[T]()
         addActions(_scheduler)
@@ -179,7 +179,7 @@ final class BounceImpl[T <: Txn[T] /*, I <: stm.Sys[I] */](val parentUniverse: U
       // println("-----------------------------1")
 
       val p = Promise[Unit]()
-      promiseSync.synchronized { promise = Some(p) }
+      promiseSync.synchronized { promiseBnc = Some(p) }
       /* val _token = */ cursor.step { implicit tx =>
         // println("-----------------------------2")
         config.beforePlay.apply(tx, server)
@@ -303,7 +303,7 @@ final class BounceImpl[T <: Txn[T] /*, I <: stm.Sys[I] */](val parentUniverse: U
       def waitForServer(): Unit = {
         val p = Promise[Unit]()
         promiseSync.synchronized {
-          promise = Some(p)
+          promiseBnc = Some(p)
           p.completeWith(server.committed())
         }
         Await.result(p.future, Duration.Inf)
@@ -433,7 +433,7 @@ final class BounceImpl[T <: Txn[T] /*, I <: stm.Sys[I] */](val parentUniverse: U
         logTransport(s"waiting for ${prepFutures.size} preparations to complete...")
         val p = Promise[Any]()
         promiseSync.synchronized {
-          promise = Some(p)
+          promiseBnc = Some(p)
 //          println(s"executionContext = $executionContext | global = ${ExecutionContext.global}")
           p.completeWith(Future.sequence(prepFutures))
         }

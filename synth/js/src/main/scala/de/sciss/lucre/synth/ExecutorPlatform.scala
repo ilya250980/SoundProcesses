@@ -10,7 +10,7 @@ import scala.scalajs.js
 
 trait ExecutorPlatform {
   def defer(body: => Unit): Unit =
-    context.execute(() => body)
+    executionContext.execute(() => body)
 //    js.timers.setTimeout(0.0)(body)
 
   def schedule(time: Long, unit: TimeUnit)(body: => Unit): Unit = {
@@ -25,7 +25,7 @@ trait ExecutorPlatform {
     }
   }
 
-  implicit def context: ExecutionContext = ExecutionContext.global
+  implicit def executionContext: ExecutionContext = ExecutionContext.global
 
   def isShutdown: Boolean = false // XXX TODO is this always true?
 }

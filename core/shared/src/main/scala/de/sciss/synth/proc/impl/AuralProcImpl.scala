@@ -1004,7 +1004,7 @@ object AuralProcImpl {
 //              ctx.dispose()
             }
           }
-        } (Executor.context)
+        } (Executor.executionContext)
         nr.addResource(late)
 
       case UGB.Input.StopSelf =>
@@ -1105,7 +1105,7 @@ object AuralProcImpl {
       } else {
         val prep = setPlayingPrepare(res)
         tx.afterCommit {
-          import Executor.{context => ec}
+          import Executor.executionContext
           val reduced = Future.reduceLeft(res)((_, _) => ())
           reduced.foreach { _ =>
             cursor.step { implicit tx =>

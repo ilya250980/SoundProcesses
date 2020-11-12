@@ -45,7 +45,7 @@ trait ExecutorPlatform {
   /** Default execution-context used for scheduling and spawning functions.
     * It uses the `scheduledExecutorService`.
     */
-  implicit def context: ExecutionContext = _context
+  implicit def executionContext: ExecutionContext = _context
 
   private lazy val _context: ExecutionContext =
     ExecutionContext.fromExecutorService(pool)

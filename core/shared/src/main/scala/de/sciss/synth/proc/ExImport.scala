@@ -13,12 +13,19 @@
 
 package de.sciss.synth.proc
 
+import java.net.URI
+
 import de.sciss.lucre.Adjunct.HasDefault
-import de.sciss.lucre.expr.graph.{AudioFileSpec, Ex, Obj, AudioCue => _AudioCue}
+import de.sciss.lucre.expr
+import de.sciss.lucre.expr.graph.{Ex, Obj, AudioCue => _AudioCue}
 import de.sciss.lucre.expr.impl.{ExObjBridgeImpl => Impl}
+import de.sciss.lucre.expr.{ExAudioFileSpecOps, ExFileOps}
 import de.sciss.synth.proc
 
-object ExImport /*extends ExImportPlatform*/ {
+import scala.language.implicitConversions
+
+object ExImport extends ExImport
+trait ExImport extends expr.ExImport {
   // XXX TODO --- this is all a bit messy
 
   implicit val codeExAttrBridge       : Obj.Bridge[Code       ] with Obj.CanMake[Code       ] = new Impl(Code       .Obj)
@@ -43,13 +50,10 @@ object ExImport /*extends ExImportPlatform*/ {
   /** The general sample-rate used in objects such as `Timeline`, `Grapheme`, `Transport`, `Scheduler`. */
   final val SampleRate  = TimeRef.SampleRate
 
-  implicit final class audioFileSpecOps(private val x: Ex[AudioFileSpec]) extends AnyVal {
-    def numChannels : Ex[Int    ] = AudioFileSpec.NumChannels(x)
-    def numFrames   : Ex[Long   ] = AudioFileSpec.NumFrames  (x)
-    def sampleRate  : Ex[Double ] = AudioFileSpec.SampleRate (x)
-  }
+  implicit def fileOps          (x: Ex[URI          ]): ExFileOps           = new ExFileOps(x)
+  implicit def audioFileSpecOps (x: Ex[AudioFileSpec]): ExAudioFileSpecOps  = new ExAudioFileSpecOps(x)
 
-//  implicit final class procTrigOps(private val x: Trig) extends AnyVal {
+  //  implicit final class procTrigOps(private val x: Trig) extends AnyVal {
 //    def delay(time: Ex[Double]): Delay
 //  }
 }

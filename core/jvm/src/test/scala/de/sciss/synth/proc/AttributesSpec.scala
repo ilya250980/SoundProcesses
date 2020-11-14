@@ -74,9 +74,11 @@ class AttributesSpec extends ConfluentEventSpec {
       assert(attr.$[FadeSpec.Obj]("fade"   ).map(_.value) === Some(fade))
       assert(attr.$[DoubleVector]("d-vec"  ).map(_.value) === Some(Vector(1.2, 3.4, 5.6)))
       assert(attr.$[Timeline    ]("group"  ) === Some(group))
-      assert(attr.$[AudioCue.Obj]("audio").map(_.value) ===
+      val artObj  = attr.$[AudioCue.Obj]("audio")
+      val artV    = artObj.map(_.value)
+      assert(artV ===
         Some(AudioCue((file("foo") / "bar").toURI, spec, 1234L, 123.4)))
-      assert(attr.$[ArtifactLocation]("loc").map(_.directory) === Some(file("foo")))
+      assert(attr.$[ArtifactLocation]("loc").map(_.directory) === Some(file("foo").toURI))
     }
   }
 }

@@ -34,30 +34,31 @@ lazy val commonSettings = Seq(
 
 lazy val deps = new {
   val main = new {
+    val asyncFile           = "0.1.1"
     val audioFile           = "2.2.0"
     val equal               = "0.1.6"
 //    val fileUtil            = "1.1.5"
     val lucre               = "4.2.0-SNAPSHOT"
     val numbers             = "0.2.1"
     val processor           = "0.5.0"
-    val scalaCollider       = "2.3.0-SNAPSHOT"
-    val scalaColliderIf     = "1.2.0"
+    val scalaCollider       = "2.3.0"
+    val scalaColliderIf     = "1.4.0"
     val span                = "2.0.0"
     val topology            = "1.1.3"
     val ugens               = "1.20.0"
   }
 
   val views = new {
-    val audioWidgets        = "2.0.0"
+    val audioWidgets        = "2.1.0"
     val lucreSwing          = "2.3.0-SNAPSHOT"
-    val scalaColliderSwing  = "2.2.0-SNAPSHOT"
-    val swingPlus           = "0.4.2"
+    val scalaColliderSwing  = "2.2.0"
+    val swingPlus           = "0.5.0"
   }
   
   val test = new {
     val bdb                = "bdb"  // "bdb" or "bdb6" or "bdb7"
     def scalaColliderSwing: String = views.scalaColliderSwing
-    val scalaTest          = "3.2.2"
+    val scalaTest          = "3.2.3"
     val scallop            = "3.5.1"
     val submin             = "0.3.4"
   }
@@ -95,6 +96,7 @@ lazy val synth = crossProject(JVMPlatform, JSPlatform).in(file("synth"))
       "de.sciss" %%% "topology"                % deps.main.topology,
       "de.sciss" %%% "lucre-core"              % deps.main.lucre,
       "de.sciss" %%% "numbers"                 % deps.main.numbers, // sbt bug
+      "de.sciss" %%% "asyncfile"               % deps.main.asyncFile,
       "de.sciss" %%% "audiofile"               % deps.main.audioFile,
       "de.sciss" %%% "scalacollider"           % deps.main.scalaCollider,
       "de.sciss" %%% "scalacolliderugens-core" % deps.main.ugens

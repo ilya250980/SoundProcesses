@@ -59,8 +59,8 @@ object AsyncBounceTest {
       val aSpec   = AudioFileSpec(numChannels = 1, numFrames = numFr, sampleRate = sr)
       val af      = AudioFile.openWrite(tmpF, aSpec)
       val aBuf    = Array(Array.tabulate(numFr) { i =>
-        val slow = (i.toFloat *  10 / numFr) % 1.0f
-        val fast = (i.toFloat * 100 / numFr) % 1.0f * 2 - 1
+        val slow = (i.toDouble *  10 / numFr) % 1.0
+        val fast = (i.toDouble * 100 / numFr) % 1.0 * 2 - 1
         slow * fast
       })
       af.write(aBuf)

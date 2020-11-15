@@ -1,5 +1,7 @@
 package de.sciss.synth.proc
 
+import de.sciss.audiofile.AudioFile
+import de.sciss.audiofile.AudioFile.Frames
 import de.sciss.file._
 import de.sciss.lucre.store.BerkeleyDB
 import de.sciss.lucre.synth.{InMemory, RT, Server}
@@ -7,15 +9,12 @@ import de.sciss.lucre.{Disposable, DoubleObj, Folder, Obj, Source}
 import de.sciss.numbers
 import de.sciss.span.Span
 import de.sciss.synth.SynthGraph
-import de.sciss.audiofile.AudioFile
-import de.sciss.audiofile.AudioFile.Frames
 import org.scalactic.source
 import org.scalatest.flatspec.FixtureAsyncFlatSpec
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.{Assertion, FutureOutcome, compatible}
 
 import scala.collection.immutable.{Iterable => IIterable}
-import scala.concurrent.duration._
 import scala.concurrent.stm.Txn
 import scala.concurrent.{ExecutionContext, Future, Promise}
 import scala.language.implicitConversions
@@ -132,29 +131,27 @@ abstract class BounceSpec extends FixtureAsyncFlatSpec with Matchers {
     p
   }
 
-  final def printVector(arr: Array[Float]): Unit = {
+  final def printVector(arr: Array[Double]): Unit = {
     val s = arr.grouped(12).map(_.mkString(", ")).mkString("Vector(", ",\n", ")")
     println(s) // arr.mkString("Vector(", ",", ")"))
   }
 
-  final def mkDC(len: Int, amp: Double = 1.0): Array[Float] = {
-    val ampF = amp.toFloat
-    Array.fill(len)(ampF)
-  }
+  final def mkDC(len: Int, amp: Double = 1.0): Array[Double] =
+    Array.fill(len)(amp)
 
   final def mkSine(freq: Double, startFrame: Int, len: Int, sampleRate: Double = sampleRate,
-                   amp: Double = 1.0): Array[Float] = {
+                   amp: Double = 1.0): Array[Double] = {
     val freqN = 2 * math.Pi * freq / sampleRate
-    Array.tabulate(len)(i => (math.sin((startFrame + i) * freqN) * amp).toFloat)
+    Array.tabulate(len)(i => math.sin((startFrame + i) * freqN) * amp)
   }
 
   final def mkLFPulse(freq: Double, startFrame: Int, len: Int, sampleRate: Double = sampleRate,
-                      amp: Double = 1.0): Array[Float] = {
+                      amp: Double = 1.0): Array[Double] = {
     val period = sampleRate / freq
-    Array.tabulate(len)(i => if ((((startFrame + i) / period) % 1.0) < 0.5) amp.toFloat else 0f)
+    Array.tabulate(len)(i => if ((((startFrame + i) / period) % 1.0) < 0.5) amp else 0.0)
   }
 
-  final def mulScalar(in: Array[Float], f: Float, start: Int = 0, len: Int = -1): Unit = {
+  final def mulScalar(in: Array[Double], f: Double, start: Int = 0, len: Int = -1): Unit = {
     val len0 = if (len < 0) in.length - start else len
     var i = start
     val j = start + len0
@@ -164,7 +161,7 @@ abstract class BounceSpec extends FixtureAsyncFlatSpec with Matchers {
     }
   }
 
-  final def mulArray(a: Array[Float], b: Array[Float], start: Int = 0, len: Int = -1): Unit = {
+  final def mulArray(a: Array[Double], b: Array[Double], start: Int = 0, len: Int = -1): Unit = {
     val len0 = if (len < 0) math.min(a.length, b.length) - start else len
     var i = start
     val j = start + len0
@@ -175,7 +172,7 @@ abstract class BounceSpec extends FixtureAsyncFlatSpec with Matchers {
   }
 
   /** Adds `b` to `a` */
-  final def add(a: Array[Float], b: Array[Float], aOff: Int = 0, bOff: Int = 0, len: Int = -1): Unit = {
+  final def add(a: Array[Double], b: Array[Double], aOff: Int = 0, bOff: Int = 0, len: Int = -1): Unit = {
     val len0 = if (len < 0) math.min(a.length - aOff, b.length - bOff) else len
     var i = aOff
     val j = aOff + len0
@@ -187,16 +184,17 @@ abstract class BounceSpec extends FixtureAsyncFlatSpec with Matchers {
     }
   }
 
-  final def mkConstant(value: Float, len: Int): Array[Float] = Array.fill(len)(value)
+  final def mkConstant(value: Double, len: Int): Array[Double] = Array.fill(len)(value)
 
   /** If `lineLen` is zero (default), it will be set to `len`. */
-  final def mkLine(len: Int, start: Float = 0f, end: Float = 1f, startFrame: Int = 0, lineLen: Int = 0): Array[Float] = {
+  final def mkLine(len: Int, start: Double = 0.0, end: Double = 1.0, startFrame: Int = 0,
+                   lineLen: Int = 0): Array[Double] = {
     val lineLen0 = if (lineLen == 0) len else lineLen
     import numbers.Implicits._
-    Array.tabulate(len)(i => (i + startFrame).clip(0, lineLen0).linLin(0, lineLen0.toFloat, start, end))
+    Array.tabulate(len)(i => (i + startFrame).clip(0, lineLen0).linLin(0, lineLen0.toDouble, start, end))
   }
 
-  final def mkSilent(len: Int): Array[Float] = new Array(len)
+  final def mkSilent(len: Int): Array[Double] = new Array(len)
 
   def doubleAttr(proc: Proc[T], key: String, value: Double)(implicit tx: T): Unit = {
     proc.attr.put(key, value: DoubleObj[T])
@@ -214,7 +212,7 @@ abstract class BounceSpec extends FixtureAsyncFlatSpec with Matchers {
     res
   }
 
-  final def assertSameSignal(a: Array[Float], b: Array[Float], tol: Float = 1.0e-4f,
+  final def assertSameSignal(a: Array[Double], b: Array[Double], tol: Double = 1.0e-4,
                              lengthTol: Int = blockSize, dropOuts: Int = 0): Assertion = {
     assert(a.length === b.length +- lengthTol)
     val diff = (a.iterator zip b.iterator).map { case (x, y) => math.abs(x - y) } .toIndexedSeq
@@ -284,8 +282,8 @@ abstract class BounceSpec extends FixtureAsyncFlatSpec with Matchers {
     }
   }
 
-  final def bounce(config: Bounce.ConfigBuilder[T], timeOut: Duration = 20.seconds, debugKeep: Boolean = false)
-                  (implicit universe: Universe[T]): Future[Array[Array[Float]]] = {
+  final def bounce(config: Bounce.ConfigBuilder[T], /*timeOut: Duration = 20.seconds,*/ debugKeep: Boolean = false)
+                  (implicit universe: Universe[T]): Future[Frames] = {
     requireOutsideTxn()
     val jackOption = mkJack(config.server)
     val b = Bounce[T]()

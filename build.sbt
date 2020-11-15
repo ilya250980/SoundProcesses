@@ -26,6 +26,7 @@ lazy val commonSettings = Seq(
   scalacOptions in (Compile, compile) ++= (if (scala.util.Properties.isJavaAtLeast("9")) Seq("-release", "8") else Nil), // JDK >8 breaks API; skip scala-doc
   // resolvers          += "Oracle Repository" at "http://download.oracle.com/maven",  // required for sleepycat
   parallelExecution in Test := false,
+  concurrentRestrictions in Global += Tags.limit(Tags.Test, 1),
   updateOptions      := updateOptions.value.withLatestSnapshots(false),
   testOptions in Test += Tests.Argument("-oF"), // "show full stack traces" (?)
   fork in run := true,  // required for shutdown hook, and also the scheduled thread pool, it seems

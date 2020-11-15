@@ -104,7 +104,7 @@ class Issue53 extends BounceSpec {
 //      val sig3 = mkSine   (freq2, startFrame = 1, len = at2f - at1f, amp = 0.5)
       val sig3 = mkDC(len = at2f - at1f, amp = 0.33)
 
-      val expected = new Array[Float](at2f - at0f)
+      val expected = new Array[Double](at2f - at0f)
       add(expected, sig1, aOff = 0 /*at0f*/)
       add(expected, sig2, aOff = 0 /*at0f*/)
       add(expected, sig3, aOff = at1f - at0f)

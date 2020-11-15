@@ -18,8 +18,8 @@ import java.net.URI
 import de.sciss.lucre.expr.graph.impl.MappedIExpr
 import de.sciss.lucre.expr.{Context, Graph, IAction}
 import de.sciss.lucre.{IExpr, ITargets, Txn, synth, Artifact => _Artifact}
-import de.sciss.synth.proc
-import de.sciss.synth.proc.Universe
+import de.sciss.proc
+import de.sciss.proc.Universe
 
 /** Access to operating system functions. */
 object Sys extends SysPlatform {

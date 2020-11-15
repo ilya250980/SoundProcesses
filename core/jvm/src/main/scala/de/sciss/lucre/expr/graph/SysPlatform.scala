@@ -23,10 +23,10 @@ import de.sciss.lucre.expr.impl.IActionImpl
 import de.sciss.lucre.impl.{DummyObservableImpl, IChangeGeneratorEvent}
 import de.sciss.lucre.{IChangeEvent, IExpr, IPull, ITargets, Txn}
 import de.sciss.model.Change
-import de.sciss.synth.proc
-import de.sciss.synth.proc.Runner.{Done, Failed, Prepared, Running, Stopped}
-import de.sciss.synth.proc.impl.BasicRunnerImpl
-import de.sciss.synth.proc.{SoundProcesses, Universe}
+import de.sciss.proc
+import de.sciss.proc.Runner.{Done, Failed, Prepared, Running, Stopped}
+import de.sciss.proc.impl.BasicRunnerImpl
+import de.sciss.proc.{SoundProcesses, Universe}
 
 import scala.concurrent.stm.{Ref, TxnLocal}
 import scala.sys.process.{Process => SProcess}

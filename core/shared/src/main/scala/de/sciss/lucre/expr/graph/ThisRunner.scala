@@ -17,8 +17,8 @@ import de.sciss.lucre.expr.graph.{Attr => _Attr}
 import de.sciss.lucre.expr.impl.IActionImpl
 import de.sciss.lucre.expr.{Context, Graph, IAction, IControl}
 import de.sciss.lucre.{Adjunct, IExpr, ProductWithAdjuncts, Txn}
-import de.sciss.synth.proc
-import de.sciss.synth.proc.ExprContext
+import de.sciss.proc
+import de.sciss.proc.ExprContext
 
 import scala.util.{Failure, Success}
 

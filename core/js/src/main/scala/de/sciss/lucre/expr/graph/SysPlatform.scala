@@ -18,7 +18,7 @@ import java.net.URI
 import de.sciss.lucre.expr.graph.Sys.Process.Peer
 import de.sciss.lucre.expr.impl.IActionImpl
 import de.sciss.lucre.{Disposable, IExpr, ITargets, Txn}
-import de.sciss.synth.proc.{Runner, Universe}
+import de.sciss.proc.{Runner, Universe}
 
 trait SysPlatform {
   protected final class ExpandedExit[T <: Txn[T]](code: IExpr[T, Int]) extends IActionImpl[T] {

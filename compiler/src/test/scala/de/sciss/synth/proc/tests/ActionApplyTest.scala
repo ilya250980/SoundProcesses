@@ -1,9 +1,9 @@
-//package de.sciss.synth.proc.tests
+//package de.sciss.proc.tests
 //
 //import de.sciss.file._
 //import de.sciss.lucre.expr.StringObj
 //import de.sciss.lucre.stm.store.BerkeleyDB
-//import de.sciss.synth.proc.{ActionRaw, Code, Durable, MacroImplicits, SoundProcesses, Workspace}
+//import de.sciss.proc.{ActionRaw, Code, Durable, MacroImplicits, SoundProcesses, Workspace}
 //
 //object ActionApplyTest {
 //  import MacroImplicits._
@@ -22,7 +22,7 @@
 //        val self = universe.self
 //        println(s"Hello world. Self = $self - name ${self.attr.$[StringObj]("name").map(_.value)}")
 //      }
-//      import de.sciss.synth.proc.Implicits._
+//      import de.sciss.proc.Implicits._
 //      a.name = "my-action"
 //      ws.root.addLast(a)
 //

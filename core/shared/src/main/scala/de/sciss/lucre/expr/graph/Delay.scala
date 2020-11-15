@@ -18,7 +18,7 @@ import de.sciss.lucre.{IEvent, IExpr, IPull, ITargets, Txn}
 import de.sciss.lucre.expr.impl.IActionImpl
 import de.sciss.lucre.expr.{Context, IAction, IControl, ITrigger}
 import de.sciss.lucre.Txn.peer
-import de.sciss.synth.proc.{ExprContext, Scheduler, TimeRef}
+import de.sciss.proc.{ExprContext, Scheduler, TimeRef}
 
 import scala.concurrent.stm.Ref
 

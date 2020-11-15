@@ -13,8 +13,8 @@
 
 package de.sciss.synth.proc.graph
 
-import de.sciss.synth.proc.UGenGraphBuilder
-import de.sciss.synth.proc.UGenGraphBuilder.Input
+import de.sciss.proc.UGenGraphBuilder
+import de.sciss.proc.UGenGraphBuilder.Input
 import de.sciss.synth.ugen.{AudioControlProxy, ControlProxy, ControlValues}
 import de.sciss.synth.{GE, Rate, UGenInLike, audio, control, scalar}
 

@@ -6,7 +6,7 @@ import de.sciss.lucre.{Obj => LObj, Folder => LFolder}
 import de.sciss.lucre.expr.graph._
 import de.sciss.lucre.edit.UndoManager
 import de.sciss.lucre.synth.InMemory
-import de.sciss.synth.proc.{ExprContext, Universe}
+import de.sciss.proc.{ExprContext, Universe}
 
 object ExMapTest2 extends App {
   type S = InMemory

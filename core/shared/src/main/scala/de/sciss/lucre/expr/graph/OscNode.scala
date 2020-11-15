@@ -22,7 +22,7 @@ import de.sciss.lucre.impl.{IChangeEventImpl, IChangeGeneratorEvent, IEventImpl}
 import de.sciss.lucre.{Cursor, IChangeEvent, IEvent, IExpr, IPull, ITargets, Txn}
 import de.sciss.model.Change
 import de.sciss.osc
-import de.sciss.synth.proc.SoundProcesses
+import de.sciss.proc.SoundProcesses
 
 import scala.concurrent.stm.Ref
 import scala.util.control.NonFatal

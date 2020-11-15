@@ -16,9 +16,9 @@ package de.sciss.lucre.expr.graph
 import de.sciss.lucre.{IExpr, ITargets, Txn}
 import de.sciss.lucre.expr.graph.impl.MappedIExpr
 import de.sciss.lucre.expr.Context
-import de.sciss.synth.proc.{FadeSpec => _FadeSpec}
+import de.sciss.proc.{FadeSpec => _FadeSpec}
 import de.sciss.synth.{Curve => _Curve}
-import de.sciss.synth.proc.ExImport._
+import de.sciss.proc.ExImport._
 
 object FadeSpec {
   private final class NumFramesExpanded[T <: Txn[T]](in: IExpr[T, _FadeSpec], tx0: T)(implicit targets: ITargets[T])

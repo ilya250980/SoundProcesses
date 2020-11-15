@@ -25,7 +25,7 @@ import de.sciss.lucre.impl.IChangeGeneratorEvent
 import de.sciss.lucre.{Cursor, IChangeEvent, IExpr, IPull, ITargets, Txn}
 import de.sciss.lucre.synth.Executor
 import de.sciss.model.Change
-import de.sciss.synth.proc.SoundProcesses
+import de.sciss.proc.SoundProcesses
 
 import scala.concurrent.Future
 import scala.concurrent.stm.Ref

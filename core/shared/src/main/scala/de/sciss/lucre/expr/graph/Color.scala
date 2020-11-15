@@ -17,8 +17,8 @@ import de.sciss.lucre.{IExpr, ITargets, Txn}
 import de.sciss.lucre.expr.graph.impl.MappedIExpr
 import de.sciss.lucre.expr.Context
 import de.sciss.numbers.IntFunctions
-import de.sciss.synth.proc
-import de.sciss.synth.proc.Color.Palette
+import de.sciss.proc
+import de.sciss.proc.Color.Palette
 
 object Color {
   def DarkBlue    : proc.Color  = Palette( 0)

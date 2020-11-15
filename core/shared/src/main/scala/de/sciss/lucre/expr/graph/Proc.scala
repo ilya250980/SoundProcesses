@@ -18,7 +18,7 @@ import de.sciss.lucre.expr.graph.impl.{ExpandedObjMakeImpl, ObjImplBase}
 import de.sciss.lucre.expr.{Context, IAction}
 import de.sciss.lucre.StringObj
 import de.sciss.lucre.{IExpr, ITargets, Source, Sys, Txn}
-import de.sciss.synth.proc
+import de.sciss.proc
 
 object Proc /*extends ProcPlatform*/ {
   def apply(): Ex[Proc] with Obj.Make = Apply()

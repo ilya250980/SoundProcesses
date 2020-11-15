@@ -1,11 +1,11 @@
-package de.sciss.synth.proc
+package de.sciss.proc
 
 import org.scalatest.funspec.AnyFunSpec
 
 /*
   To run only this suite:
 
-  testOnly de.sciss.synth.proc.Issue71
+  testOnly de.sciss.proc.Issue71
 
  */
 class Issue71 extends AnyFunSpec {

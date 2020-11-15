@@ -15,8 +15,8 @@ package de.sciss.synth.proc.graph
 
 import de.sciss.synth.Ops.stringToControl
 import de.sciss.synth.UGenSource._
-import de.sciss.synth.proc.UGenGraphBuilder
-import de.sciss.synth.proc.UGenGraphBuilder.Input
+import de.sciss.proc.UGenGraphBuilder
+import de.sciss.proc.UGenGraphBuilder.Input
 import de.sciss.synth.ugen.UGenInGroup
 import de.sciss.synth.{AudioRated, GE, UGen, UGenIn, UGenInLike, UGenSource, WritesBus, audio}
 

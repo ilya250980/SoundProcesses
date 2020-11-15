@@ -18,8 +18,8 @@ import de.sciss.lucre.expr.{Context, IAction, IExprAsRunnerMap}
 import de.sciss.lucre.impl.IChangeGeneratorEvent
 import de.sciss.lucre.{IChangeEvent, IExpr, IPull, ITargets, Txn, synth}
 import de.sciss.model.Change
-import de.sciss.synth.proc
-import de.sciss.synth.proc.{Universe, UGenGraphBuilder => UGB}
+import de.sciss.proc
+import de.sciss.proc.{Universe, UGenGraphBuilder => UGB}
 
 import scala.concurrent.stm.Ref
 

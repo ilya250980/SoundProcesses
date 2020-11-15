@@ -2,7 +2,7 @@ package de.sciss.lucre.expr
 
 import de.sciss.lucre.edit.UndoManager
 import de.sciss.lucre.synth.InMemory
-import de.sciss.synth.proc.{ExprContext, Universe}
+import de.sciss.proc.{ExprContext, Universe}
 
 object OscTest extends App {
   type S = InMemory

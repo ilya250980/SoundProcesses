@@ -17,7 +17,7 @@ package edit
 import de.sciss.lucre.edit.UndoManager.{CannotRedoException, CannotUndoException}
 import de.sciss.lucre.edit.impl.BasicUndoableEdit
 import de.sciss.span.{Span, SpanLike}
-import de.sciss.synth.proc.{AudioCue, ObjKeys, Proc, Timeline}
+import de.sciss.proc.{AudioCue, ObjKeys, Proc, Timeline}
 
 object EditTimeline {
   def add[T <: Txn[T]](tl: Timeline.Modifiable[T], span: SpanLikeObj[T], elem: Obj[T])

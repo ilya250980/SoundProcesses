@@ -18,8 +18,9 @@ import de.sciss.lucre.{Obj, Source}
 import de.sciss.lucre.expr.graph.Const
 import de.sciss.lucre.expr.{Context, IExprAsRunnerMap}
 import de.sciss.lucre.synth.{Node, RT, Txn}
-import de.sciss.synth.proc.{AuralContext, Runner, SoundProcesses}
-import de.sciss.synth.{GE, proc}
+import de.sciss.proc.{AuralContext, Runner, SoundProcesses}
+import de.sciss.proc
+import de.sciss.synth.GE
 import de.sciss.{osc, synth}
 
 import scala.collection.immutable.{IndexedSeq => Vec}

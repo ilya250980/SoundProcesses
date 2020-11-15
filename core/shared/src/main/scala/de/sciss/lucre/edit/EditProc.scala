@@ -14,7 +14,7 @@
 package de.sciss.lucre.edit
 
 import de.sciss.lucre.{Folder, Txn}
-import de.sciss.synth.proc.Proc
+import de.sciss.proc.Proc
 
 object EditProc {
   def addLink[T <: Txn[T]](source: Proc.Output[T], sink: Proc[T], key: String = Proc.mainIn)

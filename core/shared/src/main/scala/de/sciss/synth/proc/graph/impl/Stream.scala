@@ -17,8 +17,8 @@ import de.sciss.lucre.synth.Server
 import de.sciss.synth
 import de.sciss.synth.Ops.stringToControl
 import de.sciss.synth.{UGen, UGenInLike, control}
-import de.sciss.synth.proc.UGenGraphBuilder
-import de.sciss.synth.proc.UGenGraphBuilder.Input
+import de.sciss.proc.UGenGraphBuilder
+import de.sciss.proc.UGenGraphBuilder.Input
 import de.sciss.synth.ugen.{UGenInGroup, UGenOutProxy}
 
 object Stream {

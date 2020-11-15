@@ -15,7 +15,7 @@ package de.sciss.lucre.edit
 
 import de.sciss.equal.Implicits._
 import de.sciss.lucre.{Copy, Folder, Obj, Txn}
-import de.sciss.synth.proc.Proc
+import de.sciss.proc.Proc
 
 object EditObj {
   /** Makes a copy of an object, including all attributes.

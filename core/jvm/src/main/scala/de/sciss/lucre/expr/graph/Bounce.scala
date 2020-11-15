@@ -25,9 +25,10 @@ import de.sciss.numbers
 import de.sciss.processor.Processor
 import de.sciss.span.Span
 import de.sciss.audiofile.AudioFileSpec
-import de.sciss.synth.proc.impl.BasicRunnerImpl
-import de.sciss.synth.proc.{SoundProcesses, Universe}
-import de.sciss.synth.{Client, Server, proc}
+import de.sciss.proc.impl.BasicRunnerImpl
+import de.sciss.proc.{SoundProcesses, Universe}
+import de.sciss.synth.{Client, Server}
+import de.sciss.proc
 
 import scala.concurrent.ExecutionContext
 import scala.concurrent.stm.Ref

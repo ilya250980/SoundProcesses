@@ -1,9 +1,9 @@
-//package de.sciss.synth.proc.tests
+//package de.sciss.proc.tests
 //
 //import java.nio.ByteBuffer
 //
 //import de.sciss.osc
-//import de.sciss.synth.proc.{Code, Compiler}
+//import de.sciss.proc.{Code, Compiler}
 //
 //import scala.concurrent.{ExecutionContext, Future, blocking}
 //import scala.util.Success

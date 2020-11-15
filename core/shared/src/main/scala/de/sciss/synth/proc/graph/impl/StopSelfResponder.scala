@@ -17,7 +17,7 @@ import de.sciss.lucre.Cursor
 import de.sciss.lucre.synth.{Node, RT, Txn}
 import de.sciss.osc
 import de.sciss.synth.proc.graph.StopSelf
-import de.sciss.synth.proc.{SoundProcesses, ViewBase}
+import de.sciss.proc.{SoundProcesses, ViewBase}
 
 final class StopSelfResponder[T <: Txn[T]](view: ViewBase[T], protected val synth: Node)
                                           (implicit cursor: Cursor[T])

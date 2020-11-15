@@ -1,11 +1,11 @@
-//package de.sciss.synth.proc.tests
+//package de.sciss.proc.tests
 //
 //import de.sciss.lucre.{Cursor, StringObj, Txn}
 //import de.sciss.lucre.store.BerkeleyDB
 //import de.sciss.lucre.synth.{Server, Sys}
 //import de.sciss.synth
 //import de.sciss.synth.SynthGraph
-//import de.sciss.synth.proc.{AuralSystem, Code, Compiler, Confluent, Durable, Proc, Transport, Universe, graph}
+//import de.sciss.proc.{AuralSystem, Code, Compiler, Confluent, Durable, Proc, Transport, Universe, graph}
 //
 //import scala.concurrent.Await
 //import scala.concurrent.duration.Duration

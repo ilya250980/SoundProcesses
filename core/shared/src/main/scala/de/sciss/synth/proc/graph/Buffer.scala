@@ -13,8 +13,8 @@
 
 package de.sciss.synth.proc.graph
 
-import de.sciss.synth.proc.UGenGraphBuilder
-import de.sciss.synth.proc.UGenGraphBuilder.Input
+import de.sciss.proc.UGenGraphBuilder
+import de.sciss.proc.UGenGraphBuilder.Input
 import de.sciss.synth.ugen.ControlProxy
 import de.sciss.synth.{UGenInLike, GE, control, scalar, Rate}
 

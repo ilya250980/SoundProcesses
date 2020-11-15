@@ -1,8 +1,8 @@
-package de.sciss.synth.proc.tests
+package de.sciss.proc.tests
 
 import de.sciss.file._
 import de.sciss.lucre.store.BerkeleyDB
-import de.sciss.synth.proc.{Code, Durable, MacroImplicits, Proc, SoundProcesses, Workspace}
+import de.sciss.proc.{Code, Durable, MacroImplicits, Proc, SoundProcesses, Workspace}
 
 object ProcSetGraphTest {
   import MacroImplicits._

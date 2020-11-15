@@ -17,7 +17,7 @@ import de.sciss.synth.Ops.stringToControl
 import de.sciss.synth.{GE, ScalarRated, UGenInLike, inf}
 
 object Time {
-  private[proc] final val key = "$time"
+  private[sciss] final val key = "$time"
 
   def ir: GE = Time()
 }
@@ -27,7 +27,7 @@ final case class Time() extends GE.Lazy with ScalarRated {
 }
 
 object Offset {
-  private[proc] final val key = "$off"
+  private[sciss] final val key = "$off"
 
   def ir: GE = Offset()
 }
@@ -37,7 +37,7 @@ final case class Offset() extends GE.Lazy with ScalarRated {
 }
 
 object Duration {
-  private[proc] final val key = "$dur"
+  private[sciss] final val key = "$dur"
 
   def ir: GE = Duration()
 }

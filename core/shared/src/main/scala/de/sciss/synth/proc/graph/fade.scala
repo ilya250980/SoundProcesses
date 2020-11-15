@@ -13,9 +13,9 @@
 
 package de.sciss.synth.proc.graph
 
+import de.sciss.proc.UGenGraphBuilder.Input
+import de.sciss.proc.{ObjKeys, UGenGraphBuilder}
 import de.sciss.synth.Ops.stringToControl
-import de.sciss.synth.proc.UGenGraphBuilder.Input
-import de.sciss.synth.proc.{ObjKeys, UGenGraphBuilder}
 import de.sciss.synth.ugen._
 import de.sciss.synth.{Curve, GE, Rate, UGenInLike, audio, control}
 

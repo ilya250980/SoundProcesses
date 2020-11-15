@@ -1,6 +1,6 @@
-package de.sciss.synth.proc.tests
+package de.sciss.proc.tests
 
-import de.sciss.synth.proc.Compiler
+import de.sciss.proc.Compiler
 
 object IntpTest extends App {
   val c         = Compiler()

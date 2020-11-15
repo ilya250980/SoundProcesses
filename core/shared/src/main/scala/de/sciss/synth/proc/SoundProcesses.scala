@@ -63,7 +63,11 @@ object SoundProcesses /*extends SoundProcessesPlatform*/ {
     * the safer way is to call `step` which invokes an error handler in that case.
     */
   def atomic[T <: Txn[T], A](fun: T => A)(implicit cursor: Cursor[T]): Future[A] = {
-    if (STMTxn.findCurrent.isDefined) throw new IllegalStateException("Cannot nest transactions")
+    val opt = STMTxn.findCurrent
+    if (opt.isDefined) {
+      log.warn(s"SoundProcesses.atomic. Existing transaction $opt")
+      throw new IllegalStateException("Cannot nest transactions")
+    }
     Future {
       cursor.step(fun)
     } (Executor.executionContext)
@@ -83,7 +87,11 @@ object SoundProcesses /*extends SoundProcessesPlatform*/ {
     * `context` string argument and the error.
     */
   def step[T <: Txn[T]](context: String)(fun: T => Unit)(implicit cursor: Cursor[T]): Unit = {
-    if (STMTxn.findCurrent.isDefined) throw new IllegalStateException("Cannot nest transactions")
+    val opt = STMTxn.findCurrent
+    if (opt.isDefined) {
+      log.warn(s"SoundProcesses.step. Existing transaction $opt")
+      throw new IllegalStateException("Cannot nest transactions")
+    }
     Future {
       try {
         cursor.step(fun)

@@ -13,6 +13,8 @@
 
 package de.sciss.lucre.expr.graph
 
+import java.net.URI
+
 import de.sciss.lucre.expr.graph.impl.MappedIExpr
 import de.sciss.lucre.expr.{Context, graph}
 import de.sciss.lucre.{IExpr, ITargets, Txn}
@@ -72,6 +74,19 @@ object AudioFileSpec extends AudioFileSpecPlatform {
     protected def mkRepr[T <: Txn[T]](implicit ctx: Context[T], tx: T): Repr[T] = {
       import ctx.targets
       new SampleRateExpanded(in.expand[T], tx)
+    }
+  }
+
+  def read(in: Ex[URI]): Ex[Option[_AudioFileSpec]] = Read(in)
+
+  final case class Read(in: Ex[URI]) extends Ex[Option[_AudioFileSpec]] {
+    override def productPrefix: String = s"AudioFileSpec$$Read" // serialization
+
+    type Repr[T <: Txn[T]] = IExpr[T, Option[_AudioFileSpec]]
+
+    protected def mkRepr[T <: Txn[T]](implicit ctx: Context[T], tx: T): Repr[T] = {
+      import ctx.targets
+      new ReadExpanded(in.expand[T], tx)
     }
   }
 

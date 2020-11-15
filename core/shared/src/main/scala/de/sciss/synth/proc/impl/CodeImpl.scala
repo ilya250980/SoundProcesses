@@ -120,18 +120,14 @@ object CodeImpl {
       Import("de.sciss.synth.proc.graph.Ops", All)
     ),
     Code.Control.id -> Vec(     // what should go inside?
-      Import("de.sciss.numbers.Implicits", All),
-      Import("de.sciss.lucre.expr.ExImport", All),
-      Import("de.sciss.synth.proc.ExImport", All),
-      Import("de.sciss.file", All),
-      Import("de.sciss.lucre.expr.graph", All)
+      Import("de.sciss.numbers.Implicits"   , All),
+      Import("de.sciss.synth.proc.ExImport" , All),
+      Import("de.sciss.lucre.expr.graph"    , All)
     ),
     Code.Action.id -> Vec(
-      Import("de.sciss.numbers.Implicits", All),
-      Import("de.sciss.lucre.expr.ExImport", All),
-      Import("de.sciss.synth.proc.ExImport", All),
-      Import("de.sciss.file", All),
-      Import("de.sciss.lucre.expr.graph", All)
+      Import("de.sciss.numbers.Implicits"   , All),
+      Import("de.sciss.synth.proc.ExImport" , All),
+      Import("de.sciss.lucre.expr.graph"    , All)
     ),
   )
 

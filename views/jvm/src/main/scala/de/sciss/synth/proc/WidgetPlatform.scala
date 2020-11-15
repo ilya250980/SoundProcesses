@@ -38,9 +38,9 @@ trait WidgetPlatform {
       import Import._
       proc.Code.registerImports(id, Vec(
         Import("de.sciss.numbers.Implicits", All),
-        Import("de.sciss.lucre.expr.ExImport", All),
+//        Import("de.sciss.lucre.expr.ExImport", All),
         Import("de.sciss.synth.proc.ExImport", All),
-        Import("de.sciss.file", All),
+//        Import("de.sciss.file", All),
         Import("de.sciss.lucre.expr.graph", All),
         Import("de.sciss.lucre.swing.graph", All)
       ))

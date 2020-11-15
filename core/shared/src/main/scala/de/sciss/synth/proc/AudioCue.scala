@@ -53,7 +53,7 @@ object AudioCue {
         Artifact.Value.read(in)
       } else if (cookie == COOKIE_OLD) {
         val path = in.readUTF()
-        new URI("file", path, null)
+        Artifact.fileToURI(path)
       } else {
         sys.error(s"Unexpected cookie $cookie, expected $COOKIE")
       }

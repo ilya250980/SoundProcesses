@@ -14,7 +14,7 @@
 package de.sciss.lucre.synth.impl
 
 import de.sciss.lucre.synth.BlockAllocator
-import de.sciss.lucre.synth.Log.logAlloc
+import de.sciss.lucre.Log.{synth => logAlloc}
 
 import scala.annotation.tailrec
 import scala.collection.immutable.{SortedMap => ISortedMap}
@@ -52,12 +52,12 @@ object BlockAllocatorImpl {
           bRes.start
         case _ => -1
       }
-      logAlloc(s"$name alloc $size -> $res @${tx.hashCode().toHexString}/${Thread.currentThread().hashCode().toHexString}")
+      logAlloc.debug(s"$name alloc $size -> $res @${tx.hashCode().toHexString}/${Thread.currentThread().hashCode().toHexString}")
       res
     }
 
     def free(address: Int, size: Int)(implicit tx: InTxn): Unit = {
-      logAlloc(s"$name free $address, $size @${tx.hashCode().toHexString}/${Thread.currentThread().hashCode().toHexString}")
+      logAlloc.debug(s"$name free $address, $size @${tx.hashCode().toHexString}/${Thread.currentThread().hashCode().toHexString}")
       val b       = Block(address, size)
       val state0  = ref()
       require(state0.used.contains(b), s"Freeing an unregistered block $b")

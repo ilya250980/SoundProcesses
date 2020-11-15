@@ -19,7 +19,8 @@ import de.sciss.lucre.impl.ObservableImpl
 import de.sciss.lucre.{Ident, IdentMap, Obj, Source, synth}
 import de.sciss.span.Span
 import de.sciss.synth.proc.Transport.AuralStarted
-import de.sciss.synth.proc.{AuralContext, AuralObj, Scheduler, TimeRef, Transport, Universe, logTransport => logT}
+import de.sciss.synth.proc.{AuralContext, AuralObj, Scheduler, TimeRef, Transport, Universe}
+import de.sciss.synth.proc.SoundProcesses.{logTransport => logT}
 
 import scala.concurrent.stm.{Ref, TSet}
 
@@ -94,7 +95,7 @@ object TransportImpl {
 
       val timeBase1 = timeBase0.play()
       timeBaseRef() = timeBase1
-      logT(s"transport - play - $timeBase1")
+      logT.debug(s"transport - play - $timeBase1")
 
       playViews()
       fire(Transport.Play(this, timeBase1.pos0))
@@ -102,7 +103,7 @@ object TransportImpl {
 
     private def playViews()(implicit tx: T): Unit = {
       val tr = mkTimeRef()
-      logT(s"transport - playViews - $tr")
+      logT.debug(s"transport - playViews - $tr")
       viewSet.foreach(_.run(tr, ()))
     }
 
@@ -112,7 +113,7 @@ object TransportImpl {
 
       val timeBase1 = timeBase0.stop()
       timeBaseRef() = timeBase1
-      logT(s"transport - stop - $timeBase1")
+      logT.debug(s"transport - stop - $timeBase1")
 
       stopViews()
       fire(Transport.Stop(this, timeBase1.pos0))
@@ -129,7 +130,7 @@ object TransportImpl {
 
       val timeBase1 = new PlayTime(wallClock0 = if (p) scheduler.time else Long.MinValue, pos0 = position)
       timeBaseRef() = timeBase1
-      logT(s"transport - seek - $timeBase1")
+      logT.debug(s"transport - seek - $timeBase1")
 
       if (p) playViews()
       fire(Transport.Seek(this, timeBase1.pos0, isPlaying = p))
@@ -207,7 +208,7 @@ object TransportImpl {
     def contextOption(implicit tx: T): Option[AuralContext[T]] = contextRef()
 
     def auralStartedTx()(implicit tx: T, auralContext: AuralContext[T]): Unit = {
-      logT(s"transport - aural-system started")
+      logT.debug(s"transport - aural-system started")
       contextRef.set(Some(auralContext))
       fire(AuralStarted(this, auralContext))
       objSet.foreach { objH =>
@@ -218,7 +219,7 @@ object TransportImpl {
     }
 
     def auralStoppedTx()(implicit tx: T): Unit = {
-      logT(s"transport - aural-system stopped")
+      logT.debug(s"transport - aural-system stopped")
       contextRef() = None
       disposeViews()
     }

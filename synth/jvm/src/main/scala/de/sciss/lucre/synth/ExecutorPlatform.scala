@@ -16,6 +16,7 @@ package de.sciss.lucre.synth
 import java.util.concurrent.{Executors, ScheduledExecutorService, TimeUnit}
 
 import de.sciss.lucre.synth.Executor.Cancelable
+import de.sciss.lucre.Log.{synth => log}
 
 import scala.concurrent.ExecutionContext
 
@@ -64,7 +65,7 @@ trait ExecutorPlatform {
     ExecutionContext.fromExecutorService(pool)
 
   private def shutdownScheduler(): Unit = {
-    Log.log("Shutting down scheduler thread pool")
+    log.info("Shutting down scheduler thread pool")
     pool.shutdown()
   }
 }

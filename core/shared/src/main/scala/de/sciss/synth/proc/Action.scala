@@ -128,7 +128,7 @@ object Action extends Obj.Type {
 
       def value(implicit tx: T): Graph = constValue
 
-      def changed: EventLike[T, model.Change[Graph]] = DummyEvent[T, model.Change[Graph]]
+      def changed: EventLike[T, model.Change[Graph]] = DummyEvent()
 
       def dispose()(implicit tx: T): Unit = ()
 
@@ -216,49 +216,6 @@ object Action extends Obj.Type {
       new Graph.ExpandedImpl(actionEx, disposables)
     }
   }
-
-//  // ---- LEGACY ----
-//
-//  object Universe {
-//    @deprecated("Action should be used instead of ActionRaw", since = "3.31.0")
-//    def apply[T <: Txn[T]](self: ActionRaw[T], invoker: Option[Obj[T]] = None, value: Any = ())
-//                          (implicit peer: proc.Universe[T]): Universe[T] =
-//      new ActionRawImpl.UniverseImpl(self, invoker, value)
-//  }
-//
-//  /** Environment passed into the action body. Deliberately not a sub-type of `proc.Universe`,
-//    * but carrying over some of the same methods.
-//    */
-//  @deprecated("Action should be used instead of ActionRaw", since = "3.31.0")
-//  trait Universe[T <: Txn[T]] extends proc.Universe.Base[T] {
-//    implicit def peer: proc.Universe[T]
-//
-//    /** The action object itself, most prominently giving access to
-//      * linked objects via its attributes.
-//      */
-//    def self: ActionRaw[T]
-//
-//    /** A result object from the invoker. To permit different kind of invocations,
-//      * this value is untyped. Conventionally, `Action.DoubleVector` and `Action.FloatVector`
-//      * are used for collections of numbers.
-//      */
-//    def value: Any
-//
-//    /** Parent component from which the action is invoked. For example
-//      * if used from within a synth-graph, this will be some `Proc.Obj`.
-//      * `None` if the action is directly invoked without dedicated parent.
-//      */
-//    def invoker: Option[Obj[T]]
-//
-//    def root(implicit tx: T): Folder[T] = workspace.root
-//
-//    def log(what: => String)(implicit tx: T): Unit
-//  }
-//
-//  @deprecated("Action should be used instead of ActionRaw", since = "3.31.0")
-//  trait Body {
-//    def apply[T <: Txn[T]](universe: Universe[T])(implicit tx: T): Unit
-//  }
 }
 trait Action[T <: Txn[T]] extends Obj[T] with Publisher[T, Action.Update[T]] {
   def graph: Action.GraphObj.Var[T]

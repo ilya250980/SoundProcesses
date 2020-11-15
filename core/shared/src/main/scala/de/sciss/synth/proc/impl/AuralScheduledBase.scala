@@ -19,7 +19,8 @@ import de.sciss.lucre.impl.{BiGroupImpl, ObservableImpl}
 import de.sciss.lucre.{Disposable, Txn}
 import de.sciss.span.{Span, SpanLike}
 import de.sciss.synth.proc.Runner.{Prepared, Preparing, Running, Stopped}
-import de.sciss.synth.proc.{AuralContext, AuralViewBase, ObjViewBase, Runner, TimeRef, logAural => logA}
+import de.sciss.synth.proc.{AuralContext, AuralViewBase, ObjViewBase, Runner, TimeRef}
+import de.sciss.synth.proc.SoundProcesses.{logAural => logA}
 
 import scala.concurrent.stm.Ref
 
@@ -202,7 +203,7 @@ trait AuralScheduledBase[T <: Txn[T], Target, Elem <: AuralViewBase[T, Target]]
    */
   private def prepareChild(childView: Elem, childTime: TimeRef.Option, observer: Boolean)
                           (implicit tx: T): Option[(Elem, Disposable[T])] = {
-    logA(s"scheduled - prepare $childView - $childTime")
+    logA.debug(s"scheduled - prepare $childView - $childTime")
     childView.prepare(childTime)
     if (!observer || childView.state == Prepared) None else {
       val childObs = childView.react { implicit tx => {
@@ -299,7 +300,7 @@ trait AuralScheduledBase[T <: Txn[T], Target, Elem <: AuralViewBase[T, Target]]
     val targetOffset = viewEventAfter(currentOffset)
     val token = if (targetOffset == Long.MaxValue) -1 else {
       import TimeRef.{framesAndSecs => fas}
-      logA(s"scheduled - scheduleNextEvent(${fas(currentOffset)}) -> ${fas(targetOffset)}")
+      logA.debug(s"scheduled - scheduleNextEvent(${fas(currentOffset)}) -> ${fas(targetOffset)}")
       val targetTime = sched.time + (targetOffset - currentOffset)
       val _token = sched.schedule(targetTime) { implicit tx =>
         eventReached(offset = targetOffset)
@@ -319,7 +320,7 @@ trait AuralScheduledBase[T <: Txn[T], Target, Elem <: AuralViewBase[T, Target]]
    */
   private def eventReached(offset: Long)(implicit tx: T): Unit = {
     import TimeRef.{framesAndSecs => fas}
-    logA(s"scheduled - eventReached(${fas(offset)})")
+    logA.debug(s"scheduled - eventReached(${fas(offset)})")
     internalState match {
       case play: IPlaying =>
         val tr0 = play.timeRef
@@ -342,7 +343,7 @@ trait AuralScheduledBase[T <: Txn[T], Target, Elem <: AuralViewBase[T, Target]]
     val token         = if (targetOffset == Long.MaxValue) -1 else {
       val targetTime = sched.time + (targetOffset - currentOffset)
       import TimeRef.{framesAndSecs => fas}
-      logA(s"scheduled - scheduleGrid(${fas(currentOffset)}, ${fas(modelOffset)}) -> ${fas(targetOffset)}")
+      logA.debug(s"scheduled - scheduleGrid(${fas(currentOffset)}, ${fas(modelOffset)}) -> ${fas(targetOffset)}")
       val _token = sched.schedule(targetTime) { implicit tx =>
         gridReached(offset = targetOffset)
       }
@@ -361,7 +362,7 @@ trait AuralScheduledBase[T <: Txn[T], Target, Elem <: AuralViewBase[T, Target]]
    */
   private def gridReached(offset: Long)(implicit tx: T): Unit = {
     import TimeRef.{framesAndSecs => fas}
-    logA(s"scheduled - gridReached(${fas(offset)})")
+    logA.debug(s"scheduled - gridReached(${fas(offset)})")
     internalState match {
       case play: IPlaying =>
         val startFrame      = offset      + LOOK_AHEAD
@@ -391,7 +392,7 @@ trait AuralScheduledBase[T <: Txn[T], Target, Elem <: AuralViewBase[T, Target]]
           // will be properly executed and thus issues a `scheduleNextEvent` itself
           // after running through `eventReached`
           if (oldEvt.isEmpty || oldEvt.offset != offset) {
-            logA("...reschedule")
+            logA.debug("...reschedule")
             scheduleNextEvent(offset)
           }
         }
@@ -451,7 +452,7 @@ trait AuralScheduledBase[T <: Txn[T], Target, Elem <: AuralViewBase[T, Target]]
         val reschedule  = checkReschedule(h, currentOffset = currentOffset, oldTarget = oldTarget,
                                              elemPlays = elemPlays)
         if (reschedule) {
-          logA("...reschedule")
+          logA.debug("...reschedule")
           scheduleNextEvent(currentOffset)
         }
 
@@ -524,12 +525,12 @@ trait AuralScheduledBase[T <: Txn[T], Target, Elem <: AuralViewBase[T, Target]]
     }
 
     if (schedEvt) {
-      logA("...reschedule event")
+      logA.debug("...reschedule event")
       scheduleNextEvent(currentOffset)
     }
 
     if (schedGrid) {
-      logA("...reschedule grid")
+      logA.debug("...reschedule grid")
       val Span.HasStart(modelFrame) = span
       scheduleGrid(currentOffset = currentOffset, modelOffset = modelFrame)
     }

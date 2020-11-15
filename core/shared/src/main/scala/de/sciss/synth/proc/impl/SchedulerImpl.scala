@@ -20,7 +20,8 @@ import de.sciss.lucre.synth.Executor
 import de.sciss.lucre.{Cursor, Txn}
 import de.sciss.serial.ConstFormat
 import de.sciss.synth.proc.Scheduler.Entry
-import de.sciss.synth.proc.{Scheduler, TimeRef, logTransport => logT}
+import de.sciss.synth.proc.{Scheduler, TimeRef}
+import de.sciss.synth.proc.SoundProcesses.{logTransport => logT}
 
 import scala.concurrent.stm.{InTxn, Ref, TMap, TxnLocal}
 import scala.util.control.NonFatal
@@ -141,10 +142,10 @@ object SchedulerImpl {
       infoVar()         = info
       val jitter        = calcFrame() - info.issueTime
       val actualDelayN  = math.max(0L, ((info.delay - jitter) / sampleRateN).toLong)
-      logT(f"scheduled:     $info; log dly = ${TimeRef.framesAndSecs(info.delay)}, act dly = ${actualDelayN * 1.0e-9}%1.3fs")
+      logT.debug(f"scheduled:     $info; log dly = ${TimeRef.framesAndSecs(info.delay)}, act dly = ${actualDelayN * 1.0e-9}%1.3fs")
       tx.afterCommit {
         Executor.schedule(actualDelayN, TimeUnit.NANOSECONDS) {
-          logT(s"scheduled: exe $info")
+          logT.debug(s"scheduled: exe $info")
           val nowNanos = calcTimeNanoSec(info.targetTime)
           cursor.stepTag(nowNanos) { implicit tx =>
             eventReached(info) // this calls `time_=(info.targetTime)`
@@ -206,7 +207,7 @@ object SchedulerImpl {
       }
 
       import TimeRef.{framesAndSecs => fas}
-      logT(s"schedule: token = $token, time = ${fas(t)}, old tgt ${fas(oldInfo.targetTime)}, new tgt = ${fas(targetTime)}, submit? $reschedule")
+      logT.debug(s"schedule: token = $token, time = ${fas(t)}, old tgt ${fas(oldInfo.targetTime)}, new tgt = ${fas(targetTime)}, submit? $reschedule")
 
       if (reschedule) {
         val newInfo = new Info(issueTime = t, targetTime = targetTime)

@@ -23,7 +23,6 @@ import de.sciss.lucre.{Artifact, Copy, DoubleObj, Elem, Expr, Ident, LongObj, Pu
 import de.sciss.model.Change
 import de.sciss.serial.{ConstFormat, DataInput, DataOutput}
 import de.sciss.synth.proc.ExImport.audioFileSpecOps
-import java.net.URI
 
 import scala.annotation.switch
 

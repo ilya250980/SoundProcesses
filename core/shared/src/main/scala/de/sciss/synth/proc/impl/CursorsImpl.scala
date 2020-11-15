@@ -19,7 +19,8 @@ import de.sciss.lucre.confluent.{Access, Txn => KTxn}
 import de.sciss.lucre.impl.SingleEventNode
 import de.sciss.lucre.{Copy, Disposable, DurableLike, Elem, ListObj, Pull, StringObj, Txn, confluent}
 import de.sciss.serial.{DataInput, DataOutput, TFormat, Writable}
-import de.sciss.synth.proc.{Confluent, Cursors, Durable, log}
+import de.sciss.synth.proc.{Confluent, Cursors, Durable}
+import de.sciss.synth.proc.SoundProcesses.log
 
 object CursorsImpl {
   private final val COOKIE = 0x43737273 // "Csrs"
@@ -31,7 +32,7 @@ object CursorsImpl {
     val name    = StringObj.newVar[D1]("branch")
     type CursorAux[~ <: Txn[~]] = Cursors[T, ~]
     val list    = ListObj.Modifiable[D1, CursorAux]
-    log(s"Cursors.apply targets = $targets, list = $list")
+    log.debug(s"Cursors.apply targets = $targets, list = $list")
     new Impl(targets, seminal, cursor, name, list).connect()
   }
 
@@ -64,7 +65,7 @@ object CursorsImpl {
     val cursor  = confluent.Cursor.Data.read[T, D1](in)
     val name    = StringObj.readVar[D1](in)
     val list    = ListObj.Modifiable.read[D1, Cursors[T, D1] /* , Cursors.Update[T, D1] */](in)
-    log(s"Cursors.read targets = $targets, list = $list")
+    log.debug(s"Cursors.read targets = $targets, list = $list")
     new Impl(targets, seminal, cursor, name, list)
   }
 
@@ -99,7 +100,7 @@ object CursorsImpl {
 
     def addChild(seminal: Access[T])(implicit tx: D1): Cursors[T, D1] = {
       val child = CursorsImpl[T, D1](seminal)
-      log(s"$this.addChild($child)")
+      log.debug(s"$this.addChild($child)")
       list.addLast(child)
       child
     }

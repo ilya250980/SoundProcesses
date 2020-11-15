@@ -295,9 +295,9 @@ class SynthGraphSerializationSpec extends AnyFunSpec {
     describe(s"SynthGraph '$name' ") {
       it("should serialize and de-serialize") {
         val out = DataOutput()
-        SynthGraphObj.valueFormat.write(graph, out)
+        Proc.GraphObj.valueFormat.write(graph, out)
         val in  = DataInput(out.toByteArray)
-        val res = SynthGraphObj.valueFormat.read(in)
+        val res = Proc.GraphObj.valueFormat.read(in)
         assert(res === graph)
       }
     }

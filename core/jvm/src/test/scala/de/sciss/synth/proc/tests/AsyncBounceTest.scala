@@ -6,8 +6,10 @@ import de.sciss.lucre.{Artifact, ArtifactLocation, InMemory}
 import de.sciss.processor.Processor
 import de.sciss.span.Span
 import de.sciss.audiofile.{AudioFile, AudioFileSpec}
-import de.sciss.synth.proc.{AudioCue, Bounce, Durable, Proc, TimeRef, Timeline, UGenGraphBuilder, Universe, graph, showTransportLog}
+import de.sciss.log.Level
+import de.sciss.synth.proc.{AudioCue, Bounce, Durable, Proc, TimeRef, Timeline, UGenGraphBuilder, Universe, graph}
 import de.sciss.synth.{SynthGraph, freeSelf, ugen}
+import de.sciss.synth.proc.SoundProcesses.logTransport
 
 import scala.concurrent.ExecutionContext
 
@@ -23,8 +25,8 @@ object AsyncBounceTest {
     // implicit val system = InMemory()
     implicit val system: S = Durable(BerkeleyDB.tmp())
 
-    de.sciss.lucre.synth.Log.showLog = true
-    showTransportLog  = true
+    de.sciss.lucre.Log.synth.level = Level.Debug
+    logTransport            .level = Level.Debug
 
     def frame(secs: Double): Long = (secs * TimeRef.SampleRate).toLong
 

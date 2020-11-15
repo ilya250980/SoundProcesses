@@ -16,8 +16,9 @@ package de.sciss.synth.proc.impl
 import de.sciss.lucre.Disposable
 import de.sciss.lucre.synth.{Executor, RT, Server}
 import de.sciss.osc.Dump
-import de.sciss.synth.proc.{AuralSystem, logAural => logA}
+import de.sciss.synth.proc.AuralSystem
 import de.sciss.synth.{Client, ServerConnection, Server => SServer}
+import de.sciss.synth.proc.SoundProcesses.{logAural => logA}
 
 import scala.collection.immutable.{IndexedSeq => Vec}
 import scala.concurrent.stm.Ref
@@ -82,7 +83,7 @@ object AuralSystemImpl {
           SServer.boot   ("SoundProcesses", config, client)
         }
 
-        logA(s"Booting (connect = $connect)")
+        logA.debug(s"Booting (connect = $connect)")
         launch {
           case ServerConnection.Aborted =>
             state.single.set(StateStopped)
@@ -103,7 +104,7 @@ object AuralSystemImpl {
       }
 
       def dispose()(implicit tx: RT): Unit = afterCommit {
-        logA("Aborting boot")
+        logA.debug("Aborting boot")
         con.abort()
       }
 
@@ -113,7 +114,7 @@ object AuralSystemImpl {
 
     private case class StateRunning(server: Server) extends State {
       def dispose()(implicit tx: RT): Unit = {
-        logA("Stopped server")
+        logA.debug("Stopped server")
         // NodeGraph.removeServer(server)
         clients.get(tx.peer).foreach(_.auralStopped())
 
@@ -146,7 +147,7 @@ object AuralSystemImpl {
       }
 
       def init()(implicit tx: RT): Unit = {
-        logA("Started server")
+        logA.debug("Started server")
         // NodeGraph.addServer(server)
         clients.get(tx.peer).foreach(_.auralStarted(server))
 

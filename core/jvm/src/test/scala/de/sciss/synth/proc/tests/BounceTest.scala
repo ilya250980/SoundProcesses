@@ -1,13 +1,15 @@
 package de.sciss.synth.proc.tests
 
 import de.sciss.file.File
+import de.sciss.log.Level
 import de.sciss.lucre.store.BerkeleyDB
 import de.sciss.lucre.synth.{InMemory, Server}
-import de.sciss.lucre.{Cursor, Source, synth}
+import de.sciss.lucre.{Cursor, Log, Source, synth}
 import de.sciss.processor.Processor
 import de.sciss.span.Span
 import de.sciss.synth.proc.Implicits._
-import de.sciss.synth.proc.{Bounce, Durable, Proc, SoundProcesses, TimeRef, Timeline, Universe, showTransportLog}
+import de.sciss.synth.proc.SoundProcesses.{logAural, logTransport}
+import de.sciss.synth.proc.{Bounce, Durable, Proc, SoundProcesses, TimeRef, Timeline, Universe}
 import de.sciss.synth.{SynthGraph, ugen}
 import org.rogach.scallop.{ScallopConf, ScallopOption => Opt}
 
@@ -46,8 +48,8 @@ object BounceTest {
   }
 }
 class BounceTest[T <: synth.Txn[T]](/*val system: T,*/ realtime: Boolean)(implicit cursor: Cursor[T]) {
-  de.sciss.lucre.synth.Log.showLog = true
-  showTransportLog  = !realtime
+  Log.synth   .level  = Level.Debug
+  logTransport.level  = if (realtime) Level.Off else Level.Debug
 
   def frame(secs: Double): Long = (secs * TimeRef.SampleRate).toLong
 

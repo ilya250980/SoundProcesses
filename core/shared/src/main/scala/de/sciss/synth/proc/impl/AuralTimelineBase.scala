@@ -19,7 +19,8 @@ import de.sciss.lucre.geom.{LongPoint2D, LongPoint2DLike, LongRectangle, LongSqu
 import de.sciss.lucre.impl.{BiGroupImpl, ObservableImpl}
 import de.sciss.lucre.{BiGroup, Disposable, Ident, IdentMap, Obj, Source, SpanLikeObj, Txn}
 import de.sciss.span.{Span, SpanLike}
-import de.sciss.synth.proc.{AuralViewBase, Runner, TimeRef, Timeline, logAural => logA}
+import de.sciss.synth.proc.{AuralViewBase, Runner, TimeRef, Timeline}
+import de.sciss.synth.proc.SoundProcesses.{logAural => logA}
 
 import scala.collection.immutable.{IndexedSeq => Vec, Set => ISet}
 import scala.concurrent.stm.TSet
@@ -115,7 +116,7 @@ trait AuralTimelineBase[T <: Txn[T], I <: Txn[I], Target, Elem <: AuralViewBase[
   protected final def playView(h: ElemHandle, timeRef: TimeRef.Option, target: Target)
                               (implicit tx: T): Unit = {
     val view = elemFromHandle(h)
-    logA(s"timeline - playView: $view - $timeRef")
+    logA.debug(s"timeline - playView: $view - $timeRef")
     view.run(timeRef, target)
     playingRef.add(h)
     viewPlaying(h)
@@ -123,7 +124,7 @@ trait AuralTimelineBase[T <: Txn[T], I <: Txn[I], Target, Elem <: AuralViewBase[
 
   protected final def stopView(h: ElemHandle)(implicit tx: T): Unit = {
     val view = elemFromHandle(h)
-    logA(s"scheduled - stopView: $view")
+    logA.debug(s"scheduled - stopView: $view")
     view.stop()
     viewStopped(h)
     view.dispose()
@@ -228,7 +229,7 @@ trait AuralTimelineBase[T <: Txn[T], I <: Txn[I], Target, Elem <: AuralViewBase[
     elemRemoved(id, span.value, obj)
 
   protected final def mkView(tid: Ident[T], span: SpanLike, obj: Obj[T])(implicit tx: T): ElemHandle = {
-    logA(s"timeline - elemAdded($span, $obj)")
+    logA.debug(s"timeline - elemAdded($span, $obj)")
 
     // create a view for the element and add it to the tree and map
     val childView = makeViewElem(obj) // AuralObj(obj)
@@ -250,7 +251,7 @@ trait AuralTimelineBase[T <: Txn[T], I <: Txn[I], Target, Elem <: AuralViewBase[
     viewMap.get(tid).foreach { h =>
       // finding the object in the view-map implies that it
       // is currently preparing or playing
-      logA(s"timeline - elemRemoved($span, $obj)")
+      logA.debug(s"timeline - elemRemoved($span, $obj)")
       val elemPlays = playingRef.contains(h)
       elemRemoved(h, elemPlays = elemPlays)
     }
@@ -274,7 +275,7 @@ trait AuralTimelineBase[T <: Txn[T], I <: Txn[I], Target, Elem <: AuralViewBase[
 
   private def removeView(h: ElemHandle)(implicit tx: T): Unit = {
     import h._
-    logA(s"timeline - removeView - $span - $view")
+    logA.debug(s"timeline - removeView - $span - $view")
 
     // note: this doesn't have to check for `IPreparing`, as it is called only
     // via `eventReached`, thus during playing. correct?

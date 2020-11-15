@@ -1,7 +1,9 @@
 package de.sciss.synth.proc.tests
 
+import de.sciss.log.Level
 import de.sciss.lucre.synth.InMemory
-import de.sciss.synth.proc.{Scheduler, TimeRef, showTransportLog}
+import de.sciss.synth.proc.SoundProcesses.logTransport
+import de.sciss.synth.proc.{Scheduler, TimeRef}
 
 // TODO - could be rather easily converted into a unit test
 object SchedulerTest extends App {
@@ -9,7 +11,7 @@ object SchedulerTest extends App {
   type T = InMemory.Txn
 
   implicit val cursor: S = InMemory()
-  showTransportLog = true
+  logTransport.level  = Level.Debug
 
   def frames(secs: Double) = (TimeRef.SampleRate * secs).toLong
 

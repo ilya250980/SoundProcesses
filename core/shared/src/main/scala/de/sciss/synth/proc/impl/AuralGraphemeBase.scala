@@ -18,7 +18,8 @@ import de.sciss.lucre.data.SkipList
 import de.sciss.lucre.Txn.peer
 import de.sciss.lucre.impl.ObservableImpl
 import de.sciss.span.{Span, SpanLike}
-import de.sciss.synth.proc.{AuralViewBase, Grapheme, Runner, TimeRef, logAural => logA}
+import de.sciss.synth.proc.{AuralViewBase, Grapheme, Runner, TimeRef}
+import de.sciss.synth.proc.SoundProcesses.{logAural => logA}
 
 import scala.collection.immutable.{IndexedSeq => Vec}
 import scala.concurrent.stm.Ref
@@ -157,7 +158,7 @@ trait AuralGraphemeBase[T <: Txn[T], I <: Txn[I], Target, Elem <: AuralViewBase[
 
   protected def playView(h: ElemHandle, timeRef: TimeRef.Option, target: Target)(implicit tx: T): Unit = {
     val view = elemFromHandle(h)
-    logA(s"grapheme - playView: $view - $timeRef")
+    logA.debug(s"grapheme - playView: $view - $timeRef")
     stopViews()
     view.run(timeRef, target)
     playingRef() = Some(h)
@@ -170,7 +171,7 @@ trait AuralGraphemeBase[T <: Txn[T], I <: Txn[I], Target, Elem <: AuralViewBase[
   protected def stopViews()(implicit tx: T): Unit =
     playingRef.swap(None).foreach { h =>
       val view = elemFromHandle(h)
-      logA(s"aural - stopView: $view")
+      logA.debug(s"aural - stopView: $view")
       view.stop()
       view.dispose()
       removeView(h)
@@ -242,7 +243,7 @@ trait AuralGraphemeBase[T <: Txn[T], I <: Txn[I], Target, Elem <: AuralViewBase[
       seq  <- viewTree.get(start)(iSys(tx))
       view <- seq.find(_.obj == child)
     } yield {
-      logA(s"timeline - elemRemoved($start, $child)")
+      logA.debug(s"timeline - elemRemoved($start, $child)")
       val h         = ElemHandle(start, view)
       val elemPlays = playingRef().contains(h)
       elemRemoved(h, elemPlays = elemPlays)

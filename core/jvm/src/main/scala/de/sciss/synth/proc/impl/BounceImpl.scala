@@ -22,8 +22,10 @@ import de.sciss.processor.Processor
 import de.sciss.processor.impl.ProcessorImpl
 import de.sciss.synth.Ops.stringToControl
 import de.sciss.audiofile.{AudioFile, AudioFileType, SampleFormat}
+import de.sciss.log.Level
 import de.sciss.synth.proc.Runner.{Prepared, Preparing, Running, Stopped}
-import de.sciss.synth.proc.{AuralObj, AuralSystem, Bounce, Runner, Scheduler, TimeRef, Transport, Universe, logTransport, showTransportLog}
+import de.sciss.synth.proc.{AuralObj, AuralSystem, Bounce, Runner, Scheduler, TimeRef, Transport, Universe}
+import de.sciss.synth.proc.SoundProcesses.logTransport
 import de.sciss.synth.{Client, SynthGraph, addToTail, Server => SServer}
 import de.sciss.{osc, synth}
 
@@ -315,7 +317,7 @@ final class BounceImpl[T <: Txn[T] /*, I <: stm.Sys[I] */](val parentUniverse: U
           cursor.step { implicit tx =>
             scheduler.stepTarget match {
               case Some(pos) if pos <= span.length =>
-                logTransport(s"stepTarget = $pos")
+                logTransport.debug(s"stepTarget = $pos")
                 server.position = (pos * srRatio + 0.5).toLong
                 scheduler.step()
                 true
@@ -336,9 +338,9 @@ final class BounceImpl[T <: Txn[T] /*, I <: stm.Sys[I] */](val parentUniverse: U
       waitForServer()
       val bundles = server.bundles()
 
-      if (showTransportLog) {
-        logTransport("---- BOUNCE: bundles ----")
-        bundles.foreach(b => logTransport(b.toString))
+      if (logTransport.level >= Level.Debug) {
+        logTransport.debug("---- BOUNCE: bundles ----")
+        bundles.foreach(b => logTransport.debug(b.toString))
       }
 
       // ---- write OSC file ----
@@ -371,7 +373,7 @@ final class BounceImpl[T <: Txn[T] /*, I <: stm.Sys[I] */](val parentUniverse: U
 
       val dur = span.length / TimeRef.SampleRate
 
-      logTransport("---- BOUNCE: scsynth ----")
+      logTransport.debug("---- BOUNCE: scsynth ----")
 
       val nrtFut = SServer.renderNRT(dur = dur, config = sCfg)
       nrtFut.start()
@@ -430,7 +432,7 @@ final class BounceImpl[T <: Txn[T] /*, I <: stm.Sys[I] */](val parentUniverse: U
         gather(transport.views)
       }
       if (prepFutures.nonEmpty) {
-        logTransport(s"waiting for ${prepFutures.size} preparations to complete...")
+        logTransport.debug(s"waiting for ${prepFutures.size} preparations to complete...")
         val p = Promise[Any]()
         promiseSync.synchronized {
           promiseBnc = Some(p)
@@ -439,7 +441,7 @@ final class BounceImpl[T <: Txn[T] /*, I <: stm.Sys[I] */](val parentUniverse: U
         }
         Await.result(p.future, Duration.Inf)
 //        Await.result(p.future, Duration(4.0, TimeUnit.SECONDS))
-        logTransport("...preparations completed")
+        logTransport.debug("...preparations completed")
       }
     }
   }

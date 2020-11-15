@@ -28,7 +28,8 @@ import de.sciss.synth.proc.Runner.{Prepared, Preparing, Running, Stopped}
 import de.sciss.synth.proc.TimeRef.SampleRate
 import de.sciss.synth.proc.UGenGraphBuilder.{Complete, Incomplete, MissingIn}
 import de.sciss.synth.proc.graph.impl.{ActionResponder, StopSelfResponder}
-import de.sciss.synth.proc.{Action, AudioCue, AuralAttribute, AuralContext, AuralNode, AuralObj, AuralOutput, FadeSpec, Gen, GenView, ObjKeys, Proc, Runner, TimeRef, graph, UGenGraphBuilder => UGB, logAural => logA}
+import de.sciss.synth.proc.{Action, AudioCue, AuralAttribute, AuralContext, AuralNode, AuralObj, AuralOutput, FadeSpec, Gen, GenView, ObjKeys, Proc, Runner, TimeRef, graph, UGenGraphBuilder => UGB}
+import de.sciss.synth.proc.SoundProcesses.{logAural => logA}
 
 import scala.concurrent.Future
 import scala.concurrent.stm.{Ref, TMap, TxnLocal}
@@ -167,14 +168,14 @@ object AuralProcImpl {
 
     @inline
     private[this] def playOutputs(n: NodeRef)(implicit tx: T): Unit = {
-      logA(s"playOutputs ${procCached()}")
+      logA.debug(s"playOutputs ${procCached()}")
       auralOutputs.foreach { case (_, view) =>
         view.play(n)
       }
     }
 
     private def newSynthGraph()(implicit tx: T): Unit = {
-      logA(s"newSynthGraph ${procCached()}")
+      logA.debug(s"newSynthGraph ${procCached()}")
 
       if (state == Running) stopForRebuild()
 
@@ -189,7 +190,7 @@ object AuralProcImpl {
     // ---- scan events ----
 
     private def outputAdded(output: Proc.Output[T])(implicit tx: T): Unit = {
-      logA(s"outputAdded  to   ${procCached()} (${output.key})")
+      logA.debug(s"outputAdded  to   ${procCached()} (${output.key})")
       val key = output.key
       outputBuses.get(key).foreach { bus =>
         val view = mkAuralOutput(output, bus)
@@ -198,7 +199,7 @@ object AuralProcImpl {
     }
 
     private def outputRemoved(output: Proc.Output[T])(implicit tx: T): Unit = {
-      logA(s"outputRemoved from ${procCached()} (${output.key})")
+      logA.debug(s"outputRemoved from ${procCached()} (${output.key})")
       context.getAux[AuralOutput[T]](output.id).foreach(disposeAuralOutput)
 //      val key = output.key
 //      state.outputs.get(key).foreach { numCh =>
@@ -222,7 +223,7 @@ object AuralProcImpl {
       val rejected    = st.rejectedInputs.contains(aKey)
       val acceptedMap = st.acceptedInputs.getOrElse(aKey, Map.empty)
       val used        = rejected || acceptedMap.nonEmpty
-      logA(s"AttrAdded   to   ${procCached()} ($key) - used? $used")
+      logA.debug(s"AttrAdded   to   ${procCached()} ($key) - used? $used")
       if (!used) return
 
       val view = mkAuralAttribute(key, value)
@@ -264,7 +265,7 @@ object AuralProcImpl {
     }
 
     private def attrRemoved(key: String /*, value: Obj[T]*/)(implicit tx: T): Unit = {
-      logA(s"AttrRemoved from ${procCached()} ($key)")
+      logA.debug(s"AttrRemoved from ${procCached()} ($key)")
       auralAttrMap.remove(key).foreach { view =>
         ports(AuralObj.Proc.AttrRemoved(this, view))
         view.dispose()
@@ -324,7 +325,7 @@ object AuralProcImpl {
     protected final def tryBuild()(implicit tx: T): Unit = {
       buildState match {
         case s0: Incomplete[T] =>
-          logA(s"try build ${procCached()} - ${procCached().name}")
+          logA.debug(s"try build ${procCached()} - ${procCached().name}")
           val s1          = invokeRetry(s0)
           buildStateRef() = s1
           buildAdvanced(before = s0, now = s1)
@@ -356,9 +357,9 @@ object AuralProcImpl {
 
       // handle newly rejected inputs
       if (now.rejectedInputs.isEmpty) {
-        logA(s"buildAdvanced ${procCached()}; complete? ${now.isComplete}")
+        logA.debug(s"buildAdvanced ${procCached()}; complete? ${now.isComplete}")
       } else {
-        logA(s"buildAdvanced ${procCached()}; rejectedInputs = ${now.rejectedInputs.mkString(",")}")
+        logA.debug(s"buildAdvanced ${procCached()}; rejectedInputs = ${now.rejectedInputs.mkString(",")}")
       }
 
       // handle newly visible outputs
@@ -368,7 +369,7 @@ object AuralProcImpl {
         val newOuts = now.outputs.filterNot {
           case (key, _) => before.outputs.contains(key)
         }
-        logA(s"...newOuts = ${newOuts.mkString(",")}")
+        logA.debug(s"...newOuts = ${newOuts.mkString(",")}")
 
         newOuts.foreach { case (key, numCh) =>
           addUsedOutput(key, numCh)
@@ -417,7 +418,7 @@ object AuralProcImpl {
       val aKey        = UGB.AttributeKey(key)
       val rejected    = st.rejectedInputs.contains(aKey)
       val acceptedMap = st.acceptedInputs.getOrElse(aKey, Map.empty)
-      logA(s"genComplete to ${procCached()} ($key) - rejected? $rejected")
+      logA.debug(s"genComplete to ${procCached()} ($key) - rejected? $rejected")
       if (!rejected || acceptedMap.nonEmpty) return
 
       st match {
@@ -1089,7 +1090,7 @@ object AuralProcImpl {
     // ---- asynchronous preparation ----
     private def prepareAndLaunch(ugen: UGB.Complete[T] /*, timeRef: TimeRef*/)(implicit tx: T): Unit = {
       val p = procCached()
-      logA(s"begin prepare $p (${hashCode.toHexString})")
+      logA.debug(s"begin prepare $p (${hashCode.toHexString})")
 
       val b = new AsyncProcBuilder(p)
       ugen.acceptedInputs.foreach { case (key, map) =>
@@ -1129,7 +1130,7 @@ object AuralProcImpl {
     // ---- synchronous preparation ----
     protected def launch(ugen: UGB.Complete[T], timeRef: TimeRef)(implicit tx: T): Unit = {
       val p = procCached()
-      logA(s"begin launch  $p (${hashCode.toHexString})")
+      logA.debug(s"begin launch  $p (${hashCode.toHexString})")
 
       val ubRes         = ugen.result
       val nameHint      = p.attr.$[StringObj](ObjKeys.attrName).map(_.value)
@@ -1163,7 +1164,7 @@ object AuralProcImpl {
       // ---- handle output buses, and establish missing links to sinks ----
       ugen.outputs.foreach { case (key, _ /* numCh */) =>
         val bus    = getOutputBus(key) getOrElse sys.error(s"Scan bus $key not provided")
-        logA(s"addOutputBus($key, $bus) (${hashCode.toHexString})")
+        logA.debug(s"addOutputBus($key, $bus) (${hashCode.toHexString})")
         val res    = BusNodeSetter.writer(graph.ScanOut.controlName(key), bus, synth)
         builder.addUser(res)
       }
@@ -1173,7 +1174,7 @@ object AuralProcImpl {
       builder.play()
       playOutputs(builder)
 
-      logA(s"launched $p -> $builder (${hashCode.toHexString})")
+      logA.debug(s"launched $p -> $builder (${hashCode.toHexString})")
       state = Running
     }
 

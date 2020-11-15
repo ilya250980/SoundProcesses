@@ -8,7 +8,8 @@ import de.sciss.lucre.{Cursor, Disposable, Folder, Source, Txn, TxnLike}
 import de.sciss.serial.{DataInput, DataOutput, TFormat}
 import de.sciss.synth.proc
 import de.sciss.synth.proc.impl.WorkspaceImpl.Data
-import de.sciss.synth.proc.{Workspace, log}
+import de.sciss.synth.proc.Workspace
+import de.sciss.synth.proc.SoundProcesses.log
 
 import scala.collection.immutable.{IndexedSeq => Vec}
 import scala.concurrent.stm.{Ref, Txn => STMTxn}
@@ -116,7 +117,7 @@ trait WorkspaceImpl[T <: Txn[T]] {
     // if the transaction is successful...
     STMTxn.afterCommit { _ =>
       // ...and close the database
-      log(s"Closing system $system")
+      log.info(s"Closing system $system")
       system.close()
     } (tx.peer)
   }

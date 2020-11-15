@@ -16,7 +16,8 @@ package de.sciss.synth.proc.impl
 import de.sciss.lucre.synth.InMemory
 import de.sciss.lucre.synth.impl.TxnFullImpl
 import de.sciss.lucre.{DataStore, confluent, Durable => LDurable}
-import de.sciss.synth.proc.{Confluent, Durable, log}
+import de.sciss.synth.proc.{Confluent, Durable}
+import de.sciss.synth.proc.SoundProcesses.log
 
 import scala.concurrent.stm.InTxn
 
@@ -64,7 +65,7 @@ private[proc] object ConfluentImpl {
     def systemTimeNanoSec: Long = 0L
 
     lazy val durable: /* evt. */ Durable.Txn = {
-      log("txn durable")
+      log.debug("txn durable")
       system.durable.wrap(peer)
     }
   }

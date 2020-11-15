@@ -16,7 +16,8 @@ package de.sciss.synth.proc.impl
 import de.sciss.lucre.impl.ObservableImpl
 import de.sciss.lucre.synth.{AudioBus, NodeRef}
 import de.sciss.lucre.{Ident, Source, Txn}
-import de.sciss.synth.proc.{AuralContext, AuralObj, AuralOutput, Proc, logAural => logA}
+import de.sciss.synth.proc.{AuralContext, AuralObj, AuralOutput, Proc}
+import de.sciss.synth.proc.SoundProcesses.{logAural => logA}
 
 object AuralOutputImpl {
   def apply[T <: Txn[T]](view: AuralObj.Proc[T], output: Proc.Output[T], bus: AudioBus)
@@ -24,7 +25,7 @@ object AuralOutputImpl {
     val id    = output.id
     val key   = output.key
     val res   = new Impl[T](view = view, key = key, bus = bus, idH = tx.newHandle(id))
-    logA(s"AuralOutput($view, $key, bus = $bus)")
+    logA.debug(s"AuralOutput($view, $key, bus = $bus)")
     context.putAux[AuralOutput /* .Proxy */[T]](id, res)
     res
   }
@@ -42,17 +43,17 @@ object AuralOutputImpl {
 
     def play(n: NodeRef)(implicit tx: T): Unit = {
 //      implicit val itx = tx.peer
-      logA(s"AuralOutput play; $view, $key")
+      logA.debug(s"AuralOutput play; $view, $key")
       fire(AuralOutput.Play(n))
     }
 
     def stop()(implicit tx: T): Unit = {
-      logA(s"AuralOutput stop; $view, $key")
+      logA.debug(s"AuralOutput stop; $view, $key")
       fire(AuralOutput.Stop)
     }
 
     def dispose()(implicit tx: T): Unit = {
-      logA(s"AuralOutput dispose; $view, $key")
+      logA.debug(s"AuralOutput dispose; $view, $key")
 //      implicit val itx = tx.peer
       view.context.removeAux(idH())
     }

@@ -2,6 +2,7 @@ package de.sciss
 package synth
 package proc
 
+import de.sciss.log.Level
 import de.sciss.lucre.{BooleanObj, Disposable, Event, Folder, Ident, Log, SpanLikeObj}
 import de.sciss.serial.TFormat
 import de.sciss.span.Span
@@ -18,7 +19,7 @@ class Issue15 extends ConfluentEventSpec {
   ignore /* "AttrMap" */ should "dispatch events after repeated listener (un)registration" in { system =>
     val obs = new Observation
 
-    if (DEBUG) Log.showEventLog = true
+    if (DEBUG) Log.event.level = Level.Debug
 
     // ---- we create the "workspace" ----
     val (fH, pObjH, tlH, _ /* timedIdH */ , _ /* spanH */) = system.step { implicit tx =>
@@ -117,8 +118,8 @@ class Issue15 extends ConfluentEventSpec {
     muteObservation()
 
     if (DEBUG) {
-      de.sciss.lucre.confluent.Log.showLog = true
-      de.sciss.lucre.Log.showTxnLog = true
+      de.sciss.lucre.Log.confluent.level = Level.Debug
+      de.sciss.lucre.Log.txn      .level = Level.Debug
     }
 
     // ---- we "close" the timeline view; this produces the illegal state somehow ----

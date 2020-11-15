@@ -16,8 +16,9 @@ package de.sciss.synth.proc.impl
 import de.sciss.lucre.Txn
 import de.sciss.lucre.synth.Server
 import de.sciss.synth.NestedUGenGraphBuilder.ExpIfCase
-import de.sciss.synth.proc.{Proc, logAural, UGenGraphBuilder => UGB}
+import de.sciss.synth.proc.{Proc, UGenGraphBuilder => UGB}
 import de.sciss.synth.{NestedUGenGraphBuilder, SynthGraph}
+import de.sciss.synth.proc.SoundProcesses.logAural
 
 object UGenGraphBuilderImpl {
   import UGB.{Complete, Context, Incomplete, MissingIn, State}
@@ -108,7 +109,7 @@ object UGenGraphBuilderImpl {
       val map0  = acceptedInputs.getOrElse(key, Map.empty)
       val map1  = map0 + (req -> res)
       acceptedInputs += key -> map1
-      logAural(s"acceptedInputs += ${req.key} -> $res")
+      logAural.debug(s"acceptedInputs += ${req.key} -> $res")
       res
     }
 

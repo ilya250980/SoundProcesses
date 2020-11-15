@@ -128,7 +128,7 @@ object Control extends Obj.Type {
 
       def value(implicit tx: T): _Graph = constValue
 
-      def changed: EventLike[T, model.Change[_Graph]] = DummyEvent[T, model.Change[_Graph]]
+      def changed: EventLike[T, model.Change[_Graph]] = DummyEvent()
 
       def dispose()(implicit tx: T): Unit = ()
 

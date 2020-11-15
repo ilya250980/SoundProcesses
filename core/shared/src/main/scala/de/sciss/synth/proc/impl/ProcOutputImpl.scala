@@ -1,5 +1,5 @@
 /*
- *  OutputImpl.scala
+ *  ProcOutputImpl.scala
  *  (SoundProcesses)
  *
  *  Copyright (c) 2010-2020 Hanns Holger Rutz. All rights reserved.
@@ -18,7 +18,7 @@ import de.sciss.lucre.impl.{ConstObjImpl, ObjCastFormat}
 import de.sciss.lucre.{AnyTxn, Copy, Elem, Ident, Obj, Txn}
 import de.sciss.serial.{DataInput, DataOutput, TFormat}
 
-object OutputImpl {
+object ProcOutputImpl {
   private final val SER_VERSION = 0x5370  // was "Sn"
 
   sealed trait Update[T]

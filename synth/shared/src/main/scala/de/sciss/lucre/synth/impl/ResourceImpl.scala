@@ -14,7 +14,7 @@
 package de.sciss.lucre.synth
 package impl
 
-import de.sciss.lucre.synth.Log.log
+import de.sciss.lucre.Log.{synth => log}
 
 import scala.concurrent.stm.Ref
 
@@ -43,7 +43,7 @@ trait ResourceImpl extends Resource {
     if (!p) {
       val user  = message
       val msg   = if (user.isEmpty) s"$this is not in required state" else s"$this - $user"
-      log(msg)
+      log.debug(msg)
       throw new IllegalStateException(msg)
     }
   }

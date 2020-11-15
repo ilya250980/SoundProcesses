@@ -15,7 +15,8 @@ package de.sciss.synth.proc.impl
 
 import de.sciss.lucre.synth.Server
 import de.sciss.lucre.{IdentMap, Txn}
-import de.sciss.synth.proc.{AuralContext, Universe, logAural}
+import de.sciss.synth.proc.{AuralContext, Universe}
+import de.sciss.synth.proc.SoundProcesses.logAural
 
 object AuralContextImpl {
   def apply[T <: Txn[T]](server: Server)
@@ -25,7 +26,7 @@ object AuralContextImpl {
 //    import scheduler.cursor
 //    val gen     = GenContext[T]
     val res     = new Impl[T](objMap, auxMap, server, tx)
-    logAural(s"create context ${res.hashCode().toHexString}")
+    logAural.debug(s"create context ${res.hashCode().toHexString}")
     // (new Throwable).printStackTrace()
     res
   }

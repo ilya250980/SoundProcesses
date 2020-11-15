@@ -131,7 +131,7 @@ object Widget extends Obj.Type with WidgetPlatform {
 
       def value(implicit tx: T): _Graph = constValue
 
-      def changed: EventLike[T, model.Change[_Graph]] = DummyEvent[T, model.Change[_Graph]]
+      def changed: EventLike[T, model.Change[_Graph]] = DummyEvent()
 
       def dispose()(implicit tx: T): Unit = ()
 

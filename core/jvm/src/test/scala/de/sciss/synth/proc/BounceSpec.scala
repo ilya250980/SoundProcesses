@@ -127,7 +127,7 @@ abstract class BounceSpec extends FixtureAsyncFlatSpec with Matchers {
       graph
       ()
     }
-    p.graph() = SynthGraphObj.newConst[T](g)
+    p.graph() = Proc.GraphObj.newConst[T](g)
     p
   }
 

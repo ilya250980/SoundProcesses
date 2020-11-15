@@ -91,8 +91,8 @@ object Proc /*extends ProcPlatform*/ {
       val cueObj  = proc.AudioCue.Obj .newVar[T](cueV)
       a.put(proc.ObjKeys.attrName   , name)
       a.put(proc.Proc   .graphAudio , cueObj)
-      peer.graph() = proc.SynthGraphObj.tape
-      a.put(proc.Proc.attrSource, proc.SynthGraphObj.tapeSource)
+      peer.graph() = proc.Proc.GraphObj.tape
+      a.put(proc.Proc.attrSource, proc.Proc.GraphObj.tapeSource)
       peer.outputs.add(proc.Proc.mainOut)
       new Proc.Impl(tx.newHandle(peer), tx.system)
     }

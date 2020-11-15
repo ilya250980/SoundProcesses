@@ -29,10 +29,10 @@ object Code {
   final val typeId = 0x20001
 
   def init(): Unit = {
-    Obj       .init()
-    SynthGraph.init()
-    Control   .init()
-    Action    .init()
+    Code.Obj     .init()
+    Code.Proc    .init()
+    Code.Control .init()
+    Code.Action  .init()
   }
 
   final val UserPackage = "user"
@@ -166,7 +166,7 @@ object Code {
 
   // ---- type: SynthGraph ----
 
-  object SynthGraph extends Type {
+  object Proc extends Type {
     final val id        = 1
 
     final val prefix    = "Proc"
@@ -197,21 +197,21 @@ object Code {
       )
     )
 
-    type Repr = SynthGraph
+    type Repr = Proc
 
     def docBaseSymbol: String = "de.sciss.synth.ugen"
 
-    def mkCode(source: String): Repr = SynthGraph(source)
+    def mkCode(source: String): Repr = Proc(source)
   }
-  final case class SynthGraph(source: String) extends Code {
+  final case class Proc(source: String) extends Code {
     type In     = Unit
     type Out    = synth.SynthGraph
 
-    def tpe: Code.Type = SynthGraph
+    def tpe: Code.Type = Proc
 
     def compileBody()(implicit compiler: Code.Compiler): Future[Unit] = {
       import reflect.runtime.universe._
-      Impl.compileBody[In, Out, Unit, SynthGraph](this, typeTag[Unit])
+      Impl.compileBody[In, Out, Unit, Proc](this, typeTag[Unit])
     }
 
     def execute(in: In)(implicit compiler: Code.Compiler): Out =
@@ -224,7 +224,7 @@ object Code {
 
     def postlude: String = "\n}\n"
 
-    def updateSource(newText: String): SynthGraph = copy(source = newText)
+    def updateSource(newText: String): Proc = copy(source = newText)
   }
 
   // ---- type: Control ----

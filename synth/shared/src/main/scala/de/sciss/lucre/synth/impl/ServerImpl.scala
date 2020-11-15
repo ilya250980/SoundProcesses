@@ -17,7 +17,7 @@ package impl
 import java.io.{ByteArrayOutputStream, DataOutputStream}
 
 import de.sciss.lucre.Txn.{peer => txPeer}
-import de.sciss.lucre.synth.Log.log
+import de.sciss.lucre.Log.{synth => log}
 import de.sciss.osc
 import de.sciss.osc.TimeTag
 import de.sciss.synth.{AllocatorExhausted, ControlABusMap, ControlSet, UGenGraph, addToHead, message, Client => SClient, Server => SServer}
@@ -432,8 +432,8 @@ object ServerImpl {
       // cf. https://github.com/supercollider/supercollider/commit/f3f0f81de4259aa44983f1041589f895c91798a1
       val szOk = sz <= MaxOfflinePacketSize
       if (szOk || b1.packets.length == 1) {
-        log(s"addBundle $b1")
-        if (!szOk) log(s"addBundle - bundle exceeds ${MaxOfflinePacketSize/1024}k!")
+        log.debug(s"addBundle $b1")
+        if (!szOk) log.info(s"addBundle - bundle exceeds ${MaxOfflinePacketSize/1024}k!")
         _bundles :+= b1
       } else {
         val tt = b1.timeTag
@@ -531,10 +531,10 @@ object ServerImpl {
       dos.close()
       val bytes = bos.toByteArray
       val equ: SIndexedSeq[Byte] = bytes // opposed to plain `Array[Byte]`, this has correct definition of `equals`
-      log(s"request for synth graph ${equ.hashCode()}")
+      log.debug(s"request for synth graph ${equ.hashCode()}")
 
       ugenGraphMap.get(equ).fold[SynthDef] {
-        log(s"synth graph ${equ.hashCode()} is new")
+        log.debug(s"synth graph ${equ.hashCode()} is new")
         if (VERIFY_WIRE_BUFFERS) {
           val wires     = UGenGraph.calcWireBuffers(graph)
           val maxWires  = server.peer.config.wireBuffers
@@ -550,7 +550,7 @@ object ServerImpl {
         val lru   = synthDefLRU.transformAndGet((equ, rd) +: _)
         if (lru.size == maxDefinitions) {
           val init :+ Tuple2(lastEqu, lastDf) = lru
-          log(s"purging synth-def ${lastDf.name}")
+          log.debug(s"purging synth-def ${lastDf.name}")
           lastDf.dispose()
           ugenGraphMap.remove(lastEqu)
           synthDefLRU() = init
@@ -569,17 +569,17 @@ object ServerImpl {
     }
 
     final def addVertex(node: NodeRef)(implicit tx: RT): Unit = {
-      log(s"Server.addVertex($node)")
+      log.debug(s"Server.addVertex($node)")
       topologyRef.transform(_.addVertex(node))
     }
 
     final def removeVertex(node: NodeRef)(implicit tx: RT): Unit = {
-      log(s"Server.removeVertex($node)")
+      log.debug(s"Server.removeVertex($node)")
       topologyRef.transform(_.removeVertex(node))
     }
 
     final def addEdge(edge: NodeRef.Edge)(implicit tx: RT): Boolean = {
-      log(s"Server.addEdge($edge)")
+      log.debug(s"Server.addEdge($edge)")
       val res = topologyRef().addEdge(edge)
       res.foreach { case (topNew, moveOpt) =>
         topologyRef() = topNew
@@ -602,7 +602,7 @@ object ServerImpl {
     }
 
     final def removeEdge(edge: NodeRef.Edge)(implicit tx: RT): Unit = {
-      log(s"Server.removeEdge($edge)")
+      log.debug(s"Server.removeEdge($edge)")
       topologyRef.transform(_.removeEdge(edge))
     }
 
@@ -772,7 +772,7 @@ object ServerImpl {
         val fut     = server.!!(bundle)
         val futR    = fut.recover {
           case message.Timeout() =>
-            log("TIMEOUT while sending OSC bundle!")
+            log.warn("TIMEOUT while sending OSC bundle!")
         }
         futR.flatMap(_ => sendAdvance(stamp))
       }

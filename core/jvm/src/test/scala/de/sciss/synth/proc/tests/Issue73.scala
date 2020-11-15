@@ -3,10 +3,11 @@ package de.sciss.synth.proc.tests
 import de.sciss.file._
 import de.sciss.lucre.synth.impl.ServerImpl
 import de.sciss.lucre.synth.{InMemory, Server, Sys}
-import de.sciss.lucre.{Artifact, ArtifactLocation, Cursor, Source, synth}
+import de.sciss.lucre.{Artifact, ArtifactLocation, Cursor, Log, Source, synth}
 import de.sciss.processor.Processor
 import de.sciss.span.Span
 import de.sciss.audiofile.{AudioFile, AudioFileSpec}
+import de.sciss.log.Level
 import de.sciss.synth.proc.Implicits._
 import de.sciss.synth.proc.{AudioCue, Bounce, Proc, SoundProcesses, TimeRef, Timeline, Universe}
 import de.sciss.synth.{SynthGraph, ugen}
@@ -68,7 +69,7 @@ class Issue73[T <: synth.Txn[T]](val system: Sys)(implicit cursor: Cursor[T]) {
   sCfg.sampleRate         = 48000
   sCfg.pickPort()
 
-  de.sciss.lucre.synth.Log.showLog = true
+  Log.synth.level = Level.Debug
 //  //  showTransportLog  = false
   bCfg.beforePlay = { (_, s) => s.peer.dumpOSC() }
   ServerImpl.DEBUG = true

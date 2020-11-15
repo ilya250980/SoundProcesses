@@ -7,7 +7,7 @@ import de.sciss.span.Span
 import de.sciss.synth.Curve.{exponential, linear}
 import de.sciss.audiofile.{AudioFile, AudioFileType}
 import de.sciss.synth.proc.Implicits._
-import de.sciss.synth.proc.{AudioCue, AuralContext, AuralObj, FadeSpec, Grapheme, Implicits, ObjKeys, Proc, SynthGraphObj, TimeRef, Timeline, Transport, graph}
+import de.sciss.synth.proc.{AudioCue, AuralContext, AuralObj, FadeSpec, Grapheme, Implicits, ObjKeys, Proc, TimeRef, Timeline, Transport, graph}
 import de.sciss.{numbers, synth}
 
 object AuralTests1 extends AuralTestLike.Factory {
@@ -562,7 +562,7 @@ class AuralTests1[T <: STxn[T]](name: String)(implicit cursor: Cursor[T]) extend
 
     val (tr, proc1H, proc2H) = cursor.step { implicit tx =>
       val p     = Proc[T]()
-      val g     = SynthGraphObj.tape[T]
+      val g     = Proc.GraphObj.tape[T]
       p.graph() = g
       val _proc1 = p // Obj(Proc.Elem(p))
 
@@ -791,7 +791,7 @@ class AuralTests1[T <: STxn[T]](name: String)(implicit cursor: Cursor[T]) extend
           val sig  = Resonz.ar(in, 555, 0.1) * 10
           Out.ar(0, sig)
         }
-        pObj.graph() = SynthGraphObj.newConst[T](newGraph)
+        pObj.graph() = Proc.GraphObj.newConst[T](newGraph)
 
         stopAndQuit()
       }

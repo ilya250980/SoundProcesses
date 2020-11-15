@@ -67,8 +67,8 @@ object Macros {
       val ext                 = c.prefix.splice.asInstanceOf[MacroImplicits.ProcMacroOps[T]]
       implicit val txc = tx.splice // don't annotate the type with `T`, it will break scalac
       val p                   = ext.`this`
-      p.graph()               = SynthGraphObj.newConst[T](SynthGraph(body.splice))
-      val code                = Code.SynthGraph(sourceExpr.splice)
+      p.graph()               = Proc.GraphObj.newConst[T](SynthGraph(body.splice))
+      val code                = Code.Proc(sourceExpr.splice)
       val codeObj             = Code.Obj.newVar[T](Code.Obj.newConst[T](code))
       p.attr.put(Proc.attrSource, codeObj)
       ()

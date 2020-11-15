@@ -13,6 +13,7 @@
 
 package de.sciss.synth.proc
 
+import de.sciss.log.Logger
 import de.sciss.lucre
 import de.sciss.lucre.expr.LucreExpr
 import de.sciss.lucre.synth.Executor
@@ -94,6 +95,17 @@ object SoundProcesses /*extends SoundProcessesPlatform*/ {
     ()
   }
 
+  final val log         : Logger = new Logger("proc")
+  final val logAural    : Logger = new Logger("proc aural")
+  final val logTransport: Logger = new Logger("proc transport")
+
+  //  /** Exception are sometimes swallowed without printing in a transaction. This ensures a print. */
+  //  private[proc] def ???! : Nothing = {
+  //    val err = new NotImplementedError
+  //    err.printStackTrace()
+  //    throw err
+  //  }
+
   private[this] lazy val _init: Unit = {
     LucreExpr     .init()
     Code          .init()
@@ -106,7 +118,6 @@ object SoundProcesses /*extends SoundProcessesPlatform*/ {
     FadeSpec      .init()
     Grapheme      .init()
     Proc          .init()
-    SynthGraphObj .init()
     Timeline      .init()
     Markdown      .init()
     EnvSegment    .init()

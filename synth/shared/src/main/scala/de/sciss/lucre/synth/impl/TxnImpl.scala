@@ -15,7 +15,7 @@ package de.sciss.lucre.synth
 package impl
 
 import de.sciss.lucre.synth
-import de.sciss.lucre.synth.Log.log
+import de.sciss.lucre.Log.{synth => log}
 import de.sciss.synth.UGenSource.Vec
 
 import scala.collection.immutable.{Seq => ISeq}
@@ -36,7 +36,7 @@ sealed trait RTImpl extends RT { tx =>
 
   final protected def flush(): Unit =
     bundlesMap.foreach { case (server, bundles) =>
-      log(s"flush $server -> ${bundles.size} bundles")
+      log.debug(s"flush $server -> ${bundles.size} bundles")
       server.send(bundles, systemTimeNanoSec)
     }
 
@@ -83,7 +83,7 @@ sealed trait RTImpl extends RT { tx =>
     // (A async 0, B async 0) --> (A + 1) & ~1 == A
     val resourceStampNew = if (msgAsync) (depStampMax + 1) & ~1 else depStampMax | 1
 
-    log(s"addMessage($resource, $m) -> stamp = $resourceStampNew")
+    log.debug(s"addMessage($resource, $m) -> stamp = $resourceStampNew")
     if (resourceStampNew != resourceStampOld) resource.timeStamp_=(resourceStampNew)(tx)
 
     val bNew = if (szOld == 0) {
@@ -136,7 +136,7 @@ trait TxnFullImpl[T <: synth.Txn[T]] extends RTImpl with synth.Txn[T] {
 //  type Ev = synth.Txn[Ev]
 
   final protected def markBundlesDirty(): Unit = {
-    log("registering after commit handler")
+    log.debug("registering after commit handler")
     afterCommit(flush())
   }
 }
@@ -147,7 +147,7 @@ final class TxnPlainImpl(val peer: InTxn, val systemTimeNanoSec: Long) extends R
   def afterCommit(code: => Unit): Unit = ScalaTxn.afterCommit(_ => code)(peer)
 
   protected def markBundlesDirty(): Unit = {
-    log("registering after commit handler")
+    log.debug("registering after commit handler")
     ScalaTxn.afterCommit(_ => flush())(peer)
   }
 }

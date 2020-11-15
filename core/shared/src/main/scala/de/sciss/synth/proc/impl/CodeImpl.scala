@@ -112,7 +112,7 @@ object CodeImpl {
   import Import._
 
   private var importsMap = Map[Int, Vec[Import]](
-    Code.SynthGraph.id -> Vec(
+    Code.Proc.id -> Vec(
       Import("de.sciss.synth", List(Ignore("Buffer"), Wildcard)),
       Import("de.sciss.synth.ugen", List(Ignore("DiskIn"), Ignore("DiskOut"), Ignore("VDiskIn"),
         Ignore("BufChannels"), Ignore("BufRateScale"), Ignore("BufSampleRate"), Wildcard)),

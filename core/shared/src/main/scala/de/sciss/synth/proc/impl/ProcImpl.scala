@@ -81,7 +81,7 @@ object ProcImpl {
 
     def add(key: String)(implicit tx: T): Proc.Output[T] =
       get(key).getOrElse {
-        val res = OutputImpl[T](proc, key)
+        val res = ProcOutputImpl[T](proc, key)
         add(key, res)
         res
       }
@@ -102,7 +102,7 @@ object ProcImpl {
     def copy[Out <: Txn[Out]]()(implicit tx: T, txOut: Out, context: Copy[T, Out]): Elem[Out] =
       new Impl[Out] { out =>
         protected val targets: Targets[Out]                         = Targets[Out]()
-        val graph     : SynthGraphObj.Var[Out]                      = context(proc.graph)
+        val graph     : Proc.GraphObj.Var[Out]                      = context(proc.graph)
         val outputsMap: SkipList.Map[Out, String, Proc.Output[Out]] = SkipList.Map.empty
 
         context.defer(proc, out) {
@@ -215,7 +215,7 @@ object ProcImpl {
 
   private final class New[T <: Txn[T]](implicit tx0: T) extends Impl[T] {
     protected val targets: Targets[T] = Targets[T]()(tx0)
-    val graph     : SynthGraphObj.Var[T]                    = SynthGraphObj.newVar(SynthGraphObj.empty)
+    val graph     : Proc.GraphObj.Var[T]                    = Proc.GraphObj.newVar(Proc.GraphObj.empty)
     val outputsMap: SkipList.Map[T, String, Proc.Output[T]] = SkipList.Map.empty
     connect()(tx0)
   }
@@ -229,7 +229,7 @@ object ProcImpl {
       if (serVer != SER_VERSION) sys.error(s"Incompatible serialized (found $serVer, required $SER_VERSION)")
     }
 
-    val graph     : SynthGraphObj.Var[T]                    = SynthGraphObj.readVar(in)
+    val graph     : Proc.GraphObj.Var[T]                    = Proc.GraphObj.readVar(in)
     val outputsMap: SkipList.Map[T, String, Proc.Output[T]] = SkipList.Map .read   (in)
   }
 }

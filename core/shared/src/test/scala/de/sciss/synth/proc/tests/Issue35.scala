@@ -1,16 +1,18 @@
 package de.sciss.synth.proc.tests
 
+import de.sciss.log.Level
 import de.sciss.lucre.synth.InMemory
 import de.sciss.lucre.{IntObj, Workspace}
 import de.sciss.synth.SynthGraph
-import de.sciss.synth.proc.{Grapheme, Proc, SoundProcesses, TimeRef, Transport, Universe, showAuralLog}
+import de.sciss.synth.proc.SoundProcesses.logAural
+import de.sciss.synth.proc.{Grapheme, Proc, SoundProcesses, TimeRef, Transport, Universe}
 
 object Issue35 {
   type S = InMemory
   type T = InMemory.Txn
   implicit val cursor: S = InMemory()
 
-  showAuralLog = true
+  logAural    .level  = Level.Debug
 
 //  type S = Durable
 //  implicit val cursor: stm.Cursor[T] = {

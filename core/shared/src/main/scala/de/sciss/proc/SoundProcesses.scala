@@ -22,38 +22,12 @@ import de.sciss.lucre.{Cursor, Txn}
 import scala.concurrent.Future
 import scala.concurrent.stm.{Txn => STMTxn}
 
-object SoundProcesses /*extends SoundProcessesPlatform*/ {
-//  /** Returns the size of the thread pool used in `atomic`,
-//    * where `None` indicates that a single-threaded context is used
-//    * (default).
-//    */
-//  def poolSize: Option[Int] = NodeImpl.poolSize
-//
-//  /** Sets the size of the thread pool used in `atomic`.
-//    * Note that this is only effective until the moment that
-//    * pool has been used for the first time (e.g. by invocation
-//    * of `atomic` or on a node's `onEnd`. Therefore this method
-//    * should only be used during application startup.
-//    *
-//    * A `Some` value specifies the number of concurrent threads,
-//    * a `None` value is equivalent to a single-threaded context.
-//    */
-//  def poolSize_=(value: Option[Int]): Unit  = NodeImpl.poolSize = value
-
+object SoundProcesses  {
   private[proc] def isPowerOfTwo(value: Int): Boolean = (value & (value - 1)) == 0
 
   private[proc] def validateCueBufferSize(value: Int): Unit =
     if (!isPowerOfTwo(value) || value < 8192 || value > 131072)
       throw new IllegalArgumentException(s"Must be a power of two and in (8192, 131072) : $value")
-
-//  /** Same as `lucre.synth.impl.NodeImpl.pool`. */
-//  def scheduledExecutorService: ScheduledExecutorService = NodeImpl.pool
-
-//  /** Default execution-context used for scheduling and spawning functions.
-//    * It uses the `scheduledExecutorService`.
-//    */
-//  lazy implicit val executionContext: ExecutionContext =
-//    ExecutionContext.fromExecutorService(scheduledExecutorService)
 
   /** Spawns a transactional function on the default `executionContext`. Throws
     * an exception if this method is called within a transaction.
@@ -107,13 +81,6 @@ object SoundProcesses /*extends SoundProcessesPlatform*/ {
   final val logAural    : Logger = new Logger("proc aural")
   final val logTransport: Logger = new Logger("proc transport")
 
-  //  /** Exception are sometimes swallowed without printing in a transaction. This ensures a print. */
-  //  private[proc] def ???! : Nothing = {
-  //    val err = new NotImplementedError
-  //    err.printStackTrace()
-  //    throw err
-  //  }
-
   private[this] lazy val _init: Unit = {
     LucreExpr     .init()
     Code          .init()
@@ -126,6 +93,7 @@ object SoundProcesses /*extends SoundProcessesPlatform*/ {
     FadeSpec      .init()
     Grapheme      .init()
     Proc          .init()
+    Tag           .init()
     Timeline      .init()
     Markdown      .init()
     EnvSegment    .init()

@@ -244,7 +244,7 @@ object TransportViewImpl {
     }
 
     private def playTxn(pos: Long = timelineModel.position)(implicit tx: T): Unit =
-      if (!transport.isPlaying) {
+      /*if (!transport.isPlaying)*/ { // do not depend on being stopped, in order to support looping
 //        transport.stop()
         transport.seek(pos  )
         transport.play()

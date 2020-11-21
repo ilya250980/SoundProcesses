@@ -87,10 +87,8 @@ object FadeSpec {
     def valueFormat: ConstFormat[FadeSpec] = FadeSpec.format
 
     def apply[T <: Txn[T]](numFrames: LongObj[T], shape: CurveObj[T], floor: DoubleObj[T])
-                          (implicit tx: T): Obj[T] = {
-      val targets = Targets[T]()
-      new Apply(targets, numFrames, shape, floor).connect()
-    }
+                          (implicit tx: T): Obj[T] =
+      Apply(numFrames, shape, floor)
 
     def unapply[T <: Txn[T]](expr: Obj[T]): Option[(LongObj[T], CurveObj[T], DoubleObj[T])] =
       expr match {
@@ -98,15 +96,24 @@ object FadeSpec {
         case _ => None
       }
 
-    private object Apply extends _Expr.Type.Extension1[Obj] {
+    object Apply extends _Expr.Type.Extension1[Obj] {
       final val opId = 0
+
+      def apply[T <: Txn[T]](numFrames: LongObj[T], shape: CurveObj[T], floor: DoubleObj[T])
+                            (implicit tx: T): Obj[T] = {
+        val targets = Targets[T]()
+        new ApplyImpl(targets, numFrames, shape, floor).connect()
+      }
+
+      def unapply[T <: Txn[T]](obj: Apply[T]): Option[(LongObj[T], CurveObj[T], DoubleObj[T])] =
+        Some((obj.numFrames, obj.shape, obj.floor))
 
       def readExtension[T <: Txn[T]](opId: Int, in: DataInput, targets: Targets[T])
                                     (implicit tx: T): Obj[T] = {
-        val numFrames = LongObj  .read(in)
-        val shape     = CurveObj .read(in)
-        val floor     = DoubleObj.read(in)
-        new Apply(targets, numFrames, shape, floor)
+        val numFrames = LongObj  .read[T](in)
+        val shape     = CurveObj .read[T](in)
+        val floor     = DoubleObj.read[T](in)
+        new ApplyImpl(targets, numFrames, shape, floor)
       }
 
       def name: String = "Apply"
@@ -114,16 +121,22 @@ object FadeSpec {
       val opHi: Int = opId
       val opLo: Int = opId
     }
-    private final class Apply[T <: Txn[T]](protected val targets: Targets[T],
+    trait Apply[T <: Txn[T]] extends Obj[T] {
+      def numFrames : LongObj[T]
+      def shape     : CurveObj[T]
+      def floor     : DoubleObj[T]
+    }
+
+    private final class ApplyImpl[T <: Txn[T]](protected val targets: Targets[T],
                                            val numFrames: LongObj[T],
                                            val shape: CurveObj[T],
                                            val floor: DoubleObj[T])
-      extends ExprNodeImpl[T, FadeSpec] with Obj[T] {
+      extends ExprNodeImpl[T, FadeSpec] with Apply[T] {
 
       def tpe: LObj.Type = FadeSpec.Obj
 
       def copy[Out <: Txn[Out]]()(implicit tx: T, txOut: Out, context: Copy[T, Out]): Elem[Out] =
-        new Apply(Targets[Out](), context(numFrames), context(shape), context(floor)).connect()
+        new ApplyImpl(Targets[Out](), context(numFrames), context(shape), context(floor)).connect()
 
       def value(implicit tx: T): FadeSpec = FadeSpec(numFrames.value, shape.value, floor.value.toFloat)
 
@@ -194,4 +207,4 @@ object FadeSpec {
 
   implicit object ExValue extends Ex.Value[FadeSpec]
 }
-final case class FadeSpec(numFrames: Long, curve: Curve = linear, floor: Float = 0f)
+final case class FadeSpec(numFrames: Long, curve: Curve = linear, floor: Float = 0f) // 1.0E-4f)

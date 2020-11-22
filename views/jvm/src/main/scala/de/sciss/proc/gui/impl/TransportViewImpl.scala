@@ -13,20 +13,20 @@
 
 package de.sciss.proc.gui.impl
 
-import java.awt.event.{ActionEvent, ActionListener, InputEvent}
-
-import de.sciss.audiowidgets.{TimelineModel, Transport => GUITransport}
+import de.sciss.audiowidgets.{TimelineModel, TransportCatch, Transport => GUITransport}
 import de.sciss.desktop.Implicits._
 import de.sciss.desktop.{FocusType, KeyStrokes}
 import de.sciss.lucre.swing.LucreSwing.deferTx
 import de.sciss.lucre.swing.impl.ComponentHolder
 import de.sciss.lucre.{Cursor, Disposable, synth}
-import de.sciss.span.Span
+import de.sciss.model.Model
 import de.sciss.proc.gui.{TimeDisplay, TransportView}
 import de.sciss.proc.{TimeRef, Transport}
+import de.sciss.span.Span
+
+import java.awt.event.{ActionEvent, ActionListener, InputEvent}
 import javax.swing.event.{ChangeEvent, ChangeListener}
 import javax.swing.{AbstractAction, ButtonModel, JComponent, KeyStroke, Timer}
-
 import scala.concurrent.stm.Ref
 import scala.swing.Swing.HStrut
 import scala.swing.event.Key
@@ -34,8 +34,9 @@ import scala.swing.{Action, BoxPanel, Component, Orientation, Swing}
 
 object TransportViewImpl {
   def apply[T <: synth.Txn[T]](transport: Transport[T] /* .Realtime[S, Obj.T[S, Proc.Elem], Transport.Proc.Update[S]] */ ,
-                         model: TimelineModel, hasMillis: Boolean, hasLoop: Boolean, hasShortcuts: Boolean)
-                        (implicit tx: T, cursor: Cursor[T]): TransportView[T] = {
+                               model: TimelineModel, hasMillis: Boolean, hasLoop: Boolean,
+                               hasCatch: Boolean, hasShortcuts: Boolean)
+                              (implicit tx: T, cursor: Cursor[T]): TransportView[T] = {
     val view    = new Impl(transport, model)
     // val srk     = 1000 / TimeRef.SampleRate // transport.sampleRate
 
@@ -50,29 +51,11 @@ object TransportViewImpl {
     val initPlaying = transport.isPlaying // .playing.value
     // val initMillis = (transport.position * srk).toLong
     deferTx {
-      view.guiInit(initPlaying, /*initMillis,*/ hasMillis = hasMillis, hasLoop = hasLoop, hasShortcuts = hasShortcuts)
+      view.guiInit(initPlaying, /*initMillis,*/ hasMillis = hasMillis, hasLoop = hasLoop,
+        hasCatch = hasCatch, hasShortcuts = hasShortcuts)
     }
     view
   }
-
-//  private final class Foo(m: ButtonModel, dir: Int) extends ChangeListener {
-//    var pressed = false
-//
-//    def stateChanged(e: ChangeEvent): Unit = {
-//      val p = m.isPressed
-//      if (p != pressed) {
-//        pressed = p
-//        if (p) {
-//          //println( "-restart" )
-//          cueDirection = dir
-//          cueTimer.restart()
-//        } else {
-//          //println( "-stop" )
-//          cueTimer.stop()
-//        }
-//      }
-//    }
-//  }
 
   // (0 until 20).map(i => (math.sin(i.linlin(0, 20, 0, math.Pi)) * 7.20).round).scanLeft(10.0) { case (sum, i) => sum + i }
   private final val cueSteps = Array[Float](
@@ -105,8 +88,10 @@ object TransportViewImpl {
     private[this] val loopSpan  = Ref[Span.SpanOrVoid](Span.Void)
     private[this] val loopToken = Ref(-1)
 
-    import GUITransport.{FastForward, GoToBegin, Loop, Play, Rewind, Stop}
+    import GUITransport.{Catch, FastForward, GoToBeginning, Loop, Play, Rewind, Stop}
     import transport.universe.scheduler.stepTag
+
+    def isPlayingEDT: Boolean = playTimer.isRunning
 
     private final class ActionCue(elem: GUITransport.Element, key: Key.Value, onOff: Boolean, select: Boolean)
       extends AbstractAction(elem.toString) { action =>
@@ -264,6 +249,30 @@ object TransportViewImpl {
       }
     }
 
+    private[this] var _catchOption = Option.empty[TransportCatch]
+    private[this] val catchListener: Model.Listener[Boolean] = { case b =>
+      transportStrip.button(Catch).foreach(_.selected = b)
+    }
+
+    def catchOption: Option[TransportCatch] = _catchOption
+
+    def catchOption_=(value: Option[TransportCatch]): Unit =
+      if (_catchOption != value) {
+        _catchOption.foreach(_.removeListener(catchListener))
+        _catchOption = value
+        _catchOption.foreach { ct =>
+          ct.addListener(catchListener)
+          catchListener(ct.catchEnabled)
+        }
+      }
+
+    private def toggleCatch(): Unit = transportStrip.button(Catch).foreach { ggCatch =>
+      val wasEngaged    = ggCatch.selected
+      val isEngaged     = !wasEngaged
+      ggCatch.selected  = isEngaged
+      _catchOption.foreach(_.catchEnabled = isEngaged)
+    }
+
     private def checkLoop()(implicit tx: T): Unit = {
       val pos       = transport.position
       val loopStop  = loopSpan.get(tx.peer) match { case hs: Span.HasStop => hs.stop; case _ => Long.MinValue }
@@ -282,7 +291,7 @@ object TransportViewImpl {
     }
 
     def guiInit(initPlaying: Boolean, /*initMillis: Long,*/ hasMillis: Boolean, hasLoop: Boolean,
-                hasShortcuts: Boolean): Unit = {
+                hasCatch: Boolean, hasShortcuts: Boolean): Unit = {
       val timeDisplay = TimeDisplay(timelineModel, hasMillis = hasMillis)
 
       val actions0 = Vector(
@@ -291,9 +300,10 @@ object TransportViewImpl {
         Play        { play() },
         FastForward { () }      // handled below
       )
-      val actions1 = if (timelineModel.bounds.startOption.isEmpty) actions0 else GoToBegin(rtz()) +: actions0
-      val actions2 = if (!hasLoop) actions1 else actions1 :+ Loop(toggleLoop())
-      transportStrip = GUITransport.makeButtonStrip(actions2)
+      val actions1 = if (timelineModel.bounds.startOption.isEmpty) actions0 else GoToBeginning(rtz()) +: actions0
+      val actions2 = if (!hasLoop ) actions1 else actions1 :+ Loop(toggleLoop())
+      val actions3 = if (!hasCatch) actions2 else actions2 :+ Catch(toggleCatch())
+      transportStrip = GUITransport.makeButtonStrip(actions3)
       val initPressed = if (initPlaying) Play else Stop
       transportStrip.button(initPressed).foreach(_.selected = true)
 
@@ -316,8 +326,9 @@ object TransportViewImpl {
           accelerator = Some(KeyStrokes.plain + Key.Space)
           def apply(): Unit = playOrStop()
         })
-        addClickAction("rtz" , Key.Enter, GoToBegin)
-        addClickAction("loop", Key.Slash, Loop     )
+        addClickAction("rtz"  , Key.Enter , GoToBeginning )
+        addClickAction("loop" , Key.Slash , Loop          )
+        addClickAction("catch", Key.V     , Catch         )
 
         mkCue(Rewind      , Key.OpenBracket )
         mkCue(FastForward , Key.CloseBracket)

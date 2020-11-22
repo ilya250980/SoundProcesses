@@ -18,14 +18,14 @@ object TransportViewTest {
     implicit val system: S = InMemory()
     implicit val universe: Universe[T] = system.step { implicit tx => Universe.dummy }
 
-    val sr = TimeRef.SampleRate
-    val span = Span(0L, (sr * 60 * 10).toLong)
+    val sr     = TimeRef.SampleRate
+    val span  = Span(0L, (sr * 60 * 10).toLong)
     val model = TimelineModel(span, span, span, sr)
     model.selection = Span(0L, span.length >> 1)
 
     val view = system.step { implicit tx =>
       val transport = Transport[T](universe)
-      TransportView[T](transport, model)
+      TransportView[T](transport, model, hasCatch = true)
     }
 
     Swing.onEDT {

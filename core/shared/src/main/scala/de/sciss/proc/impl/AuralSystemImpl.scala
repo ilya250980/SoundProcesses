@@ -20,6 +20,7 @@ import de.sciss.proc.AuralSystem
 import de.sciss.synth.{Client, ServerConnection, Server => SServer}
 import de.sciss.proc.SoundProcesses.{logAural => logA}
 
+import java.util.concurrent.atomic.AtomicReference
 import scala.collection.immutable.{IndexedSeq => Vec}
 import scala.concurrent.stm.Ref
 import scala.concurrent.stm.TxnExecutor.{defaultAtomic => atomic}
@@ -119,7 +120,7 @@ object AuralSystemImpl {
         clients.get(tx.peer).foreach(_.auralStopped())
 
         afterCommit {
-          val obs = listener.single.swap(None)
+          val obs = listener.getAndSet(None)
           assert(obs.isDefined)
           server.peer.removeListener(obs.get)
           if (server.peer.isRunning) server.peer.quit()
@@ -130,7 +131,7 @@ object AuralSystemImpl {
 
       def serverOption: Option[Server] = Some(server)
 
-      private val listener = Ref(Option.empty[SServer.Listener])
+      private val listener = new AtomicReference(Option.empty[SServer.Listener])
 
       // put this into a separate method because `atomic` will otherwise
       // pick up an obsolete transaction in implicit scope
@@ -142,7 +143,7 @@ object AuralSystemImpl {
               state.swap(StateStopped).dispose()
             }
         }
-        val old = listener.single.swap(Some(list))
+        val old = listener.getAndSet(Some(list))
         assert(old.isEmpty)
       }
 

@@ -14,7 +14,6 @@
 package de.sciss.lucre.expr.graph
 
 import java.net.{InetAddress, InetSocketAddress}
-
 import de.sciss.lucre.Txn.{peer => txPeer}
 import de.sciss.lucre.expr.impl.{IActionImpl, IControlImpl}
 import de.sciss.lucre.expr.{Context, Graph, IAction, IControl, ITrigger}
@@ -24,6 +23,7 @@ import de.sciss.model.Change
 import de.sciss.osc
 import de.sciss.proc.SoundProcesses
 
+import java.util.concurrent.atomic.AtomicReference
 import scala.concurrent.stm.Ref
 import scala.util.control.NonFatal
 
@@ -213,7 +213,8 @@ object OscUdpNode {
     private[this] val lastRcvRef = Ref[(osc.Message, InetSocketAddress)](
       (osc.Message(""), dummySocket))
 
-    private[this] val lastTrnsRef = Ref[(SocketAddress, InetSocketAddress)]((SocketAddress("invalid", 0), dummySocket))
+//    private[this] val lastTrnsRef = Ref[(SocketAddress, InetSocketAddress)]((SocketAddress("invalid", 0), dummySocket))
+    private[this] val lastTrnsRef = new AtomicReference[(SocketAddress, InetSocketAddress)]((SocketAddress("invalid", 0), dummySocket))
 
     def message (implicit tx: T): osc.Message        = lastRcvRef()._1
     def sender  (implicit tx: T): InetSocketAddress  = lastRcvRef()._2
@@ -277,11 +278,11 @@ object OscUdpNode {
     }
 
     private def sendNow(target: SocketAddress, p: OscPacket): Unit = {
-      val (lastTarget, lastSck) = lastTrnsRef.single.get
+      val (lastTarget, lastSck) = lastTrnsRef.get()
       if (lastTarget == target) sendWith(lastSck, p)
       else tryThunk(s"resolve target $target in") {
         val res = new InetSocketAddress(target.host, target.port)
-        lastTrnsRef.single.set((target, res))
+        lastTrnsRef.set((target, res))
         sendWith(res, p)
       }
     }

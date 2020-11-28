@@ -15,13 +15,12 @@ package de.sciss.lucre.expr.graph
 
 import java.io.IOException
 import java.net.{URI => _URI}
-
 import de.sciss.asyncfile.{AsyncFile, AsyncFileSystem}
 import de.sciss.equal.Implicits._
 import de.sciss.lucre.Txn.peer
 import de.sciss.lucre.expr.impl.IActionImpl
 import de.sciss.lucre.expr.{Context, IAction}
-import de.sciss.lucre.impl.IChangeGeneratorEvent
+import de.sciss.lucre.impl.{IChangeGeneratorEvent, IDummyEvent}
 import de.sciss.lucre.{Cursor, IChangeEvent, IExpr, IPull, ITargets, Txn}
 import de.sciss.lucre.synth.Executor
 import de.sciss.model.Change
@@ -30,7 +29,7 @@ import de.sciss.proc.SoundProcesses
 import scala.concurrent.Future
 import scala.concurrent.stm.Ref
 
-object File {
+object File extends FilePlatform {
   private def getFileSystem(uri: _URI): Future[AsyncFileSystem] = {
     val scheme = Option(uri.getScheme).getOrElse("file")
     val p = AsyncFile.getFileSystemProvider(scheme).getOrElse(
@@ -38,6 +37,15 @@ object File {
     )
     import Executor.executionContext
     p.obtain()
+  }
+
+  final case class TmpDir() extends Ex[_URI] {
+    override def productPrefix: String = s"File$$TmpDir"  // serialization
+
+    type Repr[T <: Txn[T]] = IExpr[T, _URI]
+
+    protected def mkRepr[T <: Txn[T]](implicit ctx: Context[T], tx: T): Repr[T] =
+      new Const.Expanded[T, _URI](tmpDir)
   }
 
   private final class MkDirExpanded[T <: Txn[T]](f: IExpr[T, _URI])

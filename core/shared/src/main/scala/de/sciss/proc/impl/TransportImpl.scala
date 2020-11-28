@@ -84,10 +84,10 @@ object TransportImpl {
     private[this] val timeBaseRef = Ref(new PlayTime(wallClock0 = Long.MinValue, pos0 = 0L))
     private[this] val contextRef  = Ref(Option.empty[AuralContext[T]])
 
-    def views(implicit tx: T): Set[AuralObj[T]] = viewSet.single.toSet
+    def views(implicit tx: T): Set[AuralObj[T]] = viewSet.toSet
 
-    def getView    (obj: Obj[T])(implicit tx: T): Option[AuralObj[T]] = getViewById(obj.id)
-    def getViewById(id : Ident[T]  )(implicit tx: T): Option[AuralObj[T]] = viewMap.get(id)
+    def getView    (obj: Obj  [T])(implicit tx: T): Option[AuralObj[T]] = getViewById(obj.id)
+    def getViewById(id : Ident[T])(implicit tx: T): Option[AuralObj[T]] = viewMap.get(id)
 
     def play()(implicit tx: T): Unit = {
       val timeBase0 = timeBaseRef()

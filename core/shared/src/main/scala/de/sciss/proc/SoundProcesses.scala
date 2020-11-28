@@ -20,7 +20,7 @@ import de.sciss.lucre.synth.Executor
 import de.sciss.lucre.{Cursor, Txn}
 
 import scala.concurrent.Future
-import scala.concurrent.stm.{Txn => STMTxn}
+import scala.concurrent.stm.{InTxn, Txn => STMTxn}
 
 object SoundProcesses  {
   private[proc] def isPowerOfTwo(value: Int): Boolean = (value & (value - 1)) == 0
@@ -63,8 +63,12 @@ object SoundProcesses  {
   def step[T <: Txn[T]](context: String)(fun: T => Unit)(implicit cursor: Cursor[T]): Unit = {
     val opt = STMTxn.findCurrent
     if (opt.isDefined) {
-      log.warn(s"SoundProcesses.step. Existing transaction $opt")
-      throw new IllegalStateException("Cannot nest transactions")
+      implicit val tx: InTxn = opt.get
+      val status = STMTxn.status
+      log.warn(s"SoundProcesses.step. Existing transaction $opt - status is $status")
+      if (!status.completed) {
+        throw new IllegalStateException("Cannot nest transactions")
+      }
     }
     Future {
       try {

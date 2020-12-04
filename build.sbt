@@ -1,11 +1,11 @@
 lazy val baseName  = "SoundProcesses"
 lazy val baseNameL = baseName.toLowerCase
 
-lazy val projectVersion = "4.4.1"
-lazy val mimaVersion    = "4.4.0" // used for migration-manager
+lazy val projectVersion = "4.5.0-SNAPSHOT"
+lazy val mimaVersion    = "4.5.0" // used for migration-manager
 
 lazy val commonJvmSettings = Seq(
-  crossScalaVersions := Seq("2.13.4", "2.12.12"),
+  crossScalaVersions := Seq("3.0.0-M2", "2.13.4", "2.12.12"),
 )
 
 lazy val commonSettings = Seq(
@@ -23,7 +23,11 @@ lazy val commonSettings = Seq(
     val sv = scalaVersion.value
     if (sv.startsWith("2.13.")) ys :+ "-Wvalue-discard" else ys
   },
-  scalacOptions in (Compile, compile) ++= (if (scala.util.Properties.isJavaAtLeast("9")) Seq("-release", "8") else Nil), // JDK >8 breaks API; skip scala-doc
+  scalacOptions in (Compile, compile) ++= {
+    val jvmGt8 = scala.util.Properties.isJavaAtLeast("9")
+    val dot    = isDotty.value
+    if (!dot && jvmGt8) Seq("-release", "8") else Nil  // JDK >8 breaks API; skip scala-doc
+  },
   // resolvers          += "Oracle Repository" at "http://download.oracle.com/maven",  // required for sleepycat
   parallelExecution in Test := false,
   concurrentRestrictions in Global += Tags.limit(Tags.Test, 1),
@@ -36,16 +40,16 @@ lazy val commonSettings = Seq(
 lazy val deps = new {
   val main = new {
     val asyncFile           = "0.1.2"
-    val audioFile           = "2.3.1"
+    val audioFile           = "2.3.2"
     val equal               = "0.1.6"
 //    val fileUtil            = "1.1.5"
-    val lucre               = "4.2.0"
+    val lucre               = "4.3.0-SNAPSHOT"
     val numbers             = "0.2.1"
     val processor           = "0.5.0"
-    val scalaCollider       = "2.4.0"
-    val scalaColliderIf     = "1.5.1"
+    val scalaCollider       = "2.4.1"
+    val scalaColliderIf     = "1.5.2"
     val span                = "2.0.0"
-    val topology            = "1.1.3"
+    val topology            = "1.1.4-SNAPSHOT"
     val ugens               = "1.20.1"
   }
 
@@ -102,6 +106,19 @@ lazy val synth = crossProject(JVMPlatform, JSPlatform).in(file("synth"))
       "de.sciss" %%% "scalacollider"           % deps.main.scalaCollider,
       "de.sciss" %%% "scalacolliderugens-core" % deps.main.ugens
     ),
+    Compile / unmanagedSourceDirectories ++= {
+      val sourceDirPl = (sourceDirectory in Compile).value
+      val sourceDirSh = file(
+        sourceDirPl.getPath.replace("/jvm/" , "/shared/").replace("/js/", "/shared/")
+      )
+      val sv = CrossVersion.partialVersion(scalaVersion.value)
+      val (sub1, sub2) = sv match {
+        case Some((2, n)) if n >= 13  => ("scala-2.13+", "scala-2.14-")
+        case Some((3, _))             => ("scala-2.13+", "scala-2.14+")
+        case _                        => ("scala-2.13-", "scala-2.14-")
+      }
+      Seq(sourceDirPl / sub1, sourceDirPl / sub2, sourceDirSh / sub1, sourceDirSh / sub2)
+    },
     mimaPreviousArtifacts := Set("de.sciss" %% "lucre-synth" % mimaVersion)
   )
 

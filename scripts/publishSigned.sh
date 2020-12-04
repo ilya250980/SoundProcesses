@@ -7,5 +7,5 @@ then
    exit 1
 fi
 
-sbt +coreJS/publishSigned +coreJVM/publishSigned +soundprocesses-compiler/publishSigned +synthJS/publishSigned +synthJVM/publishSigned +viewsJS/publishSigned +viewsJVM/publishSigned
+sbt "; + coreJS/publishSigned ; + coreJVM/publishSigned ; + soundprocesses-compiler/publishSigned ; + synthJS/publishSigned ; + synthJVM/publishSigned ; + viewsJS/publishSigned ; + viewsJVM/publishSigned ; sonatypeBundleRelease"
 

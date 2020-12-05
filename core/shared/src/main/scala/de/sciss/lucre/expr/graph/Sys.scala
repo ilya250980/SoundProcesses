@@ -74,8 +74,7 @@ object Sys extends SysPlatform {
         tx match {
           case stx: synth.Txn[_] =>
             // XXX TODO --- ugly ugly ugly
-            val ev = stx.ev
-            mkControlImpl[ev.type](ctx.asInstanceOf[Context[ev.type]], tx.asInstanceOf[ev.type])
+            mkControlImpl[Nothing](ctx.asInstanceOf[Context[Nothing]], tx.asInstanceOf[Nothing])
               .asInstanceOf[Repr[T]]
 
           case _ => throw new Exception("Need a SoundProcesses system")

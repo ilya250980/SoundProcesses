@@ -1,3 +1,5 @@
+import sbtcrossproject.Platform
+
 lazy val baseName  = "SoundProcesses"
 lazy val baseNameL = baseName.toLowerCase
 
@@ -75,7 +77,9 @@ lazy val deps = new {
 
 lazy val loggingEnabled = true
 
-// ---- sub-projects ----
+// ---- modules ----
+
+lazy val platforms = Seq[Platform](JVMPlatform /* , JSPlatform */)
 
 lazy val root = project.withId(baseNameL).in(file("."))
   .aggregate(
@@ -95,7 +99,7 @@ lazy val root = project.withId(baseNameL).in(file("."))
     mimaFailOnNoPrevious  := false
   )
 
-lazy val synth = crossProject(JVMPlatform /* , JSPlatform */).in(file("synth"))
+lazy val synth = crossProject(platforms: _*).in(file("synth"))
   .settings(commonSettings)
   .jvmSettings(commonJvmSettings)
   .settings(
@@ -132,7 +136,7 @@ lazy val testSettings = Seq(
   }
 )
 
-lazy val core = crossProject(JVMPlatform /* , JSPlatform */).in(file("core"))
+lazy val core = crossProject(platforms: _*).in(file("core"))
   .dependsOn(synth)
   .enablePlugins(BuildInfoPlugin)
   .settings(commonSettings)
@@ -172,7 +176,7 @@ lazy val core = crossProject(JVMPlatform /* , JSPlatform */).in(file("core"))
     ),
   )
 
-lazy val views = crossProject(JVMPlatform /* , JSPlatform */).in(file("views"))
+lazy val views = crossProject(platforms: _*).in(file("views"))
   .dependsOn(core)
   .settings(commonSettings)
   .jvmSettings(commonJvmSettings)

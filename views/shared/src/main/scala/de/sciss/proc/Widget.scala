@@ -136,7 +136,8 @@ object Widget extends Obj.Type with WidgetPlatform {
       def dispose()(implicit tx: T): Unit = ()
 
       def constValue: _Graph = cookie match {
-        case `emptyCookie` => emptyGraph
+        case `emptyCookie`  => emptyGraph
+        case _              => throw new IllegalArgumentException(s"No predefined graph for $cookie")
       }
     }
   }

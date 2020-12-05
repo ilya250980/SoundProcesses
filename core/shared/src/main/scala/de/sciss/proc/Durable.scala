@@ -29,14 +29,14 @@ object Durable {
 //  implicit def inMemory(tx: Durable#Tx): InMemory#Tx = tx.inMemory
 
   trait Txn extends synth.Txn[Txn] with DurableLike.Txn[Txn] {
-    type I = InMemory.Txn
+    override type I = InMemory.Txn
     def inMemory: InMemory.Txn
   }
 }
 
 trait Durable extends DurableLike[Durable.Txn] with synth.Sys {
   override def inMemory: InMemory
-
-//  final type T  = Durable.Txn // Sys.Txn[Durable] with evt.DurableLike.Txn[Durable]
-  final type I  = InMemory.Txn
+  
+  type T  = Durable.Txn // Sys.Txn[Durable] with evt.DurableLike.Txn[Durable]
+  type I  = InMemory.Txn
 }

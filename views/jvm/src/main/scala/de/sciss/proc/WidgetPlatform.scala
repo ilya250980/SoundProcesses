@@ -60,20 +60,20 @@ trait WidgetPlatform {
 
     def tpe: proc.Code.Type = Code
 
+    private def widgetCl = classOf[_Widget]
+
     def compileBody()(implicit compiler: proc.Code.Compiler): Future[Unit] = {
-      import reflect.runtime.universe._
-      CodeImpl.compileBody[In, Out, _Widget, Code](this, typeTag[_Widget])
+      CodeImpl.compileBody[In, Out, _Widget, Code](this, resCl = widgetCl)
     }
 
     def execute(in: In)(implicit compiler: proc.Code.Compiler): Out =
       Graph {
-        import reflect.runtime.universe._
-        CodeImpl.compileThunk[_Widget](this, typeTag[_Widget], execute = true)
+        CodeImpl.compileThunk[_Widget](this, resCl = widgetCl, execute = true)
       }
 
     def prelude : String =
       s"""object Main {
-         |  def __result__ : ${classOf[_Widget].getName} = {
+         |  def __result__ : ${widgetCl.getName} = {
          |""".stripMargin
 
     def postlude: String = "\n  }\n}\n"

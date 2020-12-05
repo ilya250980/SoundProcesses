@@ -26,9 +26,9 @@ object InMemoryImpl {
     extends lucre.impl.InMemoryImpl.TxnMixin[InMemory.Txn]
     with TxnFullImpl[InMemory.Txn] with InMemory.Txn {
 
-    override type Ev = InMemory.Txn
-
-    override def ev: Ev = this
+//    override type Ev = InMemory.Txn
+//
+//    override def ev: Ev = this
 
     override def toString = s"proc.InMemory#Tx@${hashCode.toHexString}"
 

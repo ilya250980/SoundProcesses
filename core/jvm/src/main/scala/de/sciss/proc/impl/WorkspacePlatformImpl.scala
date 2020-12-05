@@ -9,6 +9,7 @@ import de.sciss.proc
 import de.sciss.proc.impl.WorkspaceImpl.{Data, Fmt}
 import de.sciss.proc.{Cursors, Workspace}
 import de.sciss.proc.{Confluent => Cf, Durable => Dur}
+import de.sciss.serial.TFormat
 
 import scala.util.Try
 
@@ -99,18 +100,19 @@ object WorkspacePlatformImpl {
 
   private def applyConfluent(dir: File, ds: DataStore.Factory /* config: BerkeleyDB.Config */): proc.Workspace.Confluent = {
     type S = Cf
-    type T = Cf.Txn
+    type T = Cf .Txn
+    type D = Dur.Txn
     val fact = openDataStore(dir, ds = ds /* config = config */ , confluent = true)
     implicit val system: S = Cf(fact)
-
-    val (access, cursors) = system.rootWithDurable[Data[T], Cursors[T, S#D]] { implicit tx =>
+    implicit val fmt: TFormat[D, Cursors[T, D]] = Cursors.format  // help Dotty...
+    val (access, cursors) = system.rootWithDurable[Data[T], Cursors[T, D]] { implicit tx: T =>
       val data: Data[T] = new Data[T] {
-        val root: Folder[T] = Folder()(tx)
+        val root: Folder[T] = Folder[T]()(tx)
       }
       data
 
-    } { implicit tx =>
-      val c = Cursors[T, S#D](confluent.Access.root[T])
+    } { implicit tx: D =>
+      val c = Cursors[T, D](confluent.Access.root[T])
       c.name_=("root")
       c
     }

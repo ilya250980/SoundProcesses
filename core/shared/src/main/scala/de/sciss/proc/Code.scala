@@ -210,14 +210,12 @@ object Code {
     def tpe: Code.Type = Proc
 
     def compileBody()(implicit compiler: Code.Compiler): Future[Unit] = {
-      import reflect.runtime.universe._
-      Impl.compileBody[In, Out, Unit, Proc](this, typeTag[Unit])
+      Impl.compileBody[In, Out, Unit, Proc](this, resCl = classOf[Unit])
     }
 
     def execute(in: In)(implicit compiler: Code.Compiler): Out =
       synth.SynthGraph {
-        import reflect.runtime.universe._
-        Impl.compileThunk[Unit](this, typeTag[Unit], execute = true)
+        Impl.compileThunk[Unit](this, resCl = classOf[Unit], execute = true)
       }
 
     def prelude : String = "object Main {\n"
@@ -254,14 +252,12 @@ object Code {
     def tpe: Type = Control
 
     def compileBody()(implicit compiler: Code.Compiler): Future[Unit] = {
-      import reflect.runtime.universe._
-      Impl.compileBody[In, Out, Unit, Control](this, typeTag[Unit])
+      Impl.compileBody[In, Out, Unit, Control](this, resCl = classOf[Unit])
     }
 
     def execute(in: In)(implicit compiler: Code.Compiler): Out =
       _Control.Graph {
-        import reflect.runtime.universe._
-        Impl.compileThunk[Unit](this, typeTag[Unit], execute = true)
+        Impl.compileThunk[Unit](this, resCl = classOf[Unit], execute = true)
       }
 
     def prelude : String = "object Main {\n"
@@ -298,20 +294,20 @@ object Code {
 
     def tpe: Type = Action
 
+    private def actCl = classOf[Act]
+
     def compileBody()(implicit compiler: Code.Compiler): Future[Unit] = {
-      import reflect.runtime.universe._
-      Impl.compileBody[In, Out, Act, Action](this, typeTag[Act])
+      Impl.compileBody[In, Out, Act, Action](this, resCl = actCl)
     }
 
     def execute(in: In)(implicit compiler: Code.Compiler): Out =
       _Action.Graph {
-        import reflect.runtime.universe._
-        Impl.compileThunk[Act](this, typeTag[Act], execute = true)
+        Impl.compileThunk[Act](this, resCl = actCl, execute = true)
       }
 
     def prelude : String =
       s"""object Main {
-         |  def __result__ : ${classOf[Act].getName} = {
+         |  def __result__ : ${actCl.getName} = {
          |""".stripMargin
 
     def postlude: String = "\n  }\n}\n"

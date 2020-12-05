@@ -17,7 +17,7 @@ package impl
 import de.sciss.lucre.Event.Targets
 import de.sciss.lucre.impl.BiGroupImpl.TreeImpl
 import de.sciss.lucre.impl.{BiGroupImpl, ObjCastFormat}
-import de.sciss.lucre.{AnyTxn, Copy, Elem, Obj, Txn}
+import de.sciss.lucre.{AnyTxn, BiGroup, Copy, Elem, Obj, SpanLikeObj, Txn}
 import de.sciss.serial.{DataInput, TFormat}
 
 object TimelineImpl {
@@ -57,7 +57,15 @@ object TimelineImpl {
 
     // type A = Obj[T]
 
+    override protected def group: Impl[T] = this
+
     override def modifiableOption: Option[Timeline.Modifiable[T]] = Some(this)
+
+    override protected def entryFormat: TFormat[T, BiGroup.Entry[T, Obj[T]]] = BiGroupImpl.entryFormat
+
+    override protected def mkEntry(tgt: Targets[T], span: SpanLikeObj[T], elem: Obj[T])
+                                  (implicit tx: T): BiGroup.Entry[T, Obj[T]] =
+      BiGroupImpl.mkEntry[T, Obj[T]](tgt, span, elem)
 
     def copy[Out <: Txn[Out]]()(implicit tx: T, txOut: Out, context: Copy[T, Out]): Elem[Out] =
       new Impl(Targets[Out]()) { out =>

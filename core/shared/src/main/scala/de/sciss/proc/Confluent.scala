@@ -14,7 +14,7 @@
 package de.sciss.proc
 
 import de.sciss.lucre.synth.InMemory
-import de.sciss.lucre.{ConfluentLike, DataStore, confluent, synth}
+import de.sciss.lucre.{ConfluentLike, DataStore, confluent, synth, Durable => LDurable, InMemory => LInMemory}
 import de.sciss.proc
 import de.sciss.proc.impl.ConfluentImpl
 
@@ -27,8 +27,8 @@ object Confluent {
 //    private[proc] def durable : Durable#Tx
 //    private[proc] def inMemory: InMemory#Tx
 
-    type I  = InMemory.Txn
-    type D  = Durable .Txn
+    type I  = /*L*/InMemory.Txn
+    type D  = /*L*/Durable .Txn
   }
 
 //  implicit def inMemory(tx: T): InMemory#Tx = tx.inMemory
@@ -37,6 +37,7 @@ object Confluent {
 
 trait Confluent extends ConfluentLike[Confluent.Txn] with synth.Sys {
   protected type S  = Confluent
+  type T            = Confluent .Txn
   type D            = Durable   .Txn
   type I            = InMemory  .Txn
 

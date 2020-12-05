@@ -80,13 +80,13 @@ private[proc] object ConfluentImpl {
     override type D  = Dur.Txn // Sys.Txn[Durable] with evt.DurableLike.Txn[Durable]
     override type I  = InM.Txn
 
-    def inMemory: InM = ??? // durable0.inMemory
+    def inMemory: InM = durable.inMemory
 
-    def durableTx (tx: T): D = ??? // tx.durable
+    def durableTx (tx: T): D = tx.durable
 
 //    def inMemoryTx(tx: T): I#Tx  = tx.inMemory
 
-    protected def wrapRegular(dtx: /* evt. */ Dur.Txn, inputAccess: Acc, retroactive: Boolean,
+    protected def wrapRegular(dtx: Dur.Txn, inputAccess: Acc, retroactive: Boolean,
                               cursorCache: confluent.Cache[T], systemTimeNanos: Long) = ???
 //      new RegularTxn(system = this, durable = dtx, inputAccess = inputAccess, isRetroactive = retroactive,
 //        cursorCache = cursorCache, systemTimeNanoSec = systemTimeNanos)

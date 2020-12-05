@@ -248,11 +248,11 @@ object AuralAttributeImpl {
       new IntAttribute(key, tx.newHandle(value)).init(value)
 
     def mkStartLevelView[T <: Txn[T]](value: Repr[T])(implicit tx: T): ControlValuesView[T] =
-      new IntStartLevel(tx.newHandle(value))
+      new IntStartLevel[T](tx.newHandle(value))
   }
 
   private final class IntStartLevel[T <: Txn[T]](obj: Source[T, IntObj[T]])
-    extends NumericExprStartLevel(obj) {
+    extends NumericExprStartLevel[T, Int](obj) {
 
     def mkValue(in: Int): ControlValues = in.toFloat
   }
@@ -303,11 +303,11 @@ object AuralAttributeImpl {
       new DoubleAttribute(key, tx.newHandle(value)).init(value)
 
     def mkStartLevelView[T <: Txn[T]](value: Repr[T])(implicit tx: T): ControlValuesView[T] =
-      new DoubleStartLevel(tx.newHandle(value))
+      new DoubleStartLevel[T](tx.newHandle(value))
   }
 
   private final class DoubleStartLevel[T <: Txn[T]](obj: Source[T, DoubleObj[T]])
-    extends NumericExprStartLevel(obj) {
+    extends NumericExprStartLevel[T, Double](obj) {
 
     def mkValue(in: Double): ControlValues = in
   }
@@ -358,11 +358,11 @@ object AuralAttributeImpl {
       new BooleanAttribute(key, tx.newHandle(value)).init(value)
 
     def mkStartLevelView[T <: Txn[T]](value: Repr[T])(implicit tx: T): ControlValuesView[T] =
-      new BooleanStartLevel(tx.newHandle(value))
+      new BooleanStartLevel[T](tx.newHandle(value))
   }
 
   private final class BooleanStartLevel[T <: Txn[T]](obj: Source[T, BooleanObj[T]])
-    extends NumericExprStartLevel(obj) {
+    extends NumericExprStartLevel[T, Boolean](obj) {
 
     def mkValue(in: Boolean): ControlValues = if (in) 1f else 0f
   }
@@ -480,11 +480,11 @@ object AuralAttributeImpl {
       new DoubleVectorAttribute(key, tx.newHandle(value)).init(value)
 
     def mkStartLevelView[T <: Txn[T]](value: Repr[T])(implicit tx: T): ControlValuesView[T] =
-      new DoubleVectorStartLevel(tx.newHandle(value))
+      new DoubleVectorStartLevel[T](tx.newHandle(value))
   }
 
   private final class DoubleVectorStartLevel[T <: Txn[T]](obj: Source[T, DoubleVector[T]])
-    extends NumericExprStartLevel(obj) {
+    extends NumericExprStartLevel[T, Vec[Double]](obj) {
     
     def mkValue(in: Vec[Double]): ControlValues = in.map(_.toFloat)
   }
@@ -546,11 +546,11 @@ object AuralAttributeImpl {
       new IntVectorAttribute(key, tx.newHandle(value)).init(value)
 
     def mkStartLevelView[T <: Txn[T]](value: Repr[T])(implicit tx: T): ControlValuesView[T] =
-      new IntVectorStartLevel(tx.newHandle(value))
+      new IntVectorStartLevel[T](tx.newHandle(value))
   }
 
   private final class IntVectorStartLevel[T <: Txn[T]](obj: Source[T, IntVector[T]])
-    extends NumericExprStartLevel(obj) {
+    extends NumericExprStartLevel[T, Vec[Int]](obj) {
 
     def mkValue(in: Vec[Int]): ControlValues = in.map(_.toFloat)
   }

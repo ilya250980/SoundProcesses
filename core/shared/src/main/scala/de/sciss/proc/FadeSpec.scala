@@ -21,6 +21,7 @@ import de.sciss.serial.{ConstFormat, DataInput, DataOutput}
 import de.sciss.synth.Curve
 import de.sciss.synth.Curve.linear
 import de.sciss.{model => m}
+import de.sciss.lucre.impl.ExprTypeExtension1
 
 object FadeSpec {
   final val typeId = 14
@@ -96,7 +97,7 @@ object FadeSpec {
         case _ => None
       }
 
-    object Apply extends _Expr.Type.Extension1[Obj] {
+    object Apply extends ExprTypeExtension1[Obj] {
       final val opId = 0
 
       def apply[T <: Txn[T]](numFrames: LongObj[T], shape: CurveObj[T], floor: DoubleObj[T])

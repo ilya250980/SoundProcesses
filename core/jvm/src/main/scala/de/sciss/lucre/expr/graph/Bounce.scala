@@ -174,7 +174,8 @@ object Bounce {
       tx match {
         case stx: synth.Txn[_] =>
           // XXX TODO --- ugly ugly ugly
-          mkControlImpl[stx.Ev](ctx.asInstanceOf[Context[stx.Ev]], tx.asInstanceOf[stx.Ev])
+          val ev = stx.ev
+          mkControlImpl[ev.type](ctx.asInstanceOf[Context[ev.type]], tx.asInstanceOf[ev.type])
             .asInstanceOf[Repr[T]]
 
         case _ => throw new Exception("Need a SoundProcesses system")

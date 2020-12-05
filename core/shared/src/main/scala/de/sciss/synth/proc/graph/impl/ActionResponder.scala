@@ -94,7 +94,7 @@ final class ActionResponder[T <: Txn[T]](objH: Source[T, Obj[T]], key: String, p
       }
       import context.universe
       import context.universe.cursor
-      SoundProcesses.step(s"ActionResponder($synth, $key)") { implicit tx: T =>
+      SoundProcesses.step[T](s"ActionResponder($synth, $key)") { implicit tx: T =>
         val invoker = objH()
         invoker.attr.$[proc.Action](key).foreach { action =>
           val r = Runner(action)

@@ -41,7 +41,10 @@ private[proc] object ConfluentImpl {
     new System(storeFactory, durable)
   }
 
-  private sealed trait TxnImpl extends Confluent.Txn with confluent.impl.TxnMixin[T] with TxnFullImpl[T] {
+  private sealed trait TxnImpl extends Confluent.Txn 
+    with confluent.impl.TxnMixin[T] 
+    with TxnFullImpl[T] {
+    
     override def system: Confluent
 
     final lazy val inMemory: InMemory.Txn = system.inMemory.wrap(peer)

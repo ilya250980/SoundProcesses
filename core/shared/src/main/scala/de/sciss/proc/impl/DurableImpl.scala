@@ -30,7 +30,7 @@ private[proc] object DurableImpl {
   def apply(mainStore: DataStore): Durable = new System(mainStore)
 
   private final class TxnImpl(val system: System, val systemTimeNanoSec: Long, val peer: InTxn)
-    extends LDurableImpl.TxnMixin[Durable.Txn]
+    extends LDurableImpl.TxnMixin[Durable.Txn, InMemory.Txn]
     with TxnFullImpl[Durable.Txn] with Durable.Txn {
 
     lazy val inMemory: InMemory.Txn = system.inMemory.wrap(peer)

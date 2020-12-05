@@ -23,6 +23,7 @@ import de.sciss.lucre.{Artifact, Copy, DoubleObj, Elem, Expr, Ident, LongObj, Pu
 import de.sciss.model.Change
 import de.sciss.serial.{ConstFormat, DataInput, DataOutput}
 import de.sciss.proc.ExImport.audioFileSpecOps
+import de.sciss.lucre.impl.ExprTypeExtension1
 
 import scala.annotation.switch
 
@@ -119,7 +120,7 @@ object AudioCue {
         case _ => None
       }
 
-    private object Ext extends Expr.Type.Extension1[Obj] {
+    private object Ext extends ExprTypeExtension1[Obj] {
       final val applyOpId         = 0
       final val replaceOffsetOpId = 1
       final val shiftOpId         = 2
@@ -382,7 +383,7 @@ object AudioCue {
       }
     }
 
-    private[this] object LongTuple1s extends Expr.Type.Extension1[LongObj] {
+    private[this] object LongTuple1s extends ExprTypeExtension1[LongObj] {
       // final val arity = 1
       final val opLo: Int = Offset.id
       final val opHi: Int = Offset.id

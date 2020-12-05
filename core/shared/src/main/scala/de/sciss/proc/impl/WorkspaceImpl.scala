@@ -66,7 +66,7 @@ object WorkspaceImpl {
   }
 }
 trait WorkspaceImpl[T <: Txn[T]] {
-  _: Workspace[T] =>
+  self: Workspace[T] =>
 
   // ---- abstract ----
 

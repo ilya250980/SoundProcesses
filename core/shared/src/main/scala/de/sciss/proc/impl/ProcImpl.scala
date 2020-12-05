@@ -45,7 +45,7 @@ object ProcImpl {
 
 //  private type I = InMemory
 
-  final class OutputsImpl[T <: Txn[T]](proc: Impl[T], val slot: Int, isInput: Boolean)
+  private final class OutputsImpl[T <: Txn[T]](proc: Impl[T], val slot: Int, isInput: Boolean)
     extends Proc.Outputs[T] {
 
     // ---- key-map-impl details ----

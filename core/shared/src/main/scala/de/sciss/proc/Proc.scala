@@ -357,6 +357,7 @@ object Proc extends Obj.Type {
 
     private lazy val tapeSynthGraph: SynthGraph =
       SynthGraph {
+        import de.sciss.synth._
         val sig   = graph.VDiskIn  .ar(Proc.graphAudio)
         val gain  = graph.Attribute.kr(ObjKeys.attrGain, 1.0)
         val mute  = graph.Attribute.kr(ObjKeys.attrMute, 0.0)

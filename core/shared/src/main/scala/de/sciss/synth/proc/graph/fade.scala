@@ -28,6 +28,7 @@ private[graph] object fade {
     def rate: Rate
 
     final def makeUGens: UGenInLike = {
+      import de.sciss.synth.geOps
       val b = UGenGraphBuilder.get
       val off     = Offset.ir
       val dur     = Duration.ir
@@ -44,6 +45,7 @@ private[graph] object fade {
       // b.addAttributeIn(key)
       val ctlName = Attribute.controlName(key)
       val ctl     = ctlName.ir(Seq(0f, 0f, 0f, 0f))  // dur, shape-id, shape-curvature, floor
+      import de.sciss.synth.geOps
       (ctl out 0, Env.Curve(ctl out 1, ctl out 2), ctl out 3)
     }
   }
@@ -115,8 +117,10 @@ object FadeOut {
   def ar(key: String): FadeOut = new FadeOut(audio, key)
 }
 final case class FadeOut(rate: Rate, key: String) extends fade.SingleBase {
-  protected def mkSingleEnv(totalDur: GE, fadeDur: GE, shape: Env.Curve, floor: GE): IEnv =
+  protected def mkSingleEnv(totalDur: GE, fadeDur: GE, shape: Env.Curve, floor: GE): IEnv = {
+    import de.sciss.synth._
     IEnv(1, Env.Segment(fadeDur, floor, shape) :: Nil, totalDur - fadeDur)
+  }
 }
 
 object FadeInOut {
@@ -128,6 +132,7 @@ object FadeInOut {
 }
 final case class FadeInOut(rate: Rate, inKey: String, outKey: String) extends fade.Base {
   protected def mkEnv(b: UGenGraphBuilder, totalDur: GE): IEnv = {
+    import de.sciss.synth.geOps
     val (fadeDurIn , shapeIn , floorIn ) = readCtl(b, inKey )
     val (fadeDurOut, shapeOut, floorOut) = readCtl(b, outKey)
     IEnv(floorIn,

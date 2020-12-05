@@ -48,7 +48,7 @@ trait AuralSystemTxBridge[T <: Txn[T]] extends AuralSystem.Client with Disposabl
     // is the discrepancy between Txn and T
     tx.afterCommit {
       import universe.cursor
-      SoundProcesses.step("auralStarted") { implicit tx: T =>
+      SoundProcesses.step[T]("auralStarted") { implicit tx: T =>
         auralStartedTx(server)
       }
     }
@@ -62,7 +62,7 @@ trait AuralSystemTxBridge[T <: Txn[T]] extends AuralSystem.Client with Disposabl
   final def auralStopped()(implicit tx: RT): Unit =
     tx.afterCommit {
       import universe.cursor
-      SoundProcesses.step("auralStopped") { implicit tx: T =>
+      SoundProcesses.step[T]("auralStopped") { implicit tx: T =>
         auralStoppedTx()
       }
     }

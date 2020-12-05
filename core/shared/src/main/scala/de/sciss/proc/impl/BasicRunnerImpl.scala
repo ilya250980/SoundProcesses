@@ -46,7 +46,7 @@ trait BasicRunnerImpl[T <: Txn[T]]
     disposeData()
   }
 
-  final object messages extends Runner.Messages[T] with ObservableImpl[T, List[Runner.Message]] {
+  object messages extends Runner.Messages[T] with ObservableImpl[T, List[Runner.Message]] {
     private[this] val ref = Ref(List.empty[Runner.Message])
 
     def current(implicit tx: T): List[Runner.Message] = ref()

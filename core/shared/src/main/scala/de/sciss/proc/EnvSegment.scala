@@ -21,6 +21,7 @@ import de.sciss.synth.Curve
 import de.sciss.synth.UGenSource.Vec
 import de.sciss.synth.ugen.ControlValues
 import de.sciss.{model => m}
+import de.sciss.lucre.impl.ExprTypeExtension1
 
 import scala.annotation.switch
 
@@ -93,7 +94,7 @@ object EnvSegment {
     def apply[T <: Txn[T]](startLevel: DoubleObj[T], curve: CurveObj[T])
                           (implicit tx: T): Obj[T] = ApplySingle(startLevel, curve)
 
-    object ApplySingle extends Expr.Type.Extension1[Obj] {
+    object ApplySingle extends ExprTypeExtension1[Obj] {
       final val opId = 0
 
       def apply[T <: Txn[T]](startLevel: DoubleObj[T], curve: CurveObj[T])
@@ -179,7 +180,7 @@ object EnvSegment {
       }
     }
 
-    object ApplyMulti extends Expr.Type.Extension1[Obj] {
+    object ApplyMulti extends ExprTypeExtension1[Obj] {
       final val opId = 1
 
       def apply[T <: Txn[T]](startLevels: DoubleVector[T], curve: CurveObj[T])

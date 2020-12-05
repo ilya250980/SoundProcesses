@@ -415,7 +415,6 @@ final class BounceImpl[T <: Txn[T] /*, I <: stm.Sys[I] */](val parentUniverse: U
                   ()
                 }
               }}
-              ()
               p.future
           }
           val set2 = views.flatMap {

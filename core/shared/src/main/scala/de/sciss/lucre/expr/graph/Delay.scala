@@ -101,7 +101,7 @@ object Delay {
       this
     }
 
-    protected def mkRepr[T <: Txn[T]](implicit ctx: Context[T], tx: T): Repr[T] = {
+    protected def mkRepr[T <: Txn[T]](implicit ctx: Context[T], tx: T): Delay.Repr[T] = {
       // Note: we can't just run `Universe()` because Sys is not synth.Sys,
       // and also we may want to preserve the possibility to provide custom schedulers
 //      println("EXPAND")

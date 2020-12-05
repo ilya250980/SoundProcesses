@@ -23,7 +23,7 @@ import de.sciss.serial.{DataInput, TFormat}
 object TimelineImpl {
   def apply[T <: Txn[T]]()(implicit tx: T): Timeline.Modifiable[T] =
     new Impl[T](Targets[T]()) {
-      val tree: TreeImpl[T, Obj] = newTree()
+      val tree: TreeImpl[T, Obj[T]] = newTree()
     }
 
   // ---- serialization ----
@@ -46,14 +46,14 @@ object TimelineImpl {
   def readIdentifiedObj[T <: Txn[T]](in: DataInput)(implicit tx: T): Timeline[T] = {
     val targets = Targets.read(in)
     new Impl[T](targets) {
-      val tree: TreeImpl[T, Obj] = readTree(in)
+      val tree: TreeImpl[T, Obj[T]] = readTree(in)
     }
   }
 
   // ---- impl ----
 
   private abstract class Impl[T <: Txn[T]](protected val targets: Targets[T])
-    extends BiGroupImpl.Impl[T, Obj, Impl[T]] with Timeline.Modifiable[T] { in =>
+    extends BiGroupImpl.Impl[T, Obj[T], Impl[T]] with Timeline.Modifiable[T] { in =>
 
     // type A = Obj[T]
 
@@ -61,7 +61,7 @@ object TimelineImpl {
 
     def copy[Out <: Txn[Out]]()(implicit tx: T, txOut: Out, context: Copy[T, Out]): Elem[Out] =
       new Impl(Targets[Out]()) { out =>
-        val tree: TreeImpl[Out, Obj] = newTree()
+        val tree: TreeImpl[Out, Obj[Out]] = newTree()
         context.defer(in, out)(BiGroupImpl.copyTree[T, Out, Obj, Impl[Out]](in.tree, out.tree, out))
         // .connect()
       }

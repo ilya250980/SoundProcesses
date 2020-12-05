@@ -23,7 +23,7 @@ import de.sciss.proc.AuralObj.Container
 import de.sciss.proc.{AuralContext, AuralObj, Runner, Timeline}
 
 object AuralTimelineImpl {
-   private type Leaf[T <: Txn[T]] = AuralTimelineBase.Leaf[T, AuralObj[T]]
+  private type Leaf[T <: Txn[T]] = AuralTimelineBase.Leaf[T, AuralObj[T]]
 
   import AuralTimelineBase.spanToPoint
 

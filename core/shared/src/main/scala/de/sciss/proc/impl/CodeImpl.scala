@@ -147,11 +147,11 @@ object CodeImpl {
 //    }
 //  }
 
-  def compileBody[I, O, A, Repr <: Code.T[I, O]](code: Repr, tt: reflect.runtime.universe.TypeTag[A])
+  def compileBody[I, O, A, Repr <: Code.T[I, O]](code: Repr, aTpe: String /*tt: reflect.runtime.universe.TypeTag[A]*/)
                                                 (implicit compiler: Code.Compiler): Future[Unit] =
     future {
       blocking {
-        compileThunk[A](code, tt = tt, execute = false)
+        compileThunk[A](code, aTpe = aTpe, execute = false)
       }
       ()
     }
@@ -182,10 +182,10 @@ object CodeImpl {
     importsMap(code.tpe.id).iterator.map(i => s"${"  " * indent}${i.sourceString}\n").mkString
 
   // note: synchronous.
-  def compileThunk[A](code: Code, tt: reflect.runtime.universe.TypeTag[A], execute: Boolean)
+  def compileThunk[A](code: Code, aTpe: String, /*tt: reflect.runtime.universe.TypeTag[A],*/ execute: Boolean)
                      (implicit compiler: Code.Compiler): A = {
     val impS    = importsPrelude(code, indent = 1)
-    val aTpe    = tt.tpe.toString // not `clazz.getName` which gives `void` instead of `Unit`!
+//    val aTpe    = tt.tpe.toString // not `clazz.getName` which gives `void` instead of `Unit`!
     val isUnit  = aTpe == "Unit"
     val synth =
       s"""$pkgCode.Run[$aTpe]($execute) {

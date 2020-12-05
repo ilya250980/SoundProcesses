@@ -18,7 +18,7 @@ lazy val commonSettings = Seq(
   homepage           := Some(url(s"https://git.iem.at/sciss/$baseName")),
   description        := "A framework for creating and managing ScalaCollider based sound processes",
   licenses           := Seq("AGPL v3+" -> url("http://www.gnu.org/licenses/agpl-3.0.txt")),
-  scalaVersion       := "2.13.4",
+  scalaVersion       := "3.0.0-M2", // "2.13.4",
   scalacOptions ++= {
     // "-Xfatal-warnings" -- breaks for cross-scala-build and deprecations
     // -stars-align produces wrong warnings with decomposing OSC messages
@@ -58,9 +58,9 @@ lazy val deps = new {
   }
 
   val views = new {
-    val audioWidgets        = "2.3.0"
-    val lucreSwing          = "2.4.1"
-    val scalaColliderSwing  = "2.4.0"
+    val audioWidgets        = "2.3.1-SNAPSHOT"
+    val lucreSwing          = "2.5.0-SNAPSHOT"
+    val scalaColliderSwing  = "2.4.1-SNAPSHOT"
     val swingPlus           = "0.5.0"
   }
   
@@ -79,9 +79,9 @@ lazy val loggingEnabled = true
 
 lazy val root = project.withId(baseNameL).in(file("."))
   .aggregate(
-    synth.jvm, synth.js, 
-    core .jvm, core .js, 
-    views.jvm, views.js,
+    synth.jvm, // synth.js, 
+    core .jvm, // core .js, 
+    views.jvm, // views.js,
     compiler,
   )
 //  .dependsOn(synth, core, views, compiler)
@@ -95,7 +95,7 @@ lazy val root = project.withId(baseNameL).in(file("."))
     mimaFailOnNoPrevious  := false
   )
 
-lazy val synth = crossProject(JVMPlatform, JSPlatform).in(file("synth"))
+lazy val synth = crossProject(JVMPlatform /* , JSPlatform */).in(file("synth"))
   .settings(commonSettings)
   .jvmSettings(commonJvmSettings)
   .settings(
@@ -132,7 +132,7 @@ lazy val testSettings = Seq(
   }
 )
 
-lazy val core = crossProject(JVMPlatform, JSPlatform).in(file("core"))
+lazy val core = crossProject(JVMPlatform /* , JSPlatform */).in(file("core"))
   .dependsOn(synth)
   .enablePlugins(BuildInfoPlugin)
   .settings(commonSettings)
@@ -155,9 +155,14 @@ lazy val core = crossProject(JVMPlatform, JSPlatform).in(file("core"))
       "de.sciss"          %%% "scalacollider-if"  % deps.main.scalaColliderIf,
 //      "de.sciss"          %%  "fileutil"          % deps.main.fileUtil,
       "de.sciss"          %%% "equal"             % deps.main.equal,
-      "org.scala-lang"    %   "scala-compiler"    % scalaVersion.value            % Provided,  // XXX TODO JVM only
       "org.rogach"        %%% "scallop"           % deps.test.scallop             % Test
     ),
+    libraryDependencies += {  // XXX TODO JVM only
+      if (isDotty.value) 
+        "org.scala-lang" %% "scala3-compiler" % scalaVersion.value
+      else 
+        "org.scala-lang" %  "scala-compiler"  % scalaVersion.value
+    },
     mimaPreviousArtifacts := Set("de.sciss" %% s"$baseNameL-core" % mimaVersion)
   )
   .jvmSettings(
@@ -167,7 +172,7 @@ lazy val core = crossProject(JVMPlatform, JSPlatform).in(file("core"))
     ),
   )
 
-lazy val views = crossProject(JVMPlatform, JSPlatform).in(file("views"))
+lazy val views = crossProject(JVMPlatform /* , JSPlatform */).in(file("views"))
   .dependsOn(core)
   .settings(commonSettings)
   .jvmSettings(commonJvmSettings)
@@ -186,10 +191,14 @@ lazy val views = crossProject(JVMPlatform, JSPlatform).in(file("views"))
       "de.sciss"        %% "swingplus"                % deps.views.swingPlus,
       "de.sciss"        %% "audiowidgets-app"         % deps.views.audioWidgets,
       "de.sciss"        %% "scalacolliderswing-core"  % deps.views.scalaColliderSwing,
-      "org.scala-lang"  %  "scala-reflect"            % scalaVersion.value,
       "de.sciss"        %  "submin"                   % deps.test.submin    % Test,
       "de.sciss"        %% s"lucre-${deps.test.bdb}"  % deps.main.lucre     % Test,
     ),
+    libraryDependencies ++= {
+      if (isDotty.value) Nil else Seq(
+        "org.scala-lang" % "scala-reflect" % scalaVersion.value,
+      )
+    },
   )
 
 lazy val compiler = project.withId(s"$baseNameL-compiler").in(file("compiler"))
@@ -202,11 +211,16 @@ lazy val compiler = project.withId(s"$baseNameL-compiler").in(file("compiler"))
     scalacOptions += "-Yrangepos",  // this is needed to extract source code
     fork in Test := true, // required for compiler
     libraryDependencies ++= Seq(
-      "org.scala-lang" %  "scala-compiler"          % scalaVersion.value,
       "de.sciss"       %% s"lucre-${deps.test.bdb}" % deps.main.lucre               % Test,
       "de.sciss"       %% "lucre-swing"             % deps.views.lucreSwing         % Test,
       "de.sciss"       %% "scalacolliderswing-core" % deps.test.scalaColliderSwing  % Test
     ),
+    libraryDependencies += {
+      if (isDotty.value)
+        "org.scala-lang" %% "scala3-compiler" % scalaVersion.value
+      else
+        "org.scala-lang" %  "scala-compiler"  % scalaVersion.value
+    },
     mimaPreviousArtifacts := Set("de.sciss" %% s"$baseNameL-compiler" % mimaVersion)
   )
 

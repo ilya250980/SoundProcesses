@@ -55,8 +55,10 @@ final case class DiskIn(rate: Rate, key: String, loop: synth.GE)
   def done: GE = DiskIn.Done(this)
 
   protected def makeUGen(server: Server, numChannels: Int, sampleRate: Double, idx: Int,
-                         buf: synth.GE, gain: synth.GE): UGenInLike =
+                         buf: synth.GE, gain: synth.GE): UGenInLike = {
+    import de.sciss.synth.geOps
     ugen.DiskIn(rate, numChannels = numChannels, buf = buf, loop = loop) * gain
+  }
 }
 
 object VDiskIn {
@@ -76,9 +78,9 @@ object VDiskIn {
     */
   def ar(key: String, speed: synth.GE = -1, loop: synth.GE = 0, interp: Int = -1, maxSpeed: Double = 0.0): VDiskIn = {
     // XXX TODO: match against UserValue ?
-    val maxSpeed1 = speed match {
-      case Constant(c)  => math.abs(c)
-      case _            => maxSpeed
+    val maxSpeed1: Double = speed match {
+      case Constant(c)    => math.abs(c)
+      case _              => maxSpeed
     }
     apply(audio, key = key, speed = speed, loop = loop, interp = interp, maxSpeed = maxSpeed1)
   }
@@ -136,6 +138,7 @@ final case class VDiskIn(rate: Rate, key: String, speed: synth.GE, loop: synth.G
     } else {
       StreamBuffer.makeUGen(key = key, idx = idx, buf = buf, numChannels = numChannels, speed = speed1, interp = interp1)
     }
+    import de.sciss.synth.geOps
     reader * gain
   }
 }

@@ -35,6 +35,7 @@ object StopSelf {
 final case class StopSelf(trig: GE, pause: GE = 1) extends Lazy.Expander[Unit] {
   protected def makeUGens: Unit = {
     import ugen._
+    import de.sciss.synth.geOps
     PauseSelf.kr(trig & pause)
     val b = UGenGraphBuilder.get
     b.requestInput(Input.StopSelf)

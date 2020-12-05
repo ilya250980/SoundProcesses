@@ -67,6 +67,8 @@ trait Txn[T <: Txn[T]] extends LTxn[T] with RT {
 
   /** an "evidence" type that can be used for up-casing `LTxn` to `Txn` */
   type Ev <: Txn[Ev]
+  
+  def ev: Ev
 }
 
 trait AnyTxn extends Txn[AnyTxn]

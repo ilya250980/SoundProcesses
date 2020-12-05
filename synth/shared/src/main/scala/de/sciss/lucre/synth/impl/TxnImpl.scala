@@ -132,8 +132,8 @@ sealed trait RTImpl extends RT { tx =>
 }
 
 trait TxnFullImpl[T <: synth.Txn[T]] extends RTImpl with synth.Txn[T] {
-  trait Ev extends synth.Txn[Ev]
-//  type Ev = synth.Txn[Ev]
+//  trait Ev extends synth.Txn[Ev]
+//  type Ev = TxnFullImpl[T] // synth.Txn[Ev]
 
   final protected def markBundlesDirty(): Unit = {
     log.debug("registering after commit handler")

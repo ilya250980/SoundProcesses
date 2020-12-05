@@ -424,7 +424,7 @@ object OscUdpNode {
     def sender  : Ex[SocketAddress] = Sender  (this)
     def message : Ex[OscMessage]    = Message (this)
 
-    protected def mkRepr[T <: Txn[T]](implicit ctx: Context[T], tx: T): Repr[T] = {
+    protected def mkRepr[T <: Txn[T]](implicit ctx: Context[T], tx: T): OscUdpNode.Repr[T] = {
       val localPortV = localPort.expand[T].value
       val localHostV = localHost.expand[T].value
       import ctx.{cursor, targets}

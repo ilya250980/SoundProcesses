@@ -27,7 +27,7 @@ final class StopSelfResponder[T <: Txn[T]](view: ViewBase[T], protected val synt
 
   protected val body: Body = {
     case osc.Message(StopSelf.replyName, NodeId, 0, _) =>
-      SoundProcesses.step(s"StopSelfResponder($synth)") { implicit tx: T =>
+      SoundProcesses.step[T](s"StopSelfResponder($synth)") { implicit tx: T =>
         view.stop()
       }
   }

@@ -19,9 +19,7 @@ import de.sciss.proc
 import de.sciss.proc.impl.ConfluentImpl
 
 object Confluent {
-  import proc.{Confluent => S}
-
-  def apply(storeFactory: DataStore.Factory): S = ConfluentImpl(storeFactory)
+  def apply(storeFactory: DataStore.Factory): Confluent = ConfluentImpl(storeFactory)
 
   trait Txn extends confluent.Txn[Txn] with synth.Txn[Txn] {
 //    private[proc] def durable : Durable#Tx

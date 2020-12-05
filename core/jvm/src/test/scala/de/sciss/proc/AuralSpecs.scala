@@ -1,6 +1,7 @@
 package de.sciss.proc
 
 import de.sciss.span.Span
+import de.sciss.synth
 import de.sciss.synth.ugen
 import de.sciss.synth.proc.graph
 
@@ -17,7 +18,7 @@ class AuralSpecs extends BounceSpec {
     val freq = 441
 
     val pH = cursor.step { implicit tx =>
-      val _p = proc {
+      val _p = mkProc {
         import ugen._
         Out.ar(0, SinOsc.ar(freq))
         ()
@@ -46,9 +47,10 @@ class AuralSpecs extends BounceSpec {
     val amp   = 0.5
 
     import graph.Ops.stringToControl
+    import synth._
     import ugen._
     val (pH1, pH2) = cursor.step { implicit tx =>
-      val proc1 = proc {
+      val proc1 = mkProc {
         val amp   = "amp".ir(0.0)
         val noise = LFPulse.ar(SampleRate.ir * 0.5) * Seq(amp, amp)
         graph.ScanOut("out", noise)
@@ -58,7 +60,7 @@ class AuralSpecs extends BounceSpec {
       proc1.name = "sine"
       doubleAttr(proc1, "amp", amp)
 
-      val proc2 = proc {
+      val proc2 = mkProc {
         val freq  = "freq".ir(111.0)
         val in    = graph.ScanIn("in")
         Out.ar(0, SinOsc.ar(freq) * in)

@@ -37,9 +37,9 @@ object Confluent {
 
 trait Confluent extends ConfluentLike[Confluent.Txn] with synth.Sys {
   protected type S  = Confluent
-  type T            = Confluent .Txn
-  type D            = Durable   .Txn
-  type I            = InMemory  .Txn
+  override  type T  = Confluent .Txn
+  override  type D  = Durable   .Txn
+  override  type I  = InMemory  .Txn
 
   override def durable : Durable
   override def inMemory: InMemory

@@ -225,6 +225,26 @@ lazy val compiler = project.withId(s"$baseNameL-compiler").in(file("compiler"))
       else
         "org.scala-lang" %  "scala-compiler"  % scalaVersion.value
     },
+    Compile / unmanagedSourceDirectories ++= {
+      val sourceDirPl = (sourceDirectory in Compile).value
+      val sv = CrossVersion.partialVersion(scalaVersion.value)
+      val (sub1, sub2) = sv match {
+        case Some((2, n)) if n >= 13  => ("scala-2.13+", "scala-2.14-")
+        case Some((3, _))             => ("scala-2.13+", "scala-2.14+")
+        case _                        => ("scala-2.13-", "scala-2.14-")
+      }
+      Seq(sourceDirPl / sub1, sourceDirPl / sub2)
+    },
+    Test / unmanagedSourceDirectories ++= {
+      val sourceDirPl = (sourceDirectory in Test).value
+      val sv = CrossVersion.partialVersion(scalaVersion.value)
+      val (sub1, sub2) = sv match {
+        case Some((2, n)) if n >= 13  => ("scala-2.13+", "scala-2.14-")
+        case Some((3, _))             => ("scala-2.13+", "scala-2.14+")
+        case _                        => ("scala-2.13-", "scala-2.14-")
+      }
+      Seq(sourceDirPl / sub1, sourceDirPl / sub2)
+    },
     mimaPreviousArtifacts := Set("de.sciss" %% s"$baseNameL-compiler" % mimaVersion)
   )
 

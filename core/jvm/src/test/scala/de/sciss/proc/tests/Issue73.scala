@@ -3,14 +3,16 @@ package de.sciss.proc.tests
 import de.sciss.file._
 import de.sciss.lucre.synth.impl.ServerImpl
 import de.sciss.lucre.synth.{InMemory, Server, Sys}
-import de.sciss.lucre.{Artifact, ArtifactLocation, Cursor, Log, Source, synth}
+import de.sciss.lucre.{Artifact, ArtifactLocation, Cursor, Log, Source}
+import de.sciss.lucre.synth.{Txn => STxn}
 import de.sciss.processor.Processor
 import de.sciss.span.Span
 import de.sciss.audiofile.{AudioFile, AudioFileSpec}
 import de.sciss.log.Level
 import de.sciss.proc.Implicits._
 import de.sciss.proc.{AudioCue, Bounce, Proc, SoundProcesses, TimeRef, Timeline, Universe}
-import de.sciss.synth.{SynthGraph, ugen}
+import de.sciss.synth
+import de.sciss.synth.SynthGraph
 
 import scala.concurrent.ExecutionContext
 
@@ -23,7 +25,7 @@ object Issue73 {
     ()
   }
 }
-class Issue73[T <: synth.Txn[T]](val system: Sys)(implicit cursor: Cursor[T]) {
+class Issue73[T <: STxn[T]](val system: Sys)(implicit cursor: Cursor[T]) {
   def frame(secs: Double): Long = (secs * TimeRef.SampleRate).toLong
 
   val durBounceMin: Double        = 0.2 // 10.0
@@ -38,7 +40,8 @@ class Issue73[T <: synth.Txn[T]](val system: Sys)(implicit cursor: Cursor[T]) {
     val proc      = Proc[T]()
     proc.name     = "issue"
     proc.graph()  = SynthGraph {
-      import de.sciss.numbers.Implicits._
+      import synth._
+//      import de.sciss.numbers.Implicits._
       import de.sciss.synth.proc.graph._
       import ugen.{VDiskIn => _, _}
       val factor = XLine.ar(1.0/16, 1.0, durBounceSec)

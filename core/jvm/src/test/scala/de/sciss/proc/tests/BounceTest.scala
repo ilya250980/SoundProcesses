@@ -11,7 +11,7 @@ import de.sciss.proc.Implicits._
 import de.sciss.proc.SoundProcesses.{logAural, logTransport}
 import de.sciss.proc.{Bounce, Durable, Proc, SoundProcesses, TimeRef, Timeline, Universe}
 import de.sciss.synth.{SynthGraph, ugen}
-import org.rogach.scallop.{ScallopConf, ScallopOption => Opt}
+import org.rogach.scallop.{ScallopConf, ScallopOption => Opt, flagConverter}
 
 import scala.concurrent.ExecutionContext
 

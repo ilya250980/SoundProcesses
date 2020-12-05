@@ -4,7 +4,7 @@ import de.sciss.lucre.synth.Server
 import de.sciss.span.Span
 import de.sciss.synth.message.{GroupDumpTree, Responder, Status, StatusReply}
 import de.sciss.synth.proc.graph
-import de.sciss.synth.ugen
+import de.sciss.synth
 
 import scala.concurrent.Promise
 import scala.util.Success
@@ -21,21 +21,24 @@ class Issue28 extends BounceSpec {
 
     val tlH = cursor.step { implicit tx =>
       import Implicits._
-      val _p1 = proc {
+      val _p1 = mkProc {
+        import synth._
         import graph._
         import ugen._
         ScanOut(WhiteNoise.ar(0.1))     // actual signal has no significance
         ()
       }
       _p1.name = "noise"
-      val _p2 = proc {
+      val _p2 = mkProc {
+        import synth._
         import graph._
         import ugen._
         ScanOut(SinOsc.ar(441) * 0.1)   // actual signal has no significance
         ()
       }
       _p2.name = "sine"
-      val _p3 = proc {
+      val _p3 = mkProc {
+        import synth._
         import graph._
         import ugen._
         val sig = ScanInFix(numChannels = 1)

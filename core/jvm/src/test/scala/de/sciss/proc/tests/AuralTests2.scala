@@ -125,7 +125,7 @@ class AuralTests2[T <: Txn[T]](name: String)(implicit cursor: Cursor[T]) extends
 
       val gr = Grapheme[T]()
       gr.add(frame(0.0), EnvSegment.Obj.newConst(EnvSegment.Single( 600, Curve.exp)))
-      val ev = EnvSegment.Obj.newVar(EnvSegment.Single(1000, Curve.lin))
+      val ev = EnvSegment.Obj.newVar[T](EnvSegment.Single(1000, Curve.lin))
       val evH = tx.newHandle(ev)
       gr.add(frame(6.0), ev)
       gr.add(frame(9.0), IntObj.newConst(400))

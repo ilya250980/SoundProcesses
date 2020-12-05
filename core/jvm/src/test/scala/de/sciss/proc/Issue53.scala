@@ -3,7 +3,7 @@ package de.sciss.proc
 import de.sciss.lucre.Folder
 import de.sciss.span.Span
 import de.sciss.synth.proc.graph.{ScanInFix, ScanOut}
-import de.sciss.synth.ugen
+import de.sciss.synth
 
 import scala.concurrent.ExecutionContext
 
@@ -39,24 +39,25 @@ class Issue53 extends BounceSpec {
     val at1f  = tim1.secondsFileI
     val at2f  = tim2.secondsFileI
 
+    import synth._
     import ugen._
     val tlH = cursor.step { implicit tx =>
-      val proc1 = proc {
+      val proc1 = mkProc {
         ScanOut(LFPulse.ar(freq1) * 0.5)
       }
 
-      val proc2 = proc {
+      val proc2 = mkProc {
         ScanOut(SinOsc.ar(freq2) * 0.5)
       }
 
       // shitty real-time SC is never sample accurately scheduled,
       // so to compare signals we'll end making a DC instead
-      val proc3 = proc {
+      val proc3 = mkProc {
 //        ScanOut(SinOsc.ar(freq2) * 0.5)
         ScanOut(DC.ar(0.33))
       }
 
-      val glob = proc {
+      val glob = mkProc {
         val in = ScanInFix(1)
         Out.ar(0, in)
       }

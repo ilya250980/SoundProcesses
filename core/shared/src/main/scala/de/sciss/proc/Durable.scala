@@ -36,7 +36,7 @@ object Durable {
 
 trait Durable extends DurableLike[Durable.Txn] with synth.Sys {
   override def inMemory: InMemory
-  
-  type T  = Durable.Txn // Sys.Txn[Durable] with evt.DurableLike.Txn[Durable]
-  type I  = InMemory.Txn
+
+  override type T  = Durable  .Txn
+  override type I  = InMemory .Txn
 }

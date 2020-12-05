@@ -121,7 +121,7 @@ abstract class BounceSpec extends FixtureAsyncFlatSpec with Matchers {
   def frame  (secs  : Double): Long   = (secs  * TimeRef.SampleRate).toLong
   def seconds(frames: Long  ): Double = frames / TimeRef.SampleRate
 
-  def proc(graph: => Any)(implicit tx: T): Proc[T] = {
+  def mkProc(graph: => Any)(implicit tx: T): Proc[T] = {
     val p = Proc[T]()
     val g = SynthGraph {
       graph

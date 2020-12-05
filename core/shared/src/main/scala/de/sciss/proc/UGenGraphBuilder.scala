@@ -49,11 +49,11 @@ object UGenGraphBuilder {
   trait Context[T <: Txn[T]] {
     def server: Server
 
-    def requestInput[Res](req: UGenGraphBuilder.Input { type Value = Res }, io: Requester[T])(implicit tx: T): Res
+    def requestInput[Res <: Value](req: Input[Res], io: Requester[T])(implicit tx: T): Res
   }
 
   trait IO[T <: Txn[T]] {
-    def acceptedInputs: Map[Key, Map[Input, Input#Value]]
+    def acceptedInputs: Map[Key, Map[Input[_], Value]]
 
     /** Current set of used outputs (scan keys to number of channels).
       * This is guaranteed to only grow during incremental building, never shrink.
@@ -136,9 +136,8 @@ object UGenGraphBuilder {
         def async = false
       }
     }
-    final case class Stream(name: String, spec: Stream.Spec) extends Input {
-      type Key    = AttributeKey
-      type Value  = Stream.Value
+    final case class Stream(name: String, spec: Stream.Spec) extends Input[Stream.Value] {
+      type Key = AttributeKey
 
       def key: Key = AttributeKey(name)
 
@@ -152,9 +151,8 @@ object UGenGraphBuilder {
         override def toString = s"$productPrefix(numChannels = $numChannels)"
       }
     }
-    final case class DiskOut(name: String, numChannels: Int) extends Input {
-      type Key    = AttributeKey
-      type Value  = DiskOut.Value
+    final case class DiskOut(name: String, numChannels: Int) extends Input[DiskOut.Value] {
+      type Key = AttributeKey
 
       def key: Key = AttributeKey(name)
 
@@ -174,9 +172,10 @@ object UGenGraphBuilder {
       * @param requiredNumChannels  the required number of channels or `-1` if no specific requirement
       * @param defaultNumChannels   the default  number of channels or `-1` if no default provided
       */
-    final case class Scalar(name: String, requiredNumChannels: Int, defaultNumChannels: Int) extends Input {
+    final case class Scalar(name: String, requiredNumChannels: Int, defaultNumChannels: Int) 
+      extends Input[Scalar.Value] {
+      
       type Key    = AttributeKey
-      type Value  = Scalar.Value
 
       def key: Key = AttributeKey(name)
 
@@ -193,9 +192,8 @@ object UGenGraphBuilder {
       *
       * @param name   name (key) of the attribute
       */
-    final case class Attribute(name: String) extends Input {
-      type Key    = AttributeKey
-      type Value  = Attribute.Value
+    final case class Attribute(name: String) extends Input[Attribute.Value] {
+      type Key = AttributeKey
 
       def key: Key = AttributeKey(name)
 
@@ -221,9 +219,8 @@ object UGenGraphBuilder {
       * @param name         name (key) of the attribute referring to an object that
       *                     can be buffered (e.g. audio grapheme)
       */
-    final case class Buffer(name: String) extends Input {
-      type Key    = AttributeKey
-      type Value  = Buffer.Value
+    final case class Buffer(name: String) extends Input[Buffer.Value] {
+      type Key = AttributeKey
 
       def key: Key = AttributeKey(name)
 
@@ -234,10 +231,9 @@ object UGenGraphBuilder {
       * written to disk when the encompassing graph finishes.
       */
     final case class BufferOut(artifact: String, action: String, numFrames: Int, numChannels: Int)
-      extends Input with Key {
+      extends Input[Unit] with Key {
 
-      type Key    = BufferOut
-      type Value  = Unit
+      type Key = BufferOut
 
       def key: Key = this
 
@@ -252,10 +248,9 @@ object UGenGraphBuilder {
     }
     /** Specifies access to an buffer filled by a generator function. */
     final case class BufferGen(cmd: graph.BufferGen.Command, numFrames: Int, numChannels: Int)
-      extends Input with Key {
+      extends Input[BufferGen.Value] with Key {
 
-      type Key    = BufferGen
-      type Value  = BufferGen.Value
+      type Key = BufferGen
 
       def key: Key = this
 
@@ -272,27 +267,24 @@ object UGenGraphBuilder {
       *
       * @param name   name (key) of the attribute referring to an action
       */
-    final case class Action(name: String) extends Input {
-      type Key    = AttributeKey
-      type Value  = Action.Value.type
+    final case class Action(name: String) extends Input[Action.Value.type] {
+      type Key = AttributeKey
 
       def key: Key = AttributeKey(name)
 
       override def productPrefix = "Input.Action"
     }
 
-    case object StopSelf extends Input with Key {
-      type Key    = StopSelf.type
-      type Value  = Unit
+    case object StopSelf extends Input[Unit] with Key {
+      type Key = StopSelf.type
 
       def key: Key = this
 
       override def productPrefix = "Input.StopSelf"
     }
   }
-  trait Input {
-    type Key   <: UGenGraphBuilder.Key
-    type Value <: UGenGraphBuilder.Value
+  trait Input[V <: Value] {
+    type Key <: UGenGraphBuilder.Key
 
     def key: Key
   }
@@ -318,7 +310,7 @@ trait UGenGraphBuilder extends NestedUGenGraphBuilder {
     * The builder will catch that exception and add the key to `rejectedInputs` instead
     * of `acceptedInputs` instead.
     */
-  def requestInput(input: Input): input.Value
+  def requestInput[Res <: UGenGraphBuilder.Value](input: Input[Res]): Res
 
   /** This method should only be invoked by the `graph.scan.Elem` instances. It declares a scan output along
     * with the number of channels written to it.

@@ -491,128 +491,127 @@ object AuralProcImpl {
 
       // XXX TODO the integration of runnerAttr is a bad hack
     /** Sub-classes may override this if invoking the super-method. */
-    def requestInput[Res](in: UGB.Input { type Value = Res }, st: UGB.Requester[T])
-                         (implicit tx: T): Res = ???
-//      in match {
-//      case i: UGB.Input.Scalar =>
-//        val aKey = i.name
-//
-//        def tryRunnerAttr(): Int = {
-//          val valueOpt = runnerAttr.get(aKey)
-//          valueOpt.fold(-1) {
-//            case value: IExpr[T, _] =>
-//              val view = mkAuralExprLike(aKey, value)
-//              view.preferredNumChannels
-//            case _ => -1
-//          }
+    def requestInput[Res <: UGB.Value](in: UGB.Input[Res], st: UGB.Requester[T])
+                         (implicit tx: T): Res = in match {
+      case i: UGB.Input.Scalar =>
+        val aKey = i.name
+
+        def tryRunnerAttr(): Int = {
+          val valueOpt = runnerAttr.get(aKey)
+          valueOpt.fold(-1) {
+            case value: IExpr[T, _] =>
+              val view = mkAuralExprLike(aKey, value)
+              view.preferredNumChannels
+            case _ => -1
+          }
+        }
+
+        def tryObjAttr(): Int = {
+          def channels(value: Obj[T]): Int = {
+            val view = mkAuralAttribute(aKey, value)
+            view.preferredNumChannels
+          }
+
+          val procObj   = procCached()
+          val valueOpt  = procObj.attr.get(aKey)
+          valueOpt.fold(-1) {
+            case a: Gen[T] =>
+              val genView = mkGenView(a, aKey)
+              genView.value match {
+                case Some(tr) =>
+                  val value = tr.get
+                  channels(value)
+                case None => -1
+              }
+
+            case value =>
+              channels(value)
+          }
+        }
+
+        val found: Int = {
+          val tmp = tryRunnerAttr()
+          if (tmp == -1) tryObjAttr() else tmp
+        }
+
+        import i.{defaultNumChannels => defNum, requiredNumChannels => reqNum}
+        if ((found < 0 && i.defaultNumChannels < 0) || (found >= 0 && reqNum >= 0 && found != reqNum)) {
+          // throw new IllegalStateException(s"Attribute ${i.name} requires $reqNum channels (found $found)")
+          throw MissingIn(i.key)
+        }
+        val res = if (found >= 0) found else if (reqNum >= 0) reqNum else defNum
+        UGB.Input.Scalar.Value(res) // IntelliJ highlight bug
+
+      case i: UGB.Input.Stream =>
+        val aKey          = i.name
+        val value0: UGB.Input.Stream.Value =
+          runnerAttr.get(aKey) match {
+            case Some(ex: IExpr[T, _]) =>
+              requestAttrStreamValueFromExpr(/*aKey,*/ ex)
+            case Some(a) =>
+              sys.error(s"Cannot use attribute $a as an audio stream")
+            case None =>
+              val procObj       = procCached()
+              val valueOpt      = procObj.attr.get(aKey)
+              valueOpt match {
+                case Some(value) =>
+                  requestAttrStreamValue(aKey, value)
+                case None =>
+                  simpleInputStreamValue(-1)
+              }
+          }
+
+        val chansUnknown  = value0.numChannels < 0
+        if (chansUnknown && !i.spec.isEmpty) throw MissingIn(i.key)
+        val value1        = if (chansUnknown) value0.copy(numChannels = 1) else value0 // simply default to 1
+        val newSpecs0     = List.empty[UGB.Input.Stream.Spec]
+//        st.acceptedInputs.get(i.key) match {
+//          case Some((_, v: UGB.Input.Stream.Value))   => v.specs
+//          case _                                      => Nil
 //        }
-//
-//        def tryObjAttr(): Int = {
-//          def channels(value: Obj[T]): Int = {
-//            val view = mkAuralAttribute(aKey, value)
-//            view.preferredNumChannels
-//          }
-//
-//          val procObj   = procCached()
-//          val valueOpt  = procObj.attr.get(aKey)
-//          valueOpt.fold(-1) {
-//            case a: Gen[T] =>
-//              val genView = mkGenView(a, aKey)
-//              genView.value match {
-//                case Some(tr) =>
-//                  val value = tr.get
-//                  channels(value)
-//                case None => -1
-//              }
-//
-//            case value =>
-//              channels(value)
-//          }
-//        }
-//
-//        val found: Int = {
-//          val tmp = tryRunnerAttr()
-//          if (tmp == -1) tryObjAttr() else tmp
-//        }
-//
-//        import i.{defaultNumChannels => defNum, requiredNumChannels => reqNum}
-//        if ((found < 0 && i.defaultNumChannels < 0) || (found >= 0 && reqNum >= 0 && found != reqNum)) {
-//          // throw new IllegalStateException(s"Attribute ${i.name} requires $reqNum channels (found $found)")
-//          throw MissingIn(i.key)
-//        }
-//        val res = if (found >= 0) found else if (reqNum >= 0) reqNum else defNum
-//        UGB.Input.Scalar.Value(res) // IntelliJ highlight bug
-//
-//      case i: UGB.Input.Stream =>
-//        val aKey          = i.name
-//        val value0: UGB.Input.Stream.Value =
-//          runnerAttr.get(aKey) match {
-//            case Some(ex: IExpr[T, _]) =>
-//              requestAttrStreamValueFromExpr(/*aKey,*/ ex)
-//            case Some(a) =>
-//              sys.error(s"Cannot use attribute $a as an audio stream")
-//            case None =>
-//              val procObj       = procCached()
-//              val valueOpt      = procObj.attr.get(aKey)
-//              valueOpt match {
-//                case Some(value) =>
-//                  requestAttrStreamValue(aKey, value)
-//                case None =>
-//                  simpleInputStreamValue(-1)
-//              }
-//          }
-//
-//        val chansUnknown  = value0.numChannels < 0
-//        if (chansUnknown && !i.spec.isEmpty) throw MissingIn(i.key)
-//        val value1        = if (chansUnknown) value0.copy(numChannels = 1) else value0 // simply default to 1
-//        val newSpecs0     = List.empty[UGB.Input.Stream.Spec]
-////        st.acceptedInputs.get(i.key) match {
-////          case Some((_, v: UGB.Input.Stream.Value))   => v.specs
-////          case _                                      => Nil
-////        }
-//        val newSpecs      = if (i.spec.isEmpty) newSpecs0 else {
-//          i.spec :: newSpecs0
-//        }
-//        val value2        = if (newSpecs.isEmpty) value1 else value1.copy(specs = newSpecs)
-//        value2
-//
-//      case i: UGB.Input.Buffer =>
-//        val aKey      = i.name
-//        val res0: UGB.Input.Buffer.Value = runnerAttr.get(aKey) match {
-//          case Some(ex: IExpr[T, _]) =>
-//            requestInputBufferFromExpr(/*aKey,*/ ex)
-//          case Some(a) =>
-//            throw new IllegalStateException(s"Unsupported input attribute buffer source $a")
-//          case None =>
-//            val procObj   = procCached()
-//            val attrValue = procObj.attr.get(aKey).getOrElse(throw MissingIn(i.key))
-//            requestInputBuffer(aKey, attrValue)
-//        }
-//        // larger files are asynchronously prepared, smaller ones read on the fly
-//        val async = res0.numSamples > UGB.Input.Buffer.AsyncThreshold   // XXX TODO - that threshold should be configurable
-//        if (async == res0.async) res0 else res0.copy(async = async)
-//
-//      case i: UGB.Input.Attribute =>
-//        val aKey      = i.name
-//        val valueOpt  = runnerAttr.get(aKey).orElse {
-//          val procObj   = procCached()
-//          procObj.attr.get(aKey)
-//        }
-//
-//        val opt: Option[Any] = valueOpt match {
-//          case Some(x: ExprLike[T, _])  => Some(x.value)
-//          case _                        => None
-//        }
-//        UGB.Input.Attribute.Value(opt)
-//
-//      case _: UGB.Input.BufferOut => UGB.Unit
-//      case    UGB.Input.StopSelf  => UGB.Unit
-//      case _: UGB.Input.Action    => UGB.Input.Action .Value
-//      case i: UGB.Input.DiskOut   => UGB.Input.DiskOut.Value(i.numChannels)
-//      case _: UGB.Input.BufferGen => UGB.Input.BufferGen.Value(st.allocUniqueId())
-//
-//      case _ => throw new IllegalStateException(s"Unsupported input request $in")
-//    }
+        val newSpecs      = if (i.spec.isEmpty) newSpecs0 else {
+          i.spec :: newSpecs0
+        }
+        val value2        = if (newSpecs.isEmpty) value1 else value1.copy(specs = newSpecs)
+        value2
+
+      case i: UGB.Input.Buffer =>
+        val aKey      = i.name
+        val res0: UGB.Input.Buffer.Value = runnerAttr.get(aKey) match {
+          case Some(ex: IExpr[T, _]) =>
+            requestInputBufferFromExpr(/*aKey,*/ ex)
+          case Some(a) =>
+            throw new IllegalStateException(s"Unsupported input attribute buffer source $a")
+          case None =>
+            val procObj   = procCached()
+            val attrValue = procObj.attr.get(aKey).getOrElse(throw MissingIn(i.key))
+            requestInputBuffer(aKey, attrValue)
+        }
+        // larger files are asynchronously prepared, smaller ones read on the fly
+        val async = res0.numSamples > UGB.Input.Buffer.AsyncThreshold   // XXX TODO - that threshold should be configurable
+        if (async == res0.async) res0 else res0.copy(async = async)
+
+      case i: UGB.Input.Attribute =>
+        val aKey      = i.name
+        val valueOpt  = runnerAttr.get(aKey).orElse {
+          val procObj   = procCached()
+          procObj.attr.get(aKey)
+        }
+
+        val opt: Option[Any] = valueOpt match {
+          case Some(x: ExprLike[T, _])  => Some(x.value)
+          case _                        => None
+        }
+        UGB.Input.Attribute.Value(opt)
+
+      case _: UGB.Input.BufferOut => UGB.Unit
+      case    UGB.Input.StopSelf  => UGB.Unit
+      case _: UGB.Input.Action    => UGB.Input.Action .Value
+      case i: UGB.Input.DiskOut   => UGB.Input.DiskOut.Value(i.numChannels)
+      case _: UGB.Input.BufferGen => UGB.Input.BufferGen.Value(st.allocUniqueId())
+
+      case _ => throw new IllegalStateException(s"Unsupported input request $in")
+    }
 
     private def getOutputBus(key: String)(implicit tx: T): Option[AudioBus] =
       outputBuses.get(key)

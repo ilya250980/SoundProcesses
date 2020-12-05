@@ -47,7 +47,7 @@ object UGenGraphBuilderImpl {
 
     override def toString = s"UGenGraphBuilder.Incomplete@${hashCode.toHexString}"
 
-    def acceptedInputs  = Map.empty[UGB.Key, Map[UGB.Input, UGB.Input#Value]]
+    def acceptedInputs  = Map.empty[UGB.Key, Map[UGB.Input[_], UGB.Value]]
     def outputs         = Map.empty[String, Int]
 
     def retry(context: Context[T])(implicit tx: T): State[T] =
@@ -56,7 +56,7 @@ object UGenGraphBuilderImpl {
 
   private final class CompleteImpl[T <: Txn[T]](val result: NestedUGenGraphBuilder.Result,
       val outputs       : Map[String, Int],
-      val acceptedInputs: Map[UGB.Key, Map[UGB.Input, UGB.Input#Value]]
+      val acceptedInputs: Map[UGB.Key, Map[UGB.Input[_], UGB.Value]]
    ) extends Complete[T] {
 
     override def toString = s"UGenGraphBuilder.Complete@${hashCode.toHexString}"
@@ -92,7 +92,7 @@ object UGenGraphBuilderImpl {
       new InnerImpl(childId = childId, thisExpIfCase = thisExpIfCase, parent = parent, name = name,
                     context = context, tx = tx)
 
-    final var acceptedInputs  = Map.empty[UGB.Key, Map[UGB.Input, UGB.Input#Value]]
+    final var acceptedInputs  = Map.empty[UGB.Key, Map[UGB.Input[_], UGB.Value]]
     final var outputs         = Map.empty[String, Int]
     private[this] var uniqueId = 0
 
@@ -101,10 +101,10 @@ object UGenGraphBuilderImpl {
 //    final def retry(context: Context[T])(implicit tx: T): State[T] =
 //      throw new IllegalStateException("Cannot retry an ongoing build")
 
-    final def requestInput(req: UGB.Input): req.Value = {
+    final def requestInput[Res <: UGB.Value](req: UGB.Input[Res]): Res = {
       // we pass in `this` and not `in`, because that way the context
       // can find accepted inputs that have been added during the current build cycle!
-      val res   = context.requestInput[req.Value](req, this)(tx)  // IntelliJ highlight bug
+      val res   = context.requestInput[Res](req, this)(tx)  // IntelliJ highlight bug
       val key   = req.key
       val map0  = acceptedInputs.getOrElse(key, Map.empty)
       val map1  = map0 + (req -> res)

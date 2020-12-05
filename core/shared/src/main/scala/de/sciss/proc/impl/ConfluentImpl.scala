@@ -34,7 +34,7 @@ private[proc] object ConfluentImpl {
     // val durable = evt.Durable(storeFactory, eventName = "d-evt")
     val mainStoreD  = storeFactory.open("d-main")
     val durable     = Dur(mainStore = mainStoreD)
-    ??? // new System(storeFactory, durable)
+    new System(storeFactory, durable)
   }
 
   private sealed trait TxnImpl extends Cf.Txn
@@ -87,10 +87,10 @@ private[proc] object ConfluentImpl {
 //    def inMemoryTx(tx: T): I#Tx  = tx.inMemory
 
     protected def wrapRegular(dtx: Dur.Txn, inputAccess: Acc, retroactive: Boolean,
-                              cursorCache: confluent.Cache[T], systemTimeNanos: Long) = ???
-//      new RegularTxn(system = this, durable = dtx, inputAccess = inputAccess, isRetroactive = retroactive,
-//        cursorCache = cursorCache, systemTimeNanoSec = systemTimeNanos)
+                              cursorCache: confluent.Cache[T], systemTimeNanos: Long) =
+      new RegularTxn(system = this, durable = dtx, inputAccess = inputAccess, isRetroactive = retroactive,
+        cursorCache = cursorCache, systemTimeNanoSec = systemTimeNanos)
 
-    protected def wrapRoot(peer: InTxn): T = ??? // new RootTxn(this, peer)
+    protected def wrapRoot(peer: InTxn): T = new RootTxn(this, peer)
   }
 }

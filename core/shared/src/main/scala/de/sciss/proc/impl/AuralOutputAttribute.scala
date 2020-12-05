@@ -18,6 +18,7 @@ import de.sciss.lucre.Txn
 import de.sciss.lucre.Txn.peer
 import de.sciss.lucre.Source
 import de.sciss.lucre.Obj
+import de.sciss.lucre.synth
 import de.sciss.lucre.Disposable
 import de.sciss.proc.AuralAttribute.{Factory, Observer, Target}
 import de.sciss.proc.Runner.{Running, Stopped, Prepared}
@@ -29,8 +30,8 @@ object AuralOutputAttribute extends Factory {
 
   def tpe: Obj.Type = Proc.Output
 
-  def apply[T <: Txn[T]](key: String, value: Proc.Output[T], observer: Observer[T])
-                        (implicit tx: T, context: AuralContext[T]): AuralAttribute[T] =
+  def apply[T <: synth.Txn[T]](key: String, value: Proc.Output[T], observer: Observer[T])
+                              (implicit tx: T, context: AuralContext[T]): AuralAttribute[T] =
     new AuralOutputAttribute(key, tx.newHandle(value), observer).init(value)
 }
 final class AuralOutputAttribute[T <: Txn[T]](val key: String, objH: Source[T, Proc.Output[T]],

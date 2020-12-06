@@ -19,7 +19,7 @@ import de.sciss.lucre.expr.LongExtensions
 import de.sciss.lucre.expr.graph.Ex
 import de.sciss.lucre.expr.graph.{AudioCue => _AudioCue}
 import de.sciss.lucre.impl.{ExprNodeImpl, ExprTypeImpl}
-import de.sciss.lucre.{Artifact, Copy, DoubleObj, Elem, Expr, Ident, LongObj, Pull, Txn, Obj => LObj, Var => LVar}
+import de.sciss.lucre.{Artifact, Copy, DoubleObj, Elem, Expr, Ident, LongObj, Pull, Txn, expr, Obj => LObj, Var => LVar}
 import de.sciss.model.Change
 import de.sciss.serial.{ConstFormat, DataInput, DataOutput}
 import de.sciss.proc.ExImport.audioFileSpecOps
@@ -376,7 +376,8 @@ object AudioCue {
 //              amtVr() = amtVr() + amount
 //              ex
 //            case _ =>
-              new Shift(Targets[T](), peer = s.peer, amount = s.amount + amount).connect()
+          import expr.Ops._
+          new Shift(Targets[T](), peer = s.peer, amount = s.amount + amount).connect()
 //          }
         case _ =>
           new Shift(Targets[T](), peer = ex, amount = amount).connect()

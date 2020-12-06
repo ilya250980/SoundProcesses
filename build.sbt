@@ -20,7 +20,7 @@ lazy val commonSettings = Seq(
   homepage           := Some(url(s"https://git.iem.at/sciss/$baseName")),
   description        := "A framework for creating and managing ScalaCollider based sound processes",
   licenses           := Seq("AGPL v3+" -> url("http://www.gnu.org/licenses/agpl-3.0.txt")),
-  scalaVersion       := "3.0.0-M2", // "2.13.4",
+  scalaVersion       := "2.12.12", // "3.0.0-M2", // "2.13.4",
   scalacOptions ++= {
     // "-Xfatal-warnings" -- breaks for cross-scala-build and deprecations
     // -stars-align produces wrong warnings with decomposing OSC messages
@@ -60,9 +60,9 @@ lazy val deps = new {
   }
 
   val views = new {
-    val audioWidgets        = "2.3.1-SNAPSHOT"
+    val audioWidgets        = "2.3.1"
     val lucreSwing          = "2.5.0-SNAPSHOT"
-    val scalaColliderSwing  = "2.4.1-SNAPSHOT"
+    val scalaColliderSwing  = "2.4.1"
     val swingPlus           = "0.5.0"
   }
   

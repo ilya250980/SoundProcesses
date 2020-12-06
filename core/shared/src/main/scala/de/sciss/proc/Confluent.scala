@@ -14,8 +14,7 @@
 package de.sciss.proc
 
 import de.sciss.lucre.synth.InMemory
-import de.sciss.lucre.{ConfluentLike, DataStore, confluent, synth, Durable => LDurable, InMemory => LInMemory}
-import de.sciss.proc
+import de.sciss.lucre.{ConfluentLike, DataStore, confluent, synth}
 import de.sciss.proc.impl.ConfluentImpl
 
 object Confluent {

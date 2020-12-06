@@ -13,12 +13,12 @@
 
 package de.sciss.proc.impl
 
-import de.sciss.lucre.synth.{InMemory => InM}
+import de.sciss.lucre.confluent.Access
 import de.sciss.lucre.synth.impl.TxnFullImpl
-import de.sciss.lucre.confluent.{Access => Acc}
-import de.sciss.lucre.{DataStore, confluent, Durable => LDurable, InMemory => LInMemory}
-import de.sciss.proc.{Confluent => Cf, Durable => Dur}
+import de.sciss.lucre.synth.{InMemory => InM}
+import de.sciss.lucre.{DataStore, confluent}
 import de.sciss.proc.SoundProcesses.log
+import de.sciss.proc.{Confluent => Cf, Durable => Dur}
 
 import scala.concurrent.stm.InTxn
 
@@ -53,7 +53,7 @@ private[proc] object ConfluentImpl {
   }
 
   private final class RegularTxn(val system: Cf, val durable: /* evt. */ Dur.Txn,
-                                 val inputAccess: Acc[Cf.Txn], val isRetroactive: Boolean,
+                                 val inputAccess: Access[Cf.Txn], val isRetroactive: Boolean,
                                  val cursorCache: confluent.Cache[Cf.Txn],
                                  val systemTimeNanoSec: Long)
     extends confluent.impl.RegularTxnMixin[Cf.Txn, Dur.Txn, InM.Txn] with TxnImpl {
@@ -86,7 +86,7 @@ private[proc] object ConfluentImpl {
 
 //    def inMemoryTx(tx: T): I#Tx  = tx.inMemory
 
-    protected def wrapRegular(dtx: Dur.Txn, inputAccess: Acc, retroactive: Boolean,
+    protected def wrapRegular(dtx: Dur.Txn, inputAccess: Access[T], retroactive: Boolean,
                               cursorCache: confluent.Cache[T], systemTimeNanos: Long) =
       new RegularTxn(system = this, durable = dtx, inputAccess = inputAccess, isRetroactive = retroactive,
         cursorCache = cursorCache, systemTimeNanoSec = systemTimeNanos)

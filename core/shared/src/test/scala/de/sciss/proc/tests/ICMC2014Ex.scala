@@ -1,5 +1,6 @@
 package de.sciss.proc.tests
 
+import de.sciss.lucre.expr
 import de.sciss.lucre.expr.SpanExtensions
 import de.sciss.lucre.{LongObj, SpanObj, Txn}
 import de.sciss.span.Span
@@ -18,6 +19,7 @@ trait ICMC2014Ex[T <: Txn[T]] {
                  succ: SpanObj.Var[T],
                  gap : LongObj    [T])
                 (implicit tx: T): Unit = {
+    import expr.Ops._
     val newStart = pred.stop + gap
     val newStop  = newStart + succ().length
     succ()       = Span.apply(newStart, newStop)

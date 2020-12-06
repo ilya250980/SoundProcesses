@@ -312,8 +312,10 @@ object EditTimeline {
                   val dStart = LongObj.newConst[T](dStartC)
                   amt match {
                     case LongObj.Var(amtVr) =>
+                      import expr.Ops._
                       EditExprVar[T, Long, LongObj](amtVr, amtVr() + dStart)
                     case _ =>
+                      import expr.Ops._
                       val newCue = AudioCue.Obj.Shift(peer, LongObj.newVar[T](amt + dStart))
                       putCue(newCue)
                   }

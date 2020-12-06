@@ -5,13 +5,13 @@ import de.sciss.log.Level
 import de.sciss.lucre.store.BerkeleyDB
 import de.sciss.lucre.synth.{InMemory, Server}
 import de.sciss.lucre.{Cursor, Log, Source, synth}
+import de.sciss.proc.Implicits._
+import de.sciss.proc.SoundProcesses.logTransport
+import de.sciss.proc.{Bounce, Durable, Proc, SoundProcesses, TimeRef, Timeline, Universe}
 import de.sciss.processor.Processor
 import de.sciss.span.Span
-import de.sciss.proc.Implicits._
-import de.sciss.proc.SoundProcesses.{logAural, logTransport}
-import de.sciss.proc.{Bounce, Durable, Proc, SoundProcesses, TimeRef, Timeline, Universe}
 import de.sciss.synth.{SynthGraph, ugen}
-import org.rogach.scallop.{ScallopConf, ScallopOption => Opt, flagConverter}
+import org.rogach.scallop.{ScallopConf, flagConverter, ScallopOption => Opt}
 
 import scala.concurrent.ExecutionContext
 

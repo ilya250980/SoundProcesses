@@ -20,7 +20,7 @@ lazy val commonSettings = Seq(
   homepage           := Some(url(s"https://git.iem.at/sciss/$baseName")),
   description        := "A framework for creating and managing ScalaCollider based sound processes",
   licenses           := Seq("AGPL v3+" -> url("http://www.gnu.org/licenses/agpl-3.0.txt")),
-  scalaVersion       := "2.12.12", // "3.0.0-M2", // "2.13.4",
+  scalaVersion       := "2.13.4",
   scalacOptions ++= {
     // "-Xfatal-warnings" -- breaks for cross-scala-build and deprecations
     // -stars-align produces wrong warnings with decomposing OSC messages
@@ -79,7 +79,7 @@ lazy val loggingEnabled = true
 
 // ---- modules ----
 
-lazy val platforms = Seq[Platform](JVMPlatform /* , JSPlatform */)
+lazy val platforms = Seq[Platform](JVMPlatform, JSPlatform)
 
 lazy val root = project.withId(baseNameL).in(file("."))
   .aggregate(

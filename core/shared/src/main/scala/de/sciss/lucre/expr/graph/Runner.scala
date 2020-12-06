@@ -16,6 +16,7 @@ package de.sciss.lucre.expr.graph
 import de.sciss.lucre.expr.impl.IActionImpl
 import de.sciss.lucre.expr.{Context, IAction, IExprAsRunnerMap}
 import de.sciss.lucre.impl.IChangeGeneratorEvent
+import de.sciss.lucre.synth.AnyTxn
 import de.sciss.lucre.{IChangeEvent, IExpr, IPull, ITargets, Txn, synth}
 import de.sciss.model.Change
 import de.sciss.proc
@@ -202,13 +203,16 @@ object Runner {
     protected def mkRepr[T <: Txn[T]](implicit ctx: Context[T], tx: T): Repr[T] =
       tx match {
         case stx: synth.Txn[_] =>
-          // XXX TODO --- ugly ugly ugly
-          mkControlImpl[Nothing](ctx.asInstanceOf[Nothing], tx.asInstanceOf[Nothing]).asInstanceOf[Repr[T]]
+          // ugly...
+          val tup = (ctx, stx).asInstanceOf[(Context[AnyTxn], AnyTxn)]
+          mkControlImpl(tup).asInstanceOf[Repr[T]]
 
         case _ => throw new Exception("Need a SoundProcesses system")
       }
 
-    private def mkControlImpl[T <: synth.Txn[T]](implicit ctx: Context[T], tx: T): Repr[T] = {
+    private def mkControlImpl[T <: synth.Txn[T]](tup: (Context[T], T)): Repr[T] = {
+      val ctx = tup._1
+      implicit val tx: T = tup._2
       import ctx.{cursor, workspace}
       val objOpt                  = ctx.selfOption.flatMap(self => self.attr.get(key))
       val obj                     = objOpt.getOrElse(throw UGB.MissingIn(UGB.AttributeKey(key)))

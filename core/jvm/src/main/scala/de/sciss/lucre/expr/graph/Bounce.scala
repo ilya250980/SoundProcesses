@@ -15,7 +15,6 @@ package de.sciss.lucre.expr.graph
 
 import java.awt.EventQueue
 import java.io.File
-
 import de.sciss.equal.Implicits._
 import de.sciss.lucre.Txn.peer
 import de.sciss.lucre.expr.Context
@@ -25,6 +24,7 @@ import de.sciss.numbers
 import de.sciss.processor.Processor
 import de.sciss.span.Span
 import de.sciss.audiofile.AudioFileSpec
+import de.sciss.lucre.synth.AnyTxn
 import de.sciss.proc.impl.BasicRunnerImpl
 import de.sciss.proc.{SoundProcesses, Universe}
 import de.sciss.synth.{Client, Server}
@@ -173,16 +173,18 @@ object Bounce {
     protected def mkRepr[T <: Txn[T]](implicit ctx: Context[T], tx: T): Repr[T] =
       tx match {
         case stx: synth.Txn[_] =>
-          // XXX TODO --- ugly ugly ugly
-          mkControlImpl[Nothing](ctx.asInstanceOf[Context[Nothing]], tx.asInstanceOf[Nothing])
-            .asInstanceOf[Repr[T]]
+          // ugly...
+          val tup = (ctx, stx).asInstanceOf[(Context[AnyTxn], AnyTxn)]
+          mkControlImpl(tup).asInstanceOf[Repr[T]]
 
         case _ => throw new Exception("Need a SoundProcesses system")
       }
 
-    private def mkControlImpl[T <: synth.Txn[T]](implicit ctx: Context[T], tx: T): Repr[T] = {
+    private def mkControlImpl[T <: synth.Txn[T]](tup: (Context[T], T)): Repr[T] = {
+      implicit val ctx: Context[T]  = tup._1
+      implicit val tx : T           = tup._2
       import ctx.{cursor, workspace}
-      implicit val h: Universe[T] = Universe()
+      implicit val h  : Universe[T] = Universe()
       new PeerImpl[T](obj.expand[T], out.expand[T], spec.expand[T], span.expand[T])
     }
   }

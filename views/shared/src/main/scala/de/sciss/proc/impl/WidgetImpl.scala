@@ -17,8 +17,8 @@ import de.sciss.lucre.Event.Targets
 import de.sciss.lucre.impl.{GeneratorEvent, ObjFormat, SingleEventNode}
 import de.sciss.lucre.synth.AnyTxn
 import de.sciss.lucre.{Copy, Elem, Obj, Pull, Txn}
-import de.sciss.serial.{DataInput, DataOutput, TFormat}
 import de.sciss.proc.Widget
+import de.sciss.serial.{DataInput, DataOutput, TFormat}
 
 import scala.collection.immutable.{IndexedSeq => Vec}
 

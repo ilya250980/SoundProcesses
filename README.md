@@ -1,7 +1,7 @@
 # SoundProcesses
 
 [![Gitter](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/Sciss/Mellite?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
-[![Build Status](https://travis-ci.org/Sciss/SoundProcesses.svg?branch=main)](https://travis-ci.org/Sciss/SoundProcesses)
+[![Build Status](https://github.com/Sciss/SoundProcesses/workflows/Scala%20CI/badge.svg?branch=main)](https://github.com/Sciss/SoundProcesses/actions?query=workflow%3A%22Scala+CI%22)
 [![Maven Central](https://maven-badges.herokuapp.com/maven-central/de.sciss/soundprocesses-core_2.13/badge.svg)](https://maven-badges.herokuapp.com/maven-central/de.sciss/soundprocesses-core_2.13)
 
 ## statement
@@ -19,7 +19,7 @@ For tutorials, see the [Mellite website](https://www.sciss.de/mellite/tutorials.
 
 ## building
 
-SoundProcesses builds with sbt against Scala 2.13, 2.12 (JVM) and Scala 2.13 (JS).
+SoundProcesses builds with sbt against Scala 2.12, 2.13, Dotty (JVM), and Scala 2.13 (JS).
 The last version to support Scala 2.11 was 3.31.0.
 The dependencies should be downloaded automatically from Maven Central repository.
 
@@ -35,7 +35,7 @@ The following sub modules are available:
     "de.sciss" %% "soundprocesses-views"    % v  // common swing views
     "de.sciss" %% "soundprocesses-compiler" % v  // compiler integration
 
-The current version `v` is `"4.4.1"`.
+The current version `v` is `"4.5.0"`.
 
 ## contributing
 

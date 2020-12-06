@@ -14,9 +14,9 @@
 package de.sciss.lucre.expr.graph
 
 import java.net.URI
-
 import de.sciss.lucre.expr.graph.impl.MappedIExpr
 import de.sciss.lucre.expr.{Context, Graph, IAction}
+import de.sciss.lucre.synth.AnyTxn
 import de.sciss.lucre.{IExpr, ITargets, Txn, synth, Artifact => _Artifact}
 import de.sciss.proc
 import de.sciss.proc.Universe
@@ -73,16 +73,18 @@ object Sys extends SysPlatform {
       protected def mkRepr[T <: Txn[T]](implicit ctx: Context[T], tx: T): Repr[T] =
         tx match {
           case stx: synth.Txn[_] =>
-            // XXX TODO --- ugly ugly ugly
-            mkControlImpl[Nothing](ctx.asInstanceOf[Context[Nothing]], tx.asInstanceOf[Nothing])
-              .asInstanceOf[Repr[T]]
+            // ugly...
+            val tup = (ctx, stx).asInstanceOf[(Context[AnyTxn], AnyTxn)]
+            mkControlImpl(tup).asInstanceOf[Repr[T]]
 
           case _ => throw new Exception("Need a SoundProcesses system")
         }
 
-      private def mkControlImpl[T <: synth.Txn[T]](implicit ctx: Context[T], tx: T): Repr[T] = {
+      private def mkControlImpl[T <: synth.Txn[T]](tup: (Context[T], T)): Repr[T] = {
+        implicit val ctx: Context[T]  = tup._1
+        implicit val tx : T           = tup._2
         import ctx.{cursor, targets, workspace}
-        implicit val h: Universe[T] = Universe()
+        implicit val h  : Universe[T] = Universe()
         val dirOpt = ctx.getProperty[Ex[URI]](this, keyDirectory).map(_.expand[T])
         new ExpandedProcess[T](cmd.expand[T], args.expand[T], dirOpt)
       }

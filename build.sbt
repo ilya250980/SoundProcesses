@@ -49,7 +49,7 @@ lazy val deps = new {
     val audioFile           = "2.3.2"
     val equal               = "0.1.6"
 //    val fileUtil            = "1.1.5"
-    val lucre               = "4.3.0-SNAPSHOT"
+    val lucre               = "4.3.0"
     val numbers             = "0.2.1"
     val processor           = "0.5.0"
     val scalaCollider       = "2.4.1"
@@ -61,7 +61,7 @@ lazy val deps = new {
 
   val views = new {
     val audioWidgets        = "2.3.1"
-    val lucreSwing          = "2.5.0-SNAPSHOT"
+    val lucreSwing          = "2.5.0"
     val scalaColliderSwing  = "2.4.1"
     val swingPlus           = "0.5.0"
   }

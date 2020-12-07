@@ -11,7 +11,6 @@ import de.sciss.proc.{Bounce, Durable, Proc, SoundProcesses, TimeRef, Timeline, 
 import de.sciss.processor.Processor
 import de.sciss.span.Span
 import de.sciss.synth.{SynthGraph, ugen}
-import org.rogach.scallop.{ScallopConf, flagConverter, ScallopOption => Opt}
 
 import scala.concurrent.ExecutionContext
 
@@ -21,18 +20,13 @@ object BounceTest {
   case class Config(realtime: Boolean = false, inMemory: Boolean = false)
 
   def main(args: Array[String]): Unit = {
-    object p extends ScallopConf {
-      printedName = "BounceTest"
-
-      val realtime: Opt[Boolean] = opt(name = "realtime" )
-      val inMemory: Opt[Boolean] = opt(name = "in-memory")
-
-      verify()
-
-      val config: Config = Config(realtime = realtime(), inMemory = inMemory())
+    val (realtime, inMemory) = args.foldLeft((false, false)) {
+      case ((_, i), arg) if arg == "--realtime"  || arg == "-r" => (true, i)
+      case ((r, _), arg) if arg == "--in-memory" || arg == "-i" => (r, true)
+      case (_, arg) =>
+        Console.err.println(s"Unsupported argument '$arg'. Must be one of '--realtime', '--in-memory'")
+        sys.exit(1)
     }
-
-    import p.config._
 
     SoundProcesses.init()
     if (inMemory) {
@@ -110,7 +104,7 @@ class BounceTest[T <: synth.Txn[T]](/*val system: T,*/ realtime: Boolean)(implic
   val process: Processor[File] with Processor.Prepared = bounce.apply(bCfg)
   import ExecutionContext.Implicits.global
 
-  val t: Thread= new Thread {
+  val t: Thread = new Thread {
     override def run(): Unit = {
       this.synchronized(this.wait())
       sys.exit(0)

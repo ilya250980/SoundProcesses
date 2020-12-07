@@ -3,7 +3,7 @@ import sbtcrossproject.Platform
 lazy val baseName  = "SoundProcesses"
 lazy val baseNameL = baseName.toLowerCase
 
-lazy val projectVersion = "4.5.0-SNAPSHOT"
+lazy val projectVersion = "4.5.0"
 lazy val mimaVersion    = "4.5.0" // used for migration-manager
 
 lazy val commonJvmSettings = Seq(
@@ -70,7 +70,7 @@ lazy val deps = new {
     val bdb                = "bdb"  // "bdb" or "bdb6" or "bdb7"
     def scalaColliderSwing: String = views.scalaColliderSwing
     val scalaTest          = "3.2.3"
-    val scallop            = "3.5.1"
+//    val scallop            = "3.5.1"
     val submin             = "0.3.4"
   }
 }
@@ -159,7 +159,7 @@ lazy val core = crossProject(platforms: _*).in(file("core"))
       "de.sciss"          %%% "scalacollider-if"  % deps.main.scalaColliderIf,
 //      "de.sciss"          %%  "fileutil"          % deps.main.fileUtil,
       "de.sciss"          %%% "equal"             % deps.main.equal,
-      "org.rogach"        %%% "scallop"           % deps.test.scallop             % Test
+//      "org.rogach"        %%% "scallop"           % deps.test.scallop             % Test
     ),
     libraryDependencies += {  // XXX TODO JVM only
       if (isDotty.value) 

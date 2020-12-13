@@ -36,16 +36,10 @@ object SoundProcesses  {
     * handle errors that happen during the transaction. If the `Future` is ignored,
     * the safer way is to call `step` which invokes an error handler in that case.
     */
-  def atomic[T <: Txn[T], A](fun: T => A)(implicit cursor: Cursor[T]): Future[A] = {
-    val opt = STMTxn.findCurrent
-    if (opt.isDefined) {
-      log.warn(s"SoundProcesses.atomic. Existing transaction $opt")
-      throw new IllegalStateException("Cannot nest transactions")
-    }
-    Future {
+  def atomic[T <: Txn[T], A](fun: T => A)(implicit cursor: Cursor[T]): Future[A] =
+    noTxnFuture("atomic") {
       cursor.step(fun)
-    } (Executor.executionContext)
-  }
+    }
 
   // called from `step` if an error occurs, passing the context name and the error.
   var errorHandler: (String, Throwable) => Unit = {
@@ -54,13 +48,7 @@ object SoundProcesses  {
       t.printStackTrace()
   }
 
-  /** Spawns a transactional function on the default `executionContext`. Throws
-    * an exception if this method is called within a transaction.
-    *
-    * If an error occurs within the `fun`, `errorHandler` is invoked with the
-    * `context` string argument and the error.
-    */
-  def step[T <: Txn[T]](context: String)(fun: T => Unit)(implicit cursor: Cursor[T]): Unit = {
+  private def noTxnFuture[A](context: String)(body: => A): Future[A] = {
     val opt = STMTxn.findCurrent
     if (opt.isDefined) {
       implicit val tx: InTxn = opt.get
@@ -71,13 +59,37 @@ object SoundProcesses  {
       }
     }
     Future {
+      body
+    } (Executor.executionContext)
+  }
+
+  /** Spawns a transactional function on the default `executionContext`. Throws
+    * an exception if this method is called within a transaction.
+    *
+    * If an error occurs within the `fun`, `errorHandler` is invoked with the
+    * `context` string argument and the error.
+    */
+  def step[T <: Txn[T]](context: String)(fun: T => Unit)(implicit cursor: Cursor[T]): Unit = {
+    noTxnFuture(context) {
       try {
         cursor.step(fun)
       } catch {
         case t: Throwable =>
           errorHandler(context, t)
       }
-    } (Executor.executionContext)
+    }
+    ()
+  }
+
+  def stepTag[T <: Txn[T]](context: String)(fun: T => Unit)(implicit scheduler: Scheduler[T]): Unit = {
+    noTxnFuture(context) {
+      try {
+        scheduler.stepTag(fun)
+      } catch {
+        case t: Throwable =>
+          errorHandler(context, t)
+      }
+    }
     ()
   }
 

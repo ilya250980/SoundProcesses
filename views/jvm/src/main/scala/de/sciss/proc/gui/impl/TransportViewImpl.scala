@@ -21,7 +21,7 @@ import de.sciss.lucre.swing.impl.ComponentHolder
 import de.sciss.lucre.{Cursor, Disposable, synth}
 import de.sciss.model.Model
 import de.sciss.proc.gui.{TimeDisplay, TransportView}
-import de.sciss.proc.{TimeRef, Transport}
+import de.sciss.proc.{SoundProcesses, TimeRef, Transport}
 import de.sciss.span.Span
 
 import java.awt.event.{ActionEvent, ActionListener, InputEvent}
@@ -89,7 +89,7 @@ object TransportViewImpl {
     private[this] val loopToken = Ref(-1)
 
     import GUITransport.{Catch, FastForward, GoToBeginning, Loop, Play, Rewind, Stop}
-    import transport.universe.scheduler.stepTag
+    import transport.universe.scheduler // .stepTag
 
     def isPlayingEDT: Boolean = playTimer.isRunning
 
@@ -212,24 +212,39 @@ object TransportViewImpl {
           _isPlaying
         }).getOrElse(false)
 
-      stepTag { implicit tx =>
-        if (isPlaying)
+//      println(s"playOrStop(); is? $isPlaying")
+
+      SoundProcesses.stepTag[T]("playOrStop") { implicit tx =>
+        if (isPlaying) {
           transport.stop()
-        else
-          playTxn()
+        } else {
+          // this is a bit weird; we check here again the
+          // actual (txn) state, because `doClick` above
+          // might perform faster than this, and we don't
+          // want to invoke play twice.
+          val is = transport.isPlaying
+          if (!is) playTxn()
+        }
       }
     }
 
-    private def stop(): Unit = atomic { implicit tx =>
+    // called from UI
+    private def stop(): Unit = SoundProcesses.step[T]("stop") { implicit tx =>
       transport.stop()
     }
 
-    private def play(): Unit = stepTag { implicit tx =>
-      playTxn()
+    // called from UI
+    private def play(): Unit = SoundProcesses.stepTag[T]("play") { implicit tx =>
+      val is = transport.isPlaying
+//      println(s"play(): is? $is")
+      if (!is) {
+        playTxn()
+      }
     }
 
     private def playTxn(pos: Long = timelineModel.position)(implicit tx: T): Unit =
       /*if (!transport.isPlaying)*/ { // do not depend on being stopped, in order to support looping
+//      println("playTxn()")
 //        transport.stop()
         transport.seek(pos  )
         transport.play()
@@ -240,7 +255,7 @@ object TransportViewImpl {
       val sel         = if (wasLooping) Span.Void else timelineModel.selection
       val isLooping   = sel.nonEmpty
       ggLoop.selected = isLooping
-      atomic { implicit tx =>
+      SoundProcesses.step[T]("toggleLoop") { implicit tx =>
         loopSpan.set(sel)(tx.peer)
         if (transport.isPlaying) {
           cancelLoop()
@@ -343,7 +358,8 @@ object TransportViewImpl {
 
       cueTimer = new javax.swing.Timer(25 /* 63 */, new ActionListener {
         def actionPerformed(e: ActionEvent): Unit = modOpt.foreach { mod =>
-          val isPlaying = atomic { implicit tx => transport.isPlaying }
+//          val isPlaying = atomic { implicit tx => transport.isPlaying }
+          val isPlaying = transportStrip.button(Play).exists(_.selected)
           if (!isPlaying) {
             val cc = cueCount
             cueCount = cc + 1

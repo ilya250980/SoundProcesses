@@ -2,7 +2,7 @@
  *  SensorSystemImpl.scala
  *  (SoundProcesses)
  *
- *  Copyright (c) 2010-2020 Hanns Holger Rutz. All rights reserved.
+ *  Copyright (c) 2010-2021 Hanns Holger Rutz. All rights reserved.
  *
  *	This software is published under the GNU Affero General Public License v3+
  *
@@ -110,7 +110,7 @@ object SensorSystemImpl {
           //          val obs = listener.single.swap(None)
           //          assert(obs.isDefined)
           //          client.peer.removeListener(obs.get)
-          if (server.isOpen()) server.close()
+          if (server.isOpen) server.close()
         }
       }
 

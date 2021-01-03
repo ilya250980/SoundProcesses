@@ -8,6 +8,7 @@ import de.sciss.proc.Implicits._
 import de.sciss.proc.{AudioCue, AuralContext, AuralObj, FadeSpec, Grapheme, Implicits, ObjKeys, Proc, TimeRef, Timeline, Transport}
 import de.sciss.span.Span
 import de.sciss.synth.Curve.{exponential, linear}
+import de.sciss.synth.Ops.ServerOps
 import de.sciss.synth.proc.graph
 import de.sciss.{numbers, synth}
 

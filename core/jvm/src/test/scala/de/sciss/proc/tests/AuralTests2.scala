@@ -6,6 +6,7 @@ import de.sciss.proc.Implicits._
 import de.sciss.proc.{AuralContext, EnvSegment, Grapheme, Proc, Timeline, Transport}
 import de.sciss.span.Span
 import de.sciss.synth
+import de.sciss.synth.Ops.ServerOps
 import de.sciss.synth.proc.graph
 
 object AuralTests2 extends AuralTestLike.Factory {

@@ -7,7 +7,7 @@
 ## statement
 
 SoundProcesses is an extension for ScalaCollider to describe, create and manage sound processes in the Scala 
-programming language. It is (C)opyright 2010&ndash;2020 by Hanns Holger Rutz. All rights reserved. SoundProcesses 
+programming language. It is (C)opyright 2010&ndash;2021 by Hanns Holger Rutz. All rights reserved. SoundProcesses 
 is released under the [GNU Affero General Public License](https://git.iem.at/sciss/SoundProcesses/raw/main/LICENSE) v3+
 and comes with absolutely no warranties. To contact the author, send an e-mail to `contact at sciss.de`.
 
@@ -35,7 +35,7 @@ The following sub modules are available:
     "de.sciss" %% "soundprocesses-views"    % v  // common swing views
     "de.sciss" %% "soundprocesses-compiler" % v  // compiler integration
 
-The current version `v` is `"4.5.1"`.
+The current version `v` is `"4.6.0"`.
 
 ## contributing
 

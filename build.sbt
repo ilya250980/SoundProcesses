@@ -3,8 +3,8 @@ import sbtcrossproject.Platform
 lazy val baseName  = "SoundProcesses"
 lazy val baseNameL = baseName.toLowerCase
 
-lazy val projectVersion = "4.5.1-SNAPSHOT"
-lazy val mimaVersion    = "4.5.0" // used for migration-manager
+lazy val projectVersion = "4.6.0-SNAPSHOT"
+lazy val mimaVersion    = "4.6.0" // used for migration-manager
 
 lazy val commonJvmSettings = Seq(
   crossScalaVersions := Seq("3.0.0-M2", "2.13.4", "2.12.12"),
@@ -24,17 +24,22 @@ lazy val commonSettings = Seq(
   scalacOptions ++= {
     // "-Xfatal-warnings" -- breaks for cross-scala-build and deprecations
     // -stars-align produces wrong warnings with decomposing OSC messages
-    val xs = Seq("-deprecation", "-unchecked", "-feature", "-encoding", "utf8", "-Xlint:-stars-align,_", "-Xsource:2.13")
+    val xs = Seq("-deprecation", "-unchecked", "-feature", "-encoding", "utf8")
     val ys = if (loggingEnabled || isSnapshot.value) xs else xs ++ Seq("-Xelide-below", "INFO")
     val sv = scalaVersion.value
     if (sv.startsWith("2.13.")) ys :+ "-Wvalue-discard" else ys
+  },
+  scalacOptions ++= {
+    if (isDotty.value) Nil else Seq("-Xlint:-stars-align,_", "-Xsource:2.13")
   },
   scalacOptions in (Compile, compile) ++= {
     val jvmGt8 = scala.util.Properties.isJavaAtLeast("9")
     val dot    = isDotty.value
     if (!dot && jvmGt8) Seq("-release", "8") else Nil  // JDK >8 breaks API; skip scala-doc
   },
-  // resolvers          += "Oracle Repository" at "http://download.oracle.com/maven",  // required for sleepycat
+  sources in (Compile, doc) := {
+    if (isDotty.value) Nil else (sources in (Compile, doc)).value // dottydoc is complaining about something
+  },
   parallelExecution in Test := false,
   concurrentRestrictions in Global += Tags.limit(Tags.Test, 1),
   updateOptions      := updateOptions.value.withLatestSnapshots(false),
@@ -52,8 +57,8 @@ lazy val deps = new {
     val lucre               = "4.3.0"
     val numbers             = "0.2.1"
     val processor           = "0.5.0"
-    val scalaCollider       = "2.4.1"
-    val scalaColliderIf     = "1.5.2"
+    val scalaCollider       = "2.5.0"
+    val scalaColliderIf     = "1.6.0"
     val span                = "2.0.0"
     val topology            = "1.1.4"
     val ugens               = "1.20.1"
@@ -62,7 +67,7 @@ lazy val deps = new {
   val views = new {
     val audioWidgets        = "2.3.1"
     val lucreSwing          = "2.5.0"
-    val scalaColliderSwing  = "2.4.1"
+    val scalaColliderSwing  = "2.5.0"
     val swingPlus           = "0.5.0"
   }
   

@@ -49,9 +49,18 @@ object AuralSystem {
 trait AuralSystem {
   import AuralSystem.Client
 
-  /** Boots the server. This method must be called from within a transaction. */
+  /** Boots the server, or connects to an existing one.
+    * This method must be called from within a transaction.
+    *
+    * @param  connect if `true`, tries to connect to a running server; if `false`,
+    *                 starts a new scsynth process.
+    */
   def start(config: Server.Config = Server.Config(), client: Client.Config = Client.Config(),
             connect: Boolean = false)(implicit tx: RT): Unit
+
+  /** Connects to a running server. */
+  def connect(config: Server.Config = Server.Config(), client: Client.Config = Client.Config())
+             (implicit tx: RT): Unit
 
   private[proc] def offline(server: Server.Offline)(implicit tx: RT): Unit
 

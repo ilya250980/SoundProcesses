@@ -14,6 +14,7 @@
 package de.sciss.proc.impl
 
 import de.sciss.lucre.Disposable
+import de.sciss.lucre.synth.Server.Config
 import de.sciss.lucre.synth.{Executor, RT, Server}
 import de.sciss.osc.Dump
 import de.sciss.proc.AuralSystem
@@ -76,22 +77,14 @@ object AuralSystemImpl {
       def shutdown(): Unit = ()
     }
 
-    private case class StateBooting(config: Server.Config, client: Client.Config, connect: Boolean) extends State {
-      private lazy val con: ServerConnection = {
-        val launch: ServerConnection.Listener => ServerConnection = if (connect) {
-          SServer.connect("SoundProcesses", config, client)
-        } else {
-          SServer.boot   ("SoundProcesses", config, client)
-        }
+    private case class StateBooting(launch: ServerConnection.Listener => ServerConnection)
+      extends State {
 
-        logA.debug(s"Booting (connect = $connect)")
+      private lazy val con: ServerConnection = {
+        logA.debug("Booting")
         launch {
           case ServerConnection.Aborted =>
             state.single.set(StateStopped)
-            //            atomic { implicit itx =>
-            //              implicit val tx = Txn.wrap(itx)
-            //              state.swap(StateStopped).dispose()
-            //            }
 
           case ServerConnection.Running(s) =>
             if (dumpOSC) s.dumpOSC(Dump.Text)
@@ -179,8 +172,26 @@ object AuralSystemImpl {
       state.get(tx.peer) match {
         case StateStopped =>
           installShutdown
-          val booting = StateBooting(config, client, connect = connect)
-          state.swap(booting)(tx.peer) // .dispose()
+          val launch: ServerConnection.Listener => ServerConnection = if (connect) {
+            SServer.connect("SoundProcesses", config, client)
+          } else {
+            SServer.boot   ("SoundProcesses", config, client)
+          }
+          val booting = StateBooting(launch)
+          state.swap(booting)(tx.peer)
+          booting.init()
+
+        case _ =>
+      }
+
+    override def connect(config: Config, client: Client.Config)(implicit tx: RT): Unit =
+      state.get(tx.peer) match {
+        case StateStopped =>
+          val launch: ServerConnection.Listener => ServerConnection =
+            SServer.connect("SoundProcesses", config, client)
+
+          val booting = StateBooting(launch)
+          state.swap(booting)(tx.peer)
           booting.init()
 
         case _ =>

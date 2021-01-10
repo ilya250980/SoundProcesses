@@ -15,10 +15,18 @@ package de.sciss.synth.proc.graph
 
 import de.sciss.proc.UGenGraphBuilder
 import de.sciss.proc.UGenGraphBuilder.Input
+import de.sciss.synth.UGenSource.{ProductReader, RefMapIn}
 import de.sciss.synth.{GE, Lazy, ugen}
 
-object StopSelf {
+object StopSelf extends ProductReader[StopSelf] {
   final val replyName = "/$stop"
+
+  override def read(in: RefMapIn, prefix: String, arity: Int): StopSelf = {
+    require (arity == 2)
+    val _trig   = in.readGE()
+    val _pause  = in.readGE()
+    new StopSelf(_trig, _pause)
+  }
 }
 
 /** A UGen that when triggers stops the encompassing synth.

@@ -18,6 +18,8 @@ import de.sciss.lucre
 import de.sciss.lucre.expr.LucreExpr
 import de.sciss.lucre.synth.Executor
 import de.sciss.lucre.{Cursor, Txn}
+import de.sciss.synth.StandardUGens
+import de.sciss.synth.proc.ProcUGens
 
 import scala.concurrent.Future
 import scala.concurrent.stm.{InTxn, Txn => STMTxn}
@@ -117,7 +119,11 @@ object SoundProcesses  {
     lucre.expr.graph.AudioCue .init()
     lucre.expr.graph.Timeline .init()
 
-//    initPlatform()
+    StandardUGens   .init()
+    ProcUGens       .init()
+    // ThirdPartyUGens .init()
+
+    // initPlatform()
   }
 
   /** Registers all known types. */

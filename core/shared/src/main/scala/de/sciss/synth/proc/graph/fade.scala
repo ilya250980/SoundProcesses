@@ -16,10 +16,9 @@ package de.sciss.synth.proc.graph
 import de.sciss.proc.UGenGraphBuilder.Input
 import de.sciss.proc.{ObjKeys, UGenGraphBuilder}
 import de.sciss.synth.Ops.stringToControl
+import de.sciss.synth.UGenSource.{ProductReader, RefMapIn}
 import de.sciss.synth.ugen._
 import de.sciss.synth.{Curve, GE, Rate, UGenInLike, audio, control}
-
-import scala.Predef.{any2stringadd => _, assert}
 
 private[graph] object fade {
   abstract class Base extends GE.Lazy {
@@ -60,61 +59,39 @@ private[graph] object fade {
 
     protected def mkSingleEnv(totalDur: GE, fadeDur: GE, shape: Env.Curve, floor: GE): IEnv
   }
-
-  //  private[graph] final case class In(key: String, rate: Rate) extends SingleBase {
-  //
-  //    override def productPrefix  = "Fade$In"
-  //    override def toString       = s"""FadeIn("$key").${rate.methodName}"""
-  //
-  //    protected def mkSingleEnv(totalDur: GE, fadeDur: GE, shape: Env.Curve, floor: GE): IEnv =
-  //      IEnv(floor, Env.Segment(fadeDur, 1, shape) :: Nil)
-  //  }
-
-  //  // @SerialVersionUID(6793156274707521366L)
-  //  final case class Out(key: String, rate: Rate)  extends SingleBase {
-  //
-  //    override def productPrefix  = "Fade$Out"
-  //    override def toString       = s"""FadeOut("$key").${rate.methodName}"""
-  //
-  //    protected def mkSingleEnv(totalDur: GE, fadeDur: GE, shape: Env.Curve, floor: GE): IEnv =
-  //      IEnv(1, Env.Segment(fadeDur, floor, shape) :: Nil, totalDur - fadeDur)
-  //  }
-
-  //  // @SerialVersionUID(6793156274707521366L)
-  //  case class InOut(inKey: String, outKey: String, rate: Rate) extends Base {
-  //
-  //    override def productPrefix  = "Fade$InOut"
-  //    override def toString       = s"""FadeInOut("$inKey", "$outKey").${rate.methodName}"""
-  //
-  //    protected def mkEnv(b: UGenGraphBuilder, totalDur: GE): IEnv = {
-  //      val (fadeDurIn , shapeIn , floorIn ) = readCtl(b, inKey )
-  //      val (fadeDurOut, shapeOut, floorOut) = readCtl(b, outKey)
-  //      IEnv(floorIn,
-  //        Env.Segment(fadeDurIn, 1, shapeIn) ::
-  //        Env.Segment(totalDur - (fadeDurIn + fadeDurOut), 1, Curve.step) ::
-  //        Env.Segment(fadeDurOut, floorOut, shapeOut) :: Nil
-  //      )
-  //    }
-  //  }
 }
-object FadeIn {
+object FadeIn extends ProductReader[FadeIn] {
   def kr: FadeIn = kr(ObjKeys.attrFadeIn)
   def kr(key: String): FadeIn = new FadeIn(control, key)
 
   def ar: FadeIn = ar(ObjKeys.attrFadeIn)
   def ar(key: String): FadeIn = new FadeIn(audio, key)
+
+  override def read(in: RefMapIn, prefix: String, arity: Int): FadeIn = {
+    require (arity == 2)
+    val _rate   = in.readRate()
+    val _key    = in.readString()
+    new FadeIn(_rate, _key)
+  }
 }
 final case class FadeIn(rate: Rate, key: String) extends fade.SingleBase {
   protected def mkSingleEnv(totalDur: GE, fadeDur: GE, shape: Env.Curve, floor: GE): IEnv =
     IEnv(floor, Env.Segment(fadeDur, 1, shape) :: Nil)
 }
 
-object FadeOut {
+object FadeOut extends ProductReader[FadeOut] {
   def kr: FadeOut = kr(ObjKeys.attrFadeOut)
   def kr(key: String): FadeOut = new FadeOut(control, key)
 
   def ar: FadeOut = ar(ObjKeys.attrFadeOut)
   def ar(key: String): FadeOut = new FadeOut(audio, key)
+
+  override def read(in: RefMapIn, prefix: String, arity: Int): FadeOut = {
+    require (arity == 2)
+    val _rate   = in.readRate()
+    val _key    = in.readString()
+    new FadeOut(_rate, _key)
+  }
 }
 final case class FadeOut(rate: Rate, key: String) extends fade.SingleBase {
   protected def mkSingleEnv(totalDur: GE, fadeDur: GE, shape: Env.Curve, floor: GE): IEnv = {
@@ -123,12 +100,20 @@ final case class FadeOut(rate: Rate, key: String) extends fade.SingleBase {
   }
 }
 
-object FadeInOut {
+object FadeInOut extends ProductReader[FadeInOut] {
   def kr: FadeInOut = kr(ObjKeys.attrFadeIn, ObjKeys.attrFadeOut)
   def kr(inKey: String, outKey: String): FadeInOut = new FadeInOut(control, inKey, outKey)
 
   def ar: FadeInOut = ar(ObjKeys.attrFadeIn, ObjKeys.attrFadeOut)
   def ar(inKey: String, outKey: String): FadeInOut = new FadeInOut(audio, inKey, outKey)
+
+  override def read(in: RefMapIn, prefix: String, arity: Int): FadeInOut = {
+    require (arity == 3)
+    val _rate   = in.readRate()
+    val _inKey  = in.readString()
+    val _outKey = in.readString()
+    new FadeInOut(_rate, _inKey, _outKey)
+  }
 }
 final case class FadeInOut(rate: Rate, inKey: String, outKey: String) extends fade.Base {
   protected def mkEnv(b: UGenGraphBuilder, totalDur: GE): IEnv = {

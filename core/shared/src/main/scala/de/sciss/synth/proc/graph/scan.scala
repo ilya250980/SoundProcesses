@@ -20,7 +20,7 @@ import de.sciss.proc.UGenGraphBuilder.Input
 import de.sciss.synth.ugen.UGenInGroup
 import de.sciss.synth.{AudioRated, GE, UGen, UGenIn, UGenInLike, UGenSource, WritesBus, audio}
 
-object ScanIn {
+object ScanIn extends ProductReader[ScanIn] {
   /* private[proc] */ def controlName (key: String): String =
     Attribute.controlName(key) // s"$$i_$key"
 
@@ -44,18 +44,12 @@ object ScanIn {
   }
 
   def apply(): ScanIn = apply("in")
-  // def apply(key: String): ScanIn = new ScanIn(key)
 
-  //  final case class InFix(key: String, numChannels: Int)
-  //    extends InLike {
-  //
-  //    override def toString = s"""scan.InFix("$key", $numChannels)"""
-  //
-  //    override def productPrefix = "scan$InFix"
-  //
-  //    protected def mkUGen(ctlName: String, numCh: Int): UGenInLike =
-  //      ugen.In.ar(ctlName.kr, numCh)
-  //  }
+  override def read(in: RefMapIn, prefix: String, arity: Int): ScanIn = {
+    require (arity == 1)
+    val _key = in.readString()
+    new ScanIn(_key)
+  }
 }
 final case class ScanIn(key: String /*, default: Double = 0.0 */)
   extends ScanIn.Like {
@@ -72,10 +66,17 @@ final case class ScanIn(key: String /*, default: Double = 0.0 */)
       UGenInGroup.empty
     }
 }
-object ScanOut {
-  /* private[proc] */ def controlName(key: String): String = s"$$o_$key"
+object ScanOut extends ProductReader[ScanOut] {
+  def controlName(key: String): String = s"$$o_$key"
 
   def apply(in: GE): ScanOut = new ScanOut("out", in)
+
+  override def read(in: RefMapIn, prefix: String, arity: Int): ScanOut = {
+    require (arity == 2)
+    val _key  = in.readString()
+    val _in   = in.readGE()
+    new ScanOut(_key, _in)
+  }
 }
 final case class ScanOut(key: String, in: GE)
   extends UGenSource.ZeroOut with WritesBus {
@@ -100,8 +101,15 @@ final case class ScanOut(key: String, in: GE)
   }
 }
 
-object ScanInFix {
+object ScanInFix extends ProductReader[ScanInFix] {
   def apply(numChannels: Int): ScanInFix = apply("in", numChannels)
+
+  override def read(in: RefMapIn, prefix: String, arity: Int): ScanInFix = {
+    require (arity == 2)
+    val _key          = in.readString()
+    val _numChannels  = in.readInt()
+    new ScanInFix(_key, _numChannels)
+  }
 }
 /** Like `ScanIn` but with a predetermined number of channels. */
 final case class ScanInFix(key: String, numChannels: Int)

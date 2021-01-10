@@ -15,9 +15,18 @@ package de.sciss.synth.proc.graph
 
 import de.sciss.proc.UGenGraphBuilder
 import de.sciss.proc.UGenGraphBuilder.Input
+import de.sciss.synth.UGenSource.{ProductReader, RefMapIn}
 import de.sciss.synth.ugen.Flatten
 import de.sciss.synth.{GE, HasSideEffect, Lazy}
 
+object Action extends ProductReader[Action] {
+  override def read(in: RefMapIn, prefix: String, arity: Int): Action = {
+    require (arity == 2)
+    val _trig = in.readGE()
+    val _key  = in.readString()
+    new Action(_trig, _key)
+  }
+}
 /** A graph element that executes an action upon receiving a trigger.
   *
   * @param trig   the trigger input signal
@@ -32,6 +41,15 @@ final case class Action(trig: GE, key: String) extends Lazy.Expander[Unit] with 
   }
 }
 
+object Reaction extends ProductReader[Reaction] {
+  override def read(in: RefMapIn, prefix: String, arity: Int): Reaction = {
+    require (arity == 3)
+    val _trig = in.readGE()
+    val _in   = in.readGE()
+    val _key  = in.readString()
+    new Reaction(_trig, _in, _key)
+  }
+}
 /** A graph element that executes an action upon receiving a trigger,
   * sampling the values at that moment and making them available
   * in the action through the `values` method.

@@ -19,13 +19,14 @@ import de.sciss.proc.UGenGraphBuilder.Input
 import de.sciss.proc.impl.StreamBuffer
 import de.sciss.synth
 import de.sciss.synth.Ops.stringToControl
+import de.sciss.synth.UGenSource.{ProductReader, RefMapIn}
 import de.sciss.synth.proc.graph.impl.Stream
 import de.sciss.synth.ugen.Constant
 import de.sciss.synth.{ControlRated, GE, IsIndividual, Rate, UGenInLike, WritesBuffer, audio, control, scalar, ugen}
 
 // ---- ugen wrappers ----
 
-object DiskIn {
+object DiskIn extends ProductReader[DiskIn] {
   /** A SoundProcesses aware variant of `DiskIn`. It takes its streaming buffer input from
     * an attribute with the given `key`. Like the original `DiskIn` UGen, this does not perform
     * sample-rate-conversion if server rate and file rate diverge.
@@ -41,6 +42,14 @@ object DiskIn {
     override def productPrefix = s"DiskIn$$Done"  // for serialization
 
     protected def makeUGens: UGenInLike = Stream.mkDoneUGen(in)
+  }
+
+  override def read(in: RefMapIn, prefix: String, arity: Int): DiskIn = {
+    require (arity == 3)
+    val _rate   = in.readRate()
+    val _key    = in.readString()
+    val _loop   = in.readGE()
+    new DiskIn(_rate, _key, _loop)
   }
 }
 final case class DiskIn(rate: Rate, key: String, loop: synth.GE)
@@ -61,7 +70,7 @@ final case class DiskIn(rate: Rate, key: String, loop: synth.GE)
   }
 }
 
-object VDiskIn {
+object VDiskIn extends ProductReader[VDiskIn] {
   /** A SoundProcesses aware variant of `VDiskIn`. It takes its streaming buffer input from
     * an attribute with the given `key`. Default values provide automatic sample-rate-conversion
     * to match the audio server.
@@ -89,6 +98,17 @@ object VDiskIn {
     override def productPrefix = s"VDiskIn$$Done"  // for serialization
 
     protected def makeUGens: UGenInLike = Stream.mkDoneUGen(in)
+  }
+
+  override def read(in: RefMapIn, prefix: String, arity: Int): VDiskIn = {
+    require (arity == 6)
+    val _rate     = in.readRate()
+    val _key      = in.readString()
+    val _speed    = in.readGE()
+    val _loop     = in.readGE()
+    val _interp   = in.readInt()
+    val _maxSpeed = in.readDouble()
+    new VDiskIn(_rate, _key, _speed, _loop, _interp, _maxSpeed)
   }
 }
 
@@ -143,10 +163,18 @@ final case class VDiskIn(rate: Rate, key: String, speed: synth.GE, loop: synth.G
   }
 }
 
-object DiskOut {
+object DiskOut extends ProductReader[DiskOut] {
   /* private[proc] */ def controlName(key: String): String = s"$$disk_$key"
 
   def ar(key: String, in: GE): DiskOut = apply(audio, key = key, in = in)
+
+  override def read(in: RefMapIn, prefix: String, arity: Int): DiskOut = {
+    require (arity == 3)
+    val _rate     = in.readRate()
+    val _key      = in.readString()
+    val _in       = in.readGE()
+    new DiskOut(_rate, _key, _in)
+  }
 }
 
 /** A graph element that creates a `DiskOut` writing to a file
@@ -175,9 +203,16 @@ final case class DiskOut(rate: Rate, key: String, in: GE)
   }
 }
 
-object BufChannels {
+object BufChannels extends ProductReader[BufChannels] {
   def ir(key: String): BufChannels = apply(scalar , key = key)
   def kr(key: String): BufChannels = apply(control, key = key)
+
+  override def read(in: RefMapIn, prefix: String, arity: Int): BufChannels = {
+    require (arity == 2)
+    val _rate     = in.readRate()
+    val _key      = in.readString()
+    new BufChannels(_rate, _key)
+  }
 }
 final case class BufChannels(rate: Rate, key: String) extends Stream.Info {
   protected def makeUGen(server: Server, numChannels: Int, sampleRate: Double, idx: Int,
@@ -185,9 +220,16 @@ final case class BufChannels(rate: Rate, key: String) extends Stream.Info {
     ugen.BufChannels(rate, buf) // or just Constant(numChannels), ha?
 }
 
-object BufRateScale {
+object BufRateScale extends ProductReader[BufRateScale] {
   def ir(key: String): BufRateScale = apply(scalar , key = key)
   def kr(key: String): BufRateScale = apply(control, key = key)
+
+  override def read(in: RefMapIn, prefix: String, arity: Int): BufRateScale = {
+    require (arity == 2)
+    val _rate     = in.readRate()
+    val _key      = in.readString()
+    new BufRateScale(_rate, _key)
+  }
 }
 final case class BufRateScale(rate: Rate, key: String) extends Stream.Info {
   protected def makeUGen(server: Server, numChannels: Int, sampleRate: Double, idx: Int,
@@ -195,9 +237,16 @@ final case class BufRateScale(rate: Rate, key: String) extends Stream.Info {
     ugen.BufRateScale(rate, buf)
 }
 
-object BufSampleRate {
+object BufSampleRate extends ProductReader[BufSampleRate] {
   def ir(key: String): BufSampleRate = apply(scalar , key = key)
   def kr(key: String): BufSampleRate = apply(control, key = key)
+
+  override def read(in: RefMapIn, prefix: String, arity: Int): BufSampleRate = {
+    require (arity == 2)
+    val _rate     = in.readRate()
+    val _key      = in.readString()
+    new BufSampleRate(_rate, _key)
+  }
 }
 final case class BufSampleRate(rate: Rate, key: String) extends Stream.Info {
   protected def makeUGen(server: Server, numChannels: Int, sampleRate: Double, idx: Int,

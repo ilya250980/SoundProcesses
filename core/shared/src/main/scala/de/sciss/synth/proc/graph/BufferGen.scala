@@ -15,15 +15,21 @@ package de.sciss.synth.proc.graph
 
 import de.sciss.proc.UGenGraphBuilder
 import de.sciss.proc.UGenGraphBuilder.Input
+import de.sciss.synth.UGenSource.{ProductReader, RefMapIn}
 import de.sciss.synth.proc.graph.BufferGen.Command
 import de.sciss.synth.ugen.ControlProxy
 import de.sciss.synth.{GE, ScalarRated, UGenInLike, message}
 
-object BufferGen {
+object BufferGen extends ProductReader[BufferGen] {
+  object Command extends ProductReader[Command] {
+    override def read(in: RefMapIn, prefix: String, arity: Int): Command = ???
+  }
   // alias these
   type Command                              = message.BufferGen.Command
   val  Cheby: message.BufferGen.Cheby.type  = message.BufferGen.Cheby
   type Cheby                                = message.BufferGen.Cheby
+  val  Copy: message.BufferGen.Copy.type    = message.BufferGen.Copy
+  type Copy                                 = message.BufferGen.Copy
   val  Sine1: message.BufferGen.Sine1.type  = message.BufferGen.Sine1
   type Sine1                                = message.BufferGen.Sine1
   val  Sine2: message.BufferGen.Sine2.type  = message.BufferGen.Sine2
@@ -59,6 +65,15 @@ object BufferGen {
     val cmd = Cheby(
       amps = amps, normalize = normalize, wavetable = wavetable, clear = clear)
     BufferGen(cmd, numFrames = numFrames, numChannels = numChannels)
+  }
+
+  override def read(in: RefMapIn, prefix: String, arity: Int): BufferGen = {
+    ??? // register Command here as well!
+    require (arity == 3)
+    val _cmd          = in.readProductT[Command]()
+    val _numFrames    = in.readGE()
+    val _numChannels  = in.readGE()
+    new BufferGen(_cmd, _numFrames, _numChannels)
   }
 }
 

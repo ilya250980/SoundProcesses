@@ -15,10 +15,11 @@ package de.sciss.synth.proc.graph
 
 import de.sciss.proc.UGenGraphBuilder
 import de.sciss.proc.UGenGraphBuilder.{Input, MissingIn}
+import de.sciss.synth.UGenSource.{ProductReader, RefMapIn}
 import de.sciss.synth.ugen.ControlProxy
 import de.sciss.synth.{GE, Rate, UGenIn, UGenInLike, control, scalar, ugen}
 
-object BufferOut {
+object BufferOut extends ProductReader[BufferOut] {
   def ir(artifact: String, action: String, numFrames: GE, numChannels: GE = 1): BufferOut =
     new BufferOut(scalar , artifact, numFrames = numFrames, numChannels = numChannels, action = action)
   
@@ -126,6 +127,16 @@ object BufferOut {
 //        if (g.numOutputs == 1) resolveFloat(g.outputs.head, builder)
 //        else Left(s"Cannot convert multi-channel element to Float: $in")
     }
+  }
+
+  override def read(in: RefMapIn, prefix: String, arity: Int): BufferOut = {
+    require (arity == 5)
+    val _rate         = in.readRate()
+    val _artifact     = in.readString()
+    val _action       = in.readString()
+    val _numFrames    = in.readGE()
+    val _numChannels  = in.readGE()
+    new BufferOut(_rate, _artifact, _action, _numFrames, _numChannels)
   }
 }
 /** A graph element that creates an empty buffer for the synth graph to write to. Upon completion

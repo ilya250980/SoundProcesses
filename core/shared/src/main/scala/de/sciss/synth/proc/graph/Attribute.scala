@@ -15,12 +15,13 @@ package de.sciss.synth.proc.graph
 
 import de.sciss.proc.UGenGraphBuilder
 import de.sciss.proc.UGenGraphBuilder.Input
+import de.sciss.synth.UGenSource.{ProductReader, RefMapIn}
 import de.sciss.synth.ugen.{AudioControlProxy, ControlProxy, ControlValues}
 import de.sciss.synth.{GE, Rate, UGenInLike, audio, control, scalar}
 
 import scala.collection.immutable.{IndexedSeq => Vec}
 
-object Attribute {
+object Attribute extends ProductReader[Attribute] {
   final class Factory(val `this`: String) extends AnyVal { me =>
     import me.{`this` => name}
 
@@ -111,6 +112,15 @@ object Attribute {
     val numCh       = inValue.numChannels
     val values      = default.fold(Vector.fill(numCh)(0f))(df => Vector.tabulate(numCh)(idx => df(idx % defChannels)))
     values
+  }
+
+  override def read(in: RefMapIn, prefix: String, arity: Int): Attribute = {
+    require (arity == 4)
+    val _rate     = in.readRate()
+    val _key      = in.readString()
+    val _default  = in.readOption(in.readFloatVec())
+    val _fixed    = in.readInt()
+    new Attribute(_rate, _key, _default, _fixed)
   }
 }
 final case class Attribute(rate: Rate, key: String, default: Option[Vec[Float]], fixed: Int)

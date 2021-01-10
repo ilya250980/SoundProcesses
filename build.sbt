@@ -3,8 +3,8 @@ import sbtcrossproject.Platform
 lazy val baseName  = "SoundProcesses"
 lazy val baseNameL = baseName.toLowerCase
 
-lazy val projectVersion = "4.6.0"
-lazy val mimaVersion    = "4.6.0" // used for migration-manager
+lazy val projectVersion = "4.7.0-SNAPSHOT"
+lazy val mimaVersion    = "4.7.0" // used for migration-manager
 
 lazy val commonJvmSettings = Seq(
   crossScalaVersions := Seq("3.0.0-M2", "2.13.4", "2.12.12"),
@@ -53,21 +53,20 @@ lazy val deps = new {
     val asyncFile           = "0.1.2"
     val audioFile           = "2.3.2"
     val equal               = "0.1.6"
-//    val fileUtil            = "1.1.5"
     val lucre               = "4.3.0"
     val numbers             = "0.2.1"
     val processor           = "0.5.0"
-    val scalaCollider       = "2.5.0"
-    val scalaColliderIf     = "1.6.0"
+    val scalaCollider       = "2.6.0-SNAPSHOT"
+    val scalaColliderIf     = "1.7.0-SNAPSHOT"
     val span                = "2.0.0"
     val topology            = "1.1.4"
-    val ugens               = "1.20.1"
+    val ugens               = "1.21.0-SNAPSHOT"
   }
 
   val views = new {
     val audioWidgets        = "2.3.1"
     val lucreSwing          = "2.5.0"
-    val scalaColliderSwing  = "2.5.0"
+    val scalaColliderSwing  = "2.6.0-SNAPSHOT"
     val swingPlus           = "0.5.0"
   }
   

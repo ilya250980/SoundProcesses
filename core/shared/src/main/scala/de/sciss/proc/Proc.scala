@@ -13,8 +13,6 @@
 
 package de.sciss.proc
 
-import java.util
-
 import de.sciss.lucre.Event.Targets
 import de.sciss.lucre.impl.{DummyEvent, ExprTypeImpl}
 import de.sciss.lucre.{Copy, Elem, Event, EventLike, Expr, Ident, Obj, Publisher, Txn, Var => LVar}
@@ -22,14 +20,15 @@ import de.sciss.model.{Change => MChange}
 import de.sciss.proc.Implicits._
 import de.sciss.proc.impl.{ProcOutputImpl, ProcImpl => Impl}
 import de.sciss.serial.{ConstFormat, DataInput, DataOutput, TFormat}
+import de.sciss.synth.UGenSource.RefMapIn
 import de.sciss.synth.proc.graph
 import de.sciss.synth.ugen.{Constant, ControlProxyLike}
 import de.sciss.synth.{Lazy, MaybeRate, SynthGraph}
 import de.sciss.{model, proc}
 
-import scala.annotation.{switch, tailrec}
+import java.util
+import scala.annotation.tailrec
 import scala.collection.immutable.{IndexedSeq => Vec}
-import scala.util.control.NonFatal
 
 object Proc extends Obj.Type {
   final val typeId = 0x10005
@@ -150,16 +149,12 @@ object Proc extends Obj.Type {
     object valueFormat extends ConstFormat[SynthGraph] {
       private final val SER_VERSION = 0x5347
 
+      // ---- write ----
+
       // we use an identity hash map, because we do _not_
       // want to alias objects in the serialization; the input
       // is an in-memory object graph.
       private type RefMapOut = util.IdentityHashMap[Product, Integer]
-
-      private final class RefMapIn {
-        var map   = Map.empty[Int, Product]
-        // val map   = collection.mutable.Map.empty[Int, Product]
-        var count = 0
-      }
 
       private def writeProduct(p: Product, out: DataOutput, ref: RefMapOut): Unit = {
         val id0Ref = ref.get(p)
@@ -170,9 +165,16 @@ object Proc extends Obj.Type {
           return
         }
         out.writeByte('P')
-        val pck     = p.getClass.getPackage.getName
-        val prefix  = p.productPrefix
-        val name    = if (pck == "de.sciss.synth.ugen") prefix else s"$pck.$prefix"
+        // `getPackage` not supported by Scala.js:
+        // val pck     = p.getClass.getPackage.getName
+        // Java 9+:
+        // val pck     = p.getClass.getPackageName
+        val cn      = p.getClass.getName
+        // val name    = if (pck == "de.sciss.synth.ugen") prefix else s"$pck.$prefix"
+        val name    = if (cn.startsWith("de.sciss.synth.ugen")) p.productPrefix else {
+          val nm  = cn.length - 1
+          if (cn.charAt(nm) == '$') cn.substring(0, nm) else cn
+        }
         out.writeUTF(name)
         out.writeShort(p.productArity)
         p.productIterator.foreach(writeElem(_, out, ref))
@@ -241,105 +243,94 @@ object Proc extends Obj.Type {
         ctl.foreach(writeProduct(_, out, ref))
       }
 
-      // expects that 'X' byte has already been read
-      private def readIdentifiedSeq(in: DataInput, ref: RefMapIn): Seq[Any] = {
-        val num = in.readInt()
-        Vector.fill(num)(readElem(in, ref))
-      }
+      // ---- read ----
 
-      // expects that 'P' byte has already been read
-      private def readIdentifiedProduct(in: DataInput, ref: RefMapIn): Product = {
-        val prefix    = in.readUTF()
-        val arity     = in.readShort()
-        val className = if (Character.isUpperCase(prefix.charAt(0))) s"de.sciss.synth.ugen.$prefix" else prefix
-
-        val res = try {
-          if (arity == 0 && className.charAt(className.length - 1) == '$') {
-            // case object
-            val companion = Class.forName(className).getField("MODULE$").get(null)
-            companion.asInstanceOf[Product]
-
-          } else {
-
-            // cf. stackoverflow #3039822
-            val className1 = className + "$"
-            val companion = Class.forName(className1).getField("MODULE$").get(null)
-            val elems = new Array[AnyRef](arity)
-            var i = 0
-            while (i < arity) {
-              elems(i) = readElem(in, ref).asInstanceOf[AnyRef]
-              i += 1
-            }
-            //    val m         = companion.getClass.getMethods.find(_.getName == "apply")
-            //      .getOrElse(sys.error(s"No apply method found on $companion"))
-            val ms = companion.getClass.getMethods
-            var m = null: java.lang.reflect.Method
-            var j = 0
-            while (m == null && j < ms.length) {
-              val mj = ms(j)
-              if (mj.getName == "apply" && mj.getParameterTypes.length == arity) m = mj
-              j += 1
-            }
-            if (m == null) sys.error(s"No apply method found on $companion")
-
-            m.invoke(companion, elems: _*).asInstanceOf[Product]
-          }
-
-        } catch {
-          case NonFatal(e) =>
-            throw new IllegalArgumentException(s"While de-serializing $prefix", e)
-        }
-
-        val id        = ref.count
-        ref.map      += ((id, res))
-        ref.count     = id + 1
-        res
-      }
-
-      // taken: < B C D F I O P R S X Y
-      private def readElem(in: DataInput, ref: RefMapIn): Any = {
-        (in.readByte(): @switch) match {
-          case 'C' => Constant(in.readFloat())
-          case 'R' => MaybeRate(in.readByte())
-          case 'O' => if (in.readBoolean()) Some(readElem(in, ref)) else None
-          case 'X' => readIdentifiedSeq    (in, ref)
-          case 'Y' => readIdentifiedGraph  (in, ref)
-          case 'P' => readIdentifiedProduct(in, ref)
-          case '<' =>
-            val id = in.readInt()
-            ref.map(id)
-          case 'I' => in.readInt()
-          case 'S' => in.readUTF()
-          case 'B' => in.readBoolean()
-          case 'F' => in.readFloat()
-          case 'D' => in.readDouble()
-        }
-      }
+//      // expects that 'X' byte has already been read
+//      private def readIdentifiedSeq(in: DataInput, ref: RefMapIn): Seq[Any] = {
+//        val num = in.readInt()
+//        Vector.fill(num)(readElem(in, ref))
+//      }
+//
+//      // expects that 'P' byte has already been read
+//      private def readIdentifiedProduct(in: DataInput, ref: RefMapIn): Product = {
+//        val prefix    = in.readUTF()
+//        val arity     = in.readShort()
+//        val className = if (Character.isUpperCase(prefix.charAt(0))) s"de.sciss.synth.ugen.$prefix" else prefix
+//
+//        val res = try {
+//          if (arity == 0 && className.charAt(className.length - 1) == '$') {
+//            // case object
+//            val companion = Class.forName(className).getField("MODULE$").get(null)
+//            companion.asInstanceOf[Product]
+//
+//          } else {
+//
+//            // cf. stackoverflow #3039822
+//            val className1 = className + "$"
+//            val companion = Class.forName(className1).getField("MODULE$").get(null)
+//            val elems = new Array[AnyRef](arity)
+//            var i = 0
+//            while (i < arity) {
+//              elems(i) = readElem(in, ref).asInstanceOf[AnyRef]
+//              i += 1
+//            }
+//            //    val m         = companion.getClass.getMethods.find(_.getName == "apply")
+//            //      .getOrElse(sys.error(s"No apply method found on $companion"))
+//            val ms = companion.getClass.getMethods
+//            var m = null: java.lang.reflect.Method
+//            var j = 0
+//            while (m == null && j < ms.length) {
+//              val mj = ms(j)
+//              if (mj.getName == "apply" && mj.getParameterTypes.length == arity) m = mj
+//              j += 1
+//            }
+//            if (m == null) sys.error(s"No apply method found on $companion")
+//
+//            m.invoke(companion, elems: _*).asInstanceOf[Product]
+//          }
+//
+//        } catch {
+//          case NonFatal(e) =>
+//            throw new IllegalArgumentException(s"While de-serializing $prefix", e)
+//        }
+//
+//        val id        = ref.count
+//        ref.map      += ((id, res))
+//        ref.count     = id + 1
+//        res
+//      }
+//
+//      // taken: < B C D F I O P R S X Y
+//      private def readElem(in: DataInput, ref: RefMapIn): Any = {
+//        (in.readByte(): @switch) match {
+//          case 'C' => Constant(in.readFloat())
+//          case 'R' => MaybeRate(in.readByte())
+//          case 'O' => if (in.readBoolean()) Some(readElem(in, ref)) else None
+//          case 'X' => readIdentifiedSeq    (in, ref)
+//          case 'Y' => readIdentifiedGraph  (in, ref)
+//          case 'P' => readIdentifiedProduct(in, ref)
+//          case '<' =>
+//            val id = in.readInt()
+//            ref.map(id)
+//          case 'I' => in.readInt()
+//          case 'S' => in.readUTF()
+//          case 'B' => in.readBoolean()
+//          case 'F' => in.readFloat()
+//          case 'D' => in.readDouble()
+//        }
+//      }
 
       def read(in: DataInput): SynthGraph = {
-        val cookie  = in.readShort()
+        val cookie = in.readShort()
         require(cookie == SER_VERSION, s"Unexpected cookie $cookie")
-        val res2  = readIdentifiedGraph(in, new RefMapIn)
+        val res2 = readIdentifiedGraph(new RefMapIn(in))
         res2
       }
 
-      private def readIdentifiedGraph(in: DataInput, ref: RefMapIn): SynthGraph = {
-        val b1 = in.readByte()
-        require(b1 == 'X')    // expecting sequence
-        val numSources  = in.readInt()
-        val sources     = Vector.fill(numSources) {
-          readElem(in, ref).asInstanceOf[Lazy]
-        }
-        val b2 = in.readByte()
-        require(b2 == 'T')    // expecting set
-        val numControls = in.readInt()
-        val controls    = Set.newBuilder[ControlProxyLike] // stupid Set doesn't have `fill` and `tabulate` methods
-        var i = 0
-        while (i < numControls) {
-          controls += readElem(in, ref).asInstanceOf[ControlProxyLike]
-          i += 1
-        }
-        SynthGraph(sources, controls.result())
+      private def readIdentifiedGraph(ref: RefMapIn): SynthGraph = {
+        val sources   = ref.readVec(ref.readProductT[Lazy]())
+        val controls  = ref.readSet(ref.readProductT[ControlProxyLike]())
+        SynthGraph(sources, controls)
       }
     }
 

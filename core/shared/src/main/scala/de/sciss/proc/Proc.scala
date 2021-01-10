@@ -156,6 +156,8 @@ object Proc extends Obj.Type {
       // is an in-memory object graph.
       private type RefMapOut = util.IdentityHashMap[Product, Integer]
 
+      private final val SupportedPck = "de.sciss.synth.ugen"
+
       private def writeProduct(p: Product, out: DataOutput, ref: RefMapOut): Unit = {
         val id0Ref = ref.get(p)
         // val id0 = ref.map.getOrElse(p, -1)
@@ -170,8 +172,8 @@ object Proc extends Obj.Type {
         // Java 9+:
         // val pck     = p.getClass.getPackageName
         val cn      = p.getClass.getName
-        // val name    = if (pck == "de.sciss.synth.ugen") prefix else s"$pck.$prefix"
-        val name    = if (cn.startsWith("de.sciss.synth.ugen")) p.productPrefix else {
+        // val name    = if (pck == SupportedPck) prefix else s"$pck.$prefix"
+        val name    = if (cn.startsWith(SupportedPck)) p.productPrefix else {
           val nm  = cn.length - 1
           if (cn.charAt(nm) == '$') cn.substring(0, nm) else cn
         }

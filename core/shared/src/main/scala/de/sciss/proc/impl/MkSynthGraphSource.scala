@@ -90,31 +90,34 @@ object MkSynthGraphSource {
         new StdGraphLine(elemName = elemName, constructor = "apply", args = ins)
       }
 
-      val line = if (!isStdPkg) mkUnknownLine() else ugenMap.get(elemName).fold(mkUnknownLine()) { spec =>
-        val (rate: MaybeRate, rateMethod: UGenSpec.RateMethod, argVals1: Vec[Any]) = spec.rates match {
-          case UGenSpec.Rates.Implied(r, m) => (r, m, argVals)
-          case UGenSpec.Rates.Set(_) =>
-            argVals.head match {
-              case r: Rate => (r, UGenSpec.RateMethod.Default, argVals.tail)
-              // case x => throw new MatchError(s"For spec $spec, the first arg $x is not of type Rate")
-              case _ =>
-                // this currently happens for helper elements such as `LinLin`
-                (UndefinedRate, UGenSpec.RateMethod.Default, argVals)
-            }
-        }
-        val rateMethodName = rateMethod match {
-          case UGenSpec.RateMethod.Alias (name) => name
-          case UGenSpec.RateMethod.Custom(name) => name
-          case UGenSpec.RateMethod.Default      => rate.toOption.fold("apply")(_.methodName)
-        }
-        val ins = (spec.args zip argVals1).map { case (arg, argVal) =>
-          val shape = arg.tpe match {
-            case UGenSpec.ArgumentType.GE(sh, _) => sh
-            case _ => UGenSpec.SignalShape.Generic
+      val line = if (!isStdPkg) mkUnknownLine() else ugenMap.get(elemName) match {
+        case Some(spec) if !spec.attr.contains(UGenSpec.Attribute.IsFragment) =>
+          val (rate: MaybeRate, rateMethod: UGenSpec.RateMethod, argVals1: Vec[Any]) = spec.rates match {
+            case UGenSpec.Rates.Implied(r, m) => (r, m, argVals)
+            case UGenSpec.Rates.Set(_) =>
+              argVals.head match {
+                case r: Rate => (r, UGenSpec.RateMethod.Default, argVals.tail)
+                // case x => throw new MatchError(s"For spec $spec, the first arg $x is not of type Rate")
+                case _ =>
+                  // this currently happens for helper elements such as `LinLin`
+                  (UndefinedRate, UGenSpec.RateMethod.Default, argVals)
+              }
           }
-          ArgAssign(Some(arg.name), shape, argVal)
-        }
-        new StdGraphLine(elemName = elemName, constructor = rateMethodName, args = ins)
+          val rateMethodName = rateMethod match {
+            case UGenSpec.RateMethod.Alias (name) => name
+            case UGenSpec.RateMethod.Custom(name) => name
+            case UGenSpec.RateMethod.Default      => rate.toOption.fold("apply")(_.methodName)
+          }
+          val ins = (spec.args zip argVals1).map { case (arg, argVal) =>
+            val shape = arg.tpe match {
+              case UGenSpec.ArgumentType.GE(sh, _) => sh
+              case _ => UGenSpec.SignalShape.Generic
+            }
+            ArgAssign(Some(arg.name), shape, argVal)
+          }
+          new StdGraphLine(elemName = elemName, constructor = rateMethodName, args = ins)
+
+        case _ => mkUnknownLine()
       }
       line
     }

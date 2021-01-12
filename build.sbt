@@ -53,11 +53,12 @@ lazy val deps = new {
     val asyncFile           = "0.1.2"
     val audioFile           = "2.3.2"
     val equal               = "0.1.6"
-    val lucre               = "4.3.1-SNAPSHOT"
+    val lucre               = "4.4.0-SNAPSHOT"
     val numbers             = "0.2.1"
     val processor           = "0.5.0"
     val scalaCollider       = "2.6.0-SNAPSHOT"
     val scalaColliderIf     = "1.7.0-SNAPSHOT"
+    val serial              = "2.0.1-SNAPSHOT"
     val span                = "2.0.0"
     val topology            = "1.1.4"
     val ugens               = "1.21.0-SNAPSHOT"
@@ -65,7 +66,7 @@ lazy val deps = new {
 
   val views = new {
     val audioWidgets        = "2.3.1"
-    val lucreSwing          = "2.5.0"
+    val lucreSwing          = "2.6.0-SNAPSHOT"
     val scalaColliderSwing  = "2.6.0-SNAPSHOT"
     val swingPlus           = "0.5.0"
   }
@@ -156,7 +157,8 @@ lazy val core = crossProject(platforms: _*).in(file("core"))
     ),
     buildInfoPackage := "de.sciss.synth.proc",
     libraryDependencies ++= Seq(
-      "de.sciss"          %%% "span"              % deps.main.span,              // sbt bug
+      "de.sciss"          %%% "serial"            % deps.main.serial,
+      "de.sciss"          %%% "span"              % deps.main.span,
       "de.sciss"          %%% "lucre-confluent"   % deps.main.lucre,
       "de.sciss"          %%% "lucre-expr"        % deps.main.lucre,
       "de.sciss"          %%% "processor"         % deps.main.processor,

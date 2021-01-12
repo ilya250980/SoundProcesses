@@ -13,6 +13,7 @@
 
 package de.sciss.lucre.expr.graph
 
+import de.sciss.lucre.expr.ExElem.{ProductReader, RefMapIn}
 import de.sciss.lucre.expr.graph.{Attr => _Attr}
 import de.sciss.lucre.expr.impl.IActionImpl
 import de.sciss.lucre.expr.{Context, Graph, IAction, IControl}
@@ -22,7 +23,7 @@ import de.sciss.proc.ExprContext
 
 import scala.util.{Failure, Success}
 
-object ThisRunner {
+object ThisRunner extends ProductReader[ThisRunner] {
   def apply(): ThisRunner = Impl()
 
   private final class ExpandedStop[T <: Txn[T]](r: proc.Runner[T]) extends IActionImpl[T] {
@@ -30,6 +31,13 @@ object ThisRunner {
       r.stop()
   }
 
+  object Stop extends ProductReader[Stop] {
+    override def read(in: RefMapIn, key: String, arity: Int, adjuncts: List[Adjunct]): Stop = {
+      require (arity == 1 && adjuncts.isEmpty)
+      val _r = in.readProductT[ThisRunner]()
+      new Stop(_r)
+    }
+  }
   final case class Stop(r: ThisRunner) extends Act {
     type Repr[T <: Txn[T]] = IAction[T]
 
@@ -48,6 +56,13 @@ object ThisRunner {
       r.completeWith(Success(()))
   }
 
+  object Done extends ProductReader[Done] {
+    override def read(in: RefMapIn, key: String, arity: Int, adjuncts: List[Adjunct]): Done = {
+      require (arity == 1 && adjuncts.isEmpty)
+      val _r = in.readProductT[ThisRunner]()
+      new Done(_r)
+    }
+  }
   final case class Done(r: ThisRunner) extends Act {
     type Repr[T <: Txn[T]] = IAction[T]
 
@@ -69,6 +84,14 @@ object ThisRunner {
     }
   }
 
+  object Fail extends ProductReader[Fail] {
+    override def read(in: RefMapIn, key: String, arity: Int, adjuncts: List[Adjunct]): Fail = {
+      require (arity == 2 && adjuncts.isEmpty)
+      val _r        = in.readProductT[ThisRunner]()
+      val _failure  = in.readEx[String]()
+      new Fail(_r, _failure)
+    }
+  }
   final case class Fail(r: ThisRunner, failure: Ex[String]) extends Act {
     type Repr[T <: Txn[T]] = IAction[T]
 
@@ -82,24 +105,15 @@ object ThisRunner {
   }
 
   private final val defaultProgress = -1.0
-//  private final val defaultMessages = List.empty[Message]
   private final val keyProgress     = "progress"
-//  private final val keyMessages     = "messages"
 
-//  final case class Progress(r: ThisRunner) extends Ex[Double] {
-//    type Repr[T <: Txn[T]] = IExpr[T, Double]
-//
-//    override def productPrefix: String = s"ThisRunner$$Progress" // serialization
-//
-//    protected def mkRepr[T <: Txn[T]](implicit ctx: Context[T], tx: T): Repr[T] = {
-//      val rx          = r.expand[T]
-//      val selectedOpt = ctx.getProperty[Ex[Double]](r, keyProgress)
-//      val selected0   = selectedOpt.fold[Double](defaultProgress)(_.expand[T].value)
-//      import ctx.{cursor, targets}
-//      new ProgressExpanded[T](rx, selected0).init()
-//    }
-//  }
-
+  object Progress extends ProductReader[Progress] {
+    override def read(in: RefMapIn, key: String, arity: Int, adjuncts: List[Adjunct]): Progress = {
+      require (arity == 1 && adjuncts.isEmpty)
+      val _r = in.readProductT[ThisRunner]()
+      new Progress(_r)
+    }
+  }
   final case class Progress(r: ThisRunner) extends Ex[Double] {
     type Repr[T <: Txn[T]] = IExpr[T, Double]
 
@@ -138,7 +152,15 @@ object ThisRunner {
     }
   }
 
-  object Attr {
+  object Attr extends ProductReader[Attr[_]] {
+    object Update extends ProductReader[Update[_]] {
+      override def read(in: RefMapIn, key: String, arity: Int, adjuncts: List[Adjunct]): Update[_] = {
+        require (arity == 2 && adjuncts.isEmpty)
+        val _source = in.readEx[Any]()
+        val _key    = in.readString()
+        new Update(_source, _key)
+      }
+    }
     final case class Update[A](source: Ex[A], key: String)
       extends Control {
 
@@ -157,6 +179,14 @@ object ThisRunner {
       }
     }
 
+    object Set extends ProductReader[Set[_]] {
+      override def read(in: RefMapIn, key: String, arity: Int, adjuncts: List[Adjunct]): Set[_] = {
+        require (arity == 2 && adjuncts.isEmpty)
+        val _source = in.readEx[Any]()
+        val _key    = in.readString()
+        new Set(_source, _key)
+      }
+    }
     final case class Set[A](source: Ex[A], key: String)
       extends Act {
 
@@ -173,6 +203,14 @@ object ThisRunner {
             IAction.empty
         }
       }
+    }
+
+    override def read(in: RefMapIn, key: String, arity: Int, adjuncts: List[Adjunct]): Attr[_] = {
+      require (arity == 2 && adjuncts.size == 1)
+      val _r    = in.readProductT[ThisRunner]()
+      val _key  = in.readString()
+      val (_bridge: Obj.Bridge[Any]) :: Nil = adjuncts
+      new Attr(_r, _key)(_bridge)
     }
   }
   final case class Attr[A](r: ThisRunner, key: String)(implicit bridge: Obj.Bridge[A])
@@ -197,16 +235,10 @@ object ThisRunner {
     def adjuncts: List[Adjunct] = bridge :: Nil
   }
 
-//  final case class Messages(r: ThisRunner) extends Ex[Seq[Message]] {
-//    type Repr[T <: Txn[T]] = IExpr[T, Seq[Message]]
-//
-//    override def productPrefix: String = s"ThisRunner$$Messages" // serialization
-//
-//    protected def mkRepr[T <: Txn[T]](implicit ctx: Context[T], tx: T): Repr[T] = {
-//      val valueOpt = ctx.getProperty[Ex[Seq[Message]]](r, keyMessages)
-//      valueOpt.getOrElse(Const(defaultMessages)).expand[T]
-//    }
-//  }
+  override def read(in: RefMapIn, key: String, arity: Int, adjuncts: List[Adjunct]): ThisRunner = {
+    require (arity == 0 && adjuncts.isEmpty)
+    ThisRunner()
+  }
 
   private final case class Impl() extends ThisRunner { r =>
     override def productPrefix: String = "ThisRunner" // serialization
@@ -222,13 +254,6 @@ object ThisRunner {
       b.putProperty(this, keyProgress, value)
     }
 
-//    def messages: Ex[Seq[Message]] = Messages(this)
-//
-//    def messages_=(value: Ex[Seq[Message]]): Unit = {
-//      val b = Graph.builder
-//      b.putProperty(this, keyMessages, value)
-//    }
-
     def attr[A: Obj.Bridge](key: String): Attr[A] = Attr(this, key)
 
     def done: Act = ThisRunner.Done(this)
@@ -238,13 +263,6 @@ object ThisRunner {
     protected def mkRepr[T <: Txn[T]](implicit ctx: Context[T], tx: T): Repr[T] = {
       val ec  = ExprContext.get
       val ri  = ec.runner.getOrElse(sys.error(s"$this - expansion outside of Runner"))
-//      ctx.getProperty[Ex[Seq[Message]]](r, keyMessages).foreach { m =>
-//        val messagesEx = m.expand[T]
-//        val obs = messagesEx.changed.react { implicit tx => messagesCh =>
-//          ri.setMessages(messagesCh.now)
-//        }
-//        ri.addDisposable(obs)
-//      }
       ctx.getProperty[Ex[Double]](r, keyProgress).foreach { p =>
         val progressEx = p.expand[T]
         val obs = progressEx.changed.react { implicit tx => progressCh =>
@@ -272,8 +290,4 @@ trait ThisRunner extends Control {
     * for `key.attr[A]`.
     */
   def attr[A: Obj.Bridge](key: String): ThisRunner.Attr[A]
-
-  // XXX TODO: proc.Runner.Message is not serializable or constructable from Ex
-
-//  var messages: Ex[Seq[proc.Runner.Message]]
 }

@@ -19,7 +19,7 @@ import de.sciss.lucre.expr.LucreExpr
 import de.sciss.lucre.synth.Executor
 import de.sciss.lucre.{Cursor, Txn}
 import de.sciss.synth.StandardUGens
-import de.sciss.synth.proc.ProcUGens
+import de.sciss.synth.proc.ProcElem
 
 import scala.concurrent.Future
 import scala.concurrent.stm.{InTxn, Txn => STMTxn}
@@ -120,7 +120,7 @@ object SoundProcesses  {
     lucre.expr.graph.Timeline .init()
 
     StandardUGens   .init()
-    ProcUGens       .init()
+    ProcElem       .init()
     // ThirdPartyUGens .init()
 
     // initPlatform()

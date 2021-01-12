@@ -15,8 +15,8 @@ package de.sciss.proc
 
 import de.sciss.lucre.Event.Targets
 import de.sciss.lucre.expr.graph.{Act, Control => _Control}
-import de.sciss.lucre.expr.impl.{ExElem, GraphBuilderMixin, GraphFormatMixin}
-import de.sciss.lucre.expr.{Context, IAction, IControl, ITrigger}
+import de.sciss.lucre.expr.impl.{GraphBuilderMixin, GraphFormatMixin}
+import de.sciss.lucre.expr.{Context, ExElem, IAction, IControl, ITrigger}
 import de.sciss.lucre.impl.{DummyEvent, ExprTypeImpl}
 import de.sciss.lucre.{Copy, Elem, Event, EventLike, Expr, Ident, Obj, Publisher, Txn, expr, Var => LVar}
 import de.sciss.proc.impl.{ActionImpl => Impl}
@@ -170,19 +170,18 @@ object Action extends Obj.Type {
 
       def write(g: Graph, out: DataOutput): Unit = {
         out.writeShort(SER_VERSION)
-        var ref = null: ExElem.RefMapOut
-        ref = ExElem.write(g.action, out, ref)
+        val ref = new ExElem.RefMapOut(out)
+        ref.writeProduct(g.action)
         val cx = g.controls
-        writeControls(cx, out, ref)
-        ()
+        writeControls(cx, ref)
       }
 
       def read(in: DataInput): Graph = {
         val cookie = in.readShort()
         require(cookie == SER_VERSION, s"Unexpected cookie $cookie")
-        val ref = new ExElem.RefMapIn
-        val w   = ExElem.read (in, ref).asInstanceOf[Act]
-        val cx  = readControls(in, ref)
+        val ref = new ExElem.RefMapIn(in)
+        val w   = ref.readProductT[Act]()
+        val cx  = readControls(ref)
         Graph(w, cx)
       }
     }

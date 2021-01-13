@@ -32,8 +32,8 @@ object ThisRunner extends ProductReader[ThisRunner] {
   }
 
   object Stop extends ProductReader[Stop] {
-    override def read(in: RefMapIn, key: String, arity: Int, adjuncts: List[Adjunct]): Stop = {
-      require (arity == 1 && adjuncts.isEmpty)
+    override def read(in: RefMapIn, key: String, arity: Int, adj: Int): Stop = {
+      require (arity == 1 && adj == 0)
       val _r = in.readProductT[ThisRunner]()
       new Stop(_r)
     }
@@ -57,8 +57,8 @@ object ThisRunner extends ProductReader[ThisRunner] {
   }
 
   object Done extends ProductReader[Done] {
-    override def read(in: RefMapIn, key: String, arity: Int, adjuncts: List[Adjunct]): Done = {
-      require (arity == 1 && adjuncts.isEmpty)
+    override def read(in: RefMapIn, key: String, arity: Int, adj: Int): Done = {
+      require (arity == 1 && adj == 0)
       val _r = in.readProductT[ThisRunner]()
       new Done(_r)
     }
@@ -85,8 +85,8 @@ object ThisRunner extends ProductReader[ThisRunner] {
   }
 
   object Fail extends ProductReader[Fail] {
-    override def read(in: RefMapIn, key: String, arity: Int, adjuncts: List[Adjunct]): Fail = {
-      require (arity == 2 && adjuncts.isEmpty)
+    override def read(in: RefMapIn, key: String, arity: Int, adj: Int): Fail = {
+      require (arity == 2 && adj == 0)
       val _r        = in.readProductT[ThisRunner]()
       val _failure  = in.readEx[String]()
       new Fail(_r, _failure)
@@ -108,8 +108,8 @@ object ThisRunner extends ProductReader[ThisRunner] {
   private final val keyProgress     = "progress"
 
   object Progress extends ProductReader[Progress] {
-    override def read(in: RefMapIn, key: String, arity: Int, adjuncts: List[Adjunct]): Progress = {
-      require (arity == 1 && adjuncts.isEmpty)
+    override def read(in: RefMapIn, key: String, arity: Int, adj: Int): Progress = {
+      require (arity == 1 && adj == 0)
       val _r = in.readProductT[ThisRunner]()
       new Progress(_r)
     }
@@ -154,8 +154,8 @@ object ThisRunner extends ProductReader[ThisRunner] {
 
   object Attr extends ProductReader[Attr[_]] {
     object Update extends ProductReader[Update[_]] {
-      override def read(in: RefMapIn, key: String, arity: Int, adjuncts: List[Adjunct]): Update[_] = {
-        require (arity == 2 && adjuncts.isEmpty)
+      override def read(in: RefMapIn, key: String, arity: Int, adj: Int): Update[_] = {
+        require (arity == 2 && adj == 0)
         val _source = in.readEx[Any]()
         val _key    = in.readString()
         new Update(_source, _key)
@@ -180,8 +180,8 @@ object ThisRunner extends ProductReader[ThisRunner] {
     }
 
     object Set extends ProductReader[Set[_]] {
-      override def read(in: RefMapIn, key: String, arity: Int, adjuncts: List[Adjunct]): Set[_] = {
-        require (arity == 2 && adjuncts.isEmpty)
+      override def read(in: RefMapIn, key: String, arity: Int, adj: Int): Set[_] = {
+        require (arity == 2 && adj == 0)
         val _source = in.readEx[Any]()
         val _key    = in.readString()
         new Set(_source, _key)
@@ -205,11 +205,11 @@ object ThisRunner extends ProductReader[ThisRunner] {
       }
     }
 
-    override def read(in: RefMapIn, key: String, arity: Int, adjuncts: List[Adjunct]): Attr[_] = {
-      require (arity == 2 && adjuncts.size == 1)
+    override def read(in: RefMapIn, key: String, arity: Int, adj: Int): Attr[_] = {
+      require (arity == 2 && adj == 1)
       val _r    = in.readProductT[ThisRunner]()
       val _key  = in.readString()
-      val (_bridge: Obj.Bridge[Any]) :: Nil = adjuncts
+      val _bridge: Obj.Bridge[Any] = in.readAdjunct()
       new Attr(_r, _key)(_bridge)
     }
   }
@@ -235,8 +235,8 @@ object ThisRunner extends ProductReader[ThisRunner] {
     def adjuncts: List[Adjunct] = bridge :: Nil
   }
 
-  override def read(in: RefMapIn, key: String, arity: Int, adjuncts: List[Adjunct]): ThisRunner = {
-    require (arity == 0 && adjuncts.isEmpty)
+  override def read(in: RefMapIn, key: String, arity: Int, adj: Int): ThisRunner = {
+    require (arity == 0 && adj == 0)
     ThisRunner()
   }
 

@@ -13,16 +13,17 @@
 
 package de.sciss.lucre.expr.graph
 
-import de.sciss.lucre.impl.IGeneratorEvent
-import de.sciss.lucre.{IEvent, IExpr, IPull, ITargets, Txn}
+import de.sciss.lucre.Txn.peer
+import de.sciss.lucre.expr.ExElem.{ProductReader, RefMapIn}
 import de.sciss.lucre.expr.impl.IActionImpl
 import de.sciss.lucre.expr.{Context, IAction, IControl, ITrigger}
-import de.sciss.lucre.Txn.peer
+import de.sciss.lucre.impl.IGeneratorEvent
+import de.sciss.lucre.{IEvent, IExpr, IPull, ITargets, Txn}
 import de.sciss.proc.{ExprContext, Scheduler, TimeRef}
 
 import scala.concurrent.stm.Ref
 
-object Delay {
+object Delay extends ProductReader[Delay] {
   /** Creates a new unconnected delay.
     *
     * In order to specify the action taken after the delay, the `apply` method can be used,
@@ -80,6 +81,13 @@ object Delay {
       d.cancel()
   }
 
+  object Cancel extends ProductReader[Cancel] {
+    override def read(in: RefMapIn, key: String, arity: Int, adj: Int): Cancel = {
+      require (arity == 1 && adj == 0)
+      val _d = in.readProductT[Delay]()
+      new Cancel(_d)
+    }
+  }
   final case class Cancel(d: Delay) extends Act {
     type Repr[T <: Txn[T]] = IAction[T]
 
@@ -115,6 +123,12 @@ object Delay {
 
   trait Repr[T <: Txn[T]] extends IControl[T] with IAction[T] with ITrigger[T] {
     def cancel()(implicit tx: T): Unit
+  }
+
+  override def read(in: RefMapIn, key: String, arity: Int, adj: Int): Delay = {
+    require (arity == 1 && adj == 0)
+    val _time = in.readEx[Double]()
+    Delay(_time)
   }
 }
 /** Delays a trigger by a given amount of time.

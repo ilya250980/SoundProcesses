@@ -15,14 +15,15 @@ package de.sciss.lucre.expr.graph
 
 import de.sciss.audiofile.{AudioFileSpec => _AudioFileSpec}
 import de.sciss.lucre.Adjunct.HasDefault
+import de.sciss.lucre.expr.ExElem.{ProductReader, RefMapIn}
 import de.sciss.lucre.expr.graph.impl.MappedIExpr
 import de.sciss.lucre.expr.impl.AbstractExObjBridgeImpl
 import de.sciss.lucre.expr.{CellView, Context}
-import de.sciss.lucre.{Adjunct, IExpr, ITargets, Txn, Obj => LObj, Artifact => _Artifact}
-import de.sciss.serial.DataInput
+import de.sciss.lucre.{Adjunct, IExpr, ITargets, Txn, Artifact => _Artifact, Obj => LObj}
 import de.sciss.proc.{AudioCue => _AudioCue}
+import de.sciss.serial.DataInput
 
-object AudioCue {
+object AudioCue extends ProductReader[Ex[_AudioCue]] {
   private lazy val _init: Unit =
     Adjunct.addFactory(TypeImpl)
 
@@ -59,6 +60,12 @@ object AudioCue {
   private val emptyValue =
     _AudioCue(_Artifact.Value.empty, _AudioFileSpec(numChannels = 0, sampleRate = 0.0), offset = 0L, gain = 1.0)
 
+  object Empty extends ProductReader[Empty] {
+    override def read(in: RefMapIn, key: String, arity: Int, adj: Int): Empty = {
+      require (arity == 0 && adj == 0)
+      new Empty()
+    }
+  }
   final case class Empty() extends Ex[_AudioCue] {
     override def productPrefix: String = s"AudioCue$$Empty" // serialization
 
@@ -74,6 +81,13 @@ object AudioCue {
     protected def mapValue(inValue: _AudioCue)(implicit tx: T): _Artifact.Value = inValue.artifact
   }
 
+  object Artifact extends ProductReader[Artifact] {
+    override def read(in: RefMapIn, key: String, arity: Int, adj: Int): Artifact = {
+      require (arity == 1 && adj == 0)
+      val _in = in.readEx[_AudioCue]()
+      new Artifact(_in)
+    }
+  }
   final case class Artifact(in: Ex[_AudioCue]) extends Ex[_Artifact.Value] {
     override def productPrefix: String = s"AudioCue$$Artifact" // serialization
 
@@ -91,6 +105,13 @@ object AudioCue {
     protected def mapValue(inValue: _AudioCue)(implicit tx: T): _AudioFileSpec = inValue.spec
   }
 
+  object Spec extends ProductReader[Spec] {
+    override def read(in: RefMapIn, key: String, arity: Int, adj: Int): Spec = {
+      require (arity == 1 && adj == 0)
+      val _in = in.readEx[_AudioCue]()
+      new Spec(_in)
+    }
+  }
   final case class Spec(in: Ex[_AudioCue]) extends Ex[_AudioFileSpec] {
     override def productPrefix: String = s"AudioCue$$Spec" // serialization
 
@@ -108,6 +129,13 @@ object AudioCue {
     protected def mapValue(inValue: _AudioCue)(implicit tx: T): Long = inValue.offset
   }
 
+  object Offset extends ProductReader[Offset] {
+    override def read(in: RefMapIn, key: String, arity: Int, adj: Int): Offset = {
+      require (arity == 1 && adj == 0)
+      val _in = in.readEx[_AudioCue]()
+      new Offset(_in)
+    }
+  }
   final case class Offset(in: Ex[_AudioCue]) extends Ex[Long] {
     override def productPrefix: String = s"AudioCue$$Offset" // serialization
 
@@ -125,6 +153,13 @@ object AudioCue {
     protected def mapValue(inValue: _AudioCue)(implicit tx: T): Double = inValue.gain
   }
 
+  object Gain extends ProductReader[Gain] {
+    override def read(in: RefMapIn, key: String, arity: Int, adj: Int): Gain = {
+      require (arity == 1 && adj == 0)
+      val _in = in.readEx[_AudioCue]()
+      new Gain(_in)
+    }
+  }
   final case class Gain(in: Ex[_AudioCue]) extends Ex[Double] {
     override def productPrefix: String = s"AudioCue$$Gain" // serialization
 
@@ -145,6 +180,13 @@ object AudioCue {
   /** A utility method that reports the offset with respect to the file's sample rate.
     * That is, it multiplies `offset` by the factor `this.sampleRate / TimeRef.SampleRate`
     */
+  object FileOffset extends ProductReader[FileOffset] {
+    override def read(in: RefMapIn, key: String, arity: Int, adj: Int): FileOffset = {
+      require (arity == 1 && adj == 0)
+      val _in = in.readEx[_AudioCue]()
+      new FileOffset(_in)
+    }
+  }
   final case class FileOffset(in: Ex[_AudioCue]) extends Ex[Long] {
     override def productPrefix: String = s"AudioCue$$FileOffset" // serialization
 
@@ -156,7 +198,8 @@ object AudioCue {
     }
   }
 
-  private[lucre] final case class ApplyOp[T <: Txn[T]]()
+  // only used in expansion -- no reader needed
+  private[lucre] final case class ApplyOp()
     extends QuaternaryOp.Op[_Artifact.Value, _AudioFileSpec, Long, Double, _AudioCue] {
 
     override def productPrefix: String = s"AudioCue$$ApplyOp" // serialization
@@ -168,6 +211,15 @@ object AudioCue {
   def apply(artifact: Ex[_Artifact.Value], spec: Ex[_AudioFileSpec],
             offset: Ex[Long] = 0L, gain: Ex[Double] = 1.0): Ex[_AudioCue] =
     Apply(artifact, spec, offset, gain)
+
+  override def read(in: RefMapIn, key: String, arity: Int, adj: Int): Ex[_AudioCue] = {
+    require (arity == 4 && adj == 0)
+    val _artifact = in.readEx[_Artifact.Value]()
+    val _spec     = in.readEx[_AudioFileSpec]()
+    val _offset   = in.readEx[Long]()
+    val _gain     = in.readEx[Double]()
+    Apply(_artifact, _spec, _offset, _gain)
+  }
 
   private final case class Apply(artifact : Ex[_Artifact.Value],
                                  spec     : Ex[_AudioFileSpec],
@@ -181,7 +233,7 @@ object AudioCue {
 
     protected def mkRepr[T <: Txn[T]](implicit ctx: Context[T], tx: T): Repr[T] = {
       import ctx.targets
-      new QuaternaryOp.Expanded(ApplyOp[T](),
+      new QuaternaryOp.Expanded(ApplyOp(),
         artifact.expand[T], spec.expand[T], offset.expand[T], gain.expand[T], tx)
     }
   }

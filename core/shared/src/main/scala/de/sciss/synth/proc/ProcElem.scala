@@ -30,6 +30,9 @@ object ProcElem {
   private def exSq: Seq[ExV] = {
     import expr.graph._
     Seq[ExV](
+      AudioCue, AudioCue.Empty, AudioCue.Artifact, AudioCue.Spec, AudioCue.Offset, AudioCue.Gain, AudioCue.FileOffset,
+      Delay, Delay.Cancel,
+      Runner, Runner.Messages, Runner.Progress, Runner.State, Runner.Stop, Runner.RunWith, Runner.Run,
       ThisRunner, ThisRunner.Stop, ThisRunner.Done, ThisRunner.Fail, ThisRunner.Progress,
       ThisRunner.Attr, ThisRunner.Attr.Update, ThisRunner.Attr.Set,
     )

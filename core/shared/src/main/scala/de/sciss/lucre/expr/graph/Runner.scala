@@ -13,6 +13,7 @@
 
 package de.sciss.lucre.expr.graph
 
+import de.sciss.lucre.expr.ExElem.{ProductReader, RefMapIn}
 import de.sciss.lucre.expr.impl.IActionImpl
 import de.sciss.lucre.expr.{Context, IAction, IExprAsRunnerMap}
 import de.sciss.lucre.impl.IChangeGeneratorEvent
@@ -24,12 +25,19 @@ import de.sciss.proc.{Universe, UGenGraphBuilder => UGB}
 
 import scala.concurrent.stm.Ref
 
-object Runner {
+object Runner extends ProductReader[Runner] {
   private final class ExpandedRun[T <: Txn[T]](r: proc.Runner[T]) extends IActionImpl[T] {
     def executeAction()(implicit tx: T): Unit =
       r.run()
   }
 
+  object Run extends ProductReader[Run] {
+    override def read(in: RefMapIn, key: String, arity: Int, adj: Int): Run = {
+      assert (arity == 1 && adj == 0)
+      val _r = in.readProductT[Runner]()
+      new Run(_r)
+    }
+  }
   final case class Run(r: Runner) extends Act {
     type Repr[T <: Txn[T]] = IAction[T]
 
@@ -50,6 +58,14 @@ object Runner {
     }
   }
 
+  object RunWith extends ProductReader[RunWith] {
+    override def read(in: RefMapIn, key: String, arity: Int, adj: Int): RunWith = {
+      assert (arity == 2 && adj == 0)
+      val _r    = in.readProductT[Runner]()
+      val _map  = in.readVec(in.readEx[(String, _)]())
+      new RunWith(_r, _map)
+    }
+  }
   final case class RunWith(r: Runner, map: Seq[Ex[(String, _)]]) extends Act {
     type Repr[T <: Txn[T]] = IAction[T]
 
@@ -69,6 +85,13 @@ object Runner {
       r.stop()
   }
 
+  object Stop extends ProductReader[Stop] {
+    override def read(in: RefMapIn, key: String, arity: Int, adj: Int): Stop = {
+      assert (arity == 1 && adj == 0)
+      val _r = in.readProductT[Runner]()
+      new Stop(_r)
+    }
+  }
   final case class Stop(r: Runner) extends Act {
     type Repr[T <: Txn[T]] = IAction[T]
 
@@ -103,6 +126,13 @@ object Runner {
       pull.resolveExpr(this)
   }
 
+  object State extends ProductReader[State] {
+    override def read(in: RefMapIn, key: String, arity: Int, adj: Int): State = {
+      assert (arity == 1 && adj == 0)
+      val _r = in.readProductT[Runner]()
+      new State(_r)
+    }
+  }
   final case class State(r: Runner) extends Ex[Int] {
     type Repr[T <: Txn[T]] = IExpr[T, Int]
 
@@ -137,6 +167,13 @@ object Runner {
       pull.resolveExpr(this)
   }
 
+  object Progress extends ProductReader[Progress] {
+    override def read(in: RefMapIn, key: String, arity: Int, adj: Int): Progress = {
+      assert (arity == 1 && adj == 0)
+      val _r = in.readProductT[Runner]()
+      new Progress(_r)
+    }
+  }
   final case class Progress(r: Runner) extends Ex[Double] {
     type Repr[T <: Txn[T]] = IExpr[T, Double]
 
@@ -151,10 +188,6 @@ object Runner {
 
   private type Message  = (Long, Int, String)
   private type Msg      = Seq[Message]
-
-//  final case class Message(time: Long, level: Int, text: String) {
-//    override def productPrefix: String = s"Runner$$Message" // serialization
-//  }
 
   private final class ExpandedMessages[T <: Txn[T]](r: proc.Runner[T], tx0: T)
                                                    (implicit protected val targets: ITargets[T])
@@ -181,6 +214,13 @@ object Runner {
       pull.resolveExpr(this)
   }
 
+  object Messages extends ProductReader[Messages] {
+    override def read(in: RefMapIn, key: String, arity: Int, adj: Int): Messages = {
+      assert (arity == 1 && adj == 0)
+      val _r = in.readProductT[Runner]()
+      new Messages(_r)
+    }
+  }
   final case class Messages(r: Runner) extends Ex[Seq[(Long, Int, String)]] {
     type Repr[T <: Txn[T]] = IExpr[T, Seq[(Long, Int, String)]]
 
@@ -194,6 +234,12 @@ object Runner {
   }
 
   def apply(key: String): Runner = Impl(key)
+
+  override def read(in: RefMapIn, key: String, arity: Int, adj: Int): Runner = {
+    assert (arity == 1 && adj == 0)
+    val _key = in.readString()
+    Runner(_key)
+  }
 
   private final case class Impl(key: String) extends Runner {
     override def productPrefix: String = "Runner" // serialization

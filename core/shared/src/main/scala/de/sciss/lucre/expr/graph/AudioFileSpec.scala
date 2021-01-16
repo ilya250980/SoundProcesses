@@ -13,16 +13,16 @@
 
 package de.sciss.lucre.expr.graph
 
-import java.net.URI
-
+import de.sciss.audiofile.{AudioFileType, SampleFormat, AudioFileSpec => _AudioFileSpec}
+import de.sciss.lucre.expr.ExElem.{ProductReader, RefMapIn}
 import de.sciss.lucre.expr.graph.impl.MappedIExpr
 import de.sciss.lucre.expr.{Context, graph}
 import de.sciss.lucre.{IExpr, ITargets, Txn}
-import de.sciss.audiofile.{AudioFileType, SampleFormat, AudioFileSpec => _AudioFileSpec}
 
+import java.net.URI
 import scala.annotation.switch
 
-object AudioFileSpec extends AudioFileSpecPlatform {
+object AudioFileSpec extends ProductReader[Ex[_AudioFileSpec]] with AudioFileSpecPlatform {
   private final class NumChannelsExpanded[T <: Txn[T]](in: IExpr[T, _AudioFileSpec], tx0: T)
                                                       (implicit targets: ITargets[T])
     extends MappedIExpr[T, _AudioFileSpec, Int](in, tx0) {
@@ -30,6 +30,13 @@ object AudioFileSpec extends AudioFileSpecPlatform {
     protected def mapValue(inValue: _AudioFileSpec)(implicit tx: T): Int = inValue.numChannels
   }
 
+  object NumChannels extends ProductReader[NumChannels] {
+    override def read(in: RefMapIn, key: String, arity: Int, adj: Int): NumChannels = {
+      require (arity == 1 && adj == 0)
+      val _in = in.readEx[_AudioFileSpec]()
+      new NumChannels(_in)
+    }
+  }
   final case class NumChannels(in: Ex[_AudioFileSpec]) extends Ex[Int] {
     override def productPrefix: String = s"AudioFileSpec$$NumChannels" // serialization
 
@@ -48,6 +55,13 @@ object AudioFileSpec extends AudioFileSpecPlatform {
     protected def mapValue(inValue: _AudioFileSpec)(implicit tx: T): Long = inValue.numFrames
   }
 
+  object NumFrames extends ProductReader[NumFrames] {
+    override def read(in: RefMapIn, key: String, arity: Int, adj: Int): NumFrames = {
+      require (arity == 1 && adj == 0)
+      val _in = in.readEx[_AudioFileSpec]()
+      new NumFrames(_in)
+    }
+  }
   final case class NumFrames(in: Ex[_AudioFileSpec]) extends Ex[Long] {
     override def productPrefix: String = s"AudioFileSpec$$NumFrames" // serialization
 
@@ -66,6 +80,13 @@ object AudioFileSpec extends AudioFileSpecPlatform {
     protected def mapValue(inValue: _AudioFileSpec)(implicit tx: T): Double = inValue.sampleRate
   }
 
+  object SampleRate extends ProductReader[SampleRate] {
+    override def read(in: RefMapIn, key: String, arity: Int, adj: Int): SampleRate = {
+      require (arity == 1 && adj == 0)
+      val _in = in.readEx[_AudioFileSpec]()
+      new SampleRate(_in)
+    }
+  }
   final case class SampleRate(in: Ex[_AudioFileSpec]) extends Ex[Double] {
     override def productPrefix: String = s"AudioFileSpec$$SampleRate" // serialization
 
@@ -79,21 +100,32 @@ object AudioFileSpec extends AudioFileSpecPlatform {
 
   def read(in: Ex[URI]): Ex[Option[_AudioFileSpec]] = Read(in)
 
+  object Read extends ProductReader[Read] {
+    override def read(in: RefMapIn, key: String, arity: Int, adj: Int): Read = {
+      require (arity == 1 && adj == 0)
+      val _in = in.readEx[URI]()
+      new Read(_in)
+    }
+  }
   final case class Read(in: Ex[URI]) extends Ex[Option[_AudioFileSpec]] {
     override def productPrefix: String = s"AudioFileSpec$$Read" // serialization
 
     type Repr[T <: Txn[T]] = IExpr[T, Option[_AudioFileSpec]]
 
-    protected def mkRepr[T <: Txn[T]](implicit ctx: Context[T], tx: T): Repr[T] = {
-      import ctx.targets
-      new ReadExpanded(in.expand[T], tx)
-    }
+    protected def mkRepr[T <: Txn[T]](implicit ctx: Context[T], tx: T): Repr[T] =
+      new ReadExpanded(in.expand[T], tx)(ctx.targets)
   }
 
   // Note: we cannot use serializer `_AudioFileSpec` without further ado, because we have
   // singleton objects like `AIFF`.
 //  def Empty(): Ex[_AudioFileSpec] = Const(_AudioFileSpec(numChannels = 0, sampleRate = 0.0))
 
+  object Empty extends ProductReader[Empty] {
+    override def read(in: RefMapIn, key: String, arity: Int, adj: Int): Empty = {
+      require (arity == 0 && adj == 0)
+      new Empty()
+    }
+  }
   final case class Empty() extends Ex[_AudioFileSpec] {
     override def productPrefix: String = s"AudioFileSpec$$Empty" // serialization
 
@@ -121,6 +153,16 @@ object AudioFileSpec extends AudioFileSpecPlatform {
            ): Ex[_AudioFileSpec] =
     Apply(fileType = fileType, sampleFormat = sampleFormat, numChannels = numChannels,
       sampleRate = sampleRate, numFrames = numFrames)
+
+  override def read(in: RefMapIn, key: String, arity: Int, adj: Int): Ex[_AudioFileSpec] = {
+    require (arity == 5 && adj == 0)
+    val _fileType     = in.readEx[Int]()
+    val _sampleFormat = in.readEx[Int]()
+    val _numChannels  = in.readEx[Int]()
+    val _sampleRate   = in.readEx[Double]()
+    val _numFrames    = in.readEx[Long]()
+    Apply(_fileType, _sampleFormat, _numChannels, _sampleRate, _numFrames)
+  }
 
   // XXX TODO DRY with FScape
 //  private def id(in: AudioFileType): Int = in match {

@@ -31,6 +31,8 @@ object ProcElem {
     import expr.graph._
     Seq[ExV](
       AudioCue, AudioCue.Empty, AudioCue.Artifact, AudioCue.Spec, AudioCue.Offset, AudioCue.Gain, AudioCue.FileOffset,
+      AudioFileSpec, AudioFileSpec.NumChannels, AudioFileSpec.NumFrames, AudioFileSpec.SampleRate, AudioFileSpec.Read,
+      AudioFileSpec.Empty,
       Delay, Delay.Cancel,
       Runner, Runner.Messages, Runner.Progress, Runner.State, Runner.Stop, Runner.RunWith, Runner.Run,
       ThisRunner, ThisRunner.Stop, ThisRunner.Done, ThisRunner.Fail, ThisRunner.Progress,

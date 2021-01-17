@@ -45,7 +45,7 @@ object Tag extends Obj.Type {
     new Impl(id)
   }
 
-  private final class Impl[T <: Txn[T]](val id: Ident[T]) extends Tag[T] with ConstObjImpl[T, Any] {
+  private[proc] final class Impl[T <: Txn[T]](val id: Ident[T]) extends Tag[T] with ConstObjImpl[T, Any] {
     override def tpe: Obj.Type = Tag
 
     protected def writeData(out: DataOutput): Unit =

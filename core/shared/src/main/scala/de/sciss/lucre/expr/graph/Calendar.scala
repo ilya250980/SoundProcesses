@@ -13,23 +13,28 @@
 
 package de.sciss.lucre.expr.graph
 
-import java.time.temporal.{ChronoField, ChronoUnit, TemporalField, TemporalUnit}
-import java.time.{DateTimeException, Instant, ZoneId, ZonedDateTime => _Calendar}
-
-import de.sciss.lucre.impl.IGeneratorEvent
-import de.sciss.lucre.{IEvent, IExpr, IPull, ITargets, Txn}
+import de.sciss.lucre.Txn.peer
+import de.sciss.lucre.expr.ExElem.{ProductReader, RefMapIn}
 import de.sciss.lucre.expr.impl.IActionImpl
 import de.sciss.lucre.expr.{Context, IAction, IControl, ITrigger}
-import de.sciss.lucre.Txn.peer
+import de.sciss.lucre.impl.IGeneratorEvent
+import de.sciss.lucre.{IEvent, IExpr, IPull, ITargets, Txn}
 import de.sciss.proc.{ExprContext, Scheduler, TimeRef}
 
+import java.time.temporal.{ChronoField, ChronoUnit, TemporalField, TemporalUnit}
+import java.time.{DateTimeException, Instant, ZoneId, ZonedDateTime => _Calendar}
 import scala.concurrent.stm.TSet
 import scala.util.control.NonFatal
 
-object Calendar {
+object Calendar extends ProductReader[Ex[Calendar]] {
   def apply(stamp: Ex[Long] = TimeStamp(), zone: Ex[String] = "default"): Ex[Calendar] = Apply(stamp, zone)
 
-//  private trait Peer
+  override def read(in: RefMapIn, key: String, arity: Int, adj: Int): Ex[Calendar] = {
+    require (arity == 2 && adj == 0)
+    val _stamp  = in.readEx[Long]()
+    val _zone   = in.readEx[String]()
+    Calendar(_stamp, _zone)
+  }
 
   /** Unit of milliseconds, or the field of milliseconds of second (0 to 999) */
   final val Milli  = 0
@@ -81,6 +86,7 @@ object Calendar {
       null
   }
 
+  // only used in expansion, no serialization needed
   private case object TruncOp extends BinaryOp.Op[Calendar, Int, Calendar] {
     override def apply(in: Calendar, unitI: Int): Calendar = {
       val unit = mkUnit(unitI)
@@ -94,6 +100,7 @@ object Calendar {
     }
   }
 
+  // only used in expansion, no serialization needed
   private case object SetOp extends TernaryOp.Op[Calendar, Int, Int, Calendar] {
     override def apply(in: Calendar, unitI: Int, value: Int): Calendar = {
       val field = mkField(unitI)
@@ -107,6 +114,7 @@ object Calendar {
     }
   }
 
+  // only used in expansion, no serialization needed
   private case object GetOp extends BinaryOp.Op[Calendar, Int, Int] {
     override def apply(in: Calendar, fieldI: Int): Int = {
       val field = mkField(fieldI)
@@ -124,6 +132,7 @@ object Calendar {
     def self: Any = peer
   }
 
+  // only used in expansion, no serialization needed
   private case object AddOp extends TernaryOp.Op[Calendar, Int, Int, Calendar] {
     override def apply(in: Calendar, unitI: Int, value: Int): Calendar = {
       val unit = mkUnit(unitI)
@@ -137,6 +146,14 @@ object Calendar {
     }
   }
 
+  object Trunc extends ProductReader[Trunc] {
+    override def read(in: RefMapIn, key: String, arity: Int, adj: Int): Trunc = {
+      require (arity == 2 && adj == 0)
+      val _in   = in.readEx[Calendar]()
+      val _unit = in.readEx[Int]()
+      new Trunc(_in, _unit)
+    }
+  }
   final case class Trunc(in: Ex[Calendar], unit: Ex[Int]) extends Ex[Calendar] {
     override def productPrefix: String = s"Calendar$$Trunc" // serialization
 
@@ -148,6 +165,15 @@ object Calendar {
     }
   }
 
+  object Set extends ProductReader[Set] {
+    override def read(in: RefMapIn, key: String, arity: Int, adj: Int): Set = {
+      require (arity == 3 && adj == 0)
+      val _in     = in.readEx[Calendar]()
+      val _field  = in.readEx[Int]()
+      val _value  = in.readEx[Int]()
+      new Set(_in, _field, _value)
+    }
+  }
   final case class Set(in: Ex[Calendar], field: Ex[Int], value: Ex[Int]) extends Ex[Calendar] {
     override def productPrefix: String = s"Calendar$$Set" // serialization
 
@@ -159,6 +185,15 @@ object Calendar {
     }
   }
 
+  object Add extends ProductReader[Add] {
+    override def read(in: RefMapIn, key: String, arity: Int, adj: Int): Add = {
+      require (arity == 3 && adj == 0)
+      val _in     = in.readEx[Calendar]()
+      val _unit   = in.readEx[Int]()
+      val _value  = in.readEx[Int]()
+      new Add(_in, _unit, _value)
+    }
+  }
   final case class Add(in: Ex[Calendar], unit: Ex[Int], value: Ex[Int]) extends Ex[Calendar] {
     override def productPrefix: String = s"Calendar$$Add" // serialization
 
@@ -170,6 +205,14 @@ object Calendar {
     }
   }
 
+  object Get extends ProductReader[Get] {
+    override def read(in: RefMapIn, key: String, arity: Int, adj: Int): Get = {
+      require (arity == 2 && adj == 0)
+      val _in     = in.readEx[Calendar]()
+      val _field  = in.readEx[Int]()
+      new Get(_in, _field)
+    }
+  }
   final case class Get(in: Ex[Calendar], field: Ex[Int]) extends Ex[Int] {
     override def productPrefix: String = s"Calendar$$Get" // serialization
 
@@ -243,9 +286,15 @@ object Calendar {
     def changed: IEvent[T, Unit] = this
   }
 
-  object Schedule {
+  object Schedule extends ProductReader[Schedule] {
     trait Repr[T <: Txn[T]] extends IControl[T] with IAction[T] with ITrigger[T] {
       def cancel()(implicit tx: T): Unit
+    }
+
+    override def read(in: RefMapIn, key: String, arity: Int, adj: Int): Schedule = {
+      require (arity == 1 && adj == 0)
+      val _in = in.readEx[Calendar]()
+      new Schedule(_in)
     }
   }
 

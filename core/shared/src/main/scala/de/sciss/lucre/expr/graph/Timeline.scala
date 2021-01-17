@@ -16,24 +16,30 @@ package de.sciss.lucre.expr.graph
 import de.sciss.lucre.Adjunct.HasDefault
 import de.sciss.lucre.Txn.peer
 import de.sciss.lucre.edit.EditTimeline
+import de.sciss.lucre.expr.ExElem.{ProductReader, RefMapIn}
 import de.sciss.lucre.expr.graph.impl.{AbstractCtxCellView, ExpandedObjMakeImpl, MappedIExpr, ObjCellViewVarImpl, ObjImplBase}
 import de.sciss.lucre.expr.impl.{IActionImpl, ITriggerConsumer}
 import de.sciss.lucre.expr.{CellView, Context, IAction}
 import de.sciss.lucre.impl.IChangeGeneratorEvent
 import de.sciss.lucre.{Adjunct, Caching, IChangeEvent, IExpr, IPush, ITargets, ProductWithAdjuncts, Source, SpanLikeObj, Sys, Txn, Obj => LObj}
+import de.sciss.proc
 import de.sciss.serial.{DataInput, TFormat}
 import de.sciss.span.{Span => _Span, SpanLike => _SpanLike}
-import de.sciss.proc
 
 import scala.concurrent.stm.Ref
 
-object Timeline {
+object Timeline extends ProductReader[Ex[Timeline]] {
   private lazy val _init: Unit =
     Adjunct.addFactory(Bridge)
 
   def init(): Unit = _init
 
   def apply(): Ex[Timeline] with Obj.Make = Apply()
+
+  override def read(in: RefMapIn, key: String, arity: Int, adj: Int): Ex[Timeline] = {
+    require (arity == 0 && adj == 0)
+    Timeline()
+  }
 
   private[lucre] object Empty extends Timeline {
     private[lucre] def peer[T <: Txn[T]](implicit tx: T): Option[Peer[T]] = None
@@ -140,6 +146,16 @@ object Timeline {
       }
   }
 
+  object Add extends ProductReader[Add[_]] {
+    override def read(in: RefMapIn, key: String, arity: Int, adj: Int): Add[_] = {
+      require (arity == 3 && adj == 1)
+      val _in   = in.readEx[Timeline]()
+      val _span = in.readEx[_SpanLike]()
+      val _elem = in.readEx[Any]()
+      val _source: Obj.Source[Any] = in.readAdjunct()
+      new Add[Any](_in, _span, _elem)(_source)
+    }
+  }
   final case class Add[A](in: Ex[Timeline], span: Ex[_SpanLike], elem: Ex[A])(implicit source: Obj.Source[A])
     extends Act with ProductWithAdjuncts {
 
@@ -171,6 +187,15 @@ object Timeline {
       }
   }
 
+  object AddAll extends ProductReader[AddAll[_]] {
+    override def read(in: RefMapIn, key: String, arity: Int, adj: Int): AddAll[_] = {
+      require (arity == 2 && adj == 1)
+      val _in     = in.readEx[Timeline]()
+      val _pairs  = in.readEx[Seq[(_SpanLike, Any)]]()
+      val _source: Obj.Source[Any] = in.readAdjunct()
+      new AddAll[Any](_in, _pairs)(_source)
+    }
+  }
   final case class AddAll[A](in: Ex[Timeline], pairs: Ex[Seq[(_SpanLike, A)]])(implicit source: Obj.Source[A])
     extends Act with ProductWithAdjuncts {
 
@@ -204,6 +229,15 @@ object Timeline {
       }
   }
 
+  object Remove extends ProductReader[Remove] {
+    override def read(in: RefMapIn, key: String, arity: Int, adj: Int): Remove = {
+      require (arity == 3 && adj == 0)
+      val _in     = in.readEx[Timeline]()
+      val _span   = in.readEx[_SpanLike]()
+      val _elem   = in.readEx[Obj]()
+      new Remove(_in, _span, _elem)
+    }
+  }
   final case class Remove(in: Ex[Timeline], span: Ex[_SpanLike], elem: Ex[Obj])
     extends Act {
 
@@ -271,7 +305,7 @@ object Timeline {
     def changed: IChangeEvent[T, SplitPair] = this
   }
 
-  object Split {
+  object Split extends ProductReader[Split] {
     // XXX TODO --- should have tuple ._1 and ._2 off the shelf
     private final class LeftExpanded[T <: Txn[T], A](in: IExpr[T, (Timed[Obj], Timed[Obj])], tx0: T)
                                                      (implicit targets: ITargets[T])
@@ -280,6 +314,13 @@ object Timeline {
       protected def mapValue(inValue: (Timed[Obj], Timed[Obj]))(implicit tx: T): Timed[Obj] = inValue._1
     }
 
+    object Left extends ProductReader[Left] {
+      override def read(in: RefMapIn, key: String, arity: Int, adj: Int): Left = {
+        require (arity == 1 && adj == 0)
+        val _s = in.readProductT[Split]()
+        new Left(_s)
+      }
+    }
     final case class Left(s: Split) extends Ex[Timed[Obj]] {
       override def productPrefix: String = s"Timeline$$Split$$Left" // serialization
 
@@ -299,6 +340,13 @@ object Timeline {
       protected def mapValue(inValue: (Timed[Obj], Timed[Obj]))(implicit tx: T): Timed[Obj] = inValue._2
     }
 
+    object Right extends ProductReader[Right] {
+      override def read(in: RefMapIn, key: String, arity: Int, adj: Int): Right = {
+        require (arity == 1 && adj == 0)
+        val _s = in.readProductT[Split]()
+        new Right(_s)
+      }
+    }
     final case class Right(s: Split) extends Ex[Timed[Obj]] {
       override def productPrefix: String = s"Timeline$$Split$$Right" // serialization
 
@@ -308,6 +356,15 @@ object Timeline {
         import ctx.targets
         new RightExpanded(s.expand[T], tx)
       }
+    }
+
+    override def read(in: RefMapIn, key: String, arity: Int, adj: Int): Split = {
+      require (arity == 4 && adj == 0)
+      val _in   = in.readEx[Timeline]()
+      val _span = in.readEx[_SpanLike]()
+      val _elem = in.readEx[Obj]()
+      val _time = in.readEx[Long]()
+      new Split(_in, _span, _elem, _time)
     }
   }
   final case class Split(in: Ex[Timeline], span: Ex[_SpanLike], elem: Ex[Obj], time: Ex[Long])

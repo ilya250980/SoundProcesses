@@ -13,15 +13,19 @@
 
 package de.sciss.lucre.expr.graph
 
-import de.sciss.asyncfile
+import de.sciss.lucre.expr.ExElem.{ProductReader, RefMapIn}
 import de.sciss.lucre.expr.graph.impl.{ExpandedObjMakeImpl, ObjImplBase}
 import de.sciss.lucre.expr.{Context, IAction}
-import de.sciss.lucre.StringObj
-import de.sciss.lucre.{IExpr, ITargets, Source, Sys, Txn}
-import de.sciss.proc
+import de.sciss.lucre.{IExpr, ITargets, Source, StringObj, Sys, Txn}
+import de.sciss.{asyncfile, proc}
 
-object Proc /*extends ProcPlatform*/ {
+object Proc extends ProductReader[Ex[Proc]] {
   def apply(): Ex[Proc] with Obj.Make = Apply()
+
+  override def read(in: RefMapIn, key: String, arity: Int, adj: Int): Ex[Proc] = {
+    require (arity == 0 && adj == 0)
+    Proc()
+  }
 
   private[lucre] def wrap[T <: Txn[T]](peer: Source[T, proc.Proc[T]], system: Sys): Proc =
     new Impl[T](peer, system)
@@ -60,8 +64,14 @@ object Proc /*extends ProcPlatform*/ {
     }
   }
 
-  object Tape {
+  object Tape extends ProductReader[Ex[Proc]] {
     def apply(cue: Ex[proc.AudioCue]): Ex[Proc] with Obj.Make = TapeImpl(cue)
+
+    override def read(in: RefMapIn, key: String, arity: Int, adj: Int): Ex[Proc] = {
+      require (arity == 1 && adj == 0)
+      val _cue = in.readEx[proc.AudioCue]()
+      Tape(_cue)
+    }
 
     private final case class TapeImpl(cue: Ex[proc.AudioCue]) extends Ex[Proc] with Act with Obj.Make {
       override def productPrefix: String = s"Proc$$Tape" // serialization

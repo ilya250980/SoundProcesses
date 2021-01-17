@@ -38,6 +38,13 @@ object DiskIn extends ProductReader[DiskIn] {
     */
   def ar(key: String, loop: synth.GE = 0): DiskIn = apply(audio, key = key, loop = loop)
 
+  object Done extends ProductReader[Done] {
+    override def read(in: RefMapIn, key: String, arity: Int): Done = {
+      require (arity == 1)
+      val _in = in.readProductT[DiskIn]()
+      new Done(_in)
+    }
+  }
   final case class Done(in: DiskIn) extends GE.Lazy with ControlRated {
     override def productPrefix = s"DiskIn$$Done"  // for serialization
 
@@ -94,6 +101,13 @@ object VDiskIn extends ProductReader[VDiskIn] {
     apply(audio, key = key, speed = speed, loop = loop, interp = interp, maxSpeed = maxSpeed1)
   }
 
+  object Done extends ProductReader[Done] {
+    override def read(in: RefMapIn, key: String, arity: Int): Done = {
+      require (arity == 1)
+      val _in = in.readProductT[VDiskIn]()
+      new Done(_in)
+    }
+  }
   final case class Done(in: VDiskIn) extends GE.Lazy with ControlRated {
     override def productPrefix = s"VDiskIn$$Done"  // for serialization
 

@@ -13,8 +13,8 @@
 
 package de.sciss.lucre.expr.graph
 
-import java.net.{InetAddress, InetSocketAddress}
 import de.sciss.lucre.Txn.{peer => txPeer}
+import de.sciss.lucre.expr.ExElem.{ProductReader, RefMapIn}
 import de.sciss.lucre.expr.impl.{IActionImpl, IControlImpl}
 import de.sciss.lucre.expr.{Context, Graph, IAction, IControl, ITrigger}
 import de.sciss.lucre.impl.{IChangeEventImpl, IChangeGeneratorEvent, IEventImpl}
@@ -23,6 +23,7 @@ import de.sciss.model.Change
 import de.sciss.osc
 import de.sciss.proc.SoundProcesses
 
+import java.net.{InetAddress, InetSocketAddress}
 import java.util.concurrent.atomic.AtomicReference
 import scala.concurrent.stm.Ref
 import scala.util.control.NonFatal
@@ -34,6 +35,13 @@ object OscNode {
   private[lucre] final val defaultDump     = osc.Dump.Off.id
   private[lucre] final val defaultCodec    = "1.0"
 
+  object Dump extends ProductReader[Dump] {
+    override def read(in: RefMapIn, key: String, arity: Int, adj: Int): Dump = {
+      require (arity == 1 && adj == 0)
+      val _n = in.readProductT[OscNode]()
+      new Dump(_n)
+    }
+  }
   final case class Dump(n: OscNode) extends Ex[Int] {
     type Repr[T <: Txn[T]] = IExpr[T, Int]
 
@@ -45,6 +53,13 @@ object OscNode {
     }
   }
 
+  object Codec extends ProductReader[Codec] {
+    override def read(in: RefMapIn, key: String, arity: Int, adj: Int): Codec = {
+      require (arity == 1 && adj == 0)
+      val _n = in.readProductT[OscNode]()
+      new Codec(_n)
+    }
+  }
   final case class Codec(n: OscNode) extends Ex[String] {
     type Repr[T <: Txn[T]] = IExpr[T, String]
 
@@ -103,9 +118,16 @@ sealed trait OscNode extends Control {
   //  protected def mkControl[T <: Txn[T]](implicit ctx: Context[T], tx: T): Disposable[T] = ...
 }
 
-object OscUdpNode {
+object OscUdpNode extends ProductReader[OscUdpNode] {
   def apply(localPort: Ex[Int] = Const(0), localHost: Ex[String] = SocketAddress.LocalHost()): OscUdpNode =
     Impl(localPort, localHost)
+
+  override def read(in: RefMapIn, key: String, arity: Int, adj: Int): OscUdpNode = {
+    require (arity == 2 && adj == 0)
+    val _localPort  = in.readEx[Int]()
+    val _localHost  = in.readEx[String]()
+    OscUdpNode(_localPort, _localHost)
+  }
 
   private final class ReceivedExpanded[T <: Txn[T]](peer: Repr[T], tx0: T)
                                                    (implicit protected val targets: ITargets[T])
@@ -122,6 +144,13 @@ object OscUdpNode {
     def changed: IEvent[T, Unit] = this
   }
 
+  object Received extends ProductReader[Received] {
+    override def read(in: RefMapIn, key: String, arity: Int, adj: Int): Received = {
+      require (arity == 1 && adj == 0)
+      val _n = in.readProductT[OscUdpNode]()
+      new Received(_n)
+    }
+  }
   final case class Received(n: OscUdpNode) extends Trig {
     type Repr[T <: Txn[T]] = ITrigger[T]
 
@@ -158,6 +187,13 @@ object OscUdpNode {
     def changed: IChangeEvent[T, SocketAddress] = this
   }
 
+  object Sender extends ProductReader[Sender] {
+    override def read(in: RefMapIn, key: String, arity: Int, adj: Int): Sender = {
+      require (arity == 1 && adj == 0)
+      val _n = in.readProductT[OscUdpNode]()
+      new Sender(_n)
+    }
+  }
   final case class Sender(n: OscUdpNode) extends Ex[SocketAddress] {
     type Repr[T <: Txn[T]] = IExpr[T, SocketAddress]
 
@@ -192,6 +228,13 @@ object OscUdpNode {
     def changed: IChangeEvent[T, OscMessage] = this
   }
 
+  object Message extends ProductReader[Message] {
+    override def read(in: RefMapIn, key: String, arity: Int, adj: Int): Message = {
+      require (arity == 1 && adj == 0)
+      val _n = in.readProductT[OscUdpNode]()
+      new Message(_n)
+    }
+  }
   final case class Message(n: OscUdpNode) extends Ex[OscMessage] {
     type Repr[T <: Txn[T]] = IExpr[T, OscMessage]
 
@@ -201,6 +244,42 @@ object OscUdpNode {
       import ctx.targets
       new MessageExpanded(n.expand[T], tx)
     }
+  }
+
+  private final class SendExpanded[T <: Txn[T]](peer: Repr[T], target: IExpr[T, SocketAddress],
+                                                p: IExpr[T, OscPacket], tx0: T)
+    extends IActionImpl[T] {
+
+    private[this] val targetRef = Ref(target.value(tx0))
+
+    // under the assumption that `target` rarely or never changes, we cache it here
+    // to avoid having to call `target.value` for every `executeAction`
+    addDisposable(target.changed.react { implicit tx => ch =>
+      targetRef() = ch.now
+    } (tx0))(tx0)
+
+    def executeAction()(implicit tx: T): Unit = {
+      val pv = p.value
+      peer.send(targetRef(), pv)
+    }
+  }
+
+  object Send extends ProductReader[Send] {
+    override def read(in: RefMapIn, key: String, arity: Int, adj: Int): Send = {
+      require (arity == 1 && adj == 0)
+      val _n      = in.readProductT[OscUdpNode]()
+      val _target = in.readEx[SocketAddress]()
+      val _p      = in.readEx[OscPacket]()
+      new Send(_n, _target, _p)
+    }
+  }
+  final case class Send(n: OscUdpNode, target: Ex[SocketAddress], p: Ex[OscPacket]) extends Act {
+    type Repr[T <: Txn[T]] = IAction[T]
+
+    override def productPrefix = s"OscUdpNode$$Send"   // serialization
+
+    protected def mkRepr[T <: Txn[T]](implicit ctx: Context[T], tx: T): Repr[T] =
+      new SendExpanded[T](n.expand[T], target.expand, p.expand, tx)
   }
 
   private final class Expanded[T <: Txn[T]](protected val peer: OscUdpNode, localPort: Int, localHost: String)
@@ -213,7 +292,7 @@ object OscUdpNode {
     private[this] val lastRcvRef = Ref[(osc.Message, InetSocketAddress)](
       (osc.Message(""), dummySocket))
 
-//    private[this] val lastTrnsRef = Ref[(SocketAddress, InetSocketAddress)]((SocketAddress("invalid", 0), dummySocket))
+    //    private[this] val lastTrnsRef = Ref[(SocketAddress, InetSocketAddress)]((SocketAddress("invalid", 0), dummySocket))
     private[this] val lastTrnsRef = new AtomicReference[(SocketAddress, InetSocketAddress)]((SocketAddress("invalid", 0), dummySocket))
 
     def message (implicit tx: T): osc.Message        = lastRcvRef()._1
@@ -269,7 +348,7 @@ object OscUdpNode {
         case m: OscMessage =>
           osc.Message(m.name, m.args: _*) // XXX TODO --- adjust args to codec
 
-//        case _: OscBundle => ...
+        //        case _: OscBundle => ...
       }
       tryThunk(s"send to $target from") {
         val t = transmitter
@@ -340,15 +419,15 @@ object OscUdpNode {
         }
       }
 
-//      tx.afterCommit {
-//        val t = transmitter
-//        if (t != null) tryThunk("connect")(t.connect())
-//        val r = receiver
-//        if (r != null) tryThunk("connect")(r.connect())
-//      }
+      //      tx.afterCommit {
+      //        val t = transmitter
+      //        if (t != null) tryThunk("connect")(t.connect())
+      //        val r = receiver
+      //        if (r != null) tryThunk("connect")(r.connect())
+      //      }
     }
 
-//    private def dump(implicit tx: T): osc.Dump = dumpRef()
+    //    private def dump(implicit tx: T): osc.Dump = dumpRef()
 
     private def dump_=(value: osc.Dump)(implicit tx: T): Unit =
       if (dumpRef.swap(value) != value) tx.afterCommit {
@@ -382,33 +461,6 @@ object OscUdpNode {
       }
       this
     }
-  }
-
-  private final class SendExpanded[T <: Txn[T]](peer: Repr[T], target: IExpr[T, SocketAddress],
-                                                p: IExpr[T, OscPacket], tx0: T)
-    extends IActionImpl[T] {
-
-    private[this] val targetRef = Ref(target.value(tx0))
-
-    // under the assumption that `target` rarely or never changes, we cache it here
-    // to avoid having to call `target.value` for every `executeAction`
-    addDisposable(target.changed.react { implicit tx => ch =>
-      targetRef() = ch.now
-    } (tx0))(tx0)
-
-    def executeAction()(implicit tx: T): Unit = {
-      val pv = p.value
-      peer.send(targetRef(), pv)
-    }
-  }
-
-  final case class Send(n: OscUdpNode, target: Ex[SocketAddress], p: Ex[OscPacket]) extends Act {
-    type Repr[T <: Txn[T]] = IAction[T]
-
-    override def productPrefix = s"OscUdpNode$$Send"   // serialization
-
-    protected def mkRepr[T <: Txn[T]](implicit ctx: Context[T], tx: T): Repr[T] =
-      new SendExpanded[T](n.expand[T], target.expand, p.expand, tx)
   }
 
   private final case class Impl(localPort: Ex[Int], localHost: Ex[String]) extends OscUdpNode {

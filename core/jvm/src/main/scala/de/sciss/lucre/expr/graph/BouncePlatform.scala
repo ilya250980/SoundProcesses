@@ -1,5 +1,5 @@
 /*
- *  Bounce.scala
+ *  BouncePlatform.scala
  *  (SoundProcesses)
  *
  *  Copyright (c) 2010-2021 Hanns Holger Rutz. All rights reserved.
@@ -13,37 +13,30 @@
 
 package de.sciss.lucre.expr.graph
 
-import java.awt.EventQueue
-import java.io.File
-import de.sciss.equal.Implicits._
-import de.sciss.lucre.Txn.peer
-import de.sciss.lucre.expr.Context
-import de.sciss.lucre.impl.ObservableImpl
-import de.sciss.lucre.{IExpr, Txn, synth, Obj => LObj}
-import de.sciss.numbers
-import de.sciss.processor.Processor
-import de.sciss.span.Span
 import de.sciss.audiofile.AudioFileSpec
-import de.sciss.lucre.synth.AnyTxn
+import de.sciss.equal.Implicits._
+import de.sciss.lucre.Txn.{peer => _peer}
+import de.sciss.lucre.expr.graph.Bounce.applyAudioPreferences
+import de.sciss.lucre.impl.ObservableImpl
+import de.sciss.lucre.{IExpr, synth, Obj => LObj}
+import de.sciss.numbers.Implicits._
+import de.sciss.proc
 import de.sciss.proc.impl.BasicRunnerImpl
 import de.sciss.proc.{SoundProcesses, Universe}
-import de.sciss.synth.{Client, Server}
-import de.sciss.proc
+import de.sciss.processor.Processor
+import de.sciss.span.Span
 
+import java.awt.EventQueue
+import java.io.File
+import java.net.URI
 import scala.concurrent.ExecutionContext
 import scala.concurrent.stm.Ref
 import scala.util.control.NonFatal
 import scala.util.{Failure, Success}
 
-object Bounce {
-  // XXX TODO ugly
-  private[sciss] var applyAudioPreferences: (Server.ConfigBuilder, Client.ConfigBuilder) => Unit = (_, _) => ()
-
-  def apply(obj: Ex[Seq[Obj]], out: Ex[File], spec: Ex[AudioFileSpec], span: Ex[Span]): Bounce =
-    Impl(obj, out, spec, span)
-
-  private final class PeerImpl[T <: synth.Txn[T]](obj : IExpr[T, Seq[Obj]],
-                                                  out : IExpr[T, File],
+trait BouncePlatform {
+  protected final class PeerImpl[T <: synth.Txn[T]](obj : IExpr[T, Seq[Obj]],
+                                                  out : IExpr[T, URI],
                                                   spec: IExpr[T, AudioFileSpec],
                                                   span: IExpr[T, Span],
                                                  )
@@ -80,13 +73,13 @@ object Bounce {
       val objH                = objV.iterator.flatMap(_.peer[T].map(tx.newHandle(_: LObj[T]))).toList
       cfg.group               = objH
       // Application.applyAudioPreferences(cfg.server, cfg.client, useDevice = false, pickPort = false)
-//      applyAudioPreferences(cfg.server, cfg.client)
+      //      applyAudioPreferences(cfg.server, cfg.client)
       val sCfg                = cfg.server
       sCfg.nrtOutputPath      = out.value.getPath // audioF.path
       sCfg.nrtHeaderFormat    = specV.fileType
       sCfg.nrtSampleFormat    = specV.sampleFormat
       val numPrivate          = 256 // Prefs.audioNumPrivate.getOrElse(Prefs.defaultAudioNumPrivate)
-//      sCfg.sampleRate         = specV.sampleRate.toInt // sampleRate
+      //      sCfg.sampleRate         = specV.sampleRate.toInt // sampleRate
       cfg.span                = span.value
       val procId              = procRun.transformAndGet(_ + 1)
 
@@ -106,8 +99,7 @@ object Bounce {
             // N.B.: several things are overwritten in `applyAudioPreferences`,
             // therefore be sure to set `sampleRate` etc. after this call
             applyAudioPreferences(cfg.server, cfg.client)
-//            import SoundProcesses.executionContext
-            import numbers.Implicits._
+            //            import SoundProcesses.executionContext
             sCfg.inputBusChannels   = 0
             sCfg.outputBusChannels  = 1
             sCfg.audioBusChannels   = (sCfg.outputBusChannels + numPrivate).nextPowerOfTwo
@@ -162,36 +154,4 @@ object Bounce {
     protected def disposeData()(implicit tx: T): Unit =
       disposeProc()
   }
-
-  private final case class Impl(obj: Ex[Seq[Obj]], out: Ex[File], spec: Ex[AudioFileSpec], span: Ex[Span])
-    extends Bounce {
-
-    override def productPrefix: String = "Bounce" // serialization
-
-    type Repr[T <: Txn[T]] = proc.Runner[T]
-
-    protected def mkRepr[T <: Txn[T]](implicit ctx: Context[T], tx: T): Repr[T] =
-      tx match {
-        case stx: synth.Txn[_] =>
-          // ugly...
-          val tup = (ctx, stx).asInstanceOf[(Context[AnyTxn], AnyTxn)]
-          mkControlImpl(tup).asInstanceOf[Repr[T]]
-
-        case _ => throw new Exception("Need a SoundProcesses system")
-      }
-
-    private def mkControlImpl[T <: synth.Txn[T]](tup: (Context[T], T)): Repr[T] = {
-      implicit val ctx: Context[T]  = tup._1
-      implicit val tx : T           = tup._2
-      import ctx.{cursor, workspace}
-      implicit val h  : Universe[T] = Universe()
-      new PeerImpl[T](obj.expand[T], out.expand[T], spec.expand[T], span.expand[T])
-    }
-  }
-}
-trait Bounce extends Runner {
-  def obj : Ex[Seq[Obj]]
-  def out : Ex[File]
-  def spec: Ex[AudioFileSpec]
-  def span: Ex[Span]
 }

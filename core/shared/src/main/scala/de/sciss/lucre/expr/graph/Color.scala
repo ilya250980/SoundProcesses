@@ -13,9 +13,10 @@
 
 package de.sciss.lucre.expr.graph
 
-import de.sciss.lucre.{IExpr, ITargets, Txn}
-import de.sciss.lucre.expr.graph.impl.MappedIExpr
 import de.sciss.lucre.expr.Context
+import de.sciss.lucre.expr.ExElem.{ProductReader, RefMapIn}
+import de.sciss.lucre.expr.graph.impl.MappedIExpr
+import de.sciss.lucre.{IExpr, ITargets, Txn}
 import de.sciss.numbers.IntFunctions
 import de.sciss.proc
 import de.sciss.proc.Color.Palette
@@ -38,9 +39,15 @@ object Color {
   def Silver      : proc.Color  = Palette(14)
   def White       : proc.Color  = Palette(15)
 
-  object Predef {
+  object Predef extends ProductReader[Ex[proc.Color]] {
     /** There are sixteen predefined colors (identifiers 0 to 15). */
     def apply(id: Ex[Int]): Ex[proc.Color] = Impl(id)
+
+    override def read(in: RefMapIn, key: String, arity: Int, adj: Int): Ex[proc.Color] = {
+      require (arity == 1 && adj == 0)
+      val _id = in.readEx[Int]()
+      Predef(_id)
+    }
 
     private final class Expanded[T <: Txn[T]](id: IExpr[T, Int], tx0: T)(implicit targets: ITargets[T])
       extends MappedIExpr[T, Int, proc.Color](id, tx0) {

@@ -13,7 +13,7 @@
 
 package de.sciss.lucre.expr.graph
 
-import java.net.URI
+import de.sciss.lucre.expr.ExElem.{ProductReader, RefMapIn}
 import de.sciss.lucre.expr.graph.impl.MappedIExpr
 import de.sciss.lucre.expr.{Context, Graph, IAction}
 import de.sciss.lucre.synth.AnyTxn
@@ -21,18 +21,34 @@ import de.sciss.lucre.{IExpr, ITargets, Txn, synth, Artifact => _Artifact}
 import de.sciss.proc
 import de.sciss.proc.Universe
 
+import java.net.URI
+
 /** Access to operating system functions. */
 object Sys extends SysPlatform {
   /** A shell process. */
-  object Process {
+  object Process extends ProductReader[Process] {
     /** Creates a new shell process for a given command and arguments.
      * To run the process, use the `run` action. Observe the termination
      * through `done` or `failed`.
      */
     def apply(cmd: Ex[String], args: Ex[Seq[String]] = Nil): Process = Impl(cmd, args)
 
+    override def read(in: RefMapIn, key: String, arity: Int, adj: Int): Process = {
+      require (arity == 2 && adj == 0)
+      val _cmd  = in.readEx[String]()
+      val _args = in.readEx[Seq[String]]()
+      Process(_cmd, _args)
+    }
+
     private final val keyDirectory = "directory"
 
+    object Directory extends ProductReader[Directory] {
+      override def read(in: RefMapIn, key: String, arity: Int, adj: Int): Directory = {
+        require (arity == 1 && adj == 0)
+        val _p = in.readProductT[Process]()
+        new Directory(_p)
+      }
+    }
     final case class Directory(p: Process) extends Ex[URI] {
       type Repr[T <: Txn[T]] = IExpr[T, URI]
 
@@ -44,6 +60,13 @@ object Sys extends SysPlatform {
       }
     }
 
+    object Output extends ProductReader[Output] {
+      override def read(in: RefMapIn, key: String, arity: Int, adj: Int): Output = {
+        require (arity == 1 && adj == 0)
+        val _p = in.readProductT[Process]()
+        new Output(_p)
+      }
+    }
     final case class Output(p: Process) extends Ex[String] {
       type Repr[T <: Txn[T]] = IExpr[T, String]
 
@@ -83,10 +106,10 @@ object Sys extends SysPlatform {
       private def mkControlImpl[T <: synth.Txn[T]](tup: (Context[T], T)): Repr[T] = {
         implicit val ctx: Context[T]  = tup._1
         implicit val tx : T           = tup._2
-        import ctx.{cursor, targets, workspace}
+        import ctx.{cursor, workspace}
         implicit val h  : Universe[T] = Universe()
         val dirOpt = ctx.getProperty[Ex[URI]](this, keyDirectory).map(_.expand[T])
-        new ExpandedProcess[T](cmd.expand[T], args.expand[T], dirOpt)
+        new ExpandedProcess[T](cmd.expand[T], args.expand[T], dirOpt)(h, ctx.targets)
       }
     }
 
@@ -107,6 +130,13 @@ object Sys extends SysPlatform {
     // var environment: Ex[Map[String, String]]
   }
 
+  object Exit extends ProductReader[Exit] {
+    override def read(in: RefMapIn, key: String, arity: Int, adj: Int): Exit = {
+      require (arity == 1 && adj == 0)
+      val _code = in.readEx[Int]()
+      new Exit(_code)
+    }
+  }
   final case class Exit(code: Ex[Int] = 0) extends Act {
     override def productPrefix: String = s"Sys$$Exit" // serialization
 
@@ -125,6 +155,13 @@ object Sys extends SysPlatform {
   }
 
   /** A system property. */
+  object Property extends ProductReader[Property] {
+    override def read(in: RefMapIn, key: String, arity: Int, adj: Int): Property = {
+      require (arity == 1 && adj == 0)
+      val _key = in.readEx[String]()
+      new Property(_key)
+    }
+  }
   final case class Property(key: Ex[String]) extends Ex[Option[String]] {
     override def productPrefix: String = s"Sys$$Property" // serialization
 
@@ -145,6 +182,13 @@ object Sys extends SysPlatform {
   }
 
   /** An environment variable. */
+  object Env extends ProductReader[Env] {
+    override def read(in: RefMapIn, key: String, arity: Int, adj: Int): Env = {
+      require (arity == 1 && adj == 0)
+      val _key = in.readEx[String]()
+      new Env(_key)
+    }
+  }
   final case class Env(key: Ex[String]) extends Ex[Option[String]] {
     override def productPrefix: String = s"Sys$$Env" // serialization
 

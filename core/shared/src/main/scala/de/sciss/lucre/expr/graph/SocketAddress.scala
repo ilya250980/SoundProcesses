@@ -13,17 +13,30 @@
 
 package de.sciss.lucre.expr.graph
 
-import java.net.InetAddress
-
 import de.sciss.lucre.expr.Context
+import de.sciss.lucre.expr.ExElem.{ProductReader, RefMapIn}
 import de.sciss.lucre.expr.graph.impl.MappedIExpr
 import de.sciss.lucre.{IExpr, ITargets, Txn}
 
+import java.net.InetAddress
 import scala.util.control.NonFatal
 
-object SocketAddress {
+object SocketAddress extends ProductReader[Ex[SocketAddress]] {
   def apply(host: Ex[String] = LocalHost(), port: Ex[Int]): Ex[SocketAddress] = Impl(host, port)
-  
+
+  override def read(in: RefMapIn, key: String, arity: Int, adj: Int): Ex[SocketAddress] = {
+    require (arity == 2 && adj == 0)
+    val _host = in.readEx[String]()
+    val _port = in.readEx[Int]()
+    SocketAddress(_host, _port)
+  }
+
+  object LocalHost extends ProductReader[LocalHost] {
+    override def read(in: RefMapIn, key: String, arity: Int, adj: Int): LocalHost = {
+      require (arity == 0 && adj == 0)
+      new LocalHost()
+    }
+  }
   final case class LocalHost() extends Ex[String] {
     type Repr[T <: Txn[T]] = IExpr[T, String]
 
@@ -39,6 +52,7 @@ object SocketAddress {
     }
   }
 
+  // only used in expansion, so no serialization needed
   final case class Apply private[lucre] () extends BinaryOp.Op[String, Int, SocketAddress] {
     def apply(host: String, port: Int): SocketAddress =
       SocketAddress(host, port)
@@ -54,6 +68,13 @@ object SocketAddress {
     protected def mapValue(inValue: SocketAddress)(implicit tx: T): String = inValue.host
   }
 
+  object Host extends ProductReader[Host] {
+    override def read(in: RefMapIn, key: String, arity: Int, adj: Int): Host = {
+      require (arity == 1 && adj == 0)
+      val _in = in.readEx[SocketAddress]()
+      new Host(_in)
+    }
+  }
   final case class Host(in: Ex[SocketAddress]) extends Ex[String] {
     override def productPrefix: String = s"SocketAddress$$Host" // serialization
 
@@ -71,6 +92,13 @@ object SocketAddress {
     protected def mapValue(inValue: SocketAddress)(implicit tx: T): Int = inValue.port
   }
 
+  object Port extends ProductReader[Port] {
+    override def read(in: RefMapIn, key: String, arity: Int, adj: Int): Port = {
+      require (arity == 1 && adj == 0)
+      val _in = in.readEx[SocketAddress]()
+      new Port(_in)
+    }
+  }
   final case class Port(in: Ex[SocketAddress]) extends Ex[Int] {
     override def productPrefix: String = s"SocketAddress$$Port" // serialization
 
@@ -87,6 +115,7 @@ object SocketAddress {
     def port: Ex[Int]     = SocketAddress.Port(x)
   }
 
+  // XXX TODO --- what we need this for?
   implicit object ExValue extends Ex.Value[SocketAddress]
 
   private final case class Impl(host: Ex[String], port: Ex[Int]) extends Ex[SocketAddress] {

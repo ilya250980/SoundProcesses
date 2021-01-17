@@ -14,6 +14,7 @@
 package de.sciss.lucre.expr.graph
 
 import de.sciss.lucre.expr.Context
+import de.sciss.lucre.expr.ExElem.{ProductReader, RefMapIn}
 import de.sciss.lucre.expr.graph.impl.MappedIExpr
 import de.sciss.lucre.{IExpr, ITargets, Txn}
 import de.sciss.span.SpanLike
@@ -26,7 +27,14 @@ object Timed {
     protected def mapValue(inValue: Timed[A])(implicit tx: T): SpanLike = inValue.span
   }
 
-  final case class Span[A](in: Ex[Timed[A]]) extends Ex[SpanLike] {
+  object Span extends ProductReader[Span] {
+    override def read(in: RefMapIn, key: String, arity: Int, adj: Int): Span = {
+      require (arity == 1 && adj == 0)
+      val _in = in.readEx[Timed[Any]]()
+      new Span(_in)
+    }
+  }
+  final case class Span(in: Ex[Timed[Any]]) extends Ex[SpanLike] {
     type Repr[T <: Txn[T]] = IExpr[T, SpanLike]
 
     override def productPrefix = s"Timed$$Span"  // serialization
@@ -44,6 +52,13 @@ object Timed {
     protected def mapValue(inValue: Timed[A])(implicit tx: T): A = inValue.value
   }
 
+  object Value extends ProductReader[Value[_]] {
+    override def read(in: RefMapIn, key: String, arity: Int, adj: Int): Value[_] = {
+      require (arity == 1 && adj == 0)
+      val _in = in.readEx[Timed[Any]]()
+      new Value(_in)
+    }
+  }
   final case class Value[A](in: Ex[Timed[A]]) extends Ex[A] {
     type Repr[T <: Txn[T]] = IExpr[T, A]
 

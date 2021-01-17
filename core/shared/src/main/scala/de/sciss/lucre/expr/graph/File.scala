@@ -18,8 +18,9 @@ import java.net.{URI => _URI}
 import de.sciss.asyncfile.{AsyncFile, AsyncFileSystem}
 import de.sciss.equal.Implicits._
 import de.sciss.lucre.Txn.peer
+import de.sciss.lucre.expr.ExElem.{ProductReader, RefMapIn}
 import de.sciss.lucre.expr.impl.IActionImpl
-import de.sciss.lucre.expr.{Context, IAction}
+import de.sciss.lucre.expr.{Context, ExElem, IAction}
 import de.sciss.lucre.impl.IChangeGeneratorEvent
 import de.sciss.lucre.{Cursor, IChangeEvent, IExpr, IPull, ITargets, Txn}
 import de.sciss.lucre.synth.Executor
@@ -39,6 +40,12 @@ object File extends FilePlatform {
     p.obtain()
   }
 
+  object TmpDir extends ProductReader[TmpDir] {
+    override def read(in: RefMapIn, key: String, arity: Int, adj: Int): TmpDir = {
+      require (arity == 0 && adj == 0)
+      new TmpDir()
+    }
+  }
   final case class TmpDir() extends Ex[_URI] {
     override def productPrefix: String = s"File$$TmpDir"  // serialization
 
@@ -65,6 +72,13 @@ object File extends FilePlatform {
     }
   }
 
+  object MkDir extends ProductReader[MkDir] {
+    override def read(in: RefMapIn, key: String, arity: Int, adj: Int): MkDir = {
+      require (arity == 1 && adj == 0)
+      val _f = in.readEx[_URI]()
+      new MkDir(_f)
+    }
+  }
   final case class MkDir(f: Ex[_URI]) extends Act {
     override def productPrefix: String = s"File$$MkDir"  // serialization
 
@@ -90,6 +104,13 @@ object File extends FilePlatform {
     }
   }
 
+  object Delete extends ProductReader[Delete] {
+    override def read(in: RefMapIn, key: String, arity: Int, adj: Int): Delete = {
+      require (arity == 1 && adj == 0)
+      val _f = in.readEx[_URI]()
+      new Delete(_f)
+    }
+  }
   final case class Delete(f: Ex[_URI]) extends Act {
     override def productPrefix: String = s"File$$Delete"  // serialization
 
@@ -133,6 +154,13 @@ object File extends FilePlatform {
   }
 
   // XXX TODO --- this is synchronous design and cannot work on .js
+  object List extends ProductReader[List] {
+    override def read(in: RefMapIn, key: String, arity: Int, adj: Int): List = {
+      require (arity == 1 && adj == 0)
+      val _dir = in.readEx[_URI]()
+      new List(_dir)
+    }
+  }
   final case class List(dir: Ex[_URI]) extends Ex[Seq[_URI]] with Act {
     override def productPrefix: String = s"File$$List"  // serialization
 

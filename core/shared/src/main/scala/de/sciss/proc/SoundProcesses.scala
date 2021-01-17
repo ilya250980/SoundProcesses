@@ -115,6 +115,7 @@ object SoundProcesses  {
     Timeline      .init()
     Markdown      .init()
     EnvSegment    .init()
+    legacy.ActionRaw.init()
 
     lucre.expr.graph.AudioCue .init()
     lucre.expr.graph.Timeline .init()

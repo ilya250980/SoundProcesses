@@ -14,16 +14,24 @@
 package de.sciss.lucre.expr.graph
 
 import de.sciss.lucre.IPush.Parents
+import de.sciss.lucre.expr.ExElem.{ProductReader, RefMapIn}
+import de.sciss.lucre.expr.{Context, ExSeq, IAction, ITrigger}
 import de.sciss.lucre.impl.{IChangeEventImpl, IGeneratorEvent}
 import de.sciss.lucre.{IChangeEvent, IEvent, IExpr, IPull, ITargets, Txn}
-import de.sciss.lucre.expr.{Context, ExSeq, IAction, ITrigger}
 import de.sciss.synth.UGenSource.Vec
 
 sealed trait OscPacket
 
-object OscMessage {
+object OscMessage extends ProductReader[Ex[OscMessage]] {
   def apply(name: Ex[String], args: Ex[Any]*): Ex[OscMessage] =
     Impl(name, args: _*)
+
+  override def read(in: RefMapIn, key: String, arity: Int, adj: Int): Ex[OscMessage] = {
+    require (arity == 2 && adj == 0)
+    val _name = in.readEx[String]()
+    val _args = in.readVec(in.readEx[Any]())
+    OscMessage(_name, _args: _*)
+  }
 
   private final class NameExpanded[T <: Txn[T]](peer: IExpr[T, OscMessage], tx0: T)
                                                (implicit protected val targets: ITargets[T])
@@ -45,6 +53,13 @@ object OscMessage {
     }
   }
 
+  object Name extends ProductReader[Name] {
+    override def read(in: RefMapIn, key: String, arity: Int, adj: Int): Name = {
+      require (arity == 1 && adj == 0)
+      val _m = in.readEx[OscMessage]()
+      new Name(_m)
+    }
+  }
   final case class Name(m: Ex[OscMessage]) extends Ex[String] {
     type Repr[T <: Txn[T]] = IExpr[T, String]
 
@@ -76,6 +91,13 @@ object OscMessage {
     }
   }
 
+  object Args extends ProductReader[Args] {
+    override def read(in: RefMapIn, key: String, arity: Int, adj: Int): Args = {
+      require (arity == 1 && adj == 0)
+      val _m = in.readEx[OscMessage]()
+      new Args(_m)
+    }
+  }
   final case class Args(m: Ex[OscMessage]) extends Ex[Seq[Any]] {
     type Repr[T <: Txn[T]] = IExpr[T, Seq[Any]]
 
@@ -91,8 +113,7 @@ object OscMessage {
   // However, we cannot really do anything useful with the `Var` assignments if we do not
   // use the match trigger and eventually some other action / side-effect.
   private final class SelectExpanded[T <: Txn[T]](m: IExpr[T, OscMessage], name: IExpr[T, String],
-                                                  args: Vec[CaseDef.Expanded[T, _]],
-                                                  tx0: T)
+                                                  args: Vec[CaseDef.Expanded[T, _]])
                                                  (implicit protected val targets: ITargets[T])
     extends IAction[T] with ITrigger[T] with IGeneratorEvent[T, Unit] /* with Caching */ {
 
@@ -152,6 +173,15 @@ object OscMessage {
     def changed: IEvent[T, Unit] = this
   }
 
+  object Select extends ProductReader[Select] {
+    override def read(in: RefMapIn, key: String, arity: Int, adj: Int): Select = {
+      require (arity == 3 && adj == 0)
+      val _m    = in.readEx[OscMessage]()
+      val _name = in.readEx[String]()
+      val _args = in.readVec(in.readProductT[CaseDef[Any]]())
+      new Select(_m, _name, _args: _*)
+    }
+  }
   final case class Select(m: Ex[OscMessage], name: Ex[String], args: CaseDef[_]*) extends Act with Trig {
     type Repr[T <: Txn[T]] = IAction[T] with ITrigger[T]
 
@@ -160,7 +190,7 @@ object OscMessage {
     protected def mkRepr[T <: Txn[T]](implicit ctx: Context[T], tx: T): Repr[T] = {
       val argsEx = args.iterator.map(_.expand[T]).toIndexedSeq
       import ctx.targets
-      new SelectExpanded(m.expand[T], name.expand[T], argsEx, tx)
+      new SelectExpanded(m.expand[T], name.expand[T], argsEx)
     }
   }
 

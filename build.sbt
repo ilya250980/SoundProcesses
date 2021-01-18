@@ -59,6 +59,7 @@ lazy val deps = new {
     val processor           = "0.5.0"
     val scalaCollider       = "2.6.0-SNAPSHOT"
     val scalaColliderIf     = "1.7.0-SNAPSHOT"
+    val scalaJavaTime       = "2.1.0"
     val serial              = "2.0.1-SNAPSHOT"
     val span                = "2.0.0"
     val topology            = "1.1.4"
@@ -181,6 +182,11 @@ lazy val core = crossProject(platforms: _*).in(file("core"))
       "de.sciss"          %% s"lucre-${deps.test.bdb}"      % deps.main.lucre               % Test,
       "de.sciss"          %% "scalacolliderswing-plotting"  % deps.test.scalaColliderSwing  % Test,
     ),
+  )
+  .jsSettings(
+    libraryDependencies ++= Seq(
+      "io.github.cquiroz" %%% "scala-java-time" % deps.main.scalaJavaTime,
+    )
   )
 
 lazy val views = crossProject(platforms: _*).in(file("views"))

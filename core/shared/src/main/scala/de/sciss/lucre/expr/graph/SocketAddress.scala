@@ -18,10 +18,9 @@ import de.sciss.lucre.expr.ExElem.{ProductReader, RefMapIn}
 import de.sciss.lucre.expr.graph.impl.MappedIExpr
 import de.sciss.lucre.{IExpr, ITargets, Txn}
 
-import java.net.InetAddress
 import scala.util.control.NonFatal
 
-object SocketAddress extends ProductReader[Ex[SocketAddress]] {
+object SocketAddress extends ProductReader[Ex[SocketAddress]] with SocketAddressPlatform {
   def apply(host: Ex[String] = LocalHost(), port: Ex[Int]): Ex[SocketAddress] = Impl(host, port)
 
   override def read(in: RefMapIn, key: String, arity: Int, adj: Int): Ex[SocketAddress] = {
@@ -44,7 +43,7 @@ object SocketAddress extends ProductReader[Ex[SocketAddress]] {
 
     protected def mkRepr[T <: Txn[T]](implicit ctx: Context[T], tx: T): Repr[T] = {
       val value = try {
-        InetAddress.getLocalHost.getHostName
+        mkLocalHostName()
       } catch {
         case NonFatal(_) => "localhost"
       }

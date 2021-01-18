@@ -15,6 +15,7 @@ package de.sciss.synth.proc
 
 import de.sciss.lucre.expr
 import de.sciss.lucre.expr.ExElem
+import de.sciss.proc
 import de.sciss.synth.UGenSource
 
 /** Registers UGen and Ex graph elements proper to SoundProcesses.  */
@@ -36,6 +37,7 @@ object ProcElem {
       Bounce,
       Calendar, Calendar.Trunc, Calendar.Set, Calendar.Add, Calendar.Get, Calendar.Schedule,
       Color.Predef,
+      proc.Color.Predefined, proc.Color.User, // XXX TODO: how can they be used?
       Delay, Delay.Cancel,
       FadeSpec, FadeSpec.NumFrames, FadeSpec.Curve, FadeSpec.Floor,
       File.TmpDir, File.MkDir, File.Delete, File.List,

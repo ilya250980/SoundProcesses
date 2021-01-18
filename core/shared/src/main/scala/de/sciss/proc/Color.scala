@@ -14,6 +14,7 @@
 package de.sciss.proc
 
 import de.sciss.lucre.Event.Targets
+import de.sciss.lucre.expr.ExElem.{ProductReader, RefMapIn}
 import de.sciss.lucre.expr.graph.Ex
 import de.sciss.lucre.impl.ExprTypeImpl
 import de.sciss.lucre.{Ident, Txn, Expr => Epr, Var => LVar}
@@ -94,10 +95,26 @@ object Color {
     Predefined(15, "White"      , rgba = 0xFFFFFFFF)
   )
 
-  private final case class Predefined(id: Int, name: String, rgba: Int) extends Color {
+  object Predefined extends ProductReader[Predefined] {
+    override def read(in: RefMapIn, key: String, arity: Int, adj: Int): Predefined = {
+      require (arity == 3 && adj == 0)
+      val _id   = in.readInt()
+      val _name = in.readString()
+      val _rgba = in.readInt()
+      new Predefined(_id, _name, _rgba)
+    }
+  }
+  final case class Predefined private(id: Int, name: String, rgba: Int) extends Color {
     override def productPrefix: String = s"Color$$Predefined" // serialization
   }
 
+  object User extends ProductReader[User] {
+    override def read(in: RefMapIn, key: String, arity: Int, adj: Int): User = {
+      require (arity == 1 && adj == 0)
+      val _rgba = in.readInt()
+      new User(_rgba)
+    }
+  }
   final case class User(rgba: Int) extends Color {
     def name  = "User"
     def id    = 16
@@ -105,6 +122,7 @@ object Color {
     override def productPrefix: String = s"Color$$User" // serialization
   }
 
+  // XXX TODO why do we need this?
   implicit object ExValue extends Ex.Value[Color]
 }
 sealed trait Color extends Product {

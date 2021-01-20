@@ -13,16 +13,16 @@
 
 package de.sciss.proc.impl
 
-import java.net.URI
-import de.sciss.asyncfile
+import de.sciss.lucre.store.InMemoryDB
 import de.sciss.lucre.synth.{InMemory => InMem}
 import de.sciss.lucre.{AnyTxn, Cursor, Disposable, Folder, Source, Sys, Txn, TxnLike}
-import de.sciss.serial.{DataInput, DataOutput, TFormat}
-import de.sciss.proc
-import de.sciss.proc.impl.WorkspaceImpl.Data
-import de.sciss.proc.Workspace
+import de.sciss.{asyncfile, proc}
 import de.sciss.proc.SoundProcesses.log
+import de.sciss.proc.impl.WorkspaceImpl.Data
+import de.sciss.proc.{Durable, Workspace}
+import de.sciss.serial.{DataInput, DataOutput, TFormat}
 
+import java.net.URI
 import scala.collection.immutable.{IndexedSeq => Vec}
 import scala.concurrent.stm.{Ref, Txn => STMTxn}
 
@@ -58,6 +58,33 @@ object WorkspaceImpl {
                                                               (implicit cursor: Cursor[T1]): proc.Workspace[T1] = {
     val access = initAccess[T1](system)
     new EphemeralWorkspaceImpl[T1, S1](system, access)
+  }
+
+  def applyBlob(): proc.Workspace.Blob = {
+    val db = InMemoryDB()
+    implicit val system: Durable = Durable(db)
+    val access = initAccess[Durable.Txn](system)
+    new BlobWorkspaceImpl(system, db, access)
+  }
+
+//  def readBlob(f: URI): Future[proc.Workspace.Blob] = ...
+
+  private val BLOB_COOKIE = 0x6d6c6c742d777300L  // "mllt-ws\u0000"
+
+  def blobFromByteArray(xs: Array[Byte]): proc.Workspace.Blob = {
+    val dIn     = DataInput(xs)
+    val cookie  = dIn.readLong()
+    if (cookie != BLOB_COOKIE) {
+      sys.error(s"Unexpected cookie 0x${cookie.toHexString} is not ${BLOB_COOKIE.toHexString}")
+    }
+    /*val mVer =*/ dIn.readUTF()
+    // log(s"Workspace was exported by Mellite $mVer")
+    val blob = new Array[Byte](dIn.size - dIn.position)
+    System.arraycopy(dIn.buffer, dIn.position, blob, 0, blob.length)
+    val db = InMemoryDB.fromByteArray(blob)
+    implicit val system: Durable = Durable(db)
+    val access = initAccess[Durable.Txn](system)
+    new BlobWorkspaceImpl(system, db, access)
   }
 
   def applyInMemory(): proc.Workspace.InMemory = {
@@ -170,4 +197,27 @@ final class EphemeralWorkspaceImpl[T1 <: Txn[T1], S1 <: Sys { type T = T1 }](val
 
   def folder: Option[URI] = None
   def name = "ephemeral"
+}
+
+final class BlobWorkspaceImpl(val system: Durable, db: InMemoryDB,
+                              protected val access: Source[Durable.Txn, Data[Durable.Txn]])
+  extends proc.Workspace.Blob with WorkspaceImpl[Durable.Txn] {
+
+//  override def write(f: URI): Future[Unit] = ...
+
+  override def toByteArray(implicit tx: Durable.Txn): Array[Byte] = {
+    val dOut = DataOutput()
+    val BIN_COOKIE = 0x6d6c6c742d777300L  // "mllt-ws\u0000"
+    dOut.writeLong(BIN_COOKIE)
+    val mVer = ??? : String //  Mellite.version
+    dOut.writeUTF(mVer)
+    val blob = db.toByteArray
+    dOut.write(blob)
+    dOut.toByteArray
+  }
+
+  override def cursor: Cursor[Durable.Txn] = system
+
+  def folder: Option[URI] = None
+  def name = "blob"
 }

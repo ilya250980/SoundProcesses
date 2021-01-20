@@ -7,6 +7,11 @@ import org.scalatest.Outcome
 import org.scalatest.flatspec.FixtureAnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
+/*
+
+  sbt 'testOnly de.sciss.proc.SerializationSpec'
+
+ */
 class SerializationSpec extends FixtureAnyFlatSpec with Matchers {
   type S = Durable
   type T = Durable.Txn

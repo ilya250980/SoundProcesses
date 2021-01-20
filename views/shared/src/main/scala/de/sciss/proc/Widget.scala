@@ -15,7 +15,7 @@ package de.sciss.proc
 
 import de.sciss.lucre.Event.Targets
 import de.sciss.lucre.impl.{DummyEvent, ExprTypeImpl}
-import de.sciss.lucre.swing.{Graph => _Graph}
+import de.sciss.lucre.swing.{LucreSwing, Graph => _Graph}
 import de.sciss.lucre.{Copy, Elem, Event, EventLike, Expr, Ident, Obj, Publisher, Txn, Var => LVar}
 import de.sciss.serial.{ConstFormat, DataInput, DataOutput, TFormat}
 import de.sciss.synth.UGenSource.Vec
@@ -33,9 +33,10 @@ object Widget extends Obj.Type with WidgetPlatform {
   final val attrEditMode  = "edit-mode"
 
   override def init(): Unit = {
-    super   .init()
-    GraphObj.init()
-    Code    .init()
+    super     .init()
+    GraphObj  .init()
+    Code      .init()
+    LucreSwing.init()
   }
 
   def apply[T <: Txn[T]]()(implicit tx: T): Widget[T] = Impl[T]()

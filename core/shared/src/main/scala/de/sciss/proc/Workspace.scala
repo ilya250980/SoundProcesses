@@ -29,6 +29,21 @@ object Workspace extends WorkspacePlatform {
     type S = lucre.synth.InMemory
   }
 
+  object Blob {
+//    def read(f: URI): Future[Workspace.Blob] = WorkspaceImpl.readBlob(f)
+
+    def fromByteArray(xs: Array[Byte]): Workspace.Blob = WorkspaceImpl.blobFromByteArray(xs)
+
+    def empty(): Workspace.Blob = WorkspaceImpl.applyBlob()
+  }
+  trait Blob extends Workspace[proc.Durable.Txn] {
+    type S = proc.Durable
+
+//    def write(f: URI): Future[Unit]
+
+    def toByteArray(implicit tx: proc.Durable.Txn): Array[Byte]
+  }
+
   /** Wraps an existing system into a workspace, assuming ephemeral (non-confluent) semantics.
     * This initialized the workspace, either detecting an existing root, or creating a new empty root.
     */

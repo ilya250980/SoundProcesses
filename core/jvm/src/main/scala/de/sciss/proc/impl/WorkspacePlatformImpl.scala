@@ -100,9 +100,9 @@ object WorkspacePlatformImpl {
       val prop = new Properties()
       prop.setProperty("type", if (confluent) "confluent" else "ephemeral")
       // store version information for sp and known applications
-      buildInfVersion("de.sciss.proc").foreach(prop.setProperty("soundprocesses-version", _))
-      buildInfVersion("de.sciss.mellite").foreach(prop.setProperty("mellite-version", _))
-      buildInfVersion("at.iem.sysson").foreach(prop.setProperty("sysson-version", _))
+      buildInfVersion("de.sciss.proc"   ).foreach(prop.setProperty("soundprocesses-version" , _))
+      buildInfVersion("de.sciss.mellite").foreach(prop.setProperty("mellite-version"        , _))
+      buildInfVersion("at.iem.sysson"   ).foreach(prop.setProperty("sysson-version"         , _))
       prop.store(fos, "Mellite Workspace Meta-Info")
     } finally {
       fos.close()

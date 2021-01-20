@@ -27,9 +27,8 @@ import de.sciss.serial.TFormat
 import scala.util.Try
 
 object WorkspacePlatformImpl {
-  private implicit val ConfluentFmt: Fmt[Cf.Txn] = new Fmt[Cf.Txn]
-
-  private implicit def DurableFmt: Fmt[Dur.Txn] = ConfluentFmt.asInstanceOf[Fmt[Dur.Txn]]
+  private implicit def ConfluentFmt : Fmt[Cf  .Txn] = WorkspaceImpl.fmt
+  private implicit def DurableFmt   : Fmt[Dur .Txn] = WorkspaceImpl.fmt
 
   private def requireExists(dir: File): Unit =
     if (!(new File(dir, "open")).isFile) throw new FileNotFoundException(s"Workspace ${dir.getPath} does not exist")
@@ -119,11 +118,7 @@ object WorkspacePlatformImpl {
     implicit val system: S = Cf(fact)
     implicit val fmt: TFormat[D, Cursors[T, D]] = Cursors.format  // help Dotty...
     val (access, cursors) = system.rootWithDurable[Data[T], Cursors[T, D]] { implicit tx: T =>
-      val data: Data[T] = new Data[T] {
-        val root: Folder[T] = Folder[T]()(tx)
-      }
-      data
-
+      Data[T]()
     } { implicit tx: D =>
       val c = Cursors[T, D](confluent.Access.root[T])
       c.name_=("root")
@@ -136,16 +131,9 @@ object WorkspacePlatformImpl {
   private def applyDurable(dir: File, ds: DataStore.Factory /* config: BerkeleyDB.Config */): proc.Workspace.Durable = {
     type S = Dur
     type T = Dur.Txn
-    val fact = openDataStore(dir, ds = ds /* config = config */ , confluent = false)
-    implicit val system: S = Dur(fact)
-
-    val access = system.root[Data[T]] { implicit tx =>
-      val data: Data[T] = new Data[T] {
-        val root: Folder[T] = Folder()(tx)
-      }
-      data
-    }
-
+    val fact      = openDataStore(dir, ds = ds /* config = config */ , confluent = false)
+    val system: S = Dur(fact)
+    val access    = WorkspaceImpl.initAccess[T](system)
     new DurableImpl(dir, system, access)
   }
 

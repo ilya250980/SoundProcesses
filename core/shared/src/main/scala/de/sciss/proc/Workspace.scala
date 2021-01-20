@@ -13,9 +13,9 @@
 
 package de.sciss.proc
 
-import de.sciss.lucre
-import de.sciss.lucre.{Txn, Workspace => LWorkspace}
+import de.sciss.lucre.{Cursor, Sys, Txn, Workspace => LWorkspace}
 import de.sciss.proc.impl.WorkspaceImpl
+import de.sciss.{lucre, proc}
 
 object Workspace extends WorkspacePlatform {
   /** File name extension (excluding leading period) */
@@ -28,6 +28,13 @@ object Workspace extends WorkspacePlatform {
   trait InMemory extends Workspace[lucre.synth.InMemory.Txn] {
     type S = lucre.synth.InMemory
   }
+
+  /** Wraps an existing system into a workspace, assuming ephemeral (non-confluent) semantics.
+    * This initialized the workspace, either detecting an existing root, or creating a new empty root.
+    */
+  def Ephemeral[T1 <: Txn[T1], S1 <: Sys { type T = T1 }](system: S1)
+                                                         (implicit cursor: Cursor[T1]): proc.Workspace[T1] =
+    WorkspaceImpl.applyEphemeral[T1, S1](system)
 
   val Implicits: LWorkspace.Implicits.type = LWorkspace.Implicits
 }

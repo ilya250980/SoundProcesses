@@ -14,10 +14,9 @@
 package de.sciss.proc.impl
 
 import java.net.URI
-
 import de.sciss.asyncfile
 import de.sciss.lucre.synth.{InMemory => InMem}
-import de.sciss.lucre.{Cursor, Disposable, Folder, Source, Txn, TxnLike}
+import de.sciss.lucre.{AnyTxn, Cursor, Disposable, Folder, Source, Sys, Txn, TxnLike}
 import de.sciss.serial.{DataInput, DataOutput, TFormat}
 import de.sciss.proc
 import de.sciss.proc.impl.WorkspaceImpl.Data
@@ -44,26 +43,37 @@ object WorkspaceImpl {
     }
   }
 
-  private implicit def InMemoryFmt : Fmt[InMem.Txn] = new Fmt[InMem.Txn]
+  private val anyFmt = new Fmt[AnyTxn]
+
+//  private implicit def InMemoryFmt : Fmt[InMem.Txn] = new Fmt[InMem.Txn]
+  private[proc] implicit def fmt[T <: Txn[T]]: Fmt[T] = anyFmt.asInstanceOf[Fmt[T]]
 
   private final val COOKIE  = 0x4D656C6C69746500L  // "Mellite\0"
   private final val VERSION = 1
 
+  private[proc] def initAccess[T1 <: Txn[T1]](system: Sys { type T = T1 }): Source[T1, Data[T1]] =
+    system.root[Data[T1]] { implicit tx => Data[T1]() }
+
+  def applyEphemeral[T1 <: Txn[T1], S1 <: Sys { type T = T1 }](system: S1)
+                                                              (implicit cursor: Cursor[T1]): proc.Workspace[T1] = {
+    val access = initAccess[T1](system)
+    new EphemeralWorkspaceImpl[T1, S1](system, access)
+  }
+
   def applyInMemory(): proc.Workspace.InMemory = {
     type S    = InMem
     type T    = InMem.Txn
-    implicit val system: S = InMem()
-
-    val access = system.root[Data[T]] { implicit tx =>
-      val data: Data[T] = new Data[T] {
-        val root: Folder[T] = Folder()(tx)
-      }
-      data
-    }
-
+    val system: S = InMem()
+    val access    = initAccess[T](system)
     new InMemoryWorkspaceImpl(system, access)
   }
 
+  private[proc] object Data {
+    def apply[T <: Txn[T]]()(implicit tx: T): Data[T] =
+      new Data[T] {
+        val root: Folder[T] = Folder()
+      }
+  }
   private[proc] abstract class Data[T <: Txn[T]] {
     def root: Folder[T]
 
@@ -87,7 +97,7 @@ trait WorkspaceImpl[T <: Txn[T]] {
 
   // ---- implemented ----
 
-  override def toString = {
+  override def toString: String = {
     import asyncfile.Ops._
     s"Workspace<${folder.fold("in-memory")(_.name)}>"
   }
@@ -136,7 +146,6 @@ trait WorkspaceImpl[T <: Txn[T]] {
   }
 }
 
-
 final class InMemoryWorkspaceImpl(val system: InMem, protected val access: Source[InMem.Txn, Data[InMem.Txn]])
   extends proc.Workspace.InMemory with WorkspaceImpl[InMem.Txn] {
 
@@ -150,4 +159,15 @@ final class InMemoryWorkspaceImpl(val system: InMem, protected val access: Sourc
 
   def folder: Option[URI] = None
   def name = "in-memory"
+}
+
+final class EphemeralWorkspaceImpl[T1 <: Txn[T1], S1 <: Sys { type T = T1 }](val system: S1,
+                                                  protected val access: Source[T1, Data[T1]])
+                                                                            (implicit val cursor: Cursor[T1])
+  extends proc.Workspace[T1] with WorkspaceImpl[T1] {
+
+  type S = S1
+
+  def folder: Option[URI] = None
+  def name = "ephemeral"
 }

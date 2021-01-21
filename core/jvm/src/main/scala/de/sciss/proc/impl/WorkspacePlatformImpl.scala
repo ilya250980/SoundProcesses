@@ -16,14 +16,15 @@ package de.sciss.proc.impl
 import java.io.{File, FileInputStream, FileNotFoundException, FileOutputStream, IOException}
 import java.net.URI
 import java.util.Properties
-
-import de.sciss.lucre.{Cursor, DataStore, Folder, Source, confluent}
+import de.sciss.lucre.{Cursor, DataStore, Source, confluent}
 import de.sciss.proc
+import de.sciss.proc.Workspace.MetaData
 import de.sciss.proc.impl.WorkspaceImpl.{Data, Fmt}
 import de.sciss.proc.{Cursors, Workspace}
 import de.sciss.proc.{Confluent => Cf, Durable => Dur}
 import de.sciss.serial.TFormat
 
+import scala.collection.JavaConverters.asScalaSetConverter
 import scala.util.Try
 
 object WorkspacePlatformImpl {
@@ -36,9 +37,10 @@ object WorkspacePlatformImpl {
   private def requireExistsNot(dir: File): Unit =
     if ((new File(dir, "open")).exists()) throw new IOException(s"Workspace ${dir.getPath} already exists")
 
-  def read(dir: File, ds: DataStore.Factory /* config: BerkeleyDB.Config */): Workspace[_] /*Workspace[~] forSome { type ~ <: SSys[~] }*/ = {
-    requireExists(dir)
-    val fis = new FileInputStream(new File(dir, "open"))
+  def read(dir: URI, ds: DataStore.Factory, meta: MetaData): Workspace[_] = {
+    val dirF = new File(dir)
+    requireExists(dirF)
+    val fis = new FileInputStream(new File(dirF, "open"))
     val prop = new Properties
     prop.load(fis)
     fis.close()
@@ -49,72 +51,92 @@ object WorkspacePlatformImpl {
     }
     val res: Workspace[_] /*~] forSome { type ~ <: synth.Txn[~] }*/ = {
       if (confluent) {
-        val _res /*: Workspace[~] forSome { type ~ <: synth.Txn[~] }*/ = readConfluent(dir, ds) // IntelliJ highlight bug
+        val _res = readConfluent(dir, ds, meta) // IntelliJ highlight bug
         _res
       } else {
-        val _res /*: Workspace[~] forSome { type ~ <: synth.Txn[~] }*/ = readDurable(dir, ds) // IntelliJ highlight bug
+        val _res = readDurable(dir, ds, meta) // IntelliJ highlight bug
         _res
       }
     }
-    res // .asInstanceOf[Workspace[~ forSome { type ~ <: SSys[~] }]]
+    res
   }
 
-  //  private def setAllowCreate(in: BerkeleyDB.Config, value: Boolean): BerkeleyDB.Config =
-  //    if (in.allowCreate == value) in else {
-  //      val b = BerkeleyDB.ConfigBuilder(in)
-  //      b.allowCreate = value
-  //      b.build
-  //    }
-
-  def readConfluent(dir: File, ds: DataStore.Factory /* config: BerkeleyDB.Config */): proc.Workspace.Confluent = {
-    requireExists(dir)
-    applyConfluent(dir, ds = ds /* config = setAllowCreate(config, value = false) */)
+  def readConfluent(dir: URI, ds: DataStore.Factory, meta: MetaData): proc.Workspace.Confluent = {
+    val dirF = new File(dir)
+    requireExists(dirF)
+    applyConfluent(dirF, ds = ds, meta = meta)
   }
 
-  def emptyConfluent(dir: File, ds: DataStore.Factory /* config: BerkeleyDB.Config */): proc.Workspace.Confluent = {
-    requireExistsNot(dir)
-    applyConfluent(dir, ds = ds /* config = setAllowCreate(config, value = true) */)
+  def emptyConfluent(dir: URI, ds: DataStore.Factory, meta: MetaData): proc.Workspace.Confluent = {
+    val dirF = new File(dir)
+    requireExistsNot(dirF)
+    applyConfluent(dirF, ds = ds, meta = meta)
   }
 
-  def readDurable(dir: File, ds: DataStore.Factory /* config: BerkeleyDB.Config */): proc.Workspace.Durable = {
-    requireExists(dir)
-    applyDurable(dir, ds = ds /* config = setAllowCreate(config, value = false) */)
+  def readDurable(dir: URI, ds: DataStore.Factory, meta: MetaData): proc.Workspace.Durable = {
+    val dirF = new File(dir)
+    requireExists(dirF)
+    applyDurable(dirF, ds = ds, meta = meta)
   }
 
-  def emptyDurable(dir: File, ds: DataStore.Factory /* config: BerkeleyDB.Config */): proc.Workspace.Durable = {
-    requireExistsNot(dir)
-    applyDurable(dir, ds = ds /* config = setAllowCreate(config, value = true) */)
+  def emptyDurable(dir: URI, ds: DataStore.Factory, meta: MetaData): proc.Workspace.Durable = {
+    val dirF = new File(dir)
+    requireExistsNot(dirF)
+    applyDurable(dirF, ds = ds, meta = meta)
   }
 
-  private def buildInfVersion(pkg: String): Option[String] = buildInfString(pkg = pkg, key = "version")
+//  def buildInfVersion(pkg: String): Option[String] = buildInfString(pkg = pkg, key = "version")
+//
+//  def buildInfString(pkg: String, key: String): Option[String] = Try {
+//    val clazz = Class.forName(s"$pkg.BuildInfo")
+//    val m = clazz.getMethod(key)
+//    m.invoke(null).toString
+//  }.toOption
 
-  private def buildInfString(pkg: String, key: String): Option[String] = Try {
-    val clazz = Class.forName(s"$pkg.BuildInfo")
-    val m = clazz.getMethod(key)
-    m.invoke(null).toString
-  }.toOption
-
-  private def openDataStore(dir: File, ds: DataStore.Factory, confluent: Boolean): DataStore.Factory = {
-    val fos = new FileOutputStream(new File(dir, "open"))
+  private def openDataStore(dir: File, ds: DataStore.Factory, confluent: Boolean,
+                            meta: MetaData): (DataStore.Factory, MetaData) = {
+    val prop  = new Properties()
+    val fOpen = new File(dir, "open")
+    if (fOpen.isFile) { // read previous meta-data
+      val fis = new FileInputStream(fOpen)
+      try {
+        prop.load(fis)
+      } finally {
+        fis.close()
+      }
+    }
+    // XXX TODO if we introduce a `readOnly` mode, this should be the case
+    val fos = new FileOutputStream(fOpen)
     try {
-      val prop = new Properties()
       prop.setProperty("type", if (confluent) "confluent" else "ephemeral")
-      // store version information for sp and known applications
-      buildInfVersion("de.sciss.proc"   ).foreach(prop.setProperty("soundprocesses-version" , _))
-      buildInfVersion("de.sciss.mellite").foreach(prop.setProperty("mellite-version"        , _))
-      buildInfVersion("at.iem.sysson"   ).foreach(prop.setProperty("sysson-version"         , _))
+//      // store version information for sp and known applications
+//      buildInfVersion("de.sciss.proc"   ).foreach(prop.setProperty("soundprocesses-version" , _))
+//      buildInfVersion("de.sciss.mellite").foreach(prop.setProperty("mellite-version"        , _))
+//      buildInfVersion("at.iem.sysson"   ).foreach(prop.setProperty("sysson-version"         , _))
+      meta.foreach { case (key, value) => prop.setProperty(key, value) }
       prop.store(fos, "Mellite Workspace Meta-Info")
     } finally {
       fos.close()
     }
-    ds
+    val metaNew = {
+      val mb = Map.newBuilder[String, String]
+      mb.sizeHint(prop.size)
+      val keys = prop.stringPropertyNames().asScala
+      keys.foreach { key =>
+        val value = prop.getProperty(key)
+        mb += ((key, value))
+      }
+      mb.result()
+    }
+
+    (ds, metaNew)
   }
 
-  private def applyConfluent(dir: File, ds: DataStore.Factory /* config: BerkeleyDB.Config */): proc.Workspace.Confluent = {
+  private def applyConfluent(dir: File, ds: DataStore.Factory, meta: MetaData): proc.Workspace.Confluent = {
     type S = Cf
     type T = Cf .Txn
     type D = Dur.Txn
-    val fact = openDataStore(dir, ds = ds /* config = config */ , confluent = true)
+    val (fact, metaNew) = openDataStore(dir, ds = ds, confluent = true, meta = meta)
     implicit val system: S = Cf(fact)
     implicit val fmt: TFormat[D, Cursors[T, D]] = Cursors.format  // help Dotty...
     val (access, cursors) = system.rootWithDurable[Data[T], Cursors[T, D]] { implicit tx: T =>
@@ -125,16 +147,16 @@ object WorkspacePlatformImpl {
       c
     }
 
-    new ConfluentImpl(dir, system, access, cursors)
+    new ConfluentImpl(dir, system, metaNew, access, cursors)
   }
 
-  private def applyDurable(dir: File, ds: DataStore.Factory /* config: BerkeleyDB.Config */): proc.Workspace.Durable = {
+  private def applyDurable(dir: File, ds: DataStore.Factory, meta: MetaData): proc.Workspace.Durable = {
     type S = Dur
     type T = Dur.Txn
-    val fact      = openDataStore(dir, ds = ds /* config = config */ , confluent = false)
+    val (fact, metaNew) = openDataStore(dir, ds = ds, confluent = false, meta = meta)
     val system: S = Dur(fact)
     val access    = WorkspaceImpl.initAccess[T](system)
-    new DurableImpl(dir, system, access)
+    new DurableImpl(dir, system, metaNew, access)
   }
 
   private def fileBase(f: File): String = {
@@ -143,37 +165,27 @@ object WorkspacePlatformImpl {
     if (i < 0) n else n.substring(0, i)
   }
 
-  private final class ConfluentImpl(_folder: File, val system: Cf, protected val access: Source[Cf.Txn, Data[Cf.Txn]],
+  private final class ConfluentImpl(_folder: File, val system: Cf, val meta: MetaData,
+                                    protected val access: Source[Cf.Txn, Data[Cf.Txn]],
                                     val cursors: Cursors[Cf.Txn, Dur.Txn])
     extends proc.Workspace.Confluent with WorkspaceImpl[Cf.Txn] {
 
     def folder: Option[URI] = Some(_folder.toURI)
 
-    def name: String = fileBase(_folder) // .base
+    def name: String = fileBase(_folder)
 
-    //    type I = system.I
-    //
-    //    val inMemoryBridge: T => S#I#Tx  = _.inMemory
-    //    def inMemoryCursor: Cursor[I]   = system.inMemory
-
-    // def cursor = cursors.cursor
-    val cursor: Cursor[T] = confluent.Cursor.wrap(cursors.cursor)(system)
+    val cursor: Cursor[Cf.Txn] =
+      confluent.Cursor.wrap(cursors.cursor)(system)
   }
 
-  private final class DurableImpl(_folder: File, val system: Dur,
+  private final class DurableImpl(_folder: File, val system: Dur, val meta: MetaData,
                                   protected val access: Source[Dur.Txn, Data[Dur.Txn]])
     extends proc.Workspace.Durable with WorkspaceImpl[Dur.Txn] {
 
     def folder: Option[URI] = Some(_folder.toURI)
 
-    def name: String = fileBase(_folder) // .base
-
-    //    type I = system.I
-    //
-    //    val inMemoryBridge: T => S#I#Tx  = Dur.inMemory
-    //    def inMemoryCursor: Cursor[I]   = system.inMemory
+    def name: String = fileBase(_folder)
 
     def cursor: Cursor[Dur.Txn] = system
   }
-
 }

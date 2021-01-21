@@ -14,7 +14,7 @@ object ProcSetGraphTest {
     type T      = Durable.Txn
     val dir     = File.createTempIn(userHome / "Documents", suffix = ".mllt", directory = true)
     val ds      = BerkeleyDB.factory(dir)
-    val ws      = Workspace.Durable.empty(dir, ds)
+    val ws      = Workspace.Durable.empty(dir.toURI, ds)
     ws.cursor.step { implicit tx =>
       val p = Proc[T]()
       import de.sciss.synth._

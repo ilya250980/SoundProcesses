@@ -157,7 +157,7 @@ lazy val core = crossProject(platforms: _*).in(file("core"))
       BuildInfoKey.map(homepage) { case (k, opt)           => k -> opt.get },
       BuildInfoKey.map(licenses) { case (_, Seq((lic, _))) => "license" -> lic }
     ),
-    buildInfoPackage := "de.sciss.synth.proc",
+    buildInfoPackage := "de.sciss.proc",
     libraryDependencies ++= Seq(
       "de.sciss"          %%% "serial"            % deps.main.serial,
       "de.sciss"          %%% "span"              % deps.main.span,

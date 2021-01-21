@@ -65,7 +65,7 @@ object ActionRaw extends Obj.Type {
 
     def tpe: proc.Code.Type = Code
 
-    def compileBody()(implicit compiler: proc.Code.Compiler): Future[Unit] = Future.successful()
+    def compileBody()(implicit compiler: proc.Code.Compiler): Future[Unit] = Future.successful(())
 
     def execute(in: In)(implicit compiler: proc.Code.Compiler): Out = ()
 

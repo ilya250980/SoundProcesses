@@ -13,20 +13,23 @@
 
 package de.sciss.proc
 
-import java.io.File
-
 import de.sciss.lucre.DataStore
 import de.sciss.proc
+import de.sciss.proc.Workspace.MetaData
 import de.sciss.proc.impl.{WorkspacePlatformImpl => Impl}
 
+import java.net.URI
+
 trait WorkspacePlatform {
-  def read(dir: File, ds: DataStore.Factory /* config: BerkeleyDB.Config */): Workspace[_] /*[~] forSome { type ~ <: SSys[~] }*/ =
-    Impl.read(dir, ds) // IntelliJ highlight bug
+  def read(dir: URI, ds: DataStore.Factory, meta: MetaData = Map.empty): Workspace[_] =
+    Impl.read(dir, ds, meta)
 
   object Confluent {
-    def read(dir: File, ds: DataStore.Factory /* config: BerkeleyDB.Config */): Workspace.Confluent = Impl.readConfluent(dir, ds)
+    def read (dir: URI, ds: DataStore.Factory, meta: MetaData = Map.empty): Workspace.Confluent =
+      Impl.readConfluent (dir, ds, meta)
 
-    def empty(dir: File, ds: DataStore.Factory /* config: BerkeleyDB.Config */): Workspace.Confluent = Impl.emptyConfluent(dir, ds)
+    def empty(dir: URI, ds: DataStore.Factory, meta: MetaData = Map.empty): Workspace.Confluent =
+      Impl.emptyConfluent(dir, ds, meta)
   }
 
   trait Confluent extends Workspace[proc.Confluent.Txn] {
@@ -42,13 +45,14 @@ trait WorkspacePlatform {
   }
 
   object Durable {
-    def read(dir: File, ds: DataStore.Factory /* config: BerkeleyDB.Config */): Workspace.Durable = Impl.readDurable(dir, ds)
+    def read (dir: URI, ds: DataStore.Factory, meta: MetaData = Map.empty): Workspace.Durable =
+      Impl.readDurable(dir, ds, meta)
 
-    def empty(dir: File, ds: DataStore.Factory /* config: BerkeleyDB.Config */): Workspace.Durable = Impl.emptyDurable(dir, ds)
+    def empty(dir: URI, ds: DataStore.Factory, meta: MetaData = Map.empty): Workspace.Durable =
+      Impl.emptyDurable(dir, ds, meta)
   }
 
   trait Durable extends Workspace[proc.Durable.Txn] {
     type S = proc.Durable
   }
-
 }

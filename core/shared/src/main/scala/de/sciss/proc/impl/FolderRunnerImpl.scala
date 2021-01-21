@@ -139,6 +139,7 @@ object FolderRunnerImpl {
 
     protected def disposeData()(implicit tx: T): Unit = {
       obsF.dispose()
+      foreachChild(_.dispose())
 //      rMap.dispose()
       rHead() = null
     }

@@ -13,7 +13,7 @@
 
 package de.sciss.proc.impl
 
-import de.sciss.lucre.Txn.peer
+import de.sciss.lucre.Txn.{peer => txPeer}
 import de.sciss.lucre.impl.ObservableImpl
 import de.sciss.lucre.{Cursor, Disposable, Folder, Obj, Workspace, synth}
 import de.sciss.proc.Runner.Factory

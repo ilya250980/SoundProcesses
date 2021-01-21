@@ -21,7 +21,8 @@ import de.sciss.lucre.synth.AnyTxn
 import de.sciss.lucre.{IChangeEvent, IExpr, IPull, ITargets, Txn, synth}
 import de.sciss.model.Change
 import de.sciss.proc
-import de.sciss.proc.{Universe, UGenGraphBuilder => UGB}
+import de.sciss.proc.Universe
+import de.sciss.proc.impl.MutableRunnerImpl
 
 import scala.concurrent.stm.Ref
 
@@ -233,15 +234,45 @@ object Runner extends ProductReader[Runner] {
     }
   }
 
-  def apply(key: String): Runner = Impl(key)
+  def apply(key: String): Runner = {
+    // Impl(key)
+    val ex = Attr.WithDefault[Obj](key, Obj.empty)
+    apply(ex)
+  }
+
+  def apply(obj: Ex[Obj]): Runner = Impl(obj)
 
   override def read(in: RefMapIn, key: String, arity: Int, adj: Int): Runner = {
     assert (arity == 1 && adj == 0)
-    val _key = in.readString()
-    Runner(_key)
+//    val _key = in.readString()
+//    Runner(_key)
+    in.readElem() match {
+      case _ex : Ex[_]  => Runner(_ex.asInstanceOf[Ex[Obj]])
+      case _key: String => Runner(_key) // legacy serialization
+    }
   }
 
-  private final case class Impl(key: String) extends Runner {
+  private final class ExpandedImpl[T <: Txn[T]](objEx: IExpr[T, Obj], tx0: T)(implicit universe: Universe[T])
+    extends MutableRunnerImpl[T](None, tx0) {
+
+    private def setObj(obj: Obj)(implicit tx: T): Unit = {
+      val rOpt = obj.peer[T].flatMap(pObj => proc.Runner.get(pObj))
+      peer = rOpt
+    }
+
+    private[this] val objObs = objEx.changed.react { implicit tx => obj =>
+      setObj(obj.now)
+    } (tx0)
+
+    setObj(objEx.value(tx0))(tx0)
+
+    override def dispose()(implicit tx: T): Unit = {
+      objObs.dispose()
+      super .dispose()
+    }
+  }
+
+  private final case class Impl(obj: Ex[Obj]) extends Runner {
     override def productPrefix: String = "Runner" // serialization
 
     type Repr[T <: Txn[T]] = proc.Runner[T]
@@ -257,13 +288,11 @@ object Runner extends ProductReader[Runner] {
       }
 
     private def mkControlImpl[T <: synth.Txn[T]](tup: (Context[T], T)): Repr[T] = {
-      val ctx = tup._1
-      implicit val tx: T = tup._2
+      implicit val ctx: Context[T]  = tup._1
+      implicit val tx: T            = tup._2
       import ctx.{cursor, workspace}
-      val objOpt                  = ctx.selfOption.flatMap(self => self.attr.get(key))
-      val obj                     = objOpt.getOrElse(throw UGB.MissingIn(UGB.AttributeKey(key)))
       implicit val h: Universe[T] = Universe()
-      proc.Runner[T](obj)
+      new ExpandedImpl[T](obj.expand[T], tx)
     }
   }
 }

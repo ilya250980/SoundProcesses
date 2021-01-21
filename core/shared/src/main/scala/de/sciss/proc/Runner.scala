@@ -15,10 +15,9 @@ package de.sciss.proc
 
 import java.text.SimpleDateFormat
 import java.util.{Date, Locale}
-
 import de.sciss.lucre.expr.{Context, IControl}
 import de.sciss.lucre.{Disposable, Obj, Observable, Txn, synth, Folder => _Folder}
-import de.sciss.proc.impl.{ActionRunnerImpl, BasicAuralRunnerImpl, ControlRunnerImpl, FolderRunnerImpl, TimelineRunnerImpl, RunnerUniverseImpl => Impl}
+import de.sciss.proc.impl.{ActionRunnerImpl, BasicAuralRunnerImpl, ControlRunnerImpl, FolderRunnerImpl, MutableRunnerImpl, TimelineRunnerImpl, RunnerUniverseImpl => Impl}
 import de.sciss.proc.{Action => _Action, Control => _Control, Proc => _Proc, Timeline => _Timeline}
 
 import scala.util.Try
@@ -106,6 +105,20 @@ object Runner {
 
   def apply[T <: Txn[T]](obj: Obj[T])(implicit tx: T, h: Universe[T]): Runner[T] =
     get(obj).getOrElse(throw new IllegalArgumentException(s"No runner factory for ${obj.tpe}"))
+
+  object Mutable {
+    /** Creates a "mutable" runner which is one that can be empty or assigned and re-assigned
+      * a peer runner. When the mutable runner is disposed, the currently set peer is also disposed.
+      */
+    def apply[T <: Txn[T]](init: Option[Runner[T]])(implicit tx: T, h: Universe[T]): Mutable[T] =
+      new MutableRunnerImpl[T](init, tx)
+  }
+  trait Mutable[T <: Txn[T]] extends Runner[T] {
+    def peer(implicit tx: T): Option[Runner[T]]
+
+    /** Note that when the peer is updated, the previous peer (if it exists) will be disposed. */
+    def peer_=(value: Option[Runner[T]])(implicit tx: T): Unit
+  }
 
   trait Factory {
     def prefix      : String

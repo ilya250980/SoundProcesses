@@ -25,7 +25,6 @@ import de.sciss.proc.{Confluent => Cf, Durable => Dur}
 import de.sciss.serial.TFormat
 
 import scala.collection.JavaConverters.asScalaSetConverter
-import scala.util.Try
 
 object WorkspacePlatformImpl {
   private implicit def ConfluentFmt : Fmt[Cf  .Txn] = WorkspaceImpl.fmt

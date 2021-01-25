@@ -135,13 +135,13 @@ object Timeline extends ProductReader[Ex[Timeline]] {
 
     def executeAction()(implicit tx: T): Unit =
       for {
-        tl  <- in.value.peer
+        tl  <- in.value.peer[T]
         tlm <- tl.modifiableOption
       } {
         val spanV   = span.value
         val elemV   = elem.value
         val spanObj = SpanLikeObj.newVar[T](spanV)
-        val elemObj = source.toObj(elemV)
+        val elemObj = source.toObj[T](elemV)
         EditTimeline.add(tlm, spanObj, elemObj)
       }
   }
@@ -175,13 +175,13 @@ object Timeline extends ProductReader[Ex[Timeline]] {
 
     def executeAction()(implicit tx: T): Unit =
       for {
-        tl  <- in.value.peer
+        tl  <- in.value.peer[T]
         tlm <- tl.modifiableOption
       } {
         val pairsV  = pairs.value
         pairsV.foreach { case (spanV, elemV) =>
           val spanObj = SpanLikeObj.newVar[T](spanV)
-          val elemObj = source.toObj(elemV)
+          val elemObj = source.toObj[T](elemV)
           EditTimeline.add(tlm, spanObj, elemObj)
         }
       }
@@ -220,7 +220,7 @@ object Timeline extends ProductReader[Ex[Timeline]] {
 
     def executeAction()(implicit tx: T): Unit =
       for {
-        tl      <- in.value.peer
+        tl      <- in.value.peer[T]
         tlm     <- tl.modifiableOption
         elemObj <- elem.value.peer[T]
         spanObj <- findSpan(tl, elemObj)
@@ -278,7 +278,7 @@ object Timeline extends ProductReader[Ex[Timeline]] {
 
     private def make()(implicit tx: T): SplitPair = {
       val opt = for {
-        tl      <- in.value.peer
+        tl      <- in.value.peer[T]
         tlm     <- tl.modifiableOption
         elemObj <- elem.value.peer[T]
         spanObj <- findSpan(tl, elemObj)

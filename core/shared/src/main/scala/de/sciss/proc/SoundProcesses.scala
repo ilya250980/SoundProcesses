@@ -39,7 +39,7 @@ object SoundProcesses  {
     * the safer way is to call `step` which invokes an error handler in that case.
     */
   def atomic[T <: Txn[T], A](fun: T => A)(implicit cursor: Cursor[T]): Future[A] =
-    noTxnFuture("atomic") {
+    noTxnFuture/*("atomic")*/ {
       cursor.step(fun)
     }
 
@@ -50,7 +50,7 @@ object SoundProcesses  {
       t.printStackTrace()
   }
 
-  private def noTxnFuture[A](context: String)(body: => A): Future[A] = {
+  private def noTxnFuture[A]/*(context: String)*/(body: => A): Future[A] = {
     val opt = STMTxn.findCurrent
     if (opt.isDefined) {
       implicit val tx: InTxn = opt.get
@@ -72,7 +72,7 @@ object SoundProcesses  {
     * `context` string argument and the error.
     */
   def step[T <: Txn[T]](context: String)(fun: T => Unit)(implicit cursor: Cursor[T]): Unit = {
-    noTxnFuture(context) {
+    noTxnFuture/*(context)*/ {
       try {
         cursor.step(fun)
       } catch {
@@ -84,7 +84,7 @@ object SoundProcesses  {
   }
 
   def stepTag[T <: Txn[T]](context: String)(fun: T => Unit)(implicit scheduler: Scheduler[T]): Unit = {
-    noTxnFuture(context) {
+    noTxnFuture/*(context)*/ {
       try {
         scheduler.stepTag(fun)
       } catch {
@@ -118,10 +118,12 @@ object SoundProcesses  {
     legacy.ActionRaw.init()
 
     lucre.expr.graph.AudioCue .init()
+    lucre.expr.graph.Grapheme .init()
+    lucre.expr.graph.Proc     .init()
     lucre.expr.graph.Timeline .init()
 
-    StandardUGens   .init()
-    ProcElem       .init()
+    StandardUGens .init()
+    ProcElem      .init()
     // ThirdPartyUGens .init()
 
     // initPlatform()

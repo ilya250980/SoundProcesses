@@ -15,7 +15,6 @@ package de.sciss.proc.impl
 
 import de.sciss.equal.Implicits.TripleEquals
 import de.sciss.lucre.Disposable
-import de.sciss.lucre.impl.ObservableImpl
 import de.sciss.lucre.synth.Server.Config
 import de.sciss.lucre.synth.{Executor, RT, Server}
 import de.sciss.osc.Dump

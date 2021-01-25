@@ -42,6 +42,8 @@ object ProcElem {
       Delay, Delay.Cancel,
       FadeSpec, FadeSpec.NumFrames, FadeSpec.Curve, FadeSpec.Floor,
       File.TmpDir, File.MkDir, File.Delete, File.List,
+      Grapheme, Grapheme.Add, Grapheme.AddAll, Grapheme.Remove, Grapheme.RemoveAt, Grapheme.Clear,
+      Grapheme.FirstEvent, Grapheme.LastEvent, Grapheme.EventBefore, Grapheme.EventAfter, Grapheme.ValueAt,
       OscNode.Dump, OscNode.Codec, OscUdpNode, OscUdpNode.Received, OscUdpNode.Sender, OscUdpNode.Message,
       OscUdpNode.Send,
       /* OscPacket: */ OscMessage, OscMessage.Name, OscMessage.Args, OscMessage.Select,

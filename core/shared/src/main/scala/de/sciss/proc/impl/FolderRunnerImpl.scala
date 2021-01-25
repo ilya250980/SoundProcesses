@@ -20,11 +20,12 @@ import de.sciss.proc.Runner.Attr
 import de.sciss.proc.{Runner, Universe}
 
 import scala.concurrent.stm.Ref
-import scala.util.control.NonFatal
 
 object FolderRunnerImpl {
   def apply[T <: Txn[T]](obj: Folder[T])(implicit tx: T, universe: Universe[T]): Runner[T] = {
 //    val rMap = tx.newIdentMap[Entry[T]]
+    // println("FolderRunnerImpl():")
+    // (new Exception).printStackTrace()
     new Impl(/*tx.newHandle(obj),*/ /*rMap*/).init(obj)
   }
 
@@ -49,26 +50,24 @@ object FolderRunnerImpl {
     }
 
     private def mkEntry(child: Obj[T])(implicit tx: T): Entry[T] = {
-      val rChild = try {
-        Runner[T](child)
-      } catch {
-        case NonFatal(ex) =>
-          ex.printStackTrace()
-          null    // we allow "un-runnable" children for now, so we don't get caught up with indices
-      }
+      // we allow "un-runnable" children for now, so we don't get caught up with indices
+      val rChild = Runner.get[T](child).orNull
       new Entry(rChild)
     }
 
     def init(obj: Folder[T])(implicit tx: T): this.type = {
       var predSuccR: Ref[Entry[T]] = rHead
       var pred: Entry[T] = null
+      var CNT = 0
       obj.iterator.foreach { child =>
         val e = mkEntry(child)
         predSuccR() = e
         e.pred()    = pred
         pred        = e
         predSuccR   = e.succ
+        CNT += 1
       }
+      // println(s"FOLDER RUNNER INIT $CNT")
 
       obsF = obj.changed.react { implicit tx => upd =>
         upd.changes.foreach {
@@ -89,6 +88,7 @@ object FolderRunnerImpl {
     }
 
     private def addChild(idx: Int, child: Obj[T])(implicit tx: T): Unit = {
+      // println(s"FOLDER RUNNER ADD $idx")
       val e     = mkEntry(child)
       var succ  = rHead()
       var pred: Entry[T] = null
@@ -107,6 +107,7 @@ object FolderRunnerImpl {
     }
 
     private def removeChild(idx: Int /*, child: Obj[T]*/)(implicit tx: T): Unit = {
+      // println(s"FOLDER RUNNER REMOVE $idx")
       var e = rHead()
       var pred: Entry[T] = null
       var rem = idx

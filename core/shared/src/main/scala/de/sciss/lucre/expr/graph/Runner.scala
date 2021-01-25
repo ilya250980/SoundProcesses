@@ -265,11 +265,14 @@ object Runner extends ProductReader[Runner] {
     extends MutableRunnerImpl[T](None, tx0) {
 
     private def setObj(obj: Obj)(implicit tx: T): Unit = {
-      val rOpt = obj.peer[T].flatMap(pObj => proc.Runner.get(pObj))
+      val peerOpt = obj.peer[T]
+      // println(s"RUNNER setObj($peerOpt)")
+      val rOpt = peerOpt.flatMap(pObj => proc.Runner.get(pObj))
       peer = rOpt
     }
 
     private[this] val objObs = objEx.changed.react { implicit tx => obj =>
+      // println(s"objEx.changed - $obj")
       setObj(obj.now)
     } (tx0)
 

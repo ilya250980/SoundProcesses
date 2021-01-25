@@ -13,8 +13,8 @@
 
 package de.sciss.proc.impl
 
-import de.sciss.equal.Implicits.TripleEquals
 import de.sciss.lucre.Disposable
+import de.sciss.lucre.impl.ObservableImpl
 import de.sciss.lucre.synth.Server.Config
 import de.sciss.lucre.synth.{Executor, RT, Server}
 import de.sciss.osc.Dump
@@ -65,7 +65,7 @@ object AuralSystemImpl {
   }
 
   // XXX TODO: Lucre should relax constraints on ObservableImpl
-  private final class Impl extends AuralSystem /*with ObservableImpl[RT, State]*/ {
+  private final class Impl extends AuralSystem with ObservableImpl[RT, State] {
     impl =>
 
     private[this] val stateRef        = Ref[State](Stopped)
@@ -73,26 +73,6 @@ object AuralSystemImpl {
     private[this] val serverListener  = new AtomicReference(Option.empty[SServer.Listener])
 
     override def state(implicit tx: RT): State = stateRef.get(tx.peer)
-
-    private[this] final class Observation(val fun: RT => State => Unit) extends Disposable[RT] {
-      def dispose()(implicit tx: RT): Unit = removeObservation(this)
-    }
-
-    private[this] val obsRef = Ref(Vector.empty[Observation])
-
-    private def fire(update: State)(implicit tx: RT): Unit = {
-      val obs = obsRef()(tx.peer)
-      obs.foreach(_.fun(tx)(update))
-    }
-
-    private[this] def removeObservation(obs: Observation)(implicit tx: RT): Unit =
-      obsRef.transform(_.filterNot(_ === obs))(tx.peer)
-
-    override def react(fun: RT => State => Unit)(implicit tx: RT): Disposable[RT] = {
-      val obs = new Observation(fun)
-      obsRef.transform(_ :+ obs)(tx.peer)
-      obs
-    }
 
     override def reactNow(fun: RT => State => Unit)(implicit tx: RT): Disposable[RT] = {
       val res = react(fun)

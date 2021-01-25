@@ -741,7 +741,8 @@ object AuralProcImpl {
                                                info: UGB.Input.Stream.Spec, idx: Int,
                                                bufSize: Int)(implicit tx: T): BufferAndGain = {
       val spec      = cue.spec
-      val path      = cue.artifact.getPath // getAbsolutePath
+      val uri       = cue.artifact
+      val path      = uri.getPath // getAbsolutePath
       val _gain     = cue.gain
       val offsetT   = ((cue.offset + timeRef.offset) * spec.sampleRate / SampleRate + 0.5).toLong
       val _buf      = if (info.isNative) {
@@ -761,7 +762,7 @@ object AuralProcImpl {
         )
       } else {
         val __buf = Buffer(server)(numFrames = bufSize, numChannels = spec.numChannels)
-        val trig = new StreamBuffer(key = key, idx = idx, synth = nr.node, buf = __buf, path = path,
+        val trig = new StreamBufferRead(key = key, idx = idx, synth = nr.node, buf = __buf, path = path,
           fileFrames = spec.numFrames, interpolation = info.interp, startFrame = offsetT, loop = false,
           resetFrame = offsetT)
         nr.addUser(trig)

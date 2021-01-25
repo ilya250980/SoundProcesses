@@ -15,10 +15,13 @@ package de.sciss.proc.impl
 
 import de.sciss.lucre.Disposable
 import de.sciss.lucre.synth.{RT, Server, Txn}
-import de.sciss.proc.{AuralContext, AuralSystem, SoundProcesses, Universe}
+import de.sciss.proc.AuralSystem.{Running, Stopped}
+import de.sciss.proc.{AuralContext, SoundProcesses, Universe}
+
+import scala.concurrent.stm.Ref
 
 /** An `AuralSystem.Client` that issues full transactions and creates an `AuralContext` */
-trait AuralSystemTxBridge[T <: Txn[T]] extends AuralSystem.Client with Disposable[T] {
+trait AuralSystemTxBridge[T <: Txn[T]] extends Disposable[T] {
   // ---- abstract ----
 
   implicit val universe: Universe[T]
@@ -29,21 +32,26 @@ trait AuralSystemTxBridge[T <: Txn[T]] extends AuralSystem.Client with Disposabl
 
   // ---- impl ----
 
+  private[this] val obsRef = Ref(Disposable.empty[T])
+
   final def connectAuralSystem()(implicit tx: T): this.type = {
     import universe.auralSystem
-    auralSystem.addClient(this)
+    val obs = auralSystem.react { implicit tx => {
+      case Running(server)  => auralStarted(server)
+      case Stopped          => auralStopped()
+      case _ =>
+    }}
+    obsRef.set(obs)(tx.peer)
     auralSystem.serverOption.foreach { server =>
       auralStartedTx(server)
     }
     this
   }
 
-  final def disconnectAuralSystem()(implicit tx: T): Unit = {
-    import universe.auralSystem
-    auralSystem.removeClient(this)
-  }
+  final def disconnectAuralSystem()(implicit tx: T): Unit =
+    obsRef.swap(Disposable.empty)(tx.peer).dispose()
 
-  final def auralStarted(server: Server)(implicit tx: RT): Unit = {
+  private def auralStarted(server: Server)(implicit tx: RT): Unit = {
     // The reasoning for the txn decoupling
     // is the discrepancy between Txn and T
     tx.afterCommit {
@@ -59,7 +67,7 @@ trait AuralSystemTxBridge[T <: Txn[T]] extends AuralSystem.Client with Disposabl
     auralStartedTx()
   }
 
-  final def auralStopped()(implicit tx: RT): Unit =
+  private def auralStopped()(implicit tx: RT): Unit =
     tx.afterCommit {
       import universe.cursor
       SoundProcesses.step[T]("auralStopped") { implicit tx: T =>

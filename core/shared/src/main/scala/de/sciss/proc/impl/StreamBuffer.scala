@@ -69,7 +69,6 @@ object StreamBuffer {
  * @param idx             the index in `SendReply`
  * @param synth           the synth to expect the `SendReply` messages to come from
  * @param buf             the buffer to send data to
- * @param path            the path of the audio file
  * @param fileFrames      the total number of frames in the file
  * @param interpolation   the type of interpolation (1 = none, 2 = linear, 4 = cubic)
  * @param startFrame      the start frame into the file to begin with
@@ -77,9 +76,9 @@ object StreamBuffer {
  * @param resetFrame      when looping, the reset frame position into the file after each loop begins.
   *                       this should be less than or equal to `startFrame`
  */
-final class StreamBuffer(key: String, idx: Int, protected val synth: Node,
-                         buf: Buffer.Modifiable, path: String, fileFrames: Long,
-                         interpolation: Int, startFrame: Long, loop: Boolean, resetFrame: Long)
+abstract class StreamBuffer(key: String, idx: Int, protected val synth: Node,
+                            buf: Buffer.Modifiable, fileFrames: Long,
+                            interpolation: Int, startFrame: Long, loop: Boolean, resetFrame: Long)
   extends SendReplyResponder {
 
   private[this] val bufSizeH  = buf.numFrames/2
@@ -127,8 +126,7 @@ final class StreamBuffer(key: String, idx: Int, protected val synth: Node,
       buf.fill(index = (bufOff + readSz) * buf.numChannels, num = fillSz * buf.numChannels, value = 0f)
     }
 
-    if (readSz > 0) buf.read(
-      path            = path,
+    if (readSz > 0) fillBuf(
       fileStartFrame  = frame,
       numFrames       = readSz,
       bufStartFrame   = bufOff
@@ -137,14 +135,15 @@ final class StreamBuffer(key: String, idx: Int, protected val synth: Node,
     frame
   }
 
+  protected def fillBuf(fileStartFrame: Long, numFrames: Int, bufStartFrame: Int)(implicit tx: RT): Unit
+
   private def updateBufferLoop(bufOff: Int, frame0: Long)(implicit tx: RT): Long = {
     @tailrec def loop(done: Int): Long = {
       val frame1  = frame0 + done
       val frame   = (frame1 - resetFrame) % (fileFrames - resetFrame) + resetFrame  // wrap inside loop span
       val readSz  =  math.min(bufSizeH - done, fileFrames - frame).toInt
       if (readSz > 0) {
-        buf.read(
-          path            = path,
+        fillBuf(
           fileStartFrame  = frame,
           numFrames       = readSz,
           bufStartFrame   = bufOff + done
@@ -158,3 +157,50 @@ final class StreamBuffer(key: String, idx: Int, protected val synth: Node,
     loop(0)
   }
 }
+
+final class StreamBufferRead(key: String, idx: Int, synth: Node, buf: Buffer.Modifiable, path: String,
+                             fileFrames: Long, interpolation: Int, startFrame: Long, loop: Boolean,
+                             resetFrame: Long)
+  extends StreamBuffer(key = key, idx = idx, synth = synth, buf = buf, fileFrames = fileFrames,
+    interpolation = interpolation, startFrame = startFrame, loop = loop, resetFrame = resetFrame) {
+
+  override protected def fillBuf(fileStartFrame: Long, numFrames: Int, bufStartFrame: Int)(implicit tx: RT): Unit =
+    buf.read(
+      path            = path,
+      fileStartFrame  = fileStartFrame,
+      numFrames       = numFrames,
+      bufStartFrame   = bufStartFrame
+    )
+}
+
+//final class StreamBufferSet(key: String, idx: Int, synth: Node, buf: Buffer.Modifiable, uri: URI,
+//                            fileFrames: Long, interpolation: Int, startFrame: Long, loop: Boolean,
+//                            resetFrame: Long)(implicit exec: ExecutionContext)
+//  extends StreamBuffer(key = key, idx = idx, synth = synth, buf = buf, fileFrames = fileFrames,
+//    interpolation = interpolation, startFrame = startFrame, loop = loop, resetFrame = resetFrame) {
+//
+//  private[this] var afFut: Future[AsyncAudioFile] = _
+//  private[this] val afBuf = Array.ofDim[Double](buf.numChannels, buf.numFrames)
+//  private[this] var current = Option.empty[Future[Any]]
+//  private[this] val sync = new AnyRef
+//
+//  def init()(implicit tx: RT): this.type = {
+//    tx.afterCommit {
+//      afFut = AudioFile.openReadAsync(uri)
+//      sync.synchronized {
+//        current = Some(afFut)
+//        afFut...
+//      }
+//    }
+//    this
+//  }
+//
+//  override protected def fillBuf(fileStartFrame: Long, numFrames: Int, bufStartFrame: Int)(implicit tx: RT): Unit = {
+//    tx.afterCommit {
+//      afFut.foreach { af =>
+//        af.read(???, 0, len)
+//      }
+//      buf.setn((bufStartFrame, ???))
+//    }
+//  }
+//}

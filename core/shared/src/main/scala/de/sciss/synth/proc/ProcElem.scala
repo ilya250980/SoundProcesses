@@ -34,6 +34,7 @@ object ProcElem {
       AudioCue, AudioCue.Empty, AudioCue.Artifact, AudioCue.Spec, AudioCue.Offset, AudioCue.Gain, AudioCue.FileOffset,
       AudioFileSpec, AudioFileSpec.NumChannels, AudioFileSpec.NumFrames, AudioFileSpec.SampleRate, AudioFileSpec.Read,
       AudioFileSpec.Empty,
+      AuralSystem,
       Bounce,
       Calendar, Calendar.Trunc, Calendar.Set, Calendar.Add, Calendar.Get, Calendar.Schedule,
       Color.Predef,

@@ -19,7 +19,7 @@ import java.nio.ByteBuffer
 import de.sciss.audiofile.{AudioFile, AudioFileType, SampleFormat}
 import de.sciss.equal.Implicits._
 import de.sciss.log.Level
-import de.sciss.lucre.synth.{Buffer, RT, Server, Synth, Txn}
+import de.sciss.lucre.synth.{Buffer, Server, Synth, Txn}
 import de.sciss.proc.Runner.{Prepared, Preparing, Running, Stopped}
 import de.sciss.proc.SoundProcesses.logTransport
 import de.sciss.proc.{AuralObj, AuralSystem, Bounce, Runner, Scheduler, TimeRef, Transport, Universe}
@@ -125,21 +125,19 @@ final class BounceImpl[T <: Txn[T] /*, I <: stm.Sys[I] */](val parentUniverse: U
       val (span, scheduler, transport, __aural) = cursor.step { implicit tx =>
         val _scheduler  = Scheduler[T]()
         addActions(_scheduler)
-        val _span       = config.span
-
-        val _aural = AuralSystem()
-        _aural.addClient(new AuralSystem.Client {
-          def auralStarted(s: Server)(implicit tx: RT): Unit = {
+        val _span   = config.span
+        val _aural  = AuralSystem()
+        _aural.react { implicit tx => {
+          case AuralSystem.Running(s) =>
             // config.init.apply(...)
             tx.afterCommit {
               if (DEBUG) s.peer.dumpOSC()
               pServer.trySuccess(s)
               ()
             }
-          }
-
-          def auralStopped()(implicit tx: RT): Unit = () // XXX TODO
-        })
+          case AuralSystem.Stopped => () // XXX TODO
+          case _ => ()
+        }}
 
         val newU        = parentUniverse.mkChild(_aural, _scheduler)
         val _transport = Transport(newU)

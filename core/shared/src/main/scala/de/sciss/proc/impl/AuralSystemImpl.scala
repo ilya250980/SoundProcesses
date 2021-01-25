@@ -13,21 +13,23 @@
 
 package de.sciss.proc.impl
 
+import de.sciss.equal.Implicits.TripleEquals
 import de.sciss.lucre.Disposable
+import de.sciss.lucre.impl.ObservableImpl
 import de.sciss.lucre.synth.Server.Config
 import de.sciss.lucre.synth.{Executor, RT, Server}
 import de.sciss.osc.Dump
 import de.sciss.proc.AuralSystem
-import de.sciss.synth.{Client, ServerConnection, Server => SServer}
+import de.sciss.proc.AuralSystem.{Preparing, Running, Stopped}
 import de.sciss.proc.SoundProcesses.{logAural => logA}
+import de.sciss.synth.{Client, ServerConnection, Server => SServer}
 
 import java.util.concurrent.atomic.AtomicReference
-import scala.collection.immutable.{IndexedSeq => Vec}
 import scala.concurrent.stm.Ref
 import scala.concurrent.stm.TxnExecutor.{defaultAtomic => atomic}
 
 object AuralSystemImpl {
-  import de.sciss.proc.AuralSystem.Client
+  import de.sciss.proc.AuralSystem.State
 
   var dumpOSC = false
 
@@ -63,96 +65,66 @@ object AuralSystemImpl {
     if (exec.isShutdown) code else exec.defer(code)
   }
 
-  private final class Impl extends AuralSystem {
+  // XXX TODO: Lucre should relax constraints on ObservableImpl
+  private final class Impl extends AuralSystem /*with ObservableImpl[RT, State]*/ {
     impl =>
 
-    private sealed trait State extends Disposable[RT] {
-      def serverOption: Option[Server]
-      def shutdown(): Unit
+    private[this] val stateRef        = Ref[State](Stopped)
+    private[this] val connection      = new AtomicReference(Option.empty[ServerConnection])
+    private[this] val serverListener  = new AtomicReference(Option.empty[SServer.Listener])
+
+    override def state(implicit tx: RT): State = stateRef.get(tx.peer)
+
+    private[this] final class Observation(val fun: RT => State => Unit) extends Disposable[RT] {
+      def dispose()(implicit tx: RT): Unit = removeObservation(this)
     }
 
-    private case object StateStopped extends State {
-      def dispose()(implicit tx: RT): Unit = ()
-      def serverOption: Option[Server] = None
-      def shutdown(): Unit = ()
+    private[this] val obsRef = Ref(Vector.empty[Observation])
+
+    private def fire(update: State)(implicit tx: RT): Unit = {
+      val obs = obsRef()(tx.peer)
+      obs.foreach(_.fun(tx)(update))
     }
 
-    private case class StateBooting(launch: ServerConnection.Listener => ServerConnection)
-      extends State {
+    private[this] def removeObservation(obs: Observation)(implicit tx: RT): Unit =
+      obsRef.transform(_.filterNot(_ === obs))(tx.peer)
 
-      private lazy val con: ServerConnection = {
+    override def react(fun: RT => State => Unit)(implicit tx: RT): Disposable[RT] = {
+      val obs = new Observation(fun)
+      obsRef.transform(_ :+ obs)(tx.peer)
+      obs
+    }
+
+    override def reactNow(fun: RT => State => Unit)(implicit tx: RT): Disposable[RT] = {
+      val res = react(fun)
+      fun(tx)(state)
+      res
+    }
+
+    private def initConnection(launch: ServerConnection.Listener => ServerConnection)(implicit tx: RT): Unit = {
+      lazy val con: ServerConnection = {
         logA.debug("Booting")
         launch {
           case ServerConnection.Aborted =>
-            state.single.set(StateStopped)
+            connection.set(None)
+            serverStopped()
 
           case ServerConnection.Running(s) =>
+            connection.set(None)
             if (dumpOSC) s.dumpOSC(Dump.Text)
-            Executor.defer { serverStarted(Server(s)) }
-        }
-      }
-
-      def init()(implicit tx: RT): Unit = afterCommit {
-        con
-        ()
-      }
-
-      def dispose()(implicit tx: RT): Unit = afterCommit {
-        logA.debug("Aborting boot")
-        con.abort()
-      }
-
-      def serverOption: Option[Server] = None
-      def shutdown(): Unit = con.abort()
-    }
-
-    private case class StateRunning(server: Server) extends State {
-      def dispose()(implicit tx: RT): Unit = {
-        logA.debug("Stopped server")
-        // NodeGraph.removeServer(server)
-        clients.get(tx.peer).foreach(_.auralStopped())
-
-        afterCommit {
-          val obs = listener.getAndSet(None)
-          assert(obs.isDefined)
-          server.peer.removeListener(obs.get)
-          if (server.peer.isRunning) server.peer.quit()
-        }
-      }
-
-      def shutdown(): Unit = server.peer.quit()
-
-      def serverOption: Option[Server] = Some(server)
-
-      private val listener = new AtomicReference(Option.empty[SServer.Listener])
-
-      // put this into a separate method because `atomic` will otherwise
-      // pick up an obsolete transaction in implicit scope
-      private def ac(): Unit = {
-        val list = server.peer.addListener {
-          case SServer.Offline =>
-            atomic { implicit itx =>
-              implicit val tx: RT = RT.wrap(itx)
-              state.swap(StateStopped).dispose()
+            Executor.defer {
+              serverStarted(Server(s))
             }
         }
-        val old = listener.getAndSet(Some(list))
-        assert(old.isEmpty)
       }
 
-      def init()(implicit tx: RT): Unit = {
-        logA.debug("Started server")
-        // NodeGraph.addServer(server)
-        clients.get(tx.peer).foreach(_.auralStarted(server))
-
-        afterCommit(ac())
+      afterCommit {
+        val c = con
+        connection.getAndSet(Some(c)).foreach(_.abort())
       }
     }
 
     override def toString = s"AuralSystem@${hashCode.toHexString}"
-
-    private val clients = Ref(Vec   .empty[Client])
-    private val state   = Ref(StateStopped: State)
 
     def offline(server: Server.Offline)(implicit tx: RT): Unit = serverStartedTx(server)
 
@@ -162,78 +134,111 @@ object AuralSystemImpl {
         serverStartedTx(rich)
       }
 
-    private def serverStartedTx(rich: Server)(implicit tx: RT): Unit = {
-      val running = StateRunning(rich)
-      state.swap(running)(tx.peer) // .dispose()
-      running.init()
+    private def serverStopped(): Unit =
+      atomic { implicit itx =>
+        implicit val tx: RT = RT.wrap(itx)
+        state = Stopped
+      }
+
+    // put this into a separate method because `atomic` will otherwise
+    // pick up an obsolete transaction in implicit scope
+    private def addServerListener(server: Server): Unit = {
+      val l = server.peer.addListener {
+        case SServer.Offline => serverStopped()
+      }
+      val old = serverListener.getAndSet(Some(l))
+      assert(old.isEmpty)
+    }
+
+    private def state_=(value: State)(implicit tx: RT): Unit = {
+      val old = stateRef.swap(value)(tx.peer)
+      if (value != old) {
+        (old, value) match {
+          case (Running(server), _) =>
+            logA.debug("Stopped server")
+            afterCommit {
+              val obs = serverListener.getAndSet(None)
+              assert(obs.isDefined)
+              server.peer.removeListener(obs.get)
+              if (server.peer.isRunning) server.peer.quit()
+            }
+
+          case (Preparing(), Stopped) =>
+            tx.afterCommit {
+              // could have been user issued `stop`, thus cancel connection if it still exists
+              connection.getAndSet(None).foreach(_.abort())
+            }
+
+          case _ =>
+        }
+        fire(value)
+      }
+    }
+
+    private def serverStartedTx(server: Server)(implicit tx: RT): Unit = {
+      logA.debug("Started server")
+      state = Running(server)
+      afterCommit(addServerListener(server))
     }
 
     def start(config: Server.Config, client: Client.Config, connect: Boolean)(implicit tx: RT): Unit =
-      state.get(tx.peer) match {
-        case StateStopped =>
-          installShutdown
+      state match {
+        case Stopped =>
+          tx.afterCommit {
+            installShutdown
+          }
           val launch: ServerConnection.Listener => ServerConnection = if (connect) {
             SServer.connect("SoundProcesses", config, client)
           } else {
             SServer.boot   ("SoundProcesses", config, client)
           }
-          val booting = StateBooting(launch)
-          state.swap(booting)(tx.peer)
-          booting.init()
+          state = Preparing()
+          initConnection(launch)
 
         case _ =>
       }
 
     override def connect(config: Config, client: Client.Config)(implicit tx: RT): Unit =
-      state.get(tx.peer) match {
-        case StateStopped =>
+      state match {
+        case Stopped =>
           val launch: ServerConnection.Listener => ServerConnection =
             SServer.connect("SoundProcesses", config, client)
 
-          val booting = StateBooting(launch)
-          state.swap(booting)(tx.peer)
-          booting.init()
+          state = Preparing()
+          initConnection(launch)
 
         case _ =>
       }
 
-    private lazy val installShutdown: Unit = Runtime.getRuntime.addShutdownHook(new Thread(new Runnable {
-      def run(): Unit = impl.shutdown()
-    }))
+    private lazy val installShutdown: Unit = Runtime.getRuntime.addShutdownHook(new Thread(() => impl.shutdown()))
 
-    private def shutdown(): Unit = state.single().shutdown()
+    private def shutdown(): Unit = stateRef.single() match {
+      case Running(server) =>
+        server.peer.quit()
+      case Preparing() =>
+        connection.getAndSet(None).foreach(_.abort())
+      case _ =>
+    }
 
     def stop()(implicit tx: RT): Unit =
-      state.swap(StateStopped)(tx.peer).dispose()
+      state = Stopped
 
-    def addClient(c: Client)(implicit tx: RT): Unit = {
-      clients.transform(_ :+ c)(tx.peer)
-      // serverOption.foreach(c.auralStarted)
+    def serverOption(implicit tx: RT): Option[Server] = state match {
+      case Running(s) => Some(s)
+      case _          => None
     }
-
-    def addClientNow(c: Client)(implicit tx: RT): Unit = {
-      addClient(c)
-      serverOption.foreach(c.auralStarted)
-    }
-
-    def serverOption(implicit tx: RT): Option[Server] = state.get(tx.peer).serverOption
-
-    def removeClient(c: Client)(implicit tx: RT): Unit =
-      clients.transform { _.filterNot(_ == c) } (tx.peer)
 
     def whenStarted(fun: Server => Unit)(implicit tx: RT): Unit = {
-      state.get(tx.peer) match {
-        case StateRunning(server) => tx.afterCommit(fun(server))
+      state match {
+        case Running(server) => tx.afterCommit(fun(server))
         case _ =>
-          val c: Client = new Client {
-            def auralStarted(server: Server)(implicit tx: RT): Unit = {
-              removeClient(this)
+          lazy val c: Disposable[RT] = react { implicit tx => {
+            case Running(server) =>
+              c.dispose()
               tx.afterCommit(fun(server))
-            }
-
-            def auralStopped()(implicit tx: RT): Unit = ()
-          }
-          addClient(c)
+          }}
+          c
+          ()
       }
     }
   }

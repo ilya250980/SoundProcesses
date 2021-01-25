@@ -234,12 +234,21 @@ object Runner extends ProductReader[Runner] {
     }
   }
 
+  /** Creates a runner from an attribute of a given static key. That is,
+    * it looks up an object in the enclosing attribute-map, and creates
+    * a runner representation for it, if it exists. Otherwise the runner
+    * is "empty" and does not respond to `run`.
+    */
   def apply(key: String): Runner = {
     // Impl(key)
     val ex = Attr.WithDefault[Obj](key, Obj.empty)
     apply(ex)
   }
 
+  /** Creates a runner from a given object.
+    * If the object has not yet been created, or there is no runner factory
+    * available for it, the runner is "empty" and does not respond to `run`.
+    */
   def apply(obj: Ex[Obj]): Runner = Impl(obj)
 
   override def read(in: RefMapIn, key: String, arity: Int, adj: Int): Runner = {
@@ -297,13 +306,15 @@ object Runner extends ProductReader[Runner] {
   }
 }
 trait Runner extends Control {
-  // def key: String
-
   type Repr[T <: Txn[T]] <: proc.Runner[T]
 
+  /** Runs the process without custom arguments. */
   def run : Act = Runner.Run  (this)
+
+  /** Stops the process. */
   def stop: Act = Runner.Stop (this)
 
+  /** Runs the process with a list of given key-value arguments. */
   def runWith(attr: Ex[(String, _)]*): Act = Runner.RunWith(this, attr)
 
 //  def runWith(attr: (String, Ex[_])*): Act = Runner.RunWith(this, attr)
@@ -312,24 +323,54 @@ trait Runner extends Control {
   def state: Ex[Int] = Runner.State(this)
 
   /** Triggers if the state becomes 0 */
-  def stopped       : Trig = (state sig_== 0).toTrig
+  def stopped: Trig = isStopped.toTrig
+
+  /** State is 0. */
+  def isStopped: Ex[Boolean] = state sig_== 0
+
+  /** Triggers if the state becomes 2 */
+  def running: Trig = isRunning.toTrig
+
+  /** State is 2. */
+  def isRunning: Ex[Boolean] = state sig_== 2
 
   /** Triggers if the state becomes 4 */
-  def done          : Trig = (state sig_== 4).toTrig
+  def done: Trig = isDone.toTrig
+
+  /** State is 4. */
+  def isDone: Ex[Boolean] = state sig_== 4
 
   /** Triggers if the state becomes 5 */
-  def failed        : Trig = (state sig_== 5).toTrig
+  def failed: Trig = hasFailed.toTrig
+
+  /** State is 5. */
+  def hasFailed: Ex[Boolean] = state sig_== 5
 
   /** Triggers if the state becomes 0 or 4 */
-  def stoppedOrDone : Trig = {
+  def stoppedOrDone : Trig = isStoppedOrDone.toTrig
+
+  /** State is 0 or 4. */
+  def isStoppedOrDone: Ex[Boolean] = {
     val s = state
-    ((s sig_== 0) || (s sig_== 4)).toTrig
+    (s sig_== 0) || (s sig_== 4)
   }
 
   /** Triggers if the state becomes 0, 4, or 5 */
-  def idle          : Trig = {
+  def idle: Trig = isIdle.toTrig
+
+  /** State is 0, 4, or 5. Opposite of `busy` */
+  def isIdle: Ex[Boolean] = {
     val s = state
-    ((s sig_== 0) || (s >= 4)).toTrig
+    (s sig_== 0) || (s >= 4)  // stopped, or done, or failed
+  }
+
+  /** Triggers if the state becomes 1, 2, or 3. */
+  def busy: Trig = isBusy.toTrig
+
+  /** State is 1, 2, or 3. Opposite of `idle` */
+  def isBusy: Ex[Boolean] = {
+    val s = state
+    (s >= 1) && (s <= 3)
   }
 
   /** Zero to one. Negative if unknown */

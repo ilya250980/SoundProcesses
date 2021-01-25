@@ -4,9 +4,10 @@ import de.sciss.audiofile.AudioFile
 import de.sciss.audiofile.AudioFile.Frames
 import de.sciss.file._
 import de.sciss.lucre.store.BerkeleyDB
-import de.sciss.lucre.synth.{InMemory, RT, Server}
+import de.sciss.lucre.synth.{InMemory, Server}
 import de.sciss.lucre.{Disposable, DoubleObj, Folder, Obj, Source}
 import de.sciss.numbers
+import de.sciss.proc.AuralSystem.Running
 import de.sciss.span.Span
 import de.sciss.synth.SynthGraph
 import org.scalactic.source
@@ -250,15 +251,15 @@ abstract class BounceSpec extends FixtureAsyncFlatSpec with Matchers {
     cursor.step { implicit tx =>
       val jackOption = mkJack(config)
 
-      universe.auralSystem.addClient(new AuralSystem.Client {
-        def auralStarted(s: Server)(implicit itx: RT): Unit = itx.afterCommit {
-          p.completeWith(fun(s).andThen { case _ =>
-            jackOption.foreach(_.destroy())
-          })
-        }
-
-        def auralStopped()(implicit tx: RT): Unit = ()
-      })
+      universe.auralSystem.react { implicit itx => {
+        case Running(s) =>
+          itx.afterCommit {
+            p.completeWith(fun(s).andThen { case _ =>
+              jackOption.foreach(_.destroy())
+            })
+          }
+        case _ =>
+      }}
 
       universe.auralSystem.start(config)
       p.future

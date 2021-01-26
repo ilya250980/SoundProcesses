@@ -334,8 +334,8 @@ trait Runner extends Control {
   /** Triggers if the state becomes 2 */
   def running: Trig = isRunning.toTrig
 
-  /** State is 2. */
-  def isRunning: Ex[Boolean] = state sig_== 2
+  /** State is 3. */
+  def isRunning: Ex[Boolean] = state sig_== 3
 
   /** Triggers if the state becomes 4 */
   def done: Trig = isDone.toTrig

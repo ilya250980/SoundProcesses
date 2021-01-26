@@ -390,7 +390,8 @@ object Grapheme extends ProductReader[Ex[Grapheme]] {
 
     override protected def observeObj(gr: proc.Grapheme[T])(implicit tx: T): Disposable[T] =
       gr.changed.react { implicit tx => upd =>
-        // println("gr.changed")
+        // it's probably faster and less error-prone to just run `mapValue` and see if that
+        // has a relevant change, that analyzing the updates beforehand.
         val now = mapValue(Some(upd.pin), b.value, isInit = false)
         updateFromObj(now)
       }

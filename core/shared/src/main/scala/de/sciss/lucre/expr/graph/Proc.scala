@@ -14,10 +14,11 @@
 package de.sciss.lucre.expr.graph
 
 import de.sciss.lucre.Adjunct.HasDefault
+import de.sciss.lucre.Txn.{peer => txPeer}
 import de.sciss.lucre.expr.ExElem.{ProductReader, RefMapIn}
-import de.sciss.lucre.expr.graph.impl.{AbstractCtxCellView, ExpandedObjMakeImpl, ObjCellViewVarImpl, ObjImplBase}
+import de.sciss.lucre.expr.graph.impl.{AbstractCtxCellView, BinaryMappedObjIExpr, ExpandedObjMakeImpl, ObjCellViewVarImpl, ObjImplBase}
 import de.sciss.lucre.expr.{CellView, Context, IAction}
-import de.sciss.lucre.{Adjunct, IExpr, ITargets, Source, StringObj, Sys, Txn, Obj => LObj}
+import de.sciss.lucre.{Adjunct, Disposable, IExpr, ITargets, IdentMap, Source, StringObj, Sys, Txn, Obj => LObj}
 import de.sciss.serial.{DataInput, TFormat}
 import de.sciss.{asyncfile, proc}
 
@@ -45,7 +46,6 @@ object Proc extends ProductReader[Ex[Proc]] {
 
     override type Peer[~ <: Txn[~]] = proc.Proc[~]
   }
-
 
   private final class CellViewImpl[T <: Txn[T]](h: Source[T, LObj[T]], key: String)
     extends ObjCellViewVarImpl[T, proc.Proc, Proc](h, key) {
@@ -161,6 +161,77 @@ object Proc extends ProductReader[Ex[Proc]] {
       peer.outputs.add(proc.Proc.mainOut)
       new Proc.Impl(tx.newHandle(peer), tx.system)
     }
+  }
+
+  private final class OutputExpanded[T <: Txn[T]](in: IExpr[T, Proc], key: IExpr[T, String],
+                                                  idMap: IdentMap[T, Obj], tx0: T)
+                                                 (implicit targets: ITargets[T])
+    extends BinaryMappedObjIExpr[T, proc.Proc, Proc, String, Obj](in, key, tx0) {
+
+    override def dispose()(implicit tx: T): Unit = {
+      idMap.dispose()
+      super.dispose()
+    }
+
+    override protected def observeObj(inV: proc.Proc[T])(implicit tx: T): Disposable[T] =
+      inV.changed.react { implicit tx => upd =>
+        val keyV      = key.value
+        val relevant  = upd.changes.exists {
+          case c: proc.Proc.OutputsChange[T] if c.output.key == keyV => true
+          case _ => false
+        }
+        if (relevant) {
+          val now = mapValue(Some(upd.proc), key.value, isInit = false)
+          updateFromObj(now)
+        }
+      }
+
+    override protected def mapValue(inOpt: Option[proc.Proc[T]], keyV: String, isInit: Boolean)
+                                   (implicit tx: T): Obj = {
+      // big action to "cache" Obj instances, so we do not fire unnecessarily
+      // when there are no actual changes (`Obj.equals` cannot capture identical peers).
+      inOpt.fold[Obj](Obj.Empty) { in =>
+        val valueNow = in.outputs.add(keyV)
+        idMap.getOrElse(valueNow.id, {
+          val wrapNow = Obj.wrap[T](valueNow)
+          // `mapValue` is called in constructor, so be careful to check if `ref` was already initialized
+          if (!isInit) {
+            val wrapBefore = ref()
+            wrapBefore.peer[T].foreach { valueBefore =>
+              idMap.remove(valueBefore.id)
+            }
+          }
+          idMap.put(valueNow.id, wrapNow)
+          wrapNow
+        })
+      }
+    }
+  }
+
+  object Output extends ProductReader[Output] {
+    override def read(in: RefMapIn, key: String, arity: Int, adj: Int): Output = {
+      require (arity == 2 && adj == 0)
+      val _in   = in.readEx[Proc  ]()
+      val _key  = in.readEx[String]()
+      new Output(_in, _key)
+    }
+  }
+  // in the future we can introduce `Proc.Output` if necessary; for now stick to Obj
+  final case class Output(in: Ex[Proc], key: Ex[String]) extends Ex[Obj] {
+
+    override def productPrefix: String = s"Proc$$Output" // serialization
+
+    type Repr[T <: Txn[T]] = IExpr[T, Obj]
+
+    override protected def mkRepr[T <: Txn[T]](implicit ctx: Context[T], tx: T): Repr[T] = {
+      import ctx.targets
+      new OutputExpanded(in.expand[T], key.expand[T], tx.newIdentMap[Obj], tx)
+    }
+  }
+
+  implicit final class Ops(private val p: Ex[Proc]) extends AnyVal {
+    /** Obtains a named output. Creates that output if it did not yet exist. */
+    def output(key: Ex[String] = proc.Proc.mainOut): Ex[Obj] = Proc.Output(p, key)
   }
 }
 trait Proc extends Obj {

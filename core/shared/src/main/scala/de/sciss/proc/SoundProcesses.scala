@@ -101,6 +101,7 @@ object SoundProcesses  {
 
   private[this] lazy val _init: Unit = {
     LucreExpr     .init()
+
     Code          .init()
     Color         .init()
     Control       .init()
@@ -108,13 +109,15 @@ object SoundProcesses  {
     AudioCue      .init()
     Cursors       .init()
     CurveObj      .init()
+    EnvSegment    .init()
     FadeSpec      .init()
     Grapheme      .init()
+    Markdown      .init()
+    ParamSpec     .init()
     Proc          .init()
     Tag           .init()
     Timeline      .init()
-    Markdown      .init()
-    EnvSegment    .init()
+    Warp          .init()
     legacy.ActionRaw.init()
 
     lucre.expr.graph.AudioCue .init()

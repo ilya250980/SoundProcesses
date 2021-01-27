@@ -14,6 +14,7 @@
 package de.sciss.proc.impl
 
 import de.sciss.lucre.Txn.peer
+import de.sciss.lucre.expr.Context
 import de.sciss.lucre.impl.DummyObservableImpl
 import de.sciss.lucre.{Disposable, Folder, Obj, Txn}
 import de.sciss.proc.Runner.Attr
@@ -41,9 +42,9 @@ object FolderRunnerImpl {
 
     override def toString = s"Runner.Folder${hashCode().toHexString}"
 
-    private[this] var obsF: Disposable[T] = _
-
-    private[this] val rHead = Ref.make[Entry[T]]()
+    private[this] val obsRef  = Ref.make[Disposable[T]]
+    private[this] val rHead   = Ref.make[Entry[T]]()
+    private[this] val attrRef = Ref(Context.emptyAttr[T])
 
     object progress extends Runner.Progress[T] with DummyObservableImpl[T] {
       def current(implicit tx: T): Double = -1
@@ -67,9 +68,9 @@ object FolderRunnerImpl {
         predSuccR   = e.succ
         CNT += 1
       }
-      // println(s"FOLDER RUNNER INIT $CNT")
 
-      obsF = obj.changed.react { implicit tx => upd =>
+      // println(s"FOLDER RUNNER INIT ${this.hashCode()}")
+      obsRef() = obj.changed.react { implicit tx => upd =>
         upd.changes.foreach {
           case Folder.Added   (idx, child ) => addChild   (idx, child)
           case Folder.Removed (idx, _     ) => removeChild(idx /*, child*/)
@@ -104,6 +105,14 @@ object FolderRunnerImpl {
 
       e.pred() = pred
       e.succ() = succ
+
+      state match {
+        case Runner.Preparing | Runner.Prepared =>
+          e.r.prepare(attrRef())
+        case Runner.Running =>
+          e.r.prepare(attrRef())
+          e.r.run()
+      }
     }
 
     private def removeChild(idx: Int /*, child: Obj[T]*/)(implicit tx: T): Unit = {
@@ -124,6 +133,7 @@ object FolderRunnerImpl {
     }
 
     def prepare(attr: Attr[T])(implicit tx: T): Unit = {
+      attrRef() = attr
       foreachChild(_.prepare(attr)) // XXX TODO --- monitor and reflect `Preparing` like `AuralFolderImpl`
       state = Runner.Prepared
     }
@@ -135,11 +145,18 @@ object FolderRunnerImpl {
 
     def stop()(implicit tx: T): Unit = {
       foreachChild(_.stop())
+      attrRef() = Context.emptyAttr[T]
       state = Runner.Stopped
     }
 
     protected def disposeData()(implicit tx: T): Unit = {
-      obsF.dispose()
+      // println(s"FOLDER RUNNER DISPOSE ${this.hashCode()}")
+      // Note: it's crucial not to call dispose twice on the
+      // observer (the event reaction map will complain).
+      // Because of Runner.Mutable, it's possible that
+      // `disposeData` is called twice.
+      obsRef.swap(Disposable.empty[T]).dispose()
+      attrRef() = Context.emptyAttr[T]
       foreachChild(_.dispose())
 //      rMap.dispose()
       rHead() = null

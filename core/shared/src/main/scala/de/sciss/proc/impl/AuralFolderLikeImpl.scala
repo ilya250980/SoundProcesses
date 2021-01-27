@@ -91,7 +91,7 @@ trait AuralFolderLikeImpl[T <: Txn[T], View <: AuralObj.FolderLike[T, View]]
     views.foreach { v =>
       v.prepare(timeRef)
       if (v.state == Runner.Preparing) {
-        val vObs = v.react { implicit tx =>vStateNow =>
+        val vObs = v.react { implicit tx => vStateNow =>
           if (vStateNow != Runner.Preparing) { // XXX TODO --- we should probably reflect Failed, Done, Stopped
             refPrepare.remove(v).foreach { vObs0 =>
               vObs0.dispose()

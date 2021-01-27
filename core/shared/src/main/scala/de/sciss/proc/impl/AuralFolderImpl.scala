@@ -16,6 +16,8 @@ package de.sciss.proc.impl
 import de.sciss.lucre.{Disposable, Folder, Obj, Source, Txn, synth}
 import de.sciss.proc.{AuralContext, AuralObj, Runner, TimeRef, Transport}
 
+// XXX TODO there is an unfortunate duplication now with FolderRunnerImpl
+// do we need `AuralFolder` at all?
 object AuralFolderImpl {
   def apply[T <: synth.Txn[T]](folder: Folder[T], attr: Runner.Attr[T])
                               (implicit tx: T, context: AuralContext[T]): AuralObj.Folder[T] = {
@@ -36,8 +38,8 @@ object AuralFolderImpl {
     def obj   (implicit tx: T): Folder[T] = objH()
     def folder(implicit tx: T): Folder[T] = objH()
 
-    def mkObserver(ens: Folder[T])(implicit tx: T): Disposable[T] =
-      ens.changed.react { implicit tx => upd =>
+    def mkObserver(f: Folder[T])(implicit tx: T): Disposable[T] =
+      f.changed.react { implicit tx =>upd =>
         processFolderUpdate(upd)
       }
 

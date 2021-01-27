@@ -85,7 +85,7 @@ object TransportImpl {
 
       val timeBase1 = timeBase0.play()
       timeBaseRef() = timeBase1
-      logT.debug(s"transport - play - $timeBase1")
+      logT.debug(s"play() - $timeBase1")
 
       playViews()
       fire(Transport.Play(this, timeBase1.pos0))
@@ -93,7 +93,7 @@ object TransportImpl {
 
     private def playViews()(implicit tx: T): Unit = {
       val tr = mkTimeRef()
-      logT.debug(s"transport - playViews - $tr")
+      logT.debug(s"playViews() - $tr")
       viewSet.foreach(_.run(tr, ()))
     }
 
@@ -103,7 +103,7 @@ object TransportImpl {
 
       val timeBase1 = timeBase0.stop()
       timeBaseRef() = timeBase1
-      logT.debug(s"transport - stop - $timeBase1")
+      logT.debug(s"stop() - $timeBase1")
 
       stopViews()
       fire(Transport.Stop(this, timeBase1.pos0))
@@ -120,7 +120,7 @@ object TransportImpl {
 
       val timeBase1 = new PlayTime(wallClock0 = if (p) scheduler.time else Long.MinValue, pos0 = position)
       timeBaseRef() = timeBase1
-      logT.debug(s"transport - seek - $timeBase1")
+      logT.debug(s"seek($position) - $timeBase1")
 
       if (p) playViews()
       fire(Transport.Seek(this, timeBase1.pos0, isPlaying = p))
@@ -129,6 +129,7 @@ object TransportImpl {
     def isPlaying(implicit tx: T): Boolean = timeBaseRef().isPlaying
 
     def addObject(obj: Obj[T])(implicit tx: T): Unit = {
+      logT.debug(s"addObject($obj)")
       val id = obj.id
       if (objMap.contains(id)) throw new IllegalArgumentException(s"Object $obj was already added to transport")
       val objH = tx.newHandle(obj)
@@ -143,6 +144,7 @@ object TransportImpl {
     }
 
     def removeObject(obj: Obj[T])(implicit tx: T): Unit = {
+      logT.debug(s"removeObject($obj)")
       val id    = obj.id
       // we need objH to find the index in objSeq
       val objH  = objMap.get(id) match {

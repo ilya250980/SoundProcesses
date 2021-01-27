@@ -219,7 +219,7 @@ class AuralTests2[T <: Txn[T]](name: String)(implicit cursor: Cursor[T]) extends
       //      tl.add(Span.from(frame(2.0)), pGen)
       //      tl.add(Span.from(frame(2.0)), pDif)
 
-      val t = Transport[T](context)
+      val t = Transport[T](context.universe)
       t.addObject(tl)
       t.play()
 

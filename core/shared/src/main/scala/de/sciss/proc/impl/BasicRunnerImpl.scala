@@ -19,7 +19,7 @@ import de.sciss.lucre.impl.{DummyObservableImpl, ObservableImpl}
 import de.sciss.lucre.{Cursor, Disposable, Obj, Source, Txn, Workspace, synth}
 import de.sciss.proc.Runner.{Attr, Preparing, Running, State, Stopped}
 import de.sciss.proc.impl.BasicAuralRunnerImpl.AuralRef
-import de.sciss.proc.{AuralContext, AuralObj, Runner, TimeRef, Universe}
+import de.sciss.proc.{AuralObj, Runner, TimeRef, Universe}
 
 import scala.annotation.tailrec
 import scala.concurrent.stm.Ref
@@ -98,7 +98,7 @@ trait BasicRunnerInternalImpl[T <: Txn[T]]
 }
 
 /** An implementation that maintains an `AuralObj` of the object which is run and stopped. */
-trait BasicAuralRunnerImpl[T <: synth.Txn[T]] extends AuralSystemTxBridge[T] with BasicRunnerImpl[T] {
+trait BasicAuralRunnerImpl[T <: synth.Txn[T]] extends BasicRunnerImpl[T] {
 //  def initRunner(obj: Obj[T])(implicit tx: T): this.type = {
 //    this
 //  }
@@ -107,9 +107,9 @@ trait BasicAuralRunnerImpl[T <: synth.Txn[T]] extends AuralSystemTxBridge[T] wit
 
   private[this] val targetState     = Ref[Runner.State](Runner.Stopped)
   private[this] val auralRef        = Ref(Option.empty[AuralRef[T]])
-  private[this] val contextRef      = Ref(Option.empty[AuralContext[T]])
   private[this] val attrRef         = Ref(Runner.emptyAttr[T]) // (NoManifest)
   private[this] val attrDirty       = Ref(false)
+  private[this] var obsUniverse: Disposable[T] = _
 
   object progress extends Runner.Progress[T] with DummyObservableImpl[T] {
     def current(implicit tx: T): Double = -1
@@ -133,7 +133,7 @@ trait BasicAuralRunnerImpl[T <: synth.Txn[T]] extends AuralSystemTxBridge[T] wit
   private def mkRef()(implicit tx: T): Option[AuralRef[T]] = {
     disposeRef()
     state = Stopped
-    val newOpt = contextRef().map { implicit ctx =>
+    val newOpt = universe.auralContext.map { implicit ctx =>
       val view  = AuralObj(obj, attr = attrRef())
       val obs   = view.react { implicit tx => viewState =>
         // This is quite tricky:
@@ -198,15 +198,23 @@ trait BasicAuralRunnerImpl[T <: synth.Txn[T]] extends AuralSystemTxBridge[T] wit
     }
   }
 
-  protected def auralStartedTx()(implicit tx: T, auralContext: AuralContext[T]): Unit = {
-    contextRef() = Some(auralContext)
+  def init()(implicit tx: T): this.type = {
+    obsUniverse = universe.react { implicit tx => {
+      case Universe.AuralStarted(_) => auralStartedTx()
+      case Universe.AuralStopped()  => auralStoppedTx()
+      case _ =>
+    }}
+    // we don't need to check this, as at this point `targetState` must be `Stopped`
+    // if (universe.auralContext.isDefined) auralStartedTx()
+    this
+  }
+
+  private def auralStartedTx()(implicit tx: T): Unit =
     if (targetState() !== Stopped) {
       matchStates()
     }
-  }
 
-  protected def auralStoppedTx()(implicit tx: T): Unit = {
-    contextRef() = None
+  private def auralStoppedTx()(implicit tx: T): Unit = {
     disposeRef()
     if (targetState() === Stopped) {
       // we are supposed to be stopped; there is no more view,
@@ -216,7 +224,7 @@ trait BasicAuralRunnerImpl[T <: synth.Txn[T]] extends AuralSystemTxBridge[T] wit
   }
 
   protected def disposeData()(implicit tx: T): Unit = {
-    disconnectAuralSystem()
+    obsUniverse.dispose()
     disposeRef()
   }
 }
@@ -240,8 +248,5 @@ object BasicAuralRunnerImpl {
     override def toString = s"Runner(${tpe.typeId})@{hashCode().toHexString}"
 
     protected def obj(implicit tx: T): Obj[T] = objH()
-
-    def init()(implicit tx: T): this.type =
-      connectAuralSystem()
   }
 }

@@ -21,28 +21,15 @@ object Transport {
   /** Creates a `Transport` independent of a running aural system, along with attributes.
     * It will create and destroy an aural context with the state of the provided system.
     */
-  def apply[T <: synth.Txn[T]](universe: Universe[T], attr: Context.Attr[T])(implicit tx: T): Transport[T] =
+  def apply[T <: synth.Txn[T]](universe: Universe[T], attr: Context.Attr[T] = Context.emptyAttr[T])
+                              (implicit tx: T): Transport[T] =
     Impl(universe, attr)
-
-  /** Creates a `Transport` independent of a running aural system.
-    * It will create and destroy an aural context with the state of the provided system.
-    */
-  def apply[T <: synth.Txn[T]](universe: Universe[T])(implicit tx: T): Transport[T] =
-    Impl(universe)
-
-  /** Creates a `Transport` for a running existing aural context, along with attributes. */
-  def apply[T <: synth.Txn[T]](context: AuralContext[T], attr: Context.Attr[T])(implicit tx: T): Transport[T] =
-    Impl[T](context, attr)
-
-  /** Creates a `Transport` for a running existing aural context. */
-  def apply[T <: synth.Txn[T]](context: AuralContext[T])(implicit tx: T): Transport[T] =
-    Impl[T](context)
 
   sealed trait Update[T <: Txn[T]] {
     def transport: Transport[T]
   }
 
-  final case class AuralStarted[T <: Txn[T]](transport: Transport[T], context: AuralContext[T]) extends Update[T]
+//  final case class AuralStarted[T <: Txn[T]](transport: Transport[T], context: AuralContext[T]) extends Update[T]
 
   sealed trait StateUpdate[T <: Txn[T]] extends Update[T] {
     def position: Long

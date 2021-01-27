@@ -111,7 +111,7 @@ class AuralTests1[T <: STxn[T]](name: String)(implicit cursor: Cursor[T]) extend
       tl   .add(Span.from (frame(2.0)            ), pDif  )
       tl   .add(Span      (frame(4.0), frame(6.0)), pFlt  )
 
-      val t = Transport[T](context)
+      val t = Transport[T](context.universe)
       t.addObject(tl)
       t.play()
 
@@ -167,7 +167,7 @@ class AuralTests1[T <: STxn[T]](name: String)(implicit cursor: Cursor[T]) extend
       val attr = p.attr
       attr.put("key", gr)
 
-      val t = Transport[T](context)
+      val t = Transport[T](context.universe)
       t.addObject(tl)
       t.play()
 
@@ -225,7 +225,7 @@ class AuralTests1[T <: STxn[T]](name: String)(implicit cursor: Cursor[T]) extend
       val attr = p1.attr
       attr.put("key", gr)
 
-      val t = Transport[T](context)
+      val t = Transport[T](context.universe)
       t.addObject(p1)
       t.addObject(p2)
       t.play()
@@ -278,7 +278,7 @@ class AuralTests1[T <: STxn[T]](name: String)(implicit cursor: Cursor[T]) extend
       val attr = p1.attr
       attr.put("key", pin)
 
-      val t = Transport[T](context)
+      val t = Transport[T](context.universe)
       t.addObject(p1)
       t.addObject(p2)
       t.play()
@@ -320,7 +320,7 @@ class AuralTests1[T <: STxn[T]](name: String)(implicit cursor: Cursor[T]) extend
       val p1H = tx.newHandle(p1)
       val p2H = tx.newHandle(p2)
 
-      val t     = Transport[T](context)
+      val t     = Transport[T](context.universe)
       t.addObject(p1)
       t.addObject(p2)
       t.play()
@@ -372,7 +372,7 @@ class AuralTests1[T <: STxn[T]](name: String)(implicit cursor: Cursor[T]) extend
       val artH  = tx.newHandle(art)
       pRec.attr.put("disk", art)
 
-      val t     = Transport[T](context)
+      val t     = Transport[T](context.universe)
       t.addObject(pRec)
       t.play()
       val pRecH = tx.newHandle(pRec)
@@ -430,7 +430,7 @@ class AuralTests1[T <: STxn[T]](name: String)(implicit cursor: Cursor[T]) extend
       }
       _proc.name = "out"
       // addScanIn(_proc, "in")
-      val t = Transport[T](context)
+      val t = Transport[T](context.universe)
       t.addObject(_proc)
       t.play()
       val procH = tx.newHandle(_proc)
@@ -596,7 +596,7 @@ class AuralTests1[T <: STxn[T]](name: String)(implicit cursor: Cursor[T]) extend
       _tl.add (1.0 -> 8.0, _proc1)
       // _tl += (1.0 -> 6.0, _proc2)
       _tl.add (Span.all, _proc2)
-      val _tr = Transport(context)
+      val _tr = Transport(context.universe)
       _tr.addObject(_tl)
 
       (_tr, tx.newHandle(_proc1), tx.newHandle(_proc2))
@@ -673,7 +673,7 @@ class AuralTests1[T <: STxn[T]](name: String)(implicit cursor: Cursor[T]) extend
 
       val _tl = timeline()
       _tl.add (2.0 -> 10.0, _proc1)
-      val _tr = Transport(context)
+      val _tr = Transport(context.universe)
       _tr.addObject(_tl)
       _tr
     }
@@ -832,7 +832,7 @@ class AuralTests1[T <: STxn[T]](name: String)(implicit cursor: Cursor[T]) extend
 
       _tl.add (10.0 -> 13.0, _proc1)
 
-      val _tr = Transport(context)
+      val _tr = Transport(context.universe)
       _tr.addObject(_tl)
       _tr.addObject(_proc2)
       _tr.seek(frame(8.0))

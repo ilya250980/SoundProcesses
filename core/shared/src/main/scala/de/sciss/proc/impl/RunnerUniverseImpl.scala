@@ -15,9 +15,10 @@ package de.sciss.proc.impl
 
 import de.sciss.lucre.Txn.{peer => txPeer}
 import de.sciss.lucre.impl.ObservableImpl
+import de.sciss.lucre.synth.{RT, Server}
 import de.sciss.lucre.{Cursor, Disposable, Folder, Obj, Workspace, synth}
 import de.sciss.proc.Runner.Factory
-import de.sciss.proc.{Action, AuralSystem, Control, GenContext, Proc, Runner, Scheduler, Timeline, Universe}
+import de.sciss.proc.{Action, AuralContext, AuralSystem, Control, GenContext, Proc, Runner, Scheduler, SoundProcesses, Timeline, Universe}
 
 import scala.collection.immutable.{IndexedSeq => Vec}
 import scala.concurrent.stm.{Ref, TMap}
@@ -56,7 +57,7 @@ object RunnerUniverseImpl {
       val gen       = GenContext[T]()
       val scheduler = Scheduler [T]()
       val aural     = AuralSystem(global = true)
-      val res0      = new Impl[T](gen, scheduler, aural, tx)
+      val res0      = new Impl[T](gen, scheduler, aural).init()
       handlerMap.put(workspace, res0)
       res0
     }
@@ -68,22 +69,23 @@ object RunnerUniverseImpl {
   /** Creates a new handler. */
   def apply[T <: synth.Txn[T]](genContext: GenContext[T], scheduler: Scheduler[T], auralSystem: AuralSystem)
                         (implicit tx: T, cursor: Cursor[T], workspace: Workspace[T]): Universe[T] = {
-    new Impl[T](genContext, scheduler, auralSystem, tx)
+    new Impl[T](genContext, scheduler, auralSystem).init()
   }
 
   private[this] val handlerMap = TMap.empty[Workspace[_], Impl[_]]
 
   private final class Impl[T <: synth.Txn[T]](val genContext: GenContext[T], val scheduler: Scheduler[T],
-                                         val auralSystem: AuralSystem, tx0: T)
+                                         val auralSystem: AuralSystem)
                                         (implicit val cursor: Cursor[T], val workspace: Workspace[T])
     extends Universe[T] with ObservableImpl[T, Universe.Update[T]] { impl =>
 
     private[this] val runnersRef  = Ref(Vec.empty[Runner[T]])
     private[this] val useCount    = Ref(0)
+    private[this] var obsAural: Disposable[T] = _
+    private[this] val auralContextRef = Ref(Option.empty[AuralContext[T]])
 
-    def mkChild(newAuralSystem: AuralSystem, newScheduler: Scheduler[T])(implicit tx: T): Universe[T] = {
-      new Impl[T](genContext = genContext, scheduler = newScheduler, auralSystem = newAuralSystem, tx0 = tx)
-    }
+    def mkChild(newAuralSystem: AuralSystem, newScheduler: Scheduler[T])(implicit tx: T): Universe[T] =
+      new Impl[T](genContext = genContext, scheduler = newScheduler, auralSystem = newAuralSystem).init()
 
 //    def mkTransport()(implicit tx: T): Transport[T] = Transport(this)
 
@@ -98,7 +100,18 @@ object RunnerUniverseImpl {
       }
     }
 
-    workspace.addDependent(dependent)(tx0)
+    def init()(implicit tx: T): this.type = {
+      workspace.addDependent(dependent)
+      obsAural = auralSystem.react { implicit tx => {
+        case AuralSystem.Running(server)  => auralStarted(server)
+        case AuralSystem.Stopped          => auralStopped()
+        case _ =>
+      }}
+      auralSystem.serverOption.foreach { server =>
+        auralStartedTx(server, dispatch = false)
+      }
+      this
+    }
 
     def use()(implicit tx: T): Unit =
       useCount += 1
@@ -129,6 +142,39 @@ object RunnerUniverseImpl {
 
         case _ => None
       }
+    }
+
+    // ---- aural ----
+
+    override def auralContext(implicit t: T): Option[AuralContext[T]] =
+      auralContextRef()
+
+    private def auralStarted(server: Server)(implicit tx: RT): Unit = {
+      // The reasoning for the txn decoupling
+      // is the discrepancy between Txn and T
+      tx.afterCommit {
+        SoundProcesses.step[T]("auralStarted") { implicit tx: T =>
+          auralStartedTx(server, dispatch = true)
+        }
+      }
+    }
+
+    private def auralStopped()(implicit tx: RT): Unit =
+      tx.afterCommit {
+        SoundProcesses.step[T]("auralStopped") { implicit tx: T =>
+          auralStoppedTx()
+        }
+      }
+
+    private def auralStartedTx(server: Server, dispatch: Boolean)(implicit tx: T): Unit = {
+      val auralContext = AuralContext[T](server)(tx, this)
+      auralContextRef() = Some(auralContext)
+      if (dispatch) fire(Universe.AuralStarted[T](auralContext))
+    }
+
+    private def auralStoppedTx()(implicit tx: T): Unit = {
+      auralContextRef() = None
+      fire(Universe.AuralStopped())
     }
   }
 }

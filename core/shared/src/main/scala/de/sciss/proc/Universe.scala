@@ -33,18 +33,19 @@ object Universe {
   sealed trait Update[T <: Txn[T]]
   final case class Added  [T <: Txn[T]](r: Runner[T]) extends Update[T]
   final case class Removed[T <: Txn[T]](r: Runner[T]) extends Update[T]
-
-  /** Common base for `Universe` and `Action.Universe` */
-  trait Base[T <: Txn[T]] {
-    def auralSystem: AuralSystem
-
-    implicit def workspace    : LWorkspace[T]
-    implicit def cursor       : Cursor    [T]
-    implicit def genContext   : GenContext[T]
-    implicit val scheduler    : Scheduler [T]
-  }
+  final case class AuralStarted[T <: Txn[T]](c: AuralContext[T]) extends Update[T]
+  final case class AuralStopped[T <: Txn[T]]() extends Update[T]
 }
-trait Universe[T <: Txn[T]] extends Universe.Base[T] with Disposable[T] with Observable[T, Universe.Update[T]] {
+trait Universe[T <: Txn[T]] extends /*Universe.Base[T] with*/ Disposable[T] with Observable[T, Universe.Update[T]] {
+  def auralSystem: AuralSystem
+
+  implicit def workspace    : LWorkspace[T]
+  implicit def cursor       : Cursor    [T]
+  implicit def genContext   : GenContext[T]
+  implicit val scheduler    : Scheduler [T]
+
+  def auralContext(implicit t: T): Option[AuralContext[T]]
+
   /** Since we obtain `Universe[_]` from some methods, this is lesser evil, since we
     * cannot make totally "wrong" casts here. */
   def cast[T1 <: Txn[T1]]: Universe[T1] = this.asInstanceOf[Universe[T1]]

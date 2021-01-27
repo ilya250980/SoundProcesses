@@ -37,9 +37,6 @@ object TimelineRunnerImpl {
 
     protected def obj(implicit tx: T): Obj[T] = objH()
 
-    def init()(implicit tx: T): this.type =
-      connectAuralSystem()
-
     private def mkSch()(implicit tx: T): Unit = {
       val tl = objH()
       tl.lastEvent.foreach { timeStop =>

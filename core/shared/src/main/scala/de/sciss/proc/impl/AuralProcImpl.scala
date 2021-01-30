@@ -15,6 +15,7 @@ package de.sciss.proc.impl
 
 import de.sciss.audiofile.AudioFileType
 import de.sciss.equal.Implicits._
+import de.sciss.lucre.expr.graph.{Var => ExVar}
 import de.sciss.lucre.impl.ObservableImpl
 import de.sciss.lucre.synth.{AudioBus, Buffer, Bus, BusNodeSetter, Executor, NodeRef, Server}
 import de.sciss.lucre.{Artifact, Disposable, DoubleVector, ExprLike, IExpr, IntVector, Obj, Source, StringObj, Txn, TxnLike, synth}
@@ -27,7 +28,7 @@ import de.sciss.proc.Implicits._
 import de.sciss.proc.Runner.{Prepared, Preparing, Running, Stopped}
 import de.sciss.proc.TimeRef.SampleRate
 import de.sciss.proc.UGenGraphBuilder.{Complete, Incomplete, MissingIn}
-import de.sciss.synth.proc.graph.impl.{ActionResponder, StopSelfResponder}
+import de.sciss.synth.proc.graph.impl.{ActionResponder, MkValueResponder, StopSelfResponder}
 import de.sciss.synth.proc.graph
 import de.sciss.proc.{Action, AudioCue, AuralAttribute, AuralContext, AuralNode, AuralObj, AuralOutput, FadeSpec, Gen, GenView, ObjKeys, Proc, Runner, TimeRef, UGenGraphBuilder => UGB}
 import de.sciss.proc.SoundProcesses.{logAural => logA}
@@ -606,6 +607,11 @@ object AuralProcImpl {
 
       case _: UGB.Input.BufferOut => UGB.Unit
       case    UGB.Input.StopSelf  => UGB.Unit
+      case i: UGB.Input.MkValue =>
+        val aKey    = i.name
+        val defined = runnerAttr.contains(aKey)
+        UGB.Input.MkValue.Value(defined)
+
       case _: UGB.Input.Action    => UGB.Input.Action .Value
       case i: UGB.Input.DiskOut   => UGB.Input.DiskOut.Value(i.numChannels)
       case _: UGB.Input.BufferGen => UGB.Input.BufferGen.Value(st.allocUniqueId())
@@ -876,6 +882,17 @@ object AuralProcImpl {
           nr.addControl(ctlName -> rb.id)
           val late = Buffer.disposeWithNode(rb, nr)
           nr.addResource(late)
+
+        case v: UGB.Input.MkValue.Value =>
+          if (v.defined) {
+            // XXX TODO silly that we have to call contains/get twice
+            runnerAttr.get(key) match {
+              case Some(ex: ExVar.Expanded[T, _]) =>
+                val resp = new MkValueResponder(ex, key = key, synth = nr.node)
+                nr.addUser(resp)
+              case _ =>
+            }
+          }
 
         case UGB.Input.Action.Value =>   // ----------------------- action
           val resp = new ActionResponder(objH = _objH /* tx.newHandle(nr.obj) */, key = key, synth = nr.node)

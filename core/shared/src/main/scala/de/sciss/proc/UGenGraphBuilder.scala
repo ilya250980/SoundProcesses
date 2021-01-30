@@ -275,6 +275,24 @@ object UGenGraphBuilder {
       override def productPrefix = "Input.Action"
     }
 
+    object MkValue {
+      final case class Value(defined: Boolean) extends UGenGraphBuilder.Value {
+        def async = false
+        override def productPrefix = "Input.MkValue.Value"
+      }
+    }
+    /** Specifies access to `expr.Var`.
+      *
+      * @param name   name (key) of the attribute referring to a variable
+      */
+    final case class MkValue(name: String) extends Input[MkValue.Value] {
+      type Key = AttributeKey
+
+      def key: Key = AttributeKey(name)
+
+      override def productPrefix = "Input.MkValue"
+    }
+
     case object StopSelf extends Input[Unit] with Key {
       type Key = StopSelf.type
 

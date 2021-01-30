@@ -71,6 +71,7 @@ object ProcElem {
       BufferGen,
       BufferOut,
       FadeIn, FadeOut, FadeInOut,
+      MkValue,
       Param,
       ScanIn, ScanOut, ScanInFix,
       StopSelf,

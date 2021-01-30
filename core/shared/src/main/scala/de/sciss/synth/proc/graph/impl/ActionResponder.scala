@@ -49,40 +49,12 @@ final class ActionResponder[T <: Txn[T]](objH: Source[T, Obj[T]], key: String, p
   private[this] val Name    = replyName(key)
   private[this] val NodeId  = synth.peer.id
 
-//  protected val body: Body = {
-//    case osc.Message(Name, NodeId, 0, raw @ _*) =>
-//      if (DEBUG) println(s"ActionResponder($key, $NodeId) - received trigger")
-//      // logAural(m.toString)
-//      val values: Vec[Float] = raw match {
-//        case rawV: Vec[_] =>
-//          rawV.collect {
-//            case f: Float => f
-//          }
-//
-//        case _ =>
-//          raw.iterator.collect {
-//            case f: Float => f
-//          }.toIndexedSeq
-//      }
-//      import context.universe
-//      import context.universe.cursor
-//      SoundProcesses.step(s"ActionResponder($synth, $key)") { implicit tx: T =>
-//        val invoker = objH()
-//        invoker.attr.$[proc.ActionRaw](key).foreach { action =>
-//          if (DEBUG) println("...and found action")
-//          val au = proc.Action.Universe[T](action, invoker = Some(invoker),
-//            value = proc.ActionRaw.FloatVector(values))
-//          action.execute(au)
-//        }
-//      }
-//  }
-
   protected val body: Body = {
     case osc.Message(Name, NodeId, 0, raw @ _*) =>
       if (DEBUG) println(s"ActionResponder($key, $NodeId) - received trigger")
       // logAural(m.toString)
       val values: Vec[Double] = raw match {
-        case rawV: Vec[_] =>
+        case rawV: Vec[Any] =>
           rawV.collect {
             case f: Float => f.toDouble
           }
@@ -101,15 +73,15 @@ final class ActionResponder[T <: Txn[T]](objH: Source[T, Obj[T]], key: String, p
           if (DEBUG) println("...and found action")
           val selfH = objH  // XXX TODO -- or should that be the `Action`?
           import universe.workspace
-          implicit val undo: UndoManager[T] = UndoManager.dummy
-          implicit val ctx: Context[T] = Context[T](selfH = Some(selfH))
+          implicit val undo : UndoManager [T] = UndoManager.dummy
+          implicit val ctx  : Context     [T] = Context[T](selfH = Some(selfH))
           import ctx.targets
           r.prepare(new IExprAsRunnerMap[T](
             new Const.Expanded[T, (String, Vec[Double])](("value", values)) :: Nil, tx
           ))
           r.run()
-          r.dispose()
-          ctx.dispose()
+          r   .dispose()
+          ctx .dispose()
         }
       }
   }

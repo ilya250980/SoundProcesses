@@ -42,7 +42,7 @@ object FolderRunnerImpl {
 
     override def toString = s"Runner.Folder${hashCode().toHexString}"
 
-    private[this] val obsRef  = Ref.make[Disposable[T]]
+    private[this] val obsRef  = Ref.make[Disposable[T]]()
     private[this] val rHead   = Ref.make[Entry[T]]()
     private[this] val attrRef = Ref(Context.emptyAttr[T])
 

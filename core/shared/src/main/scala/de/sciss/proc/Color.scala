@@ -104,7 +104,7 @@ object Color {
       new Predefined(_id, _name, _rgba)
     }
   }
-  final case class Predefined private(id: Int, name: String, rgba: Int) extends Color {
+  final case class Predefined private[Color] (id: Int, name: String, rgba: Int) extends Color {
     override def productPrefix: String = s"Color$$Predefined" // serialization
   }
 

@@ -8,7 +8,7 @@ lazy val mimaVersion    = "4.7.0" // used for migration-manager
 
 lazy val commonJvmSettings = Seq(
   // dotty started crashing with CyclicReference :-(
-  crossScalaVersions := Seq(/* "3.0.0-M2", */ "2.13.4", "2.12.12"),
+  crossScalaVersions := Seq("3.0.0-M3", "2.13.4", "2.12.12"),
 )
 
 // sonatype plugin requires that these are in global
@@ -52,24 +52,24 @@ lazy val commonSettings = Seq(
 lazy val deps = new {
   val main = new {
     val asyncFile           = "0.1.2"
-    val audioFile           = "2.3.2"
+    val audioFile           = "2.3.3"
     val equal               = "0.1.6"
     val lucre               = "4.4.1-SNAPSHOT"
     val numbers             = "0.2.1"
     val processor           = "0.5.0"
-    val scalaCollider       = "2.6.0"
-    val scalaColliderIf     = "1.7.0"
+    val scalaCollider       = "2.6.1"
+    val scalaColliderIf     = "1.7.1"
     val scalaJavaTime       = "2.1.0"
     val serial              = "2.0.1"
-    val span                = "2.0.0"
+    val span                = "2.0.2"
     val topology            = "1.1.4"
     val ugens               = "1.21.0"
   }
 
   val views = new {
-    val audioWidgets        = "2.3.1"
-    val lucreSwing          = "2.6.0"
-    val scalaColliderSwing  = "2.6.0"
+    val audioWidgets        = "2.3.2"
+    val lucreSwing          = "2.6.1-SNAPSHOT"
+    val scalaColliderSwing  = "2.6.1"
     val swingPlus           = "0.5.0"
   }
   

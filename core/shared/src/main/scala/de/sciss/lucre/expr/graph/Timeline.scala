@@ -42,7 +42,7 @@ object Timeline extends ProductReader[Ex[Timeline]] {
   }
 
   private[lucre] object Empty extends Timeline {
-    private[lucre] def peer[T <: Txn[T]](implicit tx: T): Option[Peer[T]] = None
+    def peer[T <: Txn[T]](implicit tx: T): Option[Peer[T]] = None
 
     override def toString: String = "Timeline<empty>"
   }

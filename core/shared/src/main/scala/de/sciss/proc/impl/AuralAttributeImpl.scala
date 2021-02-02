@@ -14,6 +14,7 @@
 package de.sciss.proc.impl
 
 import de.sciss.lucre.impl.DummyObservableImpl
+import de.sciss.lucre.expr.graph.{Obj => ExObj}
 import de.sciss.lucre.{AnyTxn, BooleanObj, Disposable, DoubleObj, DoubleVector, Expr, ExprLike, Folder, IExpr, IntObj, IntVector, Obj, Source, Txn, synth}
 import de.sciss.synth.Curve
 import de.sciss.proc.AuralAttribute.{Factory, Observer, Scalar, Target}
@@ -54,6 +55,12 @@ object AuralAttributeImpl {
   def expr[T <: synth.Txn[T], A](key: String, value: IExpr[T, A], observer: Observer[T])
                           (implicit tx: T, context: AuralContext[T]): AuralAttribute[T] = {
     val v = value.value
+
+    def fallBack(): AuralAttribute[T] = {
+      Console.err.println(s"Warning: AuralAttribute - no factory for $value")
+      new DummyExprLike(key, value)
+    }
+
     v match {
       case _: Int       => IntExprLike      (key, value.asInstanceOf[ExprLike[T, Int      ]], observer)
       case _: Double    => DoubleExprLike   (key, value.asInstanceOf[ExprLike[T, Double   ]], observer)
@@ -63,9 +70,13 @@ object AuralAttributeImpl {
         DoubleVectorExprLike (key, value.asInstanceOf[ExprLike[T, ISeq[Double]]], observer)
       case sq: ISeq[_] if sq.forall(_.isInstanceOf[Int]) =>
         IntVectorExprLike    (key, value.asInstanceOf[ExprLike[T, ISeq[Int]   ]], observer)
-      case _ => 
-        Console.err.println(s"Warning: AuralAttribute - no factory for $value")
-        new DummyExprLike(key, value)
+      case obj: ExObj   =>
+        // XXX TODO: track changes to expression
+        obj.peer[T] match {
+          case Some(p)  => AuralAttribute(key, value = p, observer = observer)
+          case None     => fallBack()
+        }
+      case _ => fallBack()
     }
   }
 

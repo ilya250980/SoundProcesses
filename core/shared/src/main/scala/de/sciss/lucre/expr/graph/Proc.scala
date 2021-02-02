@@ -92,7 +92,7 @@ object Proc extends ProductReader[Ex[Proc]] {
   }
 
   private[lucre] case object Empty extends Proc {
-    private[lucre] def peer[T <: Txn[T]](implicit tx: T): Option[Peer[T]] = None
+    def peer[T <: Txn[T]](implicit tx: T): Option[Peer[T]] = None
   }
 
   private final class ApplyExpanded[T <: Txn[T]](implicit targets: ITargets[T])

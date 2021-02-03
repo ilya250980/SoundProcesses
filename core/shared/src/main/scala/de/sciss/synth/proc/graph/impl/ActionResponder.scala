@@ -14,14 +14,13 @@
 package de.sciss.synth.proc.graph.impl
 
 import de.sciss.lucre.edit.UndoManager
-import de.sciss.lucre.{Obj, Source}
 import de.sciss.lucre.expr.graph.Const
 import de.sciss.lucre.expr.{Context, IExprAsRunnerMap}
-import de.sciss.lucre.synth.{Node, RT, Txn}
+import de.sciss.lucre.synth.{RT, Synth, Txn}
+import de.sciss.lucre.{Obj, Source}
 import de.sciss.proc.{AuralContext, Runner, SoundProcesses}
-import de.sciss.proc
 import de.sciss.synth.GE
-import de.sciss.{osc, synth}
+import de.sciss.{osc, proc, synth}
 
 import scala.collection.immutable.{IndexedSeq => Vec}
 
@@ -40,7 +39,7 @@ object ActionResponder {
 
   var DEBUG = false
 }
-final class ActionResponder[T <: Txn[T]](objH: Source[T, Obj[T]], key: String, protected val synth: Node)
+final class ActionResponder[T <: Txn[T]](objH: Source[T, Obj[T]], key: String, protected val synth: Synth)
                                         (implicit context: AuralContext[T])
   extends SendReplyResponder {
 

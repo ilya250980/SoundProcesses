@@ -55,7 +55,7 @@ object AuralAttribute {
   // ---- Target ----
 
   object Target {
-    def apply[T <: synth.Txn[T]](nodeRef: NodeRef.Full[T], key: String, targetBus: AudioBus)
+    def apply[T <: synth.Txn[T]](nodeRef: AuralNode[T] /* NodeRef.Full[T] */, key: String, targetBus: AudioBus)
                            (implicit tx: T): Target[T] = {
       val res = new impl.AuralAttributeTargetImpl[T](nodeRef, key, targetBus)
       // nodeRef.addUser(res)

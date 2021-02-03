@@ -13,10 +13,10 @@
 
 package de.sciss.proc.impl
 
-import de.sciss.lucre.synth.NodeRef
 import de.sciss.lucre.{Disposable, Txn}
+import de.sciss.proc.AuralNode
 import de.sciss.processor.Processor
 
 trait AsyncResource[T <: Txn[T]] extends Processor[Any] with Disposable[T] {
-  def install(b: NodeRef.Full[T])(implicit tx: T): Unit
+  def install(b: AuralNode[T] /* NodeRef.Full[T] */)(implicit tx: T): Unit
 }

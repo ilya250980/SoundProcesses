@@ -14,7 +14,7 @@
 package de.sciss.synth.proc.graph.impl
 
 import de.sciss.lucre.expr.graph.{Const => ExConst, Var => ExVar}
-import de.sciss.lucre.synth.{Node, RT, Txn}
+import de.sciss.lucre.synth.{RT, Synth, Txn}
 import de.sciss.proc.{AuralContext, SoundProcesses}
 import de.sciss.synth.GE
 import de.sciss.{osc, synth}
@@ -34,7 +34,7 @@ object MkValueResponder {
 
   var DEBUG = false
 }
-final class MkValueResponder[T <: Txn[T], A](vr: ExVar.Expanded[T, A], key: String, protected val synth: Node)
+final class MkValueResponder[T <: Txn[T], A](vr: ExVar.Expanded[T, A], key: String, protected val synth: Synth)
                                             (implicit context: AuralContext[T])
   extends SendReplyResponder {
 

@@ -13,9 +13,9 @@
 
 package de.sciss.proc
 
-import de.sciss.lucre.synth
-import de.sciss.lucre.synth.{Group, NodeRef, RT, Server, Txn}
-import de.sciss.synth.NestedUGenGraphBuilder
+import de.sciss.lucre.{Disposable, synth, Txn => LTxn}
+import de.sciss.lucre.synth.{DynamicUser, Group, NodeRef, RT, Resource, Server, Synth}
+import de.sciss.synth.{ControlSet, NestedUGenGraphBuilder}
 import de.sciss.proc.impl.{AuralNodeImpl => Impl}
 
 object AuralNode {
@@ -23,12 +23,12 @@ object AuralNode {
                           server: Server, nameHint: Option[String])(implicit tx: RT): Builder[T] =
     Impl[T](timeRef, wallClock, ubRes, server, nameHint = nameHint)
 
-  trait Builder[T <: Txn[T]] extends AuralNode[T] {
+  trait Builder[T <: LTxn[T]] extends AuralNode[T] {
     def play()(implicit tx: T): Unit
   }
 }
 
-trait AuralNode[T <: Txn[T]] extends NodeRef.Full[T] {
+trait AuralNode[T <: LTxn[T]] extends NodeRef with Disposable[T] /* .Full[T] */ {
   def timeRef: TimeRef
 
   def shiftTo(newWallClock: Long): TimeRef
@@ -40,7 +40,28 @@ trait AuralNode[T <: Txn[T]] extends NodeRef.Full[T] {
     * this method will create a new group. */
   def group()(implicit tx: T): Group
 
+  def synth: Synth
+
   def group_=(value: Group)(implicit tx: T): Unit
 
   def preGroup()(implicit tx: T): Group
+
+  // ----
+
+  /** Adds a user to the node-ref. If it is already playing,
+    * it successively calls `user.add()`.
+    */
+  def addUser(user: DynamicUser)(implicit tx: RT): Unit
+
+  /** Removes a user from the node-ref. __Note:__ If the node-ref
+    * is already playing, it currently does not call `user.remove()`,
+    * but this must be done by the caller.
+    * XXX TODO -- perhaps we should change that?
+    */
+  def removeUser(user: DynamicUser)(implicit tx: RT): Unit
+
+  def addResource   (resource: Resource)(implicit tx: RT): Unit
+  def removeResource(resource: Resource)(implicit tx: RT): Unit
+
+  def addControl(pair: ControlSet)(implicit tx: T): Unit
 }

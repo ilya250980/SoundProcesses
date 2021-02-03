@@ -13,7 +13,7 @@
 
 package de.sciss.synth.proc.graph.impl
 
-import de.sciss.lucre.synth.{DynamicUser, Node, RT}
+import de.sciss.lucre.synth.{DynamicUser, RT, Synth}
 import de.sciss.osc
 import de.sciss.synth.message
 
@@ -25,7 +25,7 @@ trait SendReplyResponder extends DynamicUser {
 
   // ---- abstract ----
 
-  protected def synth   : Node
+  protected def synth   : Synth
 
   protected def added()(implicit tx: RT): Unit
 

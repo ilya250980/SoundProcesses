@@ -15,7 +15,7 @@ package de.sciss.proc.impl
 
 import de.sciss.lucre.impl.ObservableImpl
 import de.sciss.lucre.synth.{AudioBus, BusNodeSetter, DynamicUser, NodeRef, RT, Resource, Synth, Txn => STxn}
-import de.sciss.proc.AuralAttribute
+import de.sciss.proc.{AuralAttribute, AuralNode}
 import de.sciss.proc.AuralAttribute.{Scalar, Stream, Value}
 import de.sciss.synth
 import de.sciss.synth.Ops.stringToControl
@@ -24,7 +24,7 @@ import de.sciss.synth.{ControlSet, SynthGraph}
 
 import scala.concurrent.stm.{Ref, TMap}
 
-final class AuralAttributeTargetImpl[T <: STxn[T]](target: NodeRef.Full[T], val key: String, targetBus: AudioBus)
+final class AuralAttributeTargetImpl[T <: STxn[T]](target: AuralNode[T] /* NodeRef.Full[T] */, val key: String, targetBus: AudioBus)
   extends AuralAttribute.Target[T] with ObservableImpl[T, Value] {
 
   override def toString = s"AuralAttribute.Target($target, $key, $targetBus)"

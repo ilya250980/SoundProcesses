@@ -36,24 +36,26 @@ object AuralNodeImpl {
   private final case class Result(tree: Tree, controls: List[ControlSet], buses: List[BusNodeSetter])
 
   private sealed trait Tree {
+    def synth: Synth
+
     def main: Node
     def play(target: Node, args: ISeq[ControlSet], addAction: AddAction, dependencies: List[Resource])
             (implicit tx: RT): Unit
   }
 
-  private final case class Leaf(syn: Synth) extends Tree {
-    def main: Node = syn
+  private final case class Leaf(synth: Synth) extends Tree {
+    def main: Node = synth
     def play(target: Node, args: ISeq[ControlSet], addAction: AddAction, dependencies: List[Resource])
             (implicit tx: RT): Unit =
-      syn.play(target = target, args = args, addAction = addAction, dependencies = dependencies)
+      synth.play(target = target, args = args, addAction = addAction, dependencies = dependencies)
   }
 
-  private final case class Branch(group: Group, syn: Synth, children: List[Tree]) extends Tree {
+  private final case class Branch(group: Group, synth: Synth, children: List[Tree]) extends Tree {
     def main: Node = group
     def play(target: Node, args: ISeq[ControlSet], addAction: AddAction, dependencies: List[Resource])
             (implicit tx: RT): Unit = {
       group.play(target = target, addAction = addAction, args = Nil, dependencies = dependencies)
-      syn  .play(target = group , addAction = addToHead, args = Nil, dependencies = Nil         )
+      synth  .play(target = group , addAction = addToHead, args = Nil, dependencies = Nil         )
       children.foreach { ch =>
         ch .play(target = group , addAction = addToTail, args = Nil, dependencies = Nil         )
       }
@@ -77,7 +79,7 @@ object AuralNodeImpl {
           if (cc.id >= 0) ctl ::= NestedUGenGraphBuilder.pauseNodeCtlName(cc.id) -> ccn.main.peer.id
           ccn
         }
-        Branch(group = group, syn = syn, children = children)
+        Branch(group = group, synth = syn, children = children)
 
       } else {
         Leaf(syn)
@@ -143,6 +145,8 @@ object AuralNodeImpl {
     def groupOption(implicit tx: RT): Option[Group] = groupsRef().map(_.main)
 
     def node(implicit tx: RT): Node = groupOption.getOrElse(graphMain)
+
+    def synth: Synth = tree.synth
 
     def play()(implicit tx: T): Unit = {
       // `play` calls `requireOffline`, so we are safe against accidental repeated calls

@@ -14,12 +14,12 @@
 package de.sciss.synth.proc.graph.impl
 
 import de.sciss.lucre.Cursor
-import de.sciss.lucre.synth.{Node, RT, Txn}
+import de.sciss.lucre.synth.{RT, Synth, Txn}
 import de.sciss.osc
-import de.sciss.synth.proc.graph.StopSelf
 import de.sciss.proc.{SoundProcesses, ViewBase}
+import de.sciss.synth.proc.graph.StopSelf
 
-final class StopSelfResponder[T <: Txn[T]](view: ViewBase[T], protected val synth: Node)
+final class StopSelfResponder[T <: Txn[T]](view: ViewBase[T], protected val synth: Synth)
                                           (implicit cursor: Cursor[T])
   extends SendReplyResponder {
 

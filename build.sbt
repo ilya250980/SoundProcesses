@@ -58,12 +58,12 @@ lazy val deps = new {
     val numbers             = "0.2.1"
     val processor           = "0.5.0"
     val scalaCollider       = "2.6.1"
-    val scalaColliderIf     = "1.7.1"
+    val scalaColliderIf     = "1.7.3"
+    val scalaColliderUGens  = "1.21.1"
     val scalaJavaTime       = "2.1.0"
     val serial              = "2.0.1"
     val span                = "2.0.2"
     val topology            = "1.1.4"
-    val ugens               = "1.21.0"
   }
 
   val views = new {
@@ -119,7 +119,7 @@ lazy val synth = crossProject(platforms: _*).in(file("synth"))
       "de.sciss" %%% "asyncfile"               % deps.main.asyncFile,
       "de.sciss" %%% "audiofile"               % deps.main.audioFile,
       "de.sciss" %%% "scalacollider"           % deps.main.scalaCollider,
-      "de.sciss" %%% "scalacolliderugens-core" % deps.main.ugens
+      "de.sciss" %%% "scalacolliderugens-core" % deps.main.scalaColliderUGens,
     ),
     Compile / unmanagedSourceDirectories ++= {
       val sourceDirPl = (sourceDirectory in Compile).value

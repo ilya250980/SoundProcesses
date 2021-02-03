@@ -687,7 +687,7 @@ object AuralProcImpl {
     }
 
     /** Sub-classes may override this if invoking the super-method. */
-    protected def buildAttrStreamInput(nr: NodeRef.Full[T], timeRef: TimeRef, key: String,
+    protected def buildAttrStreamInput(nr: AuralNode[T] /* NodeRef.Full[T] */, timeRef: TimeRef, key: String,
                                        info: UGB.Input.Stream.Spec, idx: Int, bufSize: Int)
                                       (implicit tx: T): BufferAndGain = {
       runnerAttr.get(key) match {
@@ -711,7 +711,7 @@ object AuralProcImpl {
     }
 
     /** Sub-classes may override this if invoking the super-method. */
-    protected def buildAttrStreamInput(nr: NodeRef.Full[T], timeRef: TimeRef, key: String,
+    protected def buildAttrStreamInput(nr: AuralNode[T] /* NodeRef.Full[T] */, timeRef: TimeRef, key: String,
                                        info: UGB.Input.Stream.Spec, idx: Int,
                                        bufSize: Int, value: Obj[T])
                                       (implicit tx: T): BufferAndGain = value match {
@@ -732,7 +732,7 @@ object AuralProcImpl {
       case a => sys.error(s"Cannot use attribute $a as an audio stream")
     }
 
-    private def buildAttrStreamInputFromExpr(nr: NodeRef.Full[T], timeRef: TimeRef, key: String,
+    private def buildAttrStreamInputFromExpr(nr: AuralNode[T] /* NodeRef.Full[T] */, timeRef: TimeRef, key: String,
                                        info: UGB.Input.Stream.Spec, idx: Int,
                                        bufSize: Int, ex: IExpr[T, _])
                                       (implicit tx: T): BufferAndGain = ex.value match {
@@ -743,7 +743,7 @@ object AuralProcImpl {
       case a => sys.error(s"Cannot use attribute $a as an audio stream")
     }
 
-    final protected def streamAudioCueToBuffer(cue: AudioCue, nr: NodeRef.Full[T], timeRef: TimeRef, key: String,
+    final protected def streamAudioCueToBuffer(cue: AudioCue, nr: AuralNode[T] /* NodeRef.Full[T] */, timeRef: TimeRef, key: String,
                                                info: UGB.Input.Stream.Spec, idx: Int,
                                                bufSize: Int)(implicit tx: T): BufferAndGain = {
       val spec      = cue.spec
@@ -768,7 +768,7 @@ object AuralProcImpl {
         )
       } else {
         val __buf = Buffer(server)(numFrames = bufSize, numChannels = spec.numChannels)
-        val trig = new StreamBufferRead(key = key, idx = idx, synth = nr.node, buf = __buf, path = path,
+        val trig = new StreamBufferRead(key = key, idx = idx, synth = nr.synth, buf = __buf, path = path,
           fileFrames = spec.numFrames, interpolation = info.interp, startFrame = offsetT, loop = false,
           resetFrame = offsetT)
         nr.addUser(trig)
@@ -803,7 +803,7 @@ object AuralProcImpl {
       * synth-graph, a different generic exception must be thrown to avoid
       * an infinite loop.
       */
-    protected def buildAttrInput(nr: NodeRef.Full[T], timeRef: TimeRef, key: String, value: UGB.Value)
+    protected def buildAttrInput(nr: AuralNode[T] /* NodeRef.Full[T] */, timeRef: TimeRef, key: String, value: UGB.Value)
                       (implicit tx: T): Unit = {
       value match {
         case UGB.Input.Scalar.Value(numChannels) =>  // --------------------- scalar
@@ -888,14 +888,14 @@ object AuralProcImpl {
             // XXX TODO silly that we have to call contains/get twice
             runnerAttr.get(key) match {
               case Some(ex: ExVar.Expanded[T, _]) =>
-                val resp = new MkValueResponder(ex, key = key, synth = nr.node)
+                val resp = new MkValueResponder(ex, key = key, synth = nr.synth)
                 nr.addUser(resp)
               case _ =>
             }
           }
 
         case UGB.Input.Action.Value =>   // ----------------------- action
-          val resp = new ActionResponder(objH = _objH /* tx.newHandle(nr.obj) */, key = key, synth = nr.node)
+          val resp = new ActionResponder(objH = _objH /* tx.newHandle(nr.obj) */, key = key, synth = nr.synth)
           nr.addUser(resp)
 
         case UGB.Input.DiskOut.Value(numCh) =>
@@ -991,7 +991,7 @@ object AuralProcImpl {
     }
 
     /** Sub-classes may override this if falling back to the super-method. */
-    protected def buildSyncInput(nr: NodeRef.Full[T], timeRef: TimeRef, keyW: UGB.Key, value: UGB.Value)
+    protected def buildSyncInput(nr: AuralNode[T] /* NodeRef.Full[T] */, timeRef: TimeRef, keyW: UGB.Key, value: UGB.Value)
                                 (implicit tx: T): Unit = keyW match {
       case UGB.AttributeKey(key) =>
         buildAttrInput(nr, timeRef, key, value)
@@ -1028,7 +1028,7 @@ object AuralProcImpl {
         nr.addResource(late)
 
       case UGB.Input.StopSelf =>
-        val resp = new StopSelfResponder[T](view = impl, synth = nr.node)
+        val resp = new StopSelfResponder[T](view = impl, synth = nr.synth)
         nr.addUser(resp)
 
       case bg: UGB.Input.BufferGen =>

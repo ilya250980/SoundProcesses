@@ -62,8 +62,10 @@ object ProcElem {
   private type SynthV = UGenSource.ProductReader[Product]
 
   private def synthSq: Seq[SynthV] = {
+    import de.sciss.synth.ugen
     import graph._
     Seq[SynthV](
+      ugen.IfThen, ugen.IfLagThen, ugen.ElseIfThen, ugen.ElseUnit, ugen.ElseGE, ugen.ThisBranch,
       Action,
       Reaction,
       Attribute,

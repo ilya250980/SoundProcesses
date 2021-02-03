@@ -13,7 +13,7 @@
 
 package de.sciss.proc.impl
 
-import de.sciss.lucre.synth.{Buffer, Node, RT}
+import de.sciss.lucre.synth.{Buffer, RT, Synth}
 import de.sciss.synth.GE
 import de.sciss.synth.proc.graph.impl.SendReplyResponder
 import de.sciss.{osc, synth}
@@ -76,7 +76,7 @@ object StreamBuffer {
  * @param resetFrame      when looping, the reset frame position into the file after each loop begins.
   *                       this should be less than or equal to `startFrame`
  */
-abstract class StreamBuffer(key: String, idx: Int, protected val synth: Node,
+abstract class StreamBuffer(key: String, idx: Int, protected val synth: Synth,
                             buf: Buffer.Modifiable, fileFrames: Long,
                             interpolation: Int, startFrame: Long, loop: Boolean, resetFrame: Long)
   extends SendReplyResponder {
@@ -158,7 +158,7 @@ abstract class StreamBuffer(key: String, idx: Int, protected val synth: Node,
   }
 }
 
-final class StreamBufferRead(key: String, idx: Int, synth: Node, buf: Buffer.Modifiable, path: String,
+final class StreamBufferRead(key: String, idx: Int, synth: Synth, buf: Buffer.Modifiable, path: String,
                              fileFrames: Long, interpolation: Int, startFrame: Long, loop: Boolean,
                              resetFrame: Long)
   extends StreamBuffer(key = key, idx = idx, synth = synth, buf = buf, fileFrames = fileFrames,

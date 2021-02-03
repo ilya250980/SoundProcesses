@@ -14,11 +14,11 @@
 package de.sciss.proc.impl
 
 import java.util.concurrent.TimeUnit
-
 import de.sciss.audiofile.AudioFileSpec
-import de.sciss.lucre.synth.{Buffer, Executor, NodeRef, RT}
+import de.sciss.lucre.synth.{Buffer, Executor, RT}
 import de.sciss.lucre.{Artifact, Txn, synth}
 import de.sciss.osc
+import de.sciss.proc.AuralNode
 import de.sciss.processor.impl.ProcessorBase
 import de.sciss.synth.proc.graph
 
@@ -114,7 +114,7 @@ object BufferPrepare {
 
     private[this] val installed = Ref(false)
 
-    def install(b: NodeRef.Full[T])(implicit tx: T): Unit = {
+    def install(b: AuralNode[T] /* NodeRef.Full[T] */)(implicit tx: T): Unit = {
       import Txn.peer
       require(!installed.swap(true))
       val ctlName = graph.Buffer.controlName(key)

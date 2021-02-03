@@ -112,6 +112,7 @@ object FolderRunnerImpl {
         case Runner.Running =>
           e.r.prepare(attrRef())
           e.r.run()
+        case _ => // Stopped, Failed
       }
     }
 

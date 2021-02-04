@@ -22,6 +22,9 @@ import scala.concurrent.duration.Duration
 import scala.scalajs.js
 
 trait ExecutorPlatform {
+  def isJVM  = false
+  def isJS   = true
+
   def defer(body: => Unit): Unit =
     executionContext.execute(() => body)
 //    js.timers.setTimeout(0.0)(body)

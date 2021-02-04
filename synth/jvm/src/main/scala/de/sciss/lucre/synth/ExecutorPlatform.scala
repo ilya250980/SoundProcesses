@@ -21,6 +21,9 @@ import de.sciss.lucre.Log.{synth => log}
 import scala.concurrent.ExecutionContext
 
 trait ExecutorPlatform {
+  def isJVM  = true
+  def isJS   = false
+
   private lazy val pool: ScheduledExecutorService = {
     // system wide scheduler
     val res =

@@ -11,7 +11,8 @@
  *  contact@sciss.de
  */
 
-package de.sciss.proc.impl
+package de.sciss.proc
+package impl
 
 import de.sciss.equal.Implicits.TripleEquals
 import de.sciss.lucre.Disposable
@@ -19,7 +20,6 @@ import de.sciss.lucre.Txn.{peer => txPeer}
 import de.sciss.lucre.synth.Server.Config
 import de.sciss.lucre.synth.{Executor, RT, Server}
 import de.sciss.osc.Dump
-import de.sciss.proc.AuralSystem
 import de.sciss.proc.AuralSystem.{Preparing, Running, Stopped}
 import de.sciss.proc.SoundProcesses.{logAural => logA}
 import de.sciss.synth.{Client, ServerConnection, Server => SServer}
@@ -29,7 +29,7 @@ import scala.concurrent.stm.Ref
 import scala.concurrent.stm.TxnExecutor.{defaultAtomic => atomic}
 
 object AuralSystemImpl {
-  import de.sciss.proc.AuralSystem.State
+  import AuralSystem.State
 
   var dumpOSC = false
 
@@ -50,7 +50,6 @@ object AuralSystemImpl {
       new Impl
     }
 
-
   /* There is a bug in Scala-STM which means
    * that calling atomic from within Txn.afterCommit
    * causes an exception. It seems this has to
@@ -66,7 +65,7 @@ object AuralSystemImpl {
   }
 
   // XXX TODO: Lucre should relax constraints on ObservableImpl. issue #41
-  private final class Impl extends AuralSystem /*with ObservableImpl[RT, State]*/ {
+  private[impl] final class Impl extends AuralSystem with AuralSystemPlatform {
     impl =>
 
     private[this] val stateRef        = Ref[State](Stopped)
@@ -82,6 +81,14 @@ object AuralSystemImpl {
     }
 
     private[this] val obsRef = Ref(Vector.empty[Observation])
+
+    protected def shutdown(): Unit = stateRef.single() match {
+      case Running(server) =>
+        server.peer.quit()
+      case Preparing() =>
+        connection.getAndSet(None).foreach(_.abort())
+      case _ =>
+    }
 
     protected def fire(update: U)(implicit tx: T): Unit = {
       val obs = obsRef()
@@ -106,27 +113,22 @@ object AuralSystemImpl {
       res
     }
 
-    private def initConnection(launch: ServerConnection.Listener => ServerConnection)(implicit tx: RT): Unit = {
-      lazy val con: ServerConnection = {
-        logA.debug("Booting")
-        launch {
-          case ServerConnection.Aborted =>
-            connection.set(None)
-            serverStopped()
+    private def initConnection(launch: ServerConnection.Listener => ServerConnection): Unit = {
+      logA.debug("Booting")
+      val con: ServerConnection = launch {
+        case ServerConnection.Aborted =>
+          connection.set(None)
+          serverStopped()
 
-          case ServerConnection.Running(s) =>
-            connection.set(None)
-            if (dumpOSC) s.dumpOSC(Dump.Text)
-            Executor.defer {
-              serverStarted(Server(s))
-            }
-        }
+        case ServerConnection.Running(s) =>
+          connection.set(None)
+          if (dumpOSC) s.dumpOSC(Dump.Text)
+          Executor.defer {
+            serverStarted(Server(s))
+          }
       }
 
-      afterCommit {
-        val c = con
-        connection.getAndSet(Some(c)).foreach(_.abort())
-      }
+      connection.getAndSet(Some(con)).foreach(_.abort())
     }
 
     override def toString = s"AuralSystem@${hashCode.toHexString}"
@@ -190,15 +192,13 @@ object AuralSystemImpl {
       state match {
         case Stopped =>
           tx.afterCommit {
-            installShutdown
+            val launch = mkConnection(config, client, connect = connect)
+            atomic { implicit itx =>
+              implicit val tx: RT = RT.wrap(itx)
+              state = Preparing()
+            }
+            initConnection(launch)
           }
-          val launch: ServerConnection.Listener => ServerConnection = if (connect) {
-            SServer.connect("SoundProcesses", config, client)
-          } else {
-            SServer.boot   ("SoundProcesses", config, client)
-          }
-          state = Preparing()
-          initConnection(launch)
 
         case _ =>
       }
@@ -214,16 +214,6 @@ object AuralSystemImpl {
 
         case _ =>
       }
-
-    private lazy val installShutdown: Unit = Runtime.getRuntime.addShutdownHook(new Thread(() => impl.shutdown()))
-
-    private def shutdown(): Unit = stateRef.single() match {
-      case Running(server) =>
-        server.peer.quit()
-      case Preparing() =>
-        connection.getAndSet(None).foreach(_.abort())
-      case _ =>
-    }
 
     def stop()(implicit tx: RT): Unit =
       state = Stopped
@@ -241,6 +231,8 @@ object AuralSystemImpl {
             case Running(server) =>
               c.dispose()
               tx.afterCommit(fun(server))
+
+            case _ =>
           }}
           c
           ()

@@ -18,7 +18,7 @@ import de.sciss.lucre.Txn.{peer => txPeer}
 import de.sciss.lucre.expr.Context
 import de.sciss.lucre.expr.ExElem.{ProductReader, RefMapIn}
 import de.sciss.lucre.impl.{DummyObservableImpl, ObservableImpl}
-import de.sciss.lucre.synth.{AnyTxn, RT, Server, Txn}
+import de.sciss.lucre.synth.{AnyTxn, Executor, RT, Server, Txn}
 import de.sciss.lucre.{ExprLike, synth, Txn => LTxn}
 import de.sciss.proc.AuralSystem.Failed
 import de.sciss.proc.Runner.Message
@@ -28,7 +28,7 @@ import de.sciss.{osc, proc}
 
 import scala.concurrent.stm.{Ref, TxnLocal}
 
-object AuralSystem extends AuralSystemPlatform with ProductReader[Runner] {
+object AuralSystem extends ProductReader[Runner] {
   def apply(): Runner = new Impl
 
   override def read(in: RefMapIn, key: String, arity: Int, adj: Int): Runner = {
@@ -205,6 +205,10 @@ object AuralSystem extends AuralSystemPlatform with ProductReader[Runner] {
         case _ =>
       }
 
+      if (Executor.isJS) {  // change the default when running Scala.js
+        sCfg.transport = osc.Browser
+      }
+
       stringAttr(Transport) { v =>
         v.toLowerCase match {
           case "udp"      => sCfg.transport = osc.UDP
@@ -229,7 +233,7 @@ object AuralSystem extends AuralSystemPlatform with ProductReader[Runner] {
         case _ =>
       }
 
-      boot(peer, sCfg, cCfg)  // platform-specific
+      peer.start(sCfg, cCfg)
     }
 
     override def stop()(implicit tx: T): Unit = {

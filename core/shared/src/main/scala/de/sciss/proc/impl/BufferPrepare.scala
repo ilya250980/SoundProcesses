@@ -13,7 +13,6 @@
 
 package de.sciss.proc.impl
 
-import java.util.concurrent.TimeUnit
 import de.sciss.audiofile.AudioFileSpec
 import de.sciss.lucre.synth.{Buffer, Executor, RT}
 import de.sciss.lucre.{Artifact, Txn, synth}
@@ -22,6 +21,7 @@ import de.sciss.proc.AuralNode
 import de.sciss.processor.impl.ProcessorBase
 import de.sciss.synth.proc.graph
 
+import java.util.concurrent.TimeUnit
 import scala.concurrent.stm.Ref
 import scala.concurrent.stm.TxnExecutor.{defaultAtomic => atomic}
 import scala.concurrent.{Future, TimeoutException}
@@ -38,7 +38,7 @@ object BufferPrepare {
     */
   case class Config(f: Artifact.Value, spec: AudioFileSpec, offset: Long, buf: Buffer.Modifiable, key: String) {
     override def productPrefix = "BufferPrepare.Config"
-    override def toString = {
+    override def toString: String = {
       import spec.{productPrefix => _, _}
       s"$productPrefix($f, numChannels = $numChannels, numFrames = $numFrames, offset = $offset, key = $key)"
     }
@@ -52,8 +52,7 @@ object BufferPrepare {
     if (numFrL > 0x3FFFFFFF) sys.error(s"File $f is too large ($numFrL frames) for an in-memory buffer")
     val res = new Impl[T](path = f.getPath, numFrames = numFrL.toInt, off0 = offset,
       numChannels = spec.numChannels, buf = buf, key = key)
-    import Executor.executionContext
-    tx.afterCommit(res.start())
+    tx.afterCommit(res.start()(Executor.executionContext))
     res
   }
 
@@ -72,8 +71,8 @@ object BufferPrepare {
 
     protected def runBody(): Future[Prod] = {
       // make sure we always have a `Future` and avoid throwing an exception from `body` directly
-      def loop(): Future[Unit] =
-        if (progress == 1.0) Future.successful(() /*buf*/) else Future.unit.flatMap { _ =>
+      def loop(): Future[Unit] = {
+        Future.unit.flatMap { _ =>
           val pr = atomic { implicit tx =>
             val offset = offsetRef()
             val chunk = math.min(numFrames - offset, blockSize)
@@ -93,19 +92,26 @@ object BufferPrepare {
           checkAborted()
 
           val fut = buf.server.!!(osc.Bundle.now()) // aka 'sync', so we let other stuff be processed first
-          if (fut.isCompleted) {
-            progress = pr
-            loop()
-          } else {
-            val futTimeOut = Executor.timeOut(fut, 1L, TimeUnit.SECONDS).recover {
-              case _: TimeoutException => ()
+
+          def awaitFut(): Future[Unit] =
+            if (fut.isCompleted) {
+              progress = pr
+              if (progress == 1.0) Future.successful(()) else loop()
+
+            } else {
+              // check once a second if processor was aborted
+              val futTimeOut = Executor.timeOut(fut, 1L, TimeUnit.SECONDS).recover {
+                case _: TimeoutException => ()
+              }
+              futTimeOut.flatMap { _ =>
+                checkAborted()
+                awaitFut()
+              }
             }
-            futTimeOut.flatMap { _ =>
-              checkAborted()
-              loop()
-            }
-          }
+
+          awaitFut()
         }
+      }
 
       loop()
     }

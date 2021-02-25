@@ -3,7 +3,7 @@ import sbtcrossproject.Platform
 lazy val baseName  = "SoundProcesses"
 lazy val baseNameL = baseName.toLowerCase
 
-lazy val projectVersion = "4.7.2-SNAPSHOT"
+lazy val projectVersion = "4.7.2"
 lazy val mimaVersion    = "4.7.0" // used for migration-manager
 
 lazy val commonJvmSettings = Seq(
@@ -50,7 +50,7 @@ lazy val commonSettings = Seq(
 
 lazy val deps = new {
   val main = new {
-    val asyncFile           = "0.1.2"
+    val asyncFile           = "0.1.3"
     val audioFile           = "2.3.3"
     val equal               = "0.1.6"
     val lucre               = "4.4.3"

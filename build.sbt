@@ -3,11 +3,11 @@ import sbtcrossproject.Platform
 lazy val baseName  = "SoundProcesses"
 lazy val baseNameL = baseName.toLowerCase
 
-lazy val projectVersion = "4.7.1"
+lazy val projectVersion = "4.7.2-SNAPSHOT"
 lazy val mimaVersion    = "4.7.0" // used for migration-manager
 
 lazy val commonJvmSettings = Seq(
-  crossScalaVersions := Seq("3.0.0-RC1", "2.13.4", "2.12.13"),
+  crossScalaVersions := Seq("3.0.0-RC1", "2.13.5", "2.12.13"),
 )
 
 // sonatype plugin requires that these are in global
@@ -20,7 +20,7 @@ lazy val commonSettings = Seq(
   homepage           := Some(url(s"https://git.iem.at/sciss/$baseName")),
   description        := "A framework for creating and managing ScalaCollider based sound processes",
   licenses           := Seq("AGPL v3+" -> url("http://www.gnu.org/licenses/agpl-3.0.txt")),
-  scalaVersion       := "2.13.4",
+  scalaVersion       := "2.13.5",
   scalacOptions ++= {
     // "-Xfatal-warnings" -- breaks for cross-scala-build and deprecations
     // -stars-align produces wrong warnings with decomposing OSC messages

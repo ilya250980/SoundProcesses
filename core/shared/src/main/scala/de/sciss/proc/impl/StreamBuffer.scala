@@ -28,20 +28,19 @@ object StreamBuffer {
     case _ => sys.error(s"Illegal interpolation value: $interp")
   }
 
-  // via SendReplyAuralContextImpl
-  private def replyName(key: String): String = s"/$$str_$key"
+  def defaultReplyName(key: String): String = s"/$$str_$key"
 
-  def makeUGen(key: String, idx: Int, buf: GE, numChannels: Int, speed: GE, interp: Int): GE = {
+  /** Creates and returns the phasor; includes the `SendReply` */
+  def makeIndex(replyName: String, buf: GE, speed: GE = 1f, padSize: Int = 0, replyId: Int = 0): GE = {
     import synth._
     import ugen._
-    val diskPad     = StreamBuffer.padSize(interp)
     //    val bufRate     = speed
     //    val phasorRate  = bufRate / SampleRate.ir
     val phasorRate  = speed
     val bufRate     = speed * SampleRate.ir
     val numFrames   = BufFrames.ir(buf)
     val halfPeriod  = numFrames / (bufRate * 2)
-    val phasor      = Phasor.ar(speed = phasorRate, lo = diskPad, hi = numFrames - diskPad)
+    val phasor      = Phasor.ar(speed = phasorRate, lo = padSize, hi = numFrames - padSize)
 
     // ---- clock trigger ----
 
@@ -56,10 +55,17 @@ object StreamBuffer {
     // position.poll(clockTrig, "count")
     // phasor.poll(2, "phasor")
 
-    SendReply.kr(trig = clockTrig, values = position, msgName = replyName(key), id = idx)
+    SendReply.kr(trig = clockTrig, values = position, msgName = replyName, id = replyId)
 
-    // ---- actual signal ----
+    phasor
+  }
 
+  def makeUGen(key: String, idx: Int, buf: GE, numChannels: Int, speed: GE, interp: Int): GE = {
+    import synth._
+    import ugen._
+    val diskPad = StreamBuffer.padSize(interp)
+    val phasor  = makeIndex(replyName = defaultReplyName(key), replyId = idx, buf = buf, speed = speed,
+      padSize = diskPad)
     BufRd.ar(numChannels, buf = buf, index = phasor, loop = 0, interp = interp)
   }
 }
@@ -84,7 +90,7 @@ abstract class StreamBuffer(key: String, idx: Int, protected val synth: Synth,
   private[this] val bufSizeH  = buf.numFrames/2
   private[this] val diskPad   = StreamBuffer.padSize(interpolation)
   private[this] val bufSizeHM = bufSizeH - diskPad
-  private[this] val replyName = StreamBuffer.replyName(key)
+  private[this] val replyName = StreamBuffer.defaultReplyName(key)
   private[this] val nodeId    = synth.peer.id
 
   protected def added()(implicit tx: RT): Unit = {

@@ -28,14 +28,14 @@ Linker errors and bugs are to be expected here.
 
 ## linking
 
-The following sub modules are available:
+The following sub-modules are available:
 
     "de.sciss" %% "lucre-synth"             % v  // transactional layer for ScalaCollider
     "de.sciss" %% "soundprocesses-core"     % v  // everything but views and compiler
     "de.sciss" %% "soundprocesses-views"    % v  // common swing views
     "de.sciss" %% "soundprocesses-compiler" % v  // compiler integration
 
-The current version `v` is `"4.7.1"`.
+The current version `v` is `"4.7.2"`.
 
 ## contributing
 

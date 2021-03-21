@@ -55,7 +55,7 @@ object ProcElem {
       ThisRunner.Attr, ThisRunner.Attr.Update, ThisRunner.Attr.Set,
       Timed.Span, Timed.Value,
       Timeline, Timeline.Add, Timeline.AddAll, Timeline.Remove, Timeline.Split, Timeline.Split.Left,
-      Timeline.Split.Right,
+      Timeline.Split.Right, Timeline.Children,
     )
   }
 

@@ -383,12 +383,49 @@ object Timeline extends ProductReader[Ex[Timeline]] {
     }
   }
 
+  // XXX TODO this must observe the timeline peer changes!
+  private final class ChildrenExpanded[T <: Txn[T], A](in: IExpr[T, Timeline], tx0: T)
+                                                   (implicit targets: ITargets[T])
+    extends MappedIExpr[T, Timeline, Seq[Timed[Obj]]](in, tx0) {
+
+    protected def mapValue(inValue: Timeline)(implicit tx: T): Seq[Timed[Obj]] =
+      inValue.peer[T].fold(Seq.empty[Timed[Obj]]) { tl =>
+        tl.iterator.flatMap {
+          case (sp, entries) =>
+            entries.map { e =>
+              val v = Obj.wrap(e.value)
+              Timed(sp, v)
+            }
+        } .toVector
+      }
+  }
+
+  object Children extends ProductReader[Children] {
+    override def read(in: RefMapIn, key: String, arity: Int, adj: Int): Children = {
+      require (arity == 1 && adj == 0)
+      val _tl = in.readEx[Timeline]()
+      new Children(_tl)
+    }
+  }
+  final case class Children(tl: Ex[Timeline]) extends Ex[Seq[Timed[Obj]]] {
+    override def productPrefix: String = s"Timeline$$Children" // serialization
+
+    type Repr[T <: Txn[T]] = IExpr[T, Seq[Timed[Obj]]]
+
+    protected def mkRepr[T <: Txn[T]](implicit ctx: Context[T], tx: T): Repr[T] = {
+      import ctx.targets
+      new ChildrenExpanded(tl.expand[T], tx)
+    }
+  }
+
   implicit final class Ops(private val tl: Ex[Timeline]) extends AnyVal {
     def add   [A](span: Ex[_SpanLike], elem: Ex[A  ])(implicit source: Obj.Source[A]): Act   = Add   (tl, span, elem)
     def remove   (span: Ex[_SpanLike], elem: Ex[Obj])                                : Act   = Remove(tl, span, elem)
     def split    (span: Ex[_SpanLike], elem: Ex[Obj], time: Ex[Long])                : Split = Split (tl, span, elem, time)
 
     def addAll[A](pairs: Ex[Seq[(_SpanLike, A)]])(implicit source: Obj.Source[A]): Act = AddAll(tl, pairs)
+
+    def children: Ex[Seq[Timed[Obj]]] = Children(tl)
   }
 }
 trait Timeline extends Obj {

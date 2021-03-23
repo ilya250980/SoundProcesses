@@ -21,7 +21,8 @@ import de.sciss.lucre.expr.graph.impl.{AbstractCtxCellView, ExpandedObjMakeImpl,
 import de.sciss.lucre.expr.impl.{IActionImpl, ITriggerConsumer}
 import de.sciss.lucre.expr.{CellView, Context, IAction}
 import de.sciss.lucre.impl.IChangeGeneratorEvent
-import de.sciss.lucre.{Adjunct, Caching, IChangeEvent, IExpr, IPush, ITargets, ProductWithAdjuncts, Source, SpanLikeObj, Sys, Txn, Obj => LObj}
+import de.sciss.lucre.{Adjunct, Caching, Disposable, IChangeEvent, IExpr, IPull, IPush, ITargets, ProductWithAdjuncts, Source, SpanLikeObj, Sys, Txn, Obj => LObj}
+import de.sciss.model.Change
 import de.sciss.proc
 import de.sciss.serial.{DataInput, TFormat}
 import de.sciss.span.{Span => _Span, SpanLike => _SpanLike}
@@ -383,20 +384,61 @@ object Timeline extends ProductReader[Ex[Timeline]] {
     }
   }
 
-  // XXX TODO this must observe the timeline peer changes!
-  private final class ChildrenExpanded[T <: Txn[T], A](in: IExpr[T, Timeline], tx0: T)
-                                                   (implicit targets: ITargets[T])
-    extends MappedIExpr[T, Timeline, Seq[Timed[Obj]]](in, tx0) {
+  // XXX TODO -- DRY with Ex Folder ExpandedImpl
+  private final class ChildrenExpanded[T <: Txn[T]](in: IExpr[T, Timeline], tx0: T)
+                                                     (implicit protected val targets: ITargets[T])
+    extends IExpr[T, Seq[Timed[Obj]]] with IChangeGeneratorEvent[T, Seq[Timed[Obj]]] with Caching {
 
-    protected def mapValue(inValue: Timeline)(implicit tx: T): Seq[Timed[Obj]] =
-      inValue.peer[T].fold(Seq.empty[Timed[Obj]]) { tl =>
-        tl.iterator.flatMap {
-          case (sp, entries) =>
-            entries.map { e =>
-              val v = Obj.wrap(e.value)
-              Timed(sp, v)
-            }
-        } .toVector
+    type A = Seq[Timed[Obj]]
+
+    private[this] val obs   = Ref(Disposable.empty[T])
+    private[this] val ref   = Ref[A](Nil)
+
+    protected def mapValue(tl: proc.Timeline[T])(implicit tx: T): A =
+      tl.iterator.flatMap {
+        case (sp, entries) =>
+          entries.map { e =>
+            val v = Obj.wrap(e.value)
+            Timed(sp, v)
+          }
+      } .toVector
+
+    private def setObj(v: Timeline)(implicit tx: T): Unit = {
+      obs.swap(Disposable.empty).dispose()
+      // XXX TODO --- should we also fire when size has been non-zero and v.peer is empty?
+      v.peer[T].foreach { f =>
+        val newObs = f.changed.react { implicit tx => upd =>
+          val now     = mapValue(upd.group)
+          val before  = ref.swap(now)
+          if (before != now) fire(Change(before, now))
+        }
+        obs()   = newObs
+        val now = mapValue(f)
+        ref()   = now
+      }
+    }
+
+    in.changed.--->(this)(tx0)
+    setObj(in.value(tx0))(tx0)
+
+    def value(implicit tx: T): A =
+      IPush.tryPull(this).fold(ref())(_.now)
+
+    def changed: IChangeEvent[T, A] = this
+
+    def dispose()(implicit tx: T): Unit = {
+      in.changed.-/->(this)
+      obs.swap(Disposable.empty).dispose()
+    }
+
+    private[lucre] def pullChange(pull: IPull[T])(implicit tx: T, phase: IPull.Phase): A =
+      if (pull.isOrigin(this)) pull.resolveExpr(this)
+      else {
+        if (phase.isBefore) ref() else {
+          val res = pull.expr(in)
+          setObj(res)
+          ref()
+        }
       }
   }
 

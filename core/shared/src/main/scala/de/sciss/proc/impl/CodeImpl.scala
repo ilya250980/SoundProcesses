@@ -187,7 +187,11 @@ object CodeImpl {
     val impS    = importsPrelude(code, indent = 1)
 //    val aTpe    = tt.tpe.toString // not `clazz.getName` which gives `void` instead of `Unit`!
     val isUnit  = resCl == classOf[Unit]
-    val resName = if (isUnit) "Unit" else resCl.getName
+    val resName = if (isUnit) "Unit" else {
+      val n0 = resCl.getName
+      val tp = resCl.getTypeParameters.length
+      if (tp == 0) n0 else Seq.fill(tp)("_").mkString(s"$n0[", "_", "]")
+    }
     val synth =
       s"""$pkgCode.Run[$resName]($execute) {
         |$impS

@@ -14,10 +14,10 @@
 package de.sciss.proc.impl
 
 import java.io.{ByteArrayInputStream, ByteArrayOutputStream}
-
 import de.sciss.serial.{ConstFormat, DataInput, DataOutput}
 import de.sciss.proc.Code
 import de.sciss.proc.Code.Import
+import de.sciss.proc.legacy.ActionRaw
 
 import scala.collection.immutable.{IndexedSeq => Vec, Seq => ISeq}
 import scala.concurrent.{Future, blocking}
@@ -41,7 +41,7 @@ object CodeImpl {
 
   def apply(id: Int, source: String): Code = getType(id).mkCode(source)
 
-  def types: ISeq[Code.Type] = map.valuesIterator.toList.sortBy(_.humanName)
+  def types: ISeq[Code.Type] = (map - ActionRaw.Code.id).valuesIterator.toList.sortBy(_.humanName)
 
   // ----
 

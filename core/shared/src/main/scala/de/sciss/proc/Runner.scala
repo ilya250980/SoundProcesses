@@ -151,7 +151,7 @@ object Runner {
 
     type Repr[~ <: Txn[~]] = _Control[~]
 
-    def mkRunner[T <: Txn[T]](obj: _Control[T])(implicit tx: T, universe: Universe[T]): Runner[T] =
+    def mkRunner[T <: synth.Txn[T]](obj: _Control[T])(implicit tx: T, universe: Universe[T]): Runner[T] =
       ControlRunnerImpl(obj)
   }
 
@@ -166,7 +166,7 @@ object Runner {
 
     type Repr[~ <: Txn[~]] = _Action[~]
 
-    def mkRunner[T <: Txn[T]](obj: _Action[T])(implicit tx: T, universe: Universe[T]): Runner[T] =
+    def mkRunner[T <: synth.Txn[T]](obj: _Action[T])(implicit tx: T, universe: Universe[T]): Runner[T] =
       ActionRunnerImpl(obj)
   }
 

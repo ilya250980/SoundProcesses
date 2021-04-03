@@ -35,7 +35,7 @@ object AuralEnvSegmentAttribute extends Factory with StartLevelViewFactory {
                               (implicit tx: T, context: AuralContext[T]): AuralAttribute[T] =
     new Impl(key, tx.newHandle(value)).init(value)
 
-  def mkStartLevelView[T <: Txn[T]](value: Repr[T])(implicit tx: T): ControlValuesView[T] =
+  def mkStartLevelView[T <: synth.Txn[T]](value: Repr[T])(implicit tx: T): ControlValuesView[T] =
     new StartLevelView(tx.newHandle(value))
 
   private def mkEnvSegGraph(numChannels: Int): SynthGraph =

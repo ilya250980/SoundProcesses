@@ -24,9 +24,7 @@ trait AuralSystemPlatform {
 
   protected def mkConnection(config: Server.Config, client: Client.Config,
                              connect: Boolean): ServerConnection.Listener => ServerConnection = {
-//    tx.afterCommit {
-      installShutdown
-//    }
+    installShutdown
     if (connect) {
       SServer.connect("SoundProcesses", config, client)
     } else {

@@ -258,7 +258,7 @@ object AuralAttributeImpl {
                           (implicit tx: T, context: AuralContext[T]): AuralAttribute[T] =
       new IntAttribute(key, tx.newHandle(value)).init(value)
 
-    def mkStartLevelView[T <: Txn[T]](value: Repr[T])(implicit tx: T): ControlValuesView[T] =
+    def mkStartLevelView[T <: synth.Txn[T]](value: Repr[T])(implicit tx: T): ControlValuesView[T] =
       new IntStartLevel[T](tx.newHandle(value))
   }
 
@@ -313,7 +313,7 @@ object AuralAttributeImpl {
                           (implicit tx: T, context: AuralContext[T]): AuralAttribute[T] =
       new DoubleAttribute(key, tx.newHandle(value)).init(value)
 
-    def mkStartLevelView[T <: Txn[T]](value: Repr[T])(implicit tx: T): ControlValuesView[T] =
+    def mkStartLevelView[T <: synth.Txn[T]](value: Repr[T])(implicit tx: T): ControlValuesView[T] =
       new DoubleStartLevel[T](tx.newHandle(value))
   }
 
@@ -368,7 +368,7 @@ object AuralAttributeImpl {
                           (implicit tx: T, context: AuralContext[T]): AuralAttribute[T] =
       new BooleanAttribute(key, tx.newHandle(value)).init(value)
 
-    def mkStartLevelView[T <: Txn[T]](value: Repr[T])(implicit tx: T): ControlValuesView[T] =
+    def mkStartLevelView[T <: synth.Txn[T]](value: Repr[T])(implicit tx: T): ControlValuesView[T] =
       new BooleanStartLevel[T](tx.newHandle(value))
   }
 
@@ -490,7 +490,7 @@ object AuralAttributeImpl {
                           (implicit tx: T, context: AuralContext[T]): AuralAttribute[T] =
       new DoubleVectorAttribute(key, tx.newHandle(value)).init(value)
 
-    def mkStartLevelView[T <: Txn[T]](value: Repr[T])(implicit tx: T): ControlValuesView[T] =
+    def mkStartLevelView[T <: synth.Txn[T]](value: Repr[T])(implicit tx: T): ControlValuesView[T] =
       new DoubleVectorStartLevel[T](tx.newHandle(value))
   }
 
@@ -556,7 +556,7 @@ object AuralAttributeImpl {
                           (implicit tx: T, context: AuralContext[T]): AuralAttribute[T] =
       new IntVectorAttribute(key, tx.newHandle(value)).init(value)
 
-    def mkStartLevelView[T <: Txn[T]](value: Repr[T])(implicit tx: T): ControlValuesView[T] =
+    def mkStartLevelView[T <: synth.Txn[T]](value: Repr[T])(implicit tx: T): ControlValuesView[T] =
       new IntVectorStartLevel[T](tx.newHandle(value))
   }
 

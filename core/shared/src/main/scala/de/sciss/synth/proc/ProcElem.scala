@@ -82,10 +82,10 @@ object ProcElem {
     )
   }
 
-  private def synthMap: Map[String, SynthV] = {
+  private def synthMap: Seq[(String, SynthV)] = {
     import graph._
     import BufferGen._
-    Map(
+    Seq(
       (Cheby.readerKey, Command),
       (Copy .readerKey, Command),
       (Sine1.readerKey, Command),

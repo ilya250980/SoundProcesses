@@ -15,10 +15,12 @@ package de.sciss.synth.proc.graph
 
 import de.sciss.proc.UGenGraphBuilder
 import de.sciss.proc.UGenGraphBuilder.Input
-import de.sciss.synth.UGenSource.{ProductReader, RefMapIn}
+import de.sciss.synth.UGenSource.{ProductType, RefMapIn}
 import de.sciss.synth.{GE, Lazy, ugen}
 
-object StopSelf extends ProductReader[StopSelf] {
+object StopSelf extends ProductType[StopSelf] {
+  override final val typeId = 615
+
   final val replyName = "/$stop"
 
   override def read(in: RefMapIn, prefix: String, arity: Int): StopSelf = {

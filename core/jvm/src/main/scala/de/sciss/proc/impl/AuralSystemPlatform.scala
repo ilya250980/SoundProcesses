@@ -14,7 +14,7 @@
 package de.sciss.proc
 package impl
 
-import de.sciss.lucre.synth.{RT, Server}
+import de.sciss.lucre.synth.Server
 import de.sciss.synth.{Client, ServerConnection, Server => SServer}
 
 trait AuralSystemPlatform {

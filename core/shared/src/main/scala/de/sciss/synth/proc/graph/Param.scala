@@ -16,10 +16,12 @@ package proc
 package graph
 
 import de.sciss.proc.{ParamSpec, UGenGraphBuilder => UGB}
-import de.sciss.synth.UGenSource.{ProductReader, RefMapIn, Vec}
+import de.sciss.synth.UGenSource.{ProductType, RefMapIn, Vec}
 import de.sciss.synth.ugen.ControlValues
 
-object Param extends ProductReader[Param] {
+object Param extends ProductType[Param] {
+  override final val typeId = 611
+
   def ar(key: String): Param = Param(audio, key = key, default = None, fixed = -1)
   def kr(key: String): Param = Param(audio, key = key, default = None, fixed = -1)
 

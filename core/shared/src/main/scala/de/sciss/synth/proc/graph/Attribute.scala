@@ -15,13 +15,15 @@ package de.sciss.synth.proc.graph
 
 import de.sciss.proc.UGenGraphBuilder
 import de.sciss.proc.UGenGraphBuilder.Input
-import de.sciss.synth.UGenSource.{ProductReader, RefMapIn}
+import de.sciss.synth.UGenSource.{ProductType, RefMapIn}
 import de.sciss.synth.ugen.{AudioControlProxy, ControlProxy, ControlValues}
 import de.sciss.synth.{GE, Rate, UGenInLike, audio, control, scalar}
 
 import scala.collection.immutable.{IndexedSeq => Vec}
 
-object Attribute extends ProductReader[Attribute] {
+object Attribute extends ProductType[Attribute] {
+  override final val typeId = 602
+
   final class Factory(val `this`: String) extends AnyVal { me =>
     import me.{`this` => name}
 

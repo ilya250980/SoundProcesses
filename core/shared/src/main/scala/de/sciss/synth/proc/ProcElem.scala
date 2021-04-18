@@ -21,8 +21,8 @@ import de.sciss.synth.UGenSource
 /** Registers UGen and Ex graph elements proper to SoundProcesses.  */
 object ProcElem {
   private lazy val _init: Unit = {
-    UGenSource.addProductReaderSq (synthSq)
-    UGenSource.addProductReaders  (synthMap)
+    UGenSource.addProductTypeSq (synthSq)
+    UGenSource.addProductTypes  (synthMap)
     ExElem    .addProductReaderSq (exSq)
   }
 
@@ -59,7 +59,7 @@ object ProcElem {
     )
   }
 
-  private type SynthV = UGenSource.ProductReader[Product]
+  private type SynthV = UGenSource.ProductType[Product]
 
   private def synthSq: Seq[SynthV] = {
     import de.sciss.synth.ugen

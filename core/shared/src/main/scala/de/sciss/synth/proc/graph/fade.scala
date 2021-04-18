@@ -16,7 +16,7 @@ package de.sciss.synth.proc.graph
 import de.sciss.proc.UGenGraphBuilder.Input
 import de.sciss.proc.{ObjKeys, UGenGraphBuilder}
 import de.sciss.synth.Ops.stringToControl
-import de.sciss.synth.UGenSource.{ProductReader, RefMapIn}
+import de.sciss.synth.UGenSource.{ProductType, RefMapIn}
 import de.sciss.synth.ugen._
 import de.sciss.synth.{Curve, GE, Rate, UGenInLike, audio, control}
 
@@ -60,7 +60,9 @@ private[graph] object fade {
     protected def mkSingleEnv(totalDur: GE, fadeDur: GE, shape: Env.Curve, floor: GE): IEnv
   }
 }
-object FadeIn extends ProductReader[FadeIn] {
+object FadeIn extends ProductType[FadeIn] {
+  override final val typeId = 607
+
   def kr: FadeIn = kr(ObjKeys.attrFadeIn)
   def kr(key: String): FadeIn = new FadeIn(control, key)
 
@@ -79,7 +81,9 @@ final case class FadeIn(rate: Rate, key: String) extends fade.SingleBase {
     IEnv(floor, Env.Segment(fadeDur, 1, shape) :: Nil)
 }
 
-object FadeOut extends ProductReader[FadeOut] {
+object FadeOut extends ProductType[FadeOut] {
+  override final val typeId = 608
+
   def kr: FadeOut = kr(ObjKeys.attrFadeOut)
   def kr(key: String): FadeOut = new FadeOut(control, key)
 
@@ -100,7 +104,9 @@ final case class FadeOut(rate: Rate, key: String) extends fade.SingleBase {
   }
 }
 
-object FadeInOut extends ProductReader[FadeInOut] {
+object FadeInOut extends ProductType[FadeInOut] {
+  override final val typeId = 609
+
   def kr: FadeInOut = kr(ObjKeys.attrFadeIn, ObjKeys.attrFadeOut)
   def kr(inKey: String, outKey: String): FadeInOut = new FadeInOut(control, inKey, outKey)
 

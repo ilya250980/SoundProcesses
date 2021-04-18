@@ -15,11 +15,13 @@ package de.sciss.synth.proc.graph
 
 import de.sciss.proc.UGenGraphBuilder
 import de.sciss.proc.UGenGraphBuilder.Input
-import de.sciss.synth.UGenSource.{ProductReader, RefMapIn}
+import de.sciss.synth.UGenSource.{ProductType, RefMapIn}
 import de.sciss.synth.ugen.Flatten
 import de.sciss.synth.{GE, HasSideEffect, Lazy}
 
-object MkValue extends ProductReader[MkValue] {
+object MkValue extends ProductType[MkValue] {
+  override final val typeId = 610
+
   override def read(in: RefMapIn, prefix: String, arity: Int): MkValue = {
     require (arity == 3)
     val _key  = in.readString()

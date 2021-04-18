@@ -15,11 +15,13 @@ package de.sciss.synth.proc.graph
 
 import de.sciss.proc.UGenGraphBuilder
 import de.sciss.proc.UGenGraphBuilder.Input
-import de.sciss.synth.UGenSource.{ProductReader, RefMapIn}
+import de.sciss.synth.UGenSource.{ProductType, RefMapIn}
 import de.sciss.synth.ugen.Flatten
 import de.sciss.synth.{GE, HasSideEffect, Lazy}
 
-object Action extends ProductReader[Action] {
+object Action extends ProductType[Action] {
+  override final val typeId = 600
+
   override def read(in: RefMapIn, prefix: String, arity: Int): Action = {
     require (arity == 2)
     val _trig = in.readGE()
@@ -41,7 +43,9 @@ final case class Action(trig: GE, key: String) extends Lazy.Expander[Unit] with 
   }
 }
 
-object Reaction extends ProductReader[Reaction] {
+object Reaction extends ProductType[Reaction] {
+  override final val typeId = 601
+
   override def read(in: RefMapIn, prefix: String, arity: Int): Reaction = {
     require (arity == 3)
     val _trig = in.readGE()

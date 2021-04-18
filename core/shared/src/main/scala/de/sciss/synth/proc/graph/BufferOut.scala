@@ -15,11 +15,13 @@ package de.sciss.synth.proc.graph
 
 import de.sciss.proc.UGenGraphBuilder
 import de.sciss.proc.UGenGraphBuilder.{Input, MissingIn}
-import de.sciss.synth.UGenSource.{ProductReader, RefMapIn}
+import de.sciss.synth.UGenSource.{ProductType, RefMapIn}
 import de.sciss.synth.ugen.ControlProxy
 import de.sciss.synth.{GE, Rate, UGenIn, UGenInLike, control, scalar, ugen}
 
-object BufferOut extends ProductReader[BufferOut] {
+object BufferOut extends ProductType[BufferOut] {
+  override final val typeId = 606
+
   def ir(artifact: String, action: String, numFrames: GE, numChannels: GE = 1): BufferOut =
     new BufferOut(scalar , artifact, numFrames = numFrames, numChannels = numChannels, action = action)
   

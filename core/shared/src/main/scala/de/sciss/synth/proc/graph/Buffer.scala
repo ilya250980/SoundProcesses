@@ -15,7 +15,7 @@ package de.sciss.synth.proc.graph
 
 import de.sciss.proc.UGenGraphBuilder
 import de.sciss.proc.UGenGraphBuilder.Input
-import de.sciss.synth.UGenSource.{ProductReader, RefMapIn}
+import de.sciss.synth.UGenSource.{ProductType, RefMapIn}
 import de.sciss.synth.ugen.ControlProxy
 import de.sciss.synth.{GE, Rate, UGenInLike, control, scalar}
 
@@ -24,7 +24,9 @@ import scala.collection.immutable.{IndexedSeq => Vec}
 /** An element referring to a random access buffer provided through an attribute.
   * The attribute will typically be an audio grapheme.
   */
-object Buffer extends ProductReader[Buffer] {
+object Buffer extends ProductType[Buffer] {
+  override final val typeId = 603
+
   def ir(key: String): Buffer = new Buffer(scalar , key)
   def kr(key: String): Buffer = new Buffer(control, key)
 

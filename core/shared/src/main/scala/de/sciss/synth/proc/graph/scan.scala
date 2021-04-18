@@ -20,7 +20,9 @@ import de.sciss.proc.UGenGraphBuilder.Input
 import de.sciss.synth.ugen.UGenInGroup
 import de.sciss.synth.{AudioRated, GE, UGen, UGenIn, UGenInLike, UGenSource, WritesBus, audio}
 
-object ScanIn extends ProductReader[ScanIn] {
+object ScanIn extends ProductType[ScanIn] {
+  override final val typeId = 612
+
   /* private[proc] */ def controlName (key: String): String =
     Attribute.controlName(key) // s"$$i_$key"
 
@@ -66,7 +68,9 @@ final case class ScanIn(key: String /*, default: Double = 0.0 */)
       UGenInGroup.empty
     }
 }
-object ScanOut extends ProductReader[ScanOut] {
+object ScanOut extends ProductType[ScanOut] {
+  override final val typeId = 613
+
   def controlName(key: String): String = s"$$o_$key"
 
   def apply(in: GE): ScanOut = new ScanOut("out", in)
@@ -101,7 +105,9 @@ final case class ScanOut(key: String, in: GE)
   }
 }
 
-object ScanInFix extends ProductReader[ScanInFix] {
+object ScanInFix extends ProductType[ScanInFix] {
+  override final val typeId = 614
+
   def apply(numChannels: Int): ScanInFix = apply("in", numChannels)
 
   override def read(in: RefMapIn, prefix: String, arity: Int): ScanInFix = {

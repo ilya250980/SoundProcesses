@@ -3,7 +3,7 @@ import sbtcrossproject.Platform
 lazy val baseName  = "SoundProcesses"
 lazy val baseNameL = baseName.toLowerCase
 
-lazy val projectVersion = "4.7.3"
+lazy val projectVersion = "4.7.4-SNAPSHOT"
 lazy val mimaVersion    = "4.7.0" // used for migration-manager
 
 ThisBuild / versionScheme := Some("pvp")
@@ -59,10 +59,10 @@ lazy val deps = new {
     val numbers             = "0.2.1"
     val processor           = "0.5.0"
     val scalaCollider       = "2.6.2"
-    val scalaColliderIf     = "1.7.4"
-    val scalaColliderUGens  = "1.21.1"
+    val scalaColliderIf     = "1.7.5-SNAPSHOT"
+    val scalaColliderUGens  = "1.21.2-SNAPSHOT"
     val scalaJavaTime       = "2.1.0"
-    val serial              = "2.0.1"
+    val serial              = "2.0.2-SNAPSHOT"
     val span                = "2.0.2"
     val topology            = "1.1.4"
   }

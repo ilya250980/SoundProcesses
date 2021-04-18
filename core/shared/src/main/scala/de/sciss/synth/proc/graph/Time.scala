@@ -14,13 +14,15 @@
 package de.sciss.synth.proc.graph
 
 import de.sciss.synth.Ops.stringToControl
-import de.sciss.synth.UGenSource.{ProductReader, RefMapIn}
+import de.sciss.synth.UGenSource.{ProductType, RefMapIn}
 import de.sciss.synth.{GE, ScalarRated, UGenInLike, inf}
 
-object Time extends ProductReader[Time] {
+object Time extends ProductType[Time] {
   private[sciss] final val key = "$time"
 
   def ir: GE = Time()
+
+  override final val typeId = 624
 
   override def read(in: RefMapIn, prefix: String, arity: Int): Time = {
     require (arity == 0)
@@ -32,10 +34,12 @@ final case class Time() extends GE.Lazy with ScalarRated {
   protected def makeUGens: UGenInLike = Time.key.ir
 }
 
-object Offset extends ProductReader[Offset] {
+object Offset extends ProductType[Offset] {
   private[sciss] final val key = "$off"
 
   def ir: GE = Offset()
+
+  override final val typeId = 625
 
   override def read(in: RefMapIn, prefix: String, arity: Int): Offset = {
     require (arity == 0)
@@ -47,10 +51,12 @@ final case class Offset() extends GE.Lazy with ScalarRated {
   protected def makeUGens: UGenInLike = Offset.key.ir
 }
 
-object Duration extends ProductReader[Duration] {
+object Duration extends ProductType[Duration] {
   private[sciss] final val key = "$dur"
 
   def ir: GE = Duration()
+
+  override final val typeId = 626
 
   override def read(in: RefMapIn, prefix: String, arity: Int): Duration = {
     require (arity == 0)

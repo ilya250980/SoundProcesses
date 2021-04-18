@@ -15,13 +15,17 @@ package de.sciss.synth.proc.graph
 
 import de.sciss.proc.UGenGraphBuilder
 import de.sciss.proc.UGenGraphBuilder.Input
-import de.sciss.synth.UGenSource.{ProductReader, RefMapIn}
+import de.sciss.synth.UGenSource.{ProductType, RefMapIn}
 import de.sciss.synth.proc.graph.BufferGen.Command
 import de.sciss.synth.ugen.ControlProxy
 import de.sciss.synth.{GE, ScalarRated, UGenInLike, message}
 
-object BufferGen extends ProductReader[BufferGen] {
-  object Command extends ProductReader[Command] {
+object BufferGen extends ProductType[BufferGen] {
+  override final val typeId = 604
+
+  object Command extends ProductType[Command] { // XXX TODo why was this made `ProductType`? remove in major version
+    override final val typeId = 605
+
     override def read(in: RefMapIn, prefix: String, arity: Int): Command = ???
   }
   // alias these

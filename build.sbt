@@ -3,13 +3,13 @@ import sbtcrossproject.Platform
 lazy val baseName  = "SoundProcesses"
 lazy val baseNameL = baseName.toLowerCase
 
-lazy val projectVersion = "4.7.3"
+lazy val projectVersion = "4.7.4"
 lazy val mimaVersion    = "4.7.0" // used for migration-manager
 
 ThisBuild / versionScheme := Some("pvp")
 
 lazy val commonJvmSettings = Seq(
-  crossScalaVersions := Seq("3.0.0-RC2", "2.13.5", "2.12.13"),
+  crossScalaVersions := Seq("3.0.0-RC3", "2.13.5", "2.12.13"),
 )
 
 // sonatype plugin requires that these are in global
@@ -58,8 +58,8 @@ lazy val deps = new {
     val lucre               = "4.4.4"
     val numbers             = "0.2.1"
     val processor           = "0.5.0"
-    val scalaCollider       = "2.6.2"
-    val scalaColliderIf     = "1.7.4"
+    val scalaCollider       = "2.6.3"
+    val scalaColliderIf     = "1.7.5"
     val scalaColliderUGens  = "1.21.1"
     val scalaJavaTime       = "2.1.0"
     val serial              = "2.0.1"
@@ -70,14 +70,14 @@ lazy val deps = new {
   val views = new {
     val audioWidgets        = "2.3.2"
     val lucreSwing          = "2.6.3"
-    val scalaColliderSwing  = "2.6.2"
+    val scalaColliderSwing  = "2.6.3"
     val swingPlus           = "0.5.0"
   }
   
   val test = new {
     val bdb                = "bdb"  // "bdb" or "bdb6" or "bdb7"
     def scalaColliderSwing: String = views.scalaColliderSwing
-    val scalaTest          = "3.2.7"
+    val scalaTest          = "3.2.8"
 //    val scallop            = "3.5.1"
     val submin             = "0.3.4"
   }

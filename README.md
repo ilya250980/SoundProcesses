@@ -35,7 +35,7 @@ The following sub-modules are available:
     "de.sciss" %% "soundprocesses-views"    % v  // common swing views
     "de.sciss" %% "soundprocesses-compiler" % v  // compiler integration
 
-The current version `v` is `"4.7.3"`.
+The current version `v` is `"4.7.4"`.
 
 ## contributing
 
